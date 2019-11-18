@@ -16,9 +16,16 @@ struct BestIntersection {
 };
 
 __global__ void
-solve_intersections(int width, int height, int num_shapes,
+solve_intersections(unsigned width, unsigned height, unsigned num_shapes,
                     const scene::ShapeData *shapes,
                     Eigen::Vector4f *world_space_directions,
-                    std::optional<BestIntersection> *best_intersections);
+                    std::optional<BestIntersection> *best_intersections) {
+  unsigned x_dim = blockIdx.x * blockDim.x + threadIdx.x;
+  unsigned y_dim = blockIdx.y * blockDim.y + threadIdx.y;
+  unsigned shape_idx = blockIdx.z * blockDim.z + threadIdx.z;
+
+  // TODO
+  shapes[shape_idx];
+}
 } // namespace detail
 } // namespace ray

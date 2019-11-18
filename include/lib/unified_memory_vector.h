@@ -21,7 +21,6 @@ template <class T> T *UMAllocator<T>::allocate(size_t n) {
   T *ptr;
   if (n > 0) {
     cudaMallocManaged(&ptr, n * sizeof(T));
-    cudaMemAdvise(ptr, n * sizeof(T), CU_MEM_ADVISE_SET_PREFERRED_LOCATION, 0);
   } else {
     ptr = NULL;
   }

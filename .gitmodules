@@ -1,0 +1,3 @@
+[submodule "eigen__"]
+	path = eigen
+	url = https://github.com/rgreenblatt/eigen

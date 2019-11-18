@@ -1,9 +1,0 @@
-clang++-8
-%cpp -std=c++11
--I/home/ryan/documents/cs123_final/include
--I/usr/local/cuda/include
--Wall
--Wextra
--Wconversion
---cuda-gpu-arch=sm_75
---cuda-path=/usr/local/cuda
