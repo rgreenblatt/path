@@ -13,7 +13,7 @@ struct Material {
   Color transparent;
   Color emissive;
 
-  size_t texture_map_index; // TODO
+  int texture_map_index; // TODO
 
   float blend;
 
@@ -23,7 +23,7 @@ struct Material {
 
   Material(const Color &diffuse, const Color &ambient, const Color &reflective,
            const Color &specular, const Color &transparent,
-           const Color &emissive, size_t texture_map_index, float blend,
+           const Color &emissive, int texture_map_index, float blend,
            float shininess, float ior)
       : diffuse(diffuse), ambient(ambient), reflective(reflective),
         specular(specular), transparent(transparent), emissive(emissive),

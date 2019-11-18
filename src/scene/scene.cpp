@@ -16,7 +16,7 @@ const ShapeData *Scene::get_shapes(Shape shape) const {
     assert(false);
   }
 }
-int Scene::get_num_shapes(Shape shape) const {
+unsigned Scene::get_num_shapes(Shape shape) const {
   switch (shape) {
   case Shape::Sphere:
     return num_spheres();

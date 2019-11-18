@@ -12,15 +12,15 @@ public:
   const ShapeData *cubes() const override {
     return &shapes_[num_spheres_ + num_cylinders_];
   }
-  int num_spheres() const override { return num_spheres_; }
-  int num_cylinders() const override { return num_cylinders_; }
-  int num_cubes() const override { return num_cubes_; }
+  unsigned num_spheres() const override { return num_spheres_; }
+  unsigned num_cylinders() const override { return num_cylinders_; }
+  unsigned num_cubes() const override { return num_cubes_; }
 
 protected:
   AllocVec<ShapeData> shapes_;
 
-  int num_spheres_;
-  int num_cylinders_;
-  int num_cubes_;
+  unsigned num_spheres_;
+  unsigned num_cylinders_;
+  unsigned num_cubes_;
 };
 } // namespace scene
