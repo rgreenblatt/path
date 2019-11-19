@@ -2,7 +2,7 @@
 
 #include "lib/cuda_utils.h"
 
-#include <Eigen/Dense>
+#include <Eigen/Core>
 #include <optional>
 #include <utility>
 
@@ -78,25 +78,13 @@ struct IntersectionNormalUV {
       : intersection(intersection), normal(normal), uv(uv) {}
 };
 
-HOST_DEVICE inline float get_intersection(const IntersectionNormalUV &v) {
-  return v.intersection;
-}
-
-HOST_DEVICE inline float get_intersection(float v) { return v; }
-
 template <typename... T>
-HOST_DEVICE inline auto optional_fold_intersection(std::optional<T>... values) {
+HOST_DEVICE inline auto optional_min(std::optional<T>... values) {
   return optional_fold(
-      [](const auto &a, const auto &b) -> std::optional<float> {
-        return get_intersection(a) < get_intersection(b) ? a : b;
+      [](const auto &a, const auto &b) {
+        return std::make_optional(std::min(a, b));
       },
       [](const auto &a) { return a; }, values...);
-}
-
-template <typename... T>
-HOST_DEVICE inline std::optional<float>
-optional_min(std::optional<T>... values) {
-  return optional_fold_intersection(values...);
 }
 
 template <typename T>

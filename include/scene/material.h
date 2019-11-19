@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Eigen/Dense>
+#include <Eigen/Core>
 
 namespace scene {
 using Color = Eigen::Vector3f;

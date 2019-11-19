@@ -33,14 +33,14 @@ template <> struct cylinder_body_converter<true> {
 
 template <bool get_normals>
 HOST_DEVICE auto solve_cylinder(const Eigen::Vector3f &point,
-                                        const Eigen::Vector3f &direction,
-                                        bool texture_map) {
+                                const Eigen::Vector3f &direction,
+                                bool texture_map) {
   // x^2 + z^2 = R^2
   // a:  d_x**2 + d_z**2
   // b:  2*d_x*p_x + 2*d_z*p_z
   // c:  p_x**2 + p_z**2 - 0.25
-  const Eigen::Vector2f direction_xz(direction.x(), direction.y());
-  const Eigen::Vector2f point_xz(point.x(), point.y());
+  const Eigen::Vector2f direction_xz(direction.x(), direction.z());
+  const Eigen::Vector2f point_xz(point.x(), point.z());
   const float a = direction_xz.squaredNorm();
   const float b = 2.0f * (direction_xz.cwiseProduct(point_xz)).sum();
   const float c = point_xz.squaredNorm() - 0.25f;
@@ -58,7 +58,7 @@ HOST_DEVICE auto solve_cylinder(const Eigen::Vector3f &point,
   const auto top_cap_sol =
       cap_sol<get_normals, true>(point, direction, texture_map);
 
-  return optional_fold_intersection(body_sol, bottom_cap_sol, top_cap_sol);
+  return optional_min(body_sol, bottom_cap_sol, top_cap_sol);
 }
 } // namespace detail
 } // namespace ray

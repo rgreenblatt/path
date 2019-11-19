@@ -60,10 +60,10 @@ __host__ __device__ auto solve_cube(const Eigen::Vector3f &point,
     const auto a = get_side(true);
     const auto b = get_side(false);
 
-    return optional_fold_intersection(a, b);
+    return optional_min(a, b);
   };
 
-  return optional_fold_intersection(get_axis(0, {{2, 1}}, false, 0, true),
+  return optional_min(get_axis(0, {{2, 1}}, false, 0, true),
                                     get_axis(1, {{0, 2}}, true, 1, false),
                                     get_axis(2, {{0, 1}}, true, 0, true));
 }

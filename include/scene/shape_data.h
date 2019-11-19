@@ -1,10 +1,10 @@
 #pragma once
 
-#include "scene/material.h"
 #include "lib/cuda_utils.h"
+#include "scene/material.h"
 
-#include <Eigen/Dense>
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 
 namespace scene {
 using Transform = Eigen::Affine3f;
@@ -14,20 +14,17 @@ public:
     return world_to_object_;
   }
 
-  HOST_DEVICE const Eigen::Matrix3f &
-  get_object_normal_to_world() const {
+  HOST_DEVICE const Eigen::Matrix3f &get_object_normal_to_world() const {
     return object_normal_to_world_;
   }
 
   HOST_DEVICE void set_transform(const Transform &transform) {
     transform_ = transform;
     world_to_object_ = transform_.inverse();
-    object_normal_to_world_ =
-        transform_.linear().transpose().inverse();
+    object_normal_to_world_ = transform_.linear().transpose().inverse();
   }
 
-  HOST_DEVICE ShapeData(const Transform &transform,
-                                const Material &material)
+  HOST_DEVICE ShapeData(const Transform &transform, const Material &material)
       : material_(material) {
     set_transform(transform);
   }
