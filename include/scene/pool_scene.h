@@ -4,7 +4,7 @@
 #include "scene/scene.h"
 
 namespace scene {
-class PoolScene : Scene {
+class PoolScene : public Scene {
 public:
   PoolScene();
   const ShapeData *spheres() const override { return shapes_.data(); }
@@ -17,7 +17,7 @@ public:
   unsigned num_cubes() const override { return num_cubes_; }
 
 protected:
-  AllocVec<ShapeData> shapes_;
+  ManangedMemVec<ShapeData> shapes_;
 
   unsigned num_spheres_;
   unsigned num_cylinders_;

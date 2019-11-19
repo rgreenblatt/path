@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cuda.h>
+#include "lib/cuda_utils.h"
 
 #include <cstdio>
 #include <vector>
@@ -15,12 +15,12 @@ template <class T> struct UMAllocator {
   void deallocate(T *p, size_t n);
 };
 
-template <class T> using AllocVec = std::vector<T, UMAllocator<T>>;
+template <class T> using ManangedMemVec = std::vector<T, UMAllocator<T>>;
 
 template <class T> T *UMAllocator<T>::allocate(size_t n) {
   T *ptr;
   if (n > 0) {
-    cudaMallocManaged(&ptr, n * sizeof(T));
+    CUDA_ERROR_CHK(cudaMallocManaged(&ptr, n * sizeof(T)));
   } else {
     ptr = NULL;
   }
@@ -28,5 +28,5 @@ template <class T> T *UMAllocator<T>::allocate(size_t n) {
 }
 
 template <class T> void UMAllocator<T>::deallocate(T *p, size_t) {
-  cudaFree(p);
+  CUDA_ERROR_CHK(cudaFree(p));
 }
