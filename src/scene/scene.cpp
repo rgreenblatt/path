@@ -1,22 +1,20 @@
 #include <scene/scene.h>
 
-#include <iostream>
-
 namespace scene {
-const ShapeData *Scene::get_shapes(Shape shape) const {
+unsigned Scene::get_start_shape(Shape shape) const {
   switch (shape) {
   case Shape::Sphere:
-    return spheres();
+    return start_spheres();
   case Shape::Cylinder:
-    return cylinders();
+    return start_cylinders();
   case Shape::Cube:
-    return cubes();
+    return start_cubes();
   default:
-    std::cout << "invalid Shape type" << std::endl;
+    // invalid shape
     assert(false);
   }
 }
-unsigned Scene::get_num_shapes(Shape shape) const {
+unsigned Scene::get_num_shape(Shape shape) const {
   switch (shape) {
   case Shape::Sphere:
     return num_spheres();
@@ -25,7 +23,7 @@ unsigned Scene::get_num_shapes(Shape shape) const {
   case Shape::Cube:
     return num_cubes();
   default:
-    std::cout << "invalid Shape type" << std::endl;
+    // invalid shape
     assert(false);
   }
 }

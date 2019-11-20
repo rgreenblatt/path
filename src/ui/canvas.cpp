@@ -1,5 +1,5 @@
 #include "ui/canvas.h"
-#include "BGRA.h"
+#include "lib/bgra.h"
 
 #include <QApplication>
 #include <QKeyEvent>

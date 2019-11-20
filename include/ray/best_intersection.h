@@ -1,24 +1,27 @@
 #pragma once
 
 #include "lib/cuda_utils.h"
+#include "ray/ray_utils.h"
 #include "scene/scene.h"
 
 namespace ray {
 namespace detail {
-struct BestIntersection {
-  float intersection;
-  unsigned shape_index;
-  scene::Shape shape_type;
 
-  __host__ __device__ BestIntersection(const float intersection,
-                                       const unsigned shape_index,
-                                       const scene::Shape shape_type)
-      : intersection(intersection), shape_index(shape_index),
-        shape_type(shape_type) {}
+template <bool normals_and_uv> struct BestIntersectionGeneral {
+  using Intersection = Intersection<normals_and_uv>;
+  Intersection intersection;
+  unsigned shape_idx;
 
-  __host__ __device__ bool operator<(const BestIntersection &rhs) const {
+  HOST_DEVICE BestIntersectionGeneral(const Intersection &intersection,
+                                      const unsigned shape_idx)
+      : intersection(intersection), shape_idx(shape_idx) {}
+
+  HOST_DEVICE bool operator<(const BestIntersectionGeneral &rhs) const {
     return intersection < rhs.intersection;
   }
 };
+
+using BestIntersectionNormalUV = BestIntersectionGeneral<true>;
+using BestIntersection = BestIntersectionGeneral<false>;
 } // namespace detail
 } // namespace ray

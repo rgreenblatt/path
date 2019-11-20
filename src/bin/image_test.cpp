@@ -1,40 +1,55 @@
 #include "ray/render.h"
-#include "scene/pool_scene.h"
+#include "scene/cs123_scene.h"
 
 #include <QImage>
+#include <boost/lexical_cast.hpp>
 
 #include <chrono>
 #include <iostream>
 
+#include <dbg.h>
+
 int main(int argc, char *argv[]) {
-  scene::PoolScene scene;
-  unsigned width = 1920;
-  unsigned height = 1080;
+  if (argc <= 1) {
+    std::cout << "too few args" << std::endl;
 
-  QImage image(width, height, QImage::Format_RGB32);
+    return 1;
+  }
 
-  auto bgra_data = reinterpret_cast<BGRA *>(image.bits());
+  for (size_t i = 1; i < static_cast<size_t>(argc); i++) {
+    scene::CS123Scene scene(argv[i]);
+    unsigned width = 1000;
+    unsigned height = 1000;
 
-  ray::Renderer renderer(width, height);
+    QImage image(width, height, QImage::Format_RGB32);
 
-  renderer.render(scene, bgra_data,
-                  static_cast<scene::Transform>(Eigen::Translation3f(0, 0, 9)));
+    auto bgra_data = reinterpret_cast<BGRA *>(image.bits());
 
-  auto start = std::chrono::high_resolution_clock::now();
-  for (int i = 0; i < 10; i++) {
+    ray::Renderer<ray::ExecutionModel::CPU> renderer(width, height, 1);
+
+    const Eigen::Affine3f transform(Eigen::Translation3f(0, 0, 5));
+    std::cout << transform.matrix() << std::endl;
+
     renderer.render(
         scene, bgra_data,
-        static_cast<scene::Transform>(Eigen::Translation3f(0, 0, 9)));
+        static_cast<scene::Transform>(transform));
+
+    auto start = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < 10; i++) {
+      renderer.render(
+          scene, bgra_data,
+          static_cast<scene::Transform>(transform));
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+
+    std::cout << "render time:"
+              << std::chrono::duration_cast<std::chrono::duration<double>>(
+                     end - start)
+                     .count()
+              << std::endl;
+
+    image.save(("out_" + boost::lexical_cast<std::string>(i) + ".png").c_str());
   }
-  auto end = std::chrono::high_resolution_clock::now();
-
-  std::cout << "render time:"
-            << std::chrono::duration_cast<std::chrono::duration<double>>(end -
-                                                                         start)
-                   .count()
-            << std::endl;
-
-  image.save("out.png");
 
   return 0;
 }

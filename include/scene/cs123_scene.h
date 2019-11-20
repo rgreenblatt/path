@@ -3,10 +3,12 @@
 #include "lib/unified_memory_vector.h"
 #include "scene/scene.h"
 
+#include <string>
+
 namespace scene {
-class PoolScene : public Scene {
+class CS123Scene : public Scene {
 public:
-  PoolScene();
+  CS123Scene(const std::string &file_path);
   unsigned num_spheres() const override { return num_spheres_; }
   unsigned num_cylinders() const override { return num_cylinders_; }
   unsigned num_cubes() const override { return num_cubes_; }

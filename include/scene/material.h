@@ -2,8 +2,10 @@
 
 #include <Eigen/Core>
 
+#include <thrust/optional.h>
+
 namespace scene {
-using Color = Eigen::Vector3f;
+using Color = Eigen::Array3f;
 
 struct Material {
   Color diffuse;
@@ -13,7 +15,7 @@ struct Material {
   Color transparent;
   Color emissive;
 
-  int texture_map_index; // TODO
+  thrust::optional<unsigned> texture_map_index; // TODO
 
   float blend;
 
@@ -23,7 +25,8 @@ struct Material {
 
   Material(const Color &diffuse, const Color &ambient, const Color &reflective,
            const Color &specular, const Color &transparent,
-           const Color &emissive, int texture_map_index, float blend,
+           const Color &emissive,
+           thrust::optional<unsigned> texture_map_index, float blend,
            float shininess, float ior)
       : diffuse(diffuse), ambient(ambient), reflective(reflective),
         specular(specular), transparent(transparent), emissive(emissive),

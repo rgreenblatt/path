@@ -4,19 +4,19 @@
 
 namespace ray {
 namespace detail {
-template <bool get_normals> struct cylinder_body_converter;
+template <bool normal_and_uv> struct cylinder_body_converter;
 
 template <> struct cylinder_body_converter<false> {
   HOST_DEVICE static auto get_converter(const Eigen::Vector3f &,
-                                                const Eigen::Vector3f &, bool) {
+                                        const Eigen::Vector3f &, bool) {
     return [&](const float v) { return v; };
   }
 };
 
 template <> struct cylinder_body_converter<true> {
-  HOST_DEVICE static auto
-  get_converter(const Eigen::Vector3f &point, const Eigen::Vector3f &direction,
-                const bool &texture_map) {
+  HOST_DEVICE static auto get_converter(const Eigen::Vector3f &point,
+                                        const Eigen::Vector3f &direction,
+                                        const bool &texture_map) {
     return [&](float v) {
       const Eigen::Vector3f intersection = point + direction * v;
       const auto normal =
@@ -31,10 +31,10 @@ template <> struct cylinder_body_converter<true> {
   }
 };
 
-template <bool get_normals>
-HOST_DEVICE auto solve_cylinder(const Eigen::Vector3f &point,
-                                const Eigen::Vector3f &direction,
-                                bool texture_map) {
+template <bool normal_and_uv>
+HOST_DEVICE IntersectionOp<normal_and_uv>
+solve_cylinder(const Eigen::Vector3f &point, const Eigen::Vector3f &direction,
+               bool texture_map) {
   // x^2 + z^2 = R^2
   // a:  d_x**2 + d_z**2
   // b:  2*d_x*p_x + 2*d_z*p_z
@@ -50,13 +50,13 @@ HOST_DEVICE auto solve_cylinder(const Eigen::Vector3f &point,
                                      [&](float v) {
                                        return height_check(v, point, direction);
                                      }),
-                   cylinder_body_converter<get_normals>::get_converter(
+                   cylinder_body_converter<normal_and_uv>::get_converter(
                        point, direction, texture_map));
 
   const auto bottom_cap_sol =
-      cap_sol<get_normals, false>(point, direction, texture_map);
+      cap_sol<normal_and_uv, false>(point, direction, texture_map);
   const auto top_cap_sol =
-      cap_sol<get_normals, true>(point, direction, texture_map);
+      cap_sol<normal_and_uv, true>(point, direction, texture_map);
 
   return optional_min(body_sol, bottom_cap_sol, top_cap_sol);
 }

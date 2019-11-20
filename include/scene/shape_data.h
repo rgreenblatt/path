@@ -14,6 +14,8 @@ public:
     return world_to_object_;
   }
 
+  HOST_DEVICE const Material &get_material() const { return material_; }
+
   HOST_DEVICE const Eigen::Matrix3f &get_object_normal_to_world() const {
     return object_normal_to_world_;
   }
