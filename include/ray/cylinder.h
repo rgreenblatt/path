@@ -4,33 +4,6 @@
 
 namespace ray {
 namespace detail {
-template <bool normal_and_uv> struct cylinder_body_converter;
-
-template <> struct cylinder_body_converter<false> {
-  HOST_DEVICE static auto get_converter(const Eigen::Vector3f &,
-                                        const Eigen::Vector3f &, bool) {
-    return [&](const float v) { return v; };
-  }
-};
-
-template <> struct cylinder_body_converter<true> {
-  HOST_DEVICE static auto get_converter(const Eigen::Vector3f &point,
-                                        const Eigen::Vector3f &direction,
-                                        const bool &texture_map) {
-    return [&](float v) {
-      const Eigen::Vector3f intersection = point + direction * v;
-      const auto normal =
-          Eigen::Vector3f(intersection.x(), 0, intersection.z());
-
-      return IntersectionNormalUV(
-          v, normal,
-          texture_map ? Eigen::Array2f(get_theta_div_uv(intersection),
-                                       -intersection.y() + 0.5f)
-                      : Eigen::Array2f(0));
-    };
-  }
-};
-
 template <bool normal_and_uv>
 HOST_DEVICE IntersectionOp<normal_and_uv>
 solve_cylinder(const Eigen::Vector3f &point, const Eigen::Vector3f &direction,
@@ -45,13 +18,24 @@ solve_cylinder(const Eigen::Vector3f &point, const Eigen::Vector3f &direction,
   const float b = 2.0f * (direction_xz.cwiseProduct(point_xz)).sum();
   const float c = point_xz.squaredNorm() - 0.25f;
 
-  const auto body_sol =
-      optional_map(optional_and_then(quadratic_formula(a, b, c),
-                                     [&](float v) {
-                                       return height_check(v, point, direction);
-                                     }),
-                   cylinder_body_converter<normal_and_uv>::get_converter(
-                       point, direction, texture_map));
+  const auto body_sol = optional_map(
+      quadratic_formula(a, b, c).and_then(
+          [&](float v) { return height_check(v, point, direction); }),
+      [&](float v) {
+        if constexpr (normal_and_uv) {
+          const Eigen::Vector3f intersection = point + direction * v;
+          const auto normal =
+              Eigen::Vector3f(intersection.x(), 0, intersection.z());
+
+          return IntersectionNormalUV(
+              v, normal,
+              texture_map ? UVPosition(get_theta_div_uv(intersection),
+                                           -intersection.y() + 0.5f)
+                          : UVPosition());
+        } else {
+          return v;
+        }
+      });
 
   const auto bottom_cap_sol =
       cap_sol<normal_and_uv, false>(point, direction, texture_map);

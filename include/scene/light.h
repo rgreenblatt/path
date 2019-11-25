@@ -14,6 +14,9 @@ struct DirectionalLight {
   DirectionalLight(const Eigen::Vector3f &direction) : direction(direction) {}
 
   DirectionalLight() {}
+
+public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 struct PointLight {
@@ -24,6 +27,9 @@ struct PointLight {
              const Eigen::Array3f &attenuation_function)
       : position(position), attenuation_function(attenuation_function) {}
   PointLight() {}
+
+public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 class Light {
@@ -32,23 +38,25 @@ public:
   bool is_directional;
 
   Light(const Color &color, const DirectionalLight &directional_light)
-      : color(color), directional_light(directional_light) {}
+      : color(color), is_directional(true),
+        directional_light_(directional_light) {}
 
   Light(const Color &color, const PointLight &point_light)
-      : color(color), point_light(point_light) {}
+      : color(color), is_directional(false), point_light_(point_light) {}
 
-  template <typename F>
-  HOST_DEVICE
-  auto visit(const F &f) const {
+  template <typename F> HOST_DEVICE auto visit(const F &f) const {
     if (is_directional) {
-      return f(directional_light);
+      return f(directional_light_);
     } else {
-      return f(point_light);
+      return f(point_light_);
     }
   }
 
 private:
-  DirectionalLight directional_light;
-  PointLight point_light;
+  DirectionalLight directional_light_;
+  PointLight point_light_;
+
+public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 } // namespace scene

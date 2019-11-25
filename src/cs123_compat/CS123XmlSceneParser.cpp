@@ -257,10 +257,10 @@ bool parseMatrix(const QDomElement &matrix, Eigen::Matrix4f &m) {
  */
 bool parseColor(const QDomElement &color, CS123SceneColor &c) {
   float discard;
-  return parseQuadruple(color, c[0], c[1], c[2], discard, "r", "g", "b", "a") ||
-         parseQuadruple(color, c[0], c[1], c[2], discard, "x", "y", "z", "w") ||
-         parseTriple(color, c[0], c[1], c[2], "r", "g", "b") ||
-         parseTriple(color, c[0], c[1], c[2], "x", "y", "z");
+  return parseQuadruple(color, c[0], c[1], c[2], discard, "b", "g", "r", "a") ||
+         parseQuadruple(color, c[0], c[1], c[2], discard, "z", "y", "x", "w") ||
+         parseTriple(color, c[0], c[1], c[2], "b", "g", "r") ||
+         parseTriple(color, c[0], c[1], c[2], "z", "y", "x");
 }
 
 /**

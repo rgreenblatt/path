@@ -19,6 +19,9 @@ template <bool normals_and_uv> struct BestIntersectionGeneral {
   HOST_DEVICE bool operator<(const BestIntersectionGeneral &rhs) const {
     return intersection < rhs.intersection;
   }
+
+public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 using BestIntersectionNormalUV = BestIntersectionGeneral<true>;

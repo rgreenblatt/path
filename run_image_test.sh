@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-./build.sh && ./release/image_test
+./build.sh && ./release/image_test "$@"

@@ -31,6 +31,7 @@ PoolScene::PoolScene() {
   num_spheres_ = 3;
   num_cylinders_ = 2;
   num_cubes_ = 1;
+  num_cones_ = 1;
 
   lights_.push_back(
       Light(Color(0.5, 0.5, 0.5),

@@ -4,30 +4,6 @@
 
 namespace ray {
 namespace detail {
-template <bool normal_and_uv> struct cube_converter;
-
-template <> struct cube_converter<true> {
-  HOST_DEVICE static IntersectionNormalUV
-  convert(int axis, bool first, float v, const Eigen::Array2f &intersection,
-          bool texture_map, bool flip, int flip_at) {
-    Eigen::Vector3f normal(0, 0, 0);
-    normal[axis] = first ? 1.0f : -1.0f;
-
-    return IntersectionNormalUV(
-        v, normal,
-        texture_map ? uv_square_face(intersection,
-                                     make_optional(flip != first, flip_at))
-                    : Eigen::Array2f(0));
-  }
-};
-
-template <> struct cube_converter<false> {
-  HOST_DEVICE static float convert(int, bool, float v, const Eigen::Array2f &,
-                                   bool, bool, int) {
-    return v;
-  }
-};
-
 template <bool normal_and_uv>
 HOST_DEVICE IntersectionOp<normal_and_uv>
 solve_cube(const Eigen::Vector3f &point, const Eigen::Vector3f &direction,
@@ -48,13 +24,24 @@ solve_cube(const Eigen::Vector3f &point, const Eigen::Vector3f &direction,
           get_intersection(0),
           negate_first ? -get_intersection(1) : get_intersection(1));
       const auto is_valid = [&](int index) {
-        return std::abs(intersection[index]) <
-               width + std::numeric_limits<float>::epsilon();
+        return std::abs(intersection[index]) < width + epsilon;
       };
       return make_optional(
-          v >= 0 && is_valid(0) && is_valid(1),
-          cube_converter<normal_and_uv>::convert(axis, first, v, intersection,
-                                                 texture_map, flip, flip_at));
+          v >= 0 && is_valid(0) && is_valid(1), invoke([&] {
+            if constexpr (normal_and_uv) {
+              Eigen::Vector3f normal(0, 0, 0);
+              normal[axis] = first ? 1.0f : -1.0f;
+
+              return IntersectionNormalUV(
+                  v, normal,
+                  texture_map
+                      ? uv_square_face(intersection,
+                                       make_optional(flip != first, flip_at))
+                      : UVPosition(0));
+            } else {
+              return v;
+            }
+          }));
     };
     const auto a = get_side(true);
     const auto b = get_side(false);
@@ -63,8 +50,8 @@ solve_cube(const Eigen::Vector3f &point, const Eigen::Vector3f &direction,
   };
 
   return optional_min(get_axis(0, {{2, 1}}, false, 0, true),
-                           get_axis(1, {{0, 2}}, true, 1, false),
-                           get_axis(2, {{0, 1}}, true, 0, true));
+                      get_axis(1, {{0, 2}}, true, 1, false),
+                      get_axis(2, {{0, 1}}, true, 0, true));
 }
 } // namespace detail
 } // namespace ray

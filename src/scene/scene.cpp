@@ -9,6 +9,8 @@ unsigned Scene::get_start_shape(Shape shape) const {
     return start_cylinders();
   case Shape::Cube:
     return start_cubes();
+  case Shape::Cone:
+    return start_cones();
   default:
     // invalid shape
     assert(false);
@@ -22,6 +24,8 @@ unsigned Scene::get_num_shape(Shape shape) const {
     return num_cylinders();
   case Shape::Cube:
     return num_cubes();
+  case Shape::Cone:
+    return num_cones();
   default:
     // invalid shape
     assert(false);

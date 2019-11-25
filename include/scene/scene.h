@@ -1,28 +1,43 @@
 #pragma once
 
-#include <vector>
+#include "lib/unified_memory_vector.h"
+#include "scene/light.h"
+#include "scene/shape.h"
+#include "scene/shape_data.h"
 
-#include <scene/light.h>
-#include <scene/shape.h>
-#include <scene/shape_data.h>
+#include <vector>
 
 namespace scene {
 class Scene {
 public:
-  virtual unsigned num_spheres() const = 0;
-  virtual unsigned num_cylinders() const = 0;
-  virtual unsigned num_cubes() const = 0;
+  unsigned num_spheres() const { return num_spheres_; }
+  unsigned num_cylinders() const { return num_cylinders_; }
+  unsigned num_cubes() const { return num_cubes_; }
+  unsigned num_cones() const { return num_cones_; }
+  unsigned num_shapes() const { return shapes_.size(); }
 
-  virtual unsigned start_spheres() const = 0;
-  virtual unsigned start_cylinders() const = 0;
-  virtual unsigned start_cubes() const = 0;
+  unsigned start_spheres() const { return 0; }
+  unsigned start_cylinders() const { return num_spheres_; }
+  unsigned start_cubes() const { return num_spheres_ + num_cylinders_; }
+  unsigned start_cones() const {
+    return num_spheres_ + num_cylinders_ + num_cubes_;
+  }
 
-  virtual const ShapeData *get_shapes() const = 0;
+  virtual const ShapeData *get_shapes() const { return shapes_.data(); }
 
-  virtual const Light *get_lights() const = 0;
-  virtual unsigned get_num_lights() const = 0;
+  virtual const Light *get_lights() const { return lights_.data(); }
+  virtual unsigned get_num_lights() const { return lights_.size(); }
 
   unsigned get_num_shape(Shape shape) const;
   unsigned get_start_shape(Shape shape) const;
+
+protected:
+  std::vector<ShapeData> shapes_;
+  ManangedMemVec<Light> lights_;
+
+  unsigned num_spheres_;
+  unsigned num_cylinders_;
+  unsigned num_cubes_;
+  unsigned num_cones_;
 };
 } // namespace scene
