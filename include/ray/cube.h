@@ -16,6 +16,9 @@ solve_cube(const Eigen::Vector3f &point, const Eigen::Vector3f &direction,
     const auto get_side = [&](bool first) {
       const float v =
           ((first ? width : -width) - point[axis]) / direction[axis];
+      if (v < 0) {
+        return IntersectionOp<normal_and_uv>(thrust::nullopt);
+      }
       const auto get_intersection = [&](const size_t number) {
         const auto &index = other_indexes[number];
         return v * direction[index] + point[index];
@@ -27,7 +30,7 @@ solve_cube(const Eigen::Vector3f &point, const Eigen::Vector3f &direction,
         return std::abs(intersection[index]) < width + epsilon;
       };
       return make_optional(
-          v >= 0 && is_valid(0) && is_valid(1), invoke([&] {
+          is_valid(0) && is_valid(1), invoke([&] {
             if constexpr (normal_and_uv) {
               Eigen::Vector3f normal(0, 0, 0);
               normal[axis] = first ? 1.0f : -1.0f;

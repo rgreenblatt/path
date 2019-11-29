@@ -7,8 +7,8 @@
 #include <thrust/optional.h>
 #include <utility>
 
-#include "scene/shape_data.h"
 #include "lib/bgra.h"
+#include "scene/shape_data.h"
 
 namespace ray {
 namespace detail {
@@ -20,19 +20,8 @@ constexpr decltype(auto) invoke(F &&f, Args &&... args) {
   return std::forward<F>(f)(std::forward<Args>(args)...);
 }
 
-template <typename T, typename F,
-          typename Ret = decltype(std::declval<F>()(std::declval<T>()))>
-constexpr Ret optional_and_then(const thrust::optional<T> &v, const F &f) {
-  if (v.has_value()) {
-    return f(*v);
-  } else {
-    return thrust::nullopt;
-  }
-}
-
 template <typename T, typename F, typename Ret = decltype(std::declval<F>()())>
-HOST_DEVICE inline Ret optional_or_else(const thrust::optional<T> &v,
-                                        const F &f) {
+constexpr Ret optional_or_else(const thrust::optional<T> &v, const F &f) {
   if (v.has_value()) {
     return v;
   } else {
@@ -41,15 +30,15 @@ HOST_DEVICE inline Ret optional_or_else(const thrust::optional<T> &v,
 }
 
 template <typename T>
-HOST_DEVICE inline thrust::optional<T>
-optional_or(const thrust::optional<T> &v, const thrust::optional<T> &e) {
+constexpr thrust::optional<T> optional_or(const thrust::optional<T> &v,
+                                          const thrust::optional<T> &e) {
   return optional_or_else(v, [&]() { return e; });
 }
 
 template <typename T, typename F,
           typename Ret = decltype(std::declval<F>()(std::declval<T>()))>
-HOST_DEVICE inline thrust::optional<Ret>
-optional_map(const thrust::optional<T> &v, const F &f) {
+constexpr thrust::optional<Ret> optional_map(const thrust::optional<T> &v,
+                                             const F &f) {
   if (v.has_value()) {
     return f(*v);
   } else {
@@ -58,18 +47,18 @@ optional_map(const thrust::optional<T> &v, const F &f) {
 }
 
 template <typename FFold, typename FBase, typename V>
-HOST_DEVICE inline auto optional_fold(const FFold &, const FBase &f_base,
-                                      const thrust::optional<V> &first) {
+constexpr auto optional_fold(const FFold &, const FBase &f_base,
+                             const thrust::optional<V> &first) {
   return optional_map(first, f_base);
 }
 
 template <typename FFold, typename FBase, typename V, typename... T>
-HOST_DEVICE inline auto optional_fold(const FFold &f_fold, const FBase &f_base,
-                                      const thrust::optional<V> &first,
-                                      const thrust::optional<T> &... rest) {
+constexpr auto optional_fold(const FFold &f_fold, const FBase &f_base,
+                             const thrust::optional<V> &first,
+                             const thrust::optional<T> &... rest) {
   const auto f_rest = optional_fold(f_fold, f_base, rest...);
 
-  const decltype(f_rest) next = optional_and_then(first, [&](const auto &v) {
+  const decltype(f_rest) next = first.and_then([&](const auto &v) {
     if (f_rest.has_value()) {
       // make optional??
       return f_fold(*f_rest, v);
@@ -91,7 +80,7 @@ struct IntersectionNormalUV {
                                    const UVPosition &uv)
       : intersection(intersection), normal(normal), uv(uv) {}
 
-  HOST_DEVICE bool operator<(const IntersectionNormalUV &rhs) const {
+  constexpr bool operator<(const IntersectionNormalUV &rhs) const {
     return intersection < rhs.intersection;
   }
 };
@@ -104,7 +93,7 @@ template <bool normal_and_uv>
 using IntersectionOp = typename thrust::optional<Intersection<normal_and_uv>>;
 
 template <typename... T>
-HOST_DEVICE inline auto optional_min(thrust::optional<T>... values) {
+constexpr auto optional_min(const thrust::optional<T> &... values) {
   return optional_fold(
       [](const auto &a, const auto &b) {
         return thrust::make_optional(std::min(a, b));
@@ -113,8 +102,7 @@ HOST_DEVICE inline auto optional_min(thrust::optional<T>... values) {
 }
 
 template <typename T>
-HOST_DEVICE inline thrust::optional<T> make_optional(bool condition,
-                                                     const T &v) {
+constexpr thrust::optional<T> make_optional(bool condition, const T &v) {
   if (condition) {
     return thrust::make_optional(v);
   } else {
@@ -122,14 +110,13 @@ HOST_DEVICE inline thrust::optional<T> make_optional(bool condition,
   }
 }
 
-HOST_DEVICE inline thrust::optional<float>
+constexpr thrust::optional<float>
 option_if_negative(thrust::optional<float> v) {
-  return optional_and_then(
-      v, [](const float v) { return make_optional(v >= 0, v); });
+  return v.and_then([](const float v) { return make_optional(v >= 0, v); });
 }
 
 template <typename... T>
-HOST_DEVICE inline thrust::optional<float> optional_positive_min(T... values) {
+constexpr thrust::optional<float> optional_positive_min(T... values) {
   return optional_min(option_if_negative(values)...);
 }
 
@@ -137,7 +124,7 @@ HOST_DEVICE inline thrust::optional<float> optional_positive_min(T... values) {
 constexpr float epsilon = 1e-5;
 
 template <typename F>
-HOST_DEVICE inline thrust::optional<float>
+constexpr thrust::optional<float>
 quadratic_formula(const float a, const float b, const float c, const F &check) {
   float determinant = b * b - 4 * a * c;
   if (determinant >= -epsilon) {
@@ -153,7 +140,7 @@ quadratic_formula(const float a, const float b, const float c, const F &check) {
   }
 }
 
-HOST_DEVICE inline thrust::optional<float>
+constexpr thrust::optional<float>
 quadratic_formula(const float a, const float b, const float c) {
   return quadratic_formula(a, b, c, [](const auto &a) { return a; });
 }

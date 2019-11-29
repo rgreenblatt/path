@@ -1,15 +1,16 @@
 #include "lib/unified_memory_vector.h"
 #include "ray/intersect.cuh"
+#include "ray/kdtree.h"
 #include "ray/lighting.cuh"
 #include "ray/render.h"
-#include "ray/kdtree.h"
 
 #include <boost/range/adaptor/indexed.hpp>
 #include <boost/range/combine.hpp>
+#include <thrust/copy.h>
 #include <thrust/fill.h>
 
-#include <dbg.h>
 #include <chrono>
+#include <dbg.h>
 
 namespace ray {
 using namespace detail;
@@ -20,13 +21,15 @@ unsigned num_blocks(unsigned size, unsigned block_size) {
 
 template <ExecutionModel execution_model>
 Renderer<execution_model>::Renderer(unsigned width, unsigned height,
-                                    unsigned recursive_iterations,
-                                    unsigned x_special, unsigned y_special)
-    : width_(width), height_(height), x_special_(x_special),
-      y_special_(y_special), recursive_iterations_(recursive_iterations),
-      by_type_data_(invoke([&] {
+                                    unsigned super_sampling_rate,
+                                    unsigned recursive_iterations)
+    : effective_width_(width * super_sampling_rate),
+      effective_height_(height * super_sampling_rate),
+      super_sampling_rate_(super_sampling_rate),
+      pixel_size_(effective_width_ * effective_height_),
+      recursive_iterations_(recursive_iterations), by_type_data_(invoke([&] {
         auto get_by_type = [&](scene::Shape shape_type) {
-          return ByTypeData(width, height, shape_type);
+          return ByTypeData(pixel_size_, shape_type);
         };
 
         return std::array{
@@ -36,55 +39,80 @@ Renderer<execution_model>::Renderer(unsigned width, unsigned height,
             get_by_type(scene::Shape::Cone),
         };
       })),
-      world_space_eyes_(width * height),
-      world_space_directions_(width * height), ignores_(width * height),
-      color_multipliers_(width * height), disables_(width * height),
-      colors_(width * height), bgra_(width * height) {}
+      world_space_eyes_(pixel_size_), world_space_directions_(pixel_size_),
+      ignores_(pixel_size_), color_multipliers_(pixel_size_),
+      disables_(pixel_size_), colors_(pixel_size_), bgra_(width * height) {}
+
+template <typename T> T *to_ptr(thrust::device_vector<T> &vec) {
+  return thrust::raw_pointer_cast(vec.data());
+}
+
+template <typename T> const T *to_ptr(const thrust::device_vector<T> &vec) {
+  return thrust::raw_pointer_cast(vec.data());
+}
+
+template <typename T> T *to_ptr(std::vector<T> &vec) { return vec.data(); }
+
+template <typename T> const T *to_ptr(const std::vector<T> &vec) {
+  return vec.data();
+}
+
+template <ExecutionModel execution_model>
+ByTypeDataGPU
+Renderer<execution_model>::ByTypeData::initialize(const scene::Scene &scene,
+                                                  scene::ShapeData *shapes) {
+  const unsigned num_shape = scene.get_num_shape(shape_type);
+  const unsigned start_shape = scene.get_start_shape(shape_type);
+
+  auto kdtree = construct_kd_tree(shapes + start_shape, num_shape);
+  nodes.resize(kdtree.size());
+  std::copy(kdtree.begin(), kdtree.end(), nodes.begin());
+  return ByTypeDataGPU(to_ptr(intersections), nodes.data(), nodes.size(),
+                       shape_type, start_shape, num_shape);
+}
 
 template <ExecutionModel execution_model>
 template <typename... T>
-void Renderer<execution_model>::minimize_intersections(unsigned size,
-                                                       T &... values) {
+void Renderer<execution_model>::minimize_intersections(
+    unsigned size, bool is_first, const DataType<uint8_t> &disables,
+    T &... values) {
   if constexpr (execution_model == ExecutionModel::GPU) {
     const unsigned minimize_block_size = 256;
     minimize_all_intersections<<<num_blocks(size, minimize_block_size),
                                  minimize_block_size>>>(
-        size, values.intersections.data()...);
+        size, is_first, to_ptr(disables), to_ptr(values.intersections)...);
 
     CUDA_ERROR_CHK(cudaDeviceSynchronize());
   } else {
-    minimize_all_intersections_cpu(size, values.intersections.data()...);
+    minimize_all_intersections_cpu(size, is_first, disables.data(),
+                                   values.intersections.data()...);
   }
 }
 
 template <ExecutionModel execution_model>
 template <typename... T>
-void Renderer<execution_model>::minimize_intersections(ByTypeData &first,
-                                                       const T &... rest) {
+void Renderer<execution_model>::minimize_intersections(
+    bool is_first, const DataType<uint8_t> &disables, ByTypeData &first,
+    const T &... rest) {
   minimize_intersections(static_cast<unsigned>(first.intersections.size()),
-                         first, rest...);
+                         is_first, disables, first, rest...);
 }
 
 template <ExecutionModel execution_model>
-void Renderer<execution_model>::render(
-    const scene::Scene &scene, BGRA *pixels,
-    const scene::Transform &m_film_to_world) {
+void Renderer<execution_model>::render(const scene::Scene &scene, BGRA *pixels,
+                                       const scene::Transform &m_film_to_world,
+                                       bool use_kd_tree) {
+  namespace chr = std::chrono;
+
   const auto lights = scene.get_lights();
   const unsigned num_lights = scene.get_num_lights();
-  const unsigned num_pixels = width_ * height_;
+  const unsigned num_pixels = effective_width_ * effective_height_;
 
-  /* light_shadowed_.resize(num_lights * num_pixels); */
+  const unsigned width_block_size = 8;
+  const unsigned height_block_size = 8;
 
-  // TODO
-  /* unsigned width_block_size = 4; */
-  /* unsigned height_block_size = 4; */
-  /* unsigned shapes_block_size = 64; */
-
-  const unsigned width_block_size = 32;
-  const unsigned height_block_size = 32;
-
-  const dim3 grid(num_blocks(width_, width_block_size),
-                  num_blocks(height_, height_block_size), 1);
+  const dim3 grid(num_blocks(effective_width_, width_block_size),
+                  num_blocks(effective_height_, height_block_size), 1);
   const dim3 block(width_block_size, height_block_size, 1);
 
   const Eigen::Vector3f world_space_eye = m_film_to_world.translation();
@@ -93,19 +121,21 @@ void Renderer<execution_model>::render(
 
   const scene::Color initial_color = scene::Color::Zero();
 
+  const auto start_fill = chr::high_resolution_clock::now();
+
   // could be made async until...
   if constexpr (execution_model == ExecutionModel::GPU) {
     const unsigned fill_block_size = 256;
     fill<<<num_blocks(num_pixels, fill_block_size), fill_block_size>>>(
-        world_space_eyes_.data(), num_pixels, world_space_eye);
+        to_ptr(world_space_eyes_), num_pixels, world_space_eye);
     fill<<<num_blocks(num_pixels, fill_block_size), fill_block_size>>>(
-        color_multipliers_.data(), num_pixels, initial_multiplier);
+        to_ptr(color_multipliers_), num_pixels, initial_multiplier);
     fill<<<num_blocks(num_pixels, fill_block_size), fill_block_size>>>(
-        colors_.data(), num_pixels, initial_color);
+        to_ptr(colors_), num_pixels, initial_color);
 
     initial_world_space_directions<<<grid, block>>>(
-        width_, height_, world_space_eye, m_film_to_world,
-        world_space_directions_.data());
+        effective_width_, effective_height_, world_space_eye, m_film_to_world,
+        to_ptr(world_space_directions_));
 
     CUDA_ERROR_CHK(cudaDeviceSynchronize());
   } else {
@@ -115,117 +145,138 @@ void Renderer<execution_model>::render(
               initial_multiplier);
     std::fill(colors_.begin(), colors_.end(), initial_color);
 
-    initial_world_space_directions_cpu(width_, height_, world_space_eye,
-                                       m_film_to_world,
+    initial_world_space_directions_cpu(effective_width_, effective_height_,
+                                       world_space_eye, m_film_to_world,
                                        world_space_directions_.data());
   }
-    
-  auto start_shape = scene.get_shapes();
+
+  dbg(chr::duration_cast<chr::duration<double>>(
+          chr::high_resolution_clock::now() - start_fill)
+          .count());
+
   const unsigned num_shapes = scene.num_shapes();
-  DataType<scene::ShapeData> shapes(num_shapes);
+  ManangedMemVec<scene::ShapeData> shapes(num_shapes);
 
-  std::copy(start_shape, start_shape + num_shapes, shapes.begin());
-
-/* #pragma omp parallel for */
-  for (auto &data : by_type_data_) {
-    const unsigned num_shape = scene.get_num_shape(data.shape_type);
-    const unsigned start_shape = scene.get_start_shape(data.shape_type);
-
-    auto kdtree =
-        construct_kd_tree(shapes.data() + start_shape, num_shape);
-    data.nodes.resize(kdtree.size());
-    std::copy(kdtree.begin(), kdtree.end(), data.nodes.begin());
+  {
+    auto start_shape = scene.get_shapes();
+    std::copy(start_shape, start_shape + num_shapes, shapes.begin());
   }
+
+  const auto start_kdtree = chr::high_resolution_clock::now();
+
+  std::array<ByTypeDataGPU, scene::shapes_size> by_type_data_gpu;
+
+#pragma omp parallel for
+  for (unsigned i = 0; i < scene::shapes_size; i++) {
+    by_type_data_gpu[i] = by_type_data_[i].initialize(scene, shapes.data());
+  }
+
+  dbg(chr::duration_cast<chr::duration<double>>(
+          chr::high_resolution_clock::now() - start_kdtree)
+          .count());
 
   for (unsigned depth = 0; depth < recursive_iterations_; depth++) {
     bool is_first = depth == 0;
 
-    const auto start_intersect = std::chrono::high_resolution_clock::now();
-/* #pragma omp parallel for */
-    for (auto &data : by_type_data_) {
-      const unsigned start_shape = scene.get_start_shape(data.shape_type);
-      if constexpr (execution_model == ExecutionModel::GPU) {
-        solve_intersections<<<grid, block>>>(
-            width_, height_, start_shape, shapes.data(),
-            world_space_eyes_.data(), world_space_directions_.data(),
-            data.nodes.data(), data.nodes.size(), ignores_.data(),
-            disables_.data(), data.intersections.data(), data.shape_type,
-            is_first);
-      } else {
-        solve_intersections_cpu(
-            width_, height_, start_shape, shapes.data(),
-            world_space_eyes_.data(), world_space_directions_.data(),
-            data.nodes.data(), data.nodes.size(), ignores_.data(),
-            disables_.data(), data.intersections.data(), data.shape_type,
-            is_first);
+    const auto start_intersect = chr::high_resolution_clock::now();
+
+    for (auto &data : by_type_data_gpu) {
+      auto solve = [&]<scene::Shape shape_type>() {
+        if constexpr (execution_model == ExecutionModel::GPU) {
+          solve_intersections<shape_type><<<grid, block>>>(
+              effective_width_, effective_height_, data, shapes.data(),
+              to_ptr(world_space_eyes_), to_ptr(world_space_directions_),
+              to_ptr(ignores_), to_ptr(disables_), is_first, use_kd_tree);
+        } else {
+          solve_intersections_cpu<shape_type>(
+              effective_width_, effective_height_, data, shapes.data(),
+              world_space_eyes_.data(), world_space_directions_.data(),
+              ignores_.data(), disables_.data(), is_first, use_kd_tree);
+        }
+      };
+      switch (data.shape_type) {
+      case scene::Shape::Sphere:
+        solve.template operator()<scene::Shape::Sphere>();
+        break;
+      case scene::Shape::Cylinder:
+        solve.template operator()<scene::Shape::Cylinder>();
+        break;
+      case scene::Shape::Cube:
+        solve.template operator()<scene::Shape::Cube>();
+        break;
+      case scene::Shape::Cone:
+        solve.template operator()<scene::Shape::Cone>();
+        break;
       }
     }
 
     CUDA_ERROR_CHK(cudaDeviceSynchronize());
-    
-    dbg(std::chrono::duration_cast<std::chrono::duration<double>>(
-        std::chrono::high_resolution_clock::now() - start_intersect).count());
+
+    dbg(chr::duration_cast<chr::duration<double>>(
+            chr::high_resolution_clock::now() - start_intersect)
+            .count());
+
+    const auto start_minimize = chr::high_resolution_clock::now();
 
     // fuse kernel???
-    minimize_intersections(by_type_data_[0], by_type_data_[1], by_type_data_[2],
+    minimize_intersections(is_first, disables_, by_type_data_[0],
+                           by_type_data_[1], by_type_data_[2],
                            by_type_data_[3]);
 
+    dbg(chr::duration_cast<chr::duration<double>>(
+            chr::high_resolution_clock::now() - start_minimize)
+            .count());
+
     auto &best_intersections = by_type_data_[0].intersections;
-    
-#if 0
-    for (auto &data : by_type_data_) {
-      const unsigned num_shape = scene.get_num_shape(data.shape_type);
-      const unsigned start_shape = scene.get_start_shape(data.shape_type);
 
-      if constexpr (execution_model == ExecutionModel::GPU) {
-        check_intersections<<<grid, block>>>(
-            width_, height_, num_shape, start_shape, shapes,
-            world_space_eyes_.data(), world_space_directions_.data(),
-            ignores_.data(), disables_.data(), data.intersections.data(),
-            data.shape_type, is_first);
-      } else {
-        solve_intersections_cpu(width_, height_, num_shape, start_shape, shapes,
-                                world_space_eyes_.data(),
-                                world_space_directions_.data(), ignores_.data(),
-                                disables_.data(), data.intersections.data(),
-                                data.shape_type, is_first);
-      }
-    }
-#endif
-
-    const auto start_color = std::chrono::high_resolution_clock::now();
+    const auto start_color = chr::high_resolution_clock::now();
     if constexpr (execution_model == ExecutionModel::GPU) {
-      // TODO block etc...
       compute_colors<<<grid, block>>>(
-          width_, height_, world_space_eyes_.data(),
-          world_space_directions_.data(), ignores_.data(),
-          color_multipliers_.data(), disables_.data(),
-          best_intersections.data(), shapes.data(), lights, num_lights,
-          colors_.data(), is_first, x_special_, y_special_);
+          effective_width_, effective_height_, by_type_data_gpu,
+          to_ptr(world_space_eyes_), to_ptr(world_space_directions_),
+          to_ptr(ignores_), to_ptr(color_multipliers_), to_ptr(disables_),
+          to_ptr(best_intersections), shapes.data(), lights, num_lights,
+          to_ptr(colors_), use_kd_tree, is_first);
 
       CUDA_ERROR_CHK(cudaDeviceSynchronize());
     } else {
-      compute_colors_cpu(width_, height_, world_space_eyes_.data(),
+      compute_colors_cpu(effective_width_, effective_height_, by_type_data_gpu,
+                         world_space_eyes_.data(),
                          world_space_directions_.data(), ignores_.data(),
                          color_multipliers_.data(), disables_.data(),
                          best_intersections.data(), shapes.data(), lights,
-                         num_lights, colors_.data(), is_first, x_special_,
-                         y_special_);
+                         num_lights, colors_.data(), use_kd_tree, is_first);
     }
-    dbg(std::chrono::duration_cast<std::chrono::duration<double>>(
-            std::chrono::high_resolution_clock::now() - start_color)
+    const auto end_color = chr::high_resolution_clock::now();
+    dbg(chr::duration_cast<chr::duration<double>>(end_color - start_color)
             .count());
   }
 
+  const unsigned width = effective_width_ / super_sampling_rate_;
+  const unsigned height = effective_height_ / super_sampling_rate_;
+
   if constexpr (execution_model == ExecutionModel::GPU) {
-    floats_to_bgras<<<grid, block>>>(width_, height_, colors_.data(),
-                                     bgra_.data(), x_special_, y_special_);
+    const dim3 to_bgra_grid(num_blocks(width, width_block_size),
+                            num_blocks(height, height_block_size), 1);
+    const dim3 to_bgra_block(width_block_size, height_block_size, 1);
+
+    const auto start_convert = chr::high_resolution_clock::now();
+    floats_to_bgras<<<to_bgra_grid, to_bgra_block>>>(
+        width, height, super_sampling_rate_, to_ptr(colors_), to_ptr(bgra_));
 
     CUDA_ERROR_CHK(cudaDeviceSynchronize());
+    dbg(chr::duration_cast<chr::duration<double>>(
+            chr::high_resolution_clock::now() - start_convert)
+            .count());
 
-    std::copy(bgra_.begin(), bgra_.end(), pixels);
+    const auto start_copy_to_cpu = chr::high_resolution_clock::now();
+    thrust::copy(bgra_.begin(), bgra_.end(), pixels);
+    dbg(chr::duration_cast<chr::duration<double>>(
+            chr::high_resolution_clock::now() - start_copy_to_cpu)
+            .count());
   } else {
-    floats_to_bgras_cpu(width_, height_, colors_.data(), pixels, x_special_, y_special_);
+    floats_to_bgras_cpu(width, height, super_sampling_rate_, colors_.data(),
+                        pixels);
   }
 }
 

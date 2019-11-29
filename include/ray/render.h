@@ -4,9 +4,11 @@
 #include "lib/unified_memory_vector.h"
 #include "ray/best_intersection.h"
 #include "ray/kdtree.h"
+#include "ray/by_type_data.h"
 #include "scene/scene.h"
 
 #include <thrust/optional.h>
+#include <thrust/device_vector.h>
 
 #include <functional>
 
@@ -24,44 +26,48 @@ template <typename T> struct get_vector_type<ExecutionModel::CPU, T> {
 };
 
 template <typename T> struct get_vector_type<ExecutionModel::GPU, T> {
-  using type = ManangedMemVec<T>;
+  using type = thrust::device_vector<T>;
 };
 
 template <ExecutionModel execution_model, typename T>
 using DataType = typename get_vector_type<execution_model, T>::type;
-}
+} // namespace detail
 
 template <ExecutionModel execution_model> class Renderer {
 public:
   void render(const scene::Scene &scene, BGRA *pixels,
-              const scene::Transform &m_film_to_world);
+              const scene::Transform &m_film_to_world, bool use_kd_tree);
 
-  Renderer(unsigned width, unsigned height, unsigned recursive_iterations,
-           unsigned x_special, unsigned y_special);
+  Renderer(unsigned width, unsigned height, unsigned super_sampling_rate,
+           unsigned recursive_iterations);
 
 private:
-  template <typename... T>
-  void minimize_intersections(unsigned size, T &... values);
-
   template <typename T> using DataType = detail::DataType<execution_model, T>;
 
   struct ByTypeData {
     DataType<thrust::optional<detail::BestIntersectionNormalUV>> intersections;
-    DataType<detail::KDTreeNode> nodes;
+    ManangedMemVec<detail::KDTreeNode> nodes;
     scene::Shape shape_type;
 
-    ByTypeData(unsigned width, unsigned height, scene::Shape shape_type)
-        : intersections(width * height), shape_type(shape_type) {}
+    detail::ByTypeDataGPU initialize(const scene::Scene &scene,
+                                     scene::ShapeData *shapes);
+
+    ByTypeData(unsigned pixel_size, scene::Shape shape_type)
+        : intersections(pixel_size), shape_type(shape_type) {}
   };
 
   template <typename... T>
-  void minimize_intersections(ByTypeData &first, const T &... rest);
+  void minimize_intersections(unsigned size, bool is_first,
+                              const DataType<uint8_t> &disables, T &... values);
 
-  unsigned width_;
-  unsigned height_;
-  
-  unsigned x_special_;
-  unsigned y_special_;
+  template <typename... T>
+  void minimize_intersections(bool is_first, const DataType<uint8_t> &disables,
+                              ByTypeData &first, const T &... rest);
+
+  unsigned effective_width_;
+  unsigned effective_height_;
+  unsigned super_sampling_rate_;
+  unsigned pixel_size_;
 
   unsigned recursive_iterations_;
 
@@ -74,6 +80,5 @@ private:
   DataType<uint8_t> disables_;
   DataType<scene::Color> colors_;
   DataType<BGRA> bgra_;
-  /* DataType<uint8_t> light_shadowed_; */
 };
 } // namespace ray

@@ -62,7 +62,7 @@ ADD_EXECUTABLE(
 
 ADD_EXECUTABLE(
   image_test
-  "${PROJECT_SOURCE_DIR}/src/bin/image_test.cpp"
+  "${PROJECT_SOURCE_DIR}/src/bin/image_test.cu"
   "${PROJECT_SOURCE_DIR}/src/scene/cs123_scene.cpp"
   "${PROJECT_SOURCE_DIR}/src/cs123_compat/Scene.cpp"
   "${PROJECT_SOURCE_DIR}/src/cs123_compat/CS123XmlSceneParser.cpp"

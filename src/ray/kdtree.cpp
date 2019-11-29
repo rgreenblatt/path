@@ -52,7 +52,7 @@ void kth_smallest(ShapeData *shapes, std::vector<Bounds> &bounds, int axis,
 }
 
 constexpr int maximum_kd_depth = 25;
-constexpr int final_shapes_per_division = 4;
+constexpr int final_shapes_per_division = 2;
 
 template <bool is_min>
 Eigen::Vector3f get_min_max_bound(const std::vector<Bounds> &bounds,
@@ -100,8 +100,8 @@ unsigned construct_kd_tree(std::vector<KDTreeNode> &nodes, ShapeData *shapes,
   auto max_bounds = left.max_bound.cwiseMax(right.max_bound);
 
   unsigned index = nodes.size();
-  nodes.push_back(
-      KDTreeNode(KDTreeSplit(left_index, right_index, median), min_bounds, max_bounds));
+  nodes.push_back(KDTreeNode(KDTreeSplit(left_index, right_index, median),
+                             min_bounds, max_bounds));
 
   return index;
 }

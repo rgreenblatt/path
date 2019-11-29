@@ -7,7 +7,7 @@ namespace detail {
 template <bool normal_and_uv>
 __host__ __device__ IntersectionOp<normal_and_uv>
 solve_sphere(const Eigen::Vector3f &point, const Eigen::Vector3f &direction,
-             bool texture_map, unsigned index) {
+             bool texture_map) {
   // R = 1/2
   // x^2 + y^2 + z^2 - 1 / 4 = 0
   // a = d_x^2 + d_y^2 + d_z^2
@@ -16,7 +16,7 @@ solve_sphere(const Eigen::Vector3f &point, const Eigen::Vector3f &direction,
   float a = direction.squaredNorm();
   float b = 2.0f * point.cwiseProduct(direction).sum();
   float c = point.squaredNorm() - 0.25f;
-      
+
   return optional_map(quadratic_formula(a, b, c), [&](float v) {
     if constexpr (normal_and_uv) {
       // intersection is normal
@@ -25,8 +25,8 @@ solve_sphere(const Eigen::Vector3f &point, const Eigen::Vector3f &direction,
       return IntersectionNormalUV(
           v, intersection,
           texture_map ? UVPosition(get_theta_div_uv(intersection),
-                                       0.5f - std::asin(intersection.y()) /
-                                                  static_cast<float>(M_PI))
+                                   0.5f - std::asin(intersection.y()) /
+                                              static_cast<float>(M_PI))
                       : UVPosition());
     } else {
       return v;
