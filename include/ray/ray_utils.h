@@ -237,7 +237,7 @@ HOST_DEVICE inline auto debug_value(Iter format_iter, const T &val) {
 
   if constexpr (std::is_same<typename std::decay_t<T>,
                              Eigen::Affine3f>::value) {
-    return debug_value(val.matrix());
+    return debug_value(format_iter, val.matrix());
   } else if constexpr (std::is_same<typename std::decay_t<T>,
                                     Eigen::Matrix3f>::value) {
     return handle_vals("x: %f, y: %f, z: %f\n", 3, val(0, 0), val(0, 1),
@@ -268,6 +268,8 @@ HOST_DEVICE inline auto debug_value(Iter format_iter, const T &val) {
   } else if constexpr (std::is_same<typename std::decay_t<T>,
                                     unsigned long>::value) {
     return handle_vals("%lu\n", 1, val);
+  } else if constexpr (std::is_same<typename std::decay_t<T>, bool>::value) {
+    return handle_vals("%s\n", 1, val ? "true" : "false");
   } else {
     static_assert(std::is_same<typename std::decay_t<T>, int>::value,
                   "type not yet handled");

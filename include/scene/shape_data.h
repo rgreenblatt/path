@@ -11,7 +11,7 @@ namespace scene {
 using Transform = Eigen::Affine3f;
 using UVPosition = Eigen::Array2f;
 
-class ShapeData {
+class ALIGN_STRUCT(32) ShapeData {
 public:
   HOST_DEVICE const Transform &get_transform() const {
     return transform_;

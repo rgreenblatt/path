@@ -31,13 +31,22 @@ public:
   unsigned get_num_shape(Shape shape) const;
   unsigned get_start_shape(Shape shape) const;
 
+  unsigned get_num_textures() const { return textures_refs_.size(); }
+  const TextureImageRef* get_textures() const { return textures_refs_.data(); }
+
 protected:
   std::vector<ShapeData> shapes_;
   ManangedMemVec<Light> lights_;
+  ManangedMemVec<TextureImage> textures_;
 
   unsigned num_spheres_;
   unsigned num_cylinders_;
   unsigned num_cubes_;
   unsigned num_cones_;
+  
+  void copy_in_texture_refs();
+
+private:
+  ManangedMemVec<TextureImageRef> textures_refs_;
 };
 } // namespace scene

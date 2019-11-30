@@ -107,6 +107,7 @@ void Renderer<execution_model>::render(const scene::Scene &scene, BGRA *pixels,
   const auto lights = scene.get_lights();
   const unsigned num_lights = scene.get_num_lights();
   const unsigned num_pixels = effective_width_ * effective_height_;
+  const auto textures = scene.get_textures();
 
   const unsigned width_block_size = 8;
   const unsigned height_block_size = 8;
@@ -228,7 +229,7 @@ void Renderer<execution_model>::render(const scene::Scene &scene, BGRA *pixels,
             .count());
 
     auto &best_intersections = by_type_data_[0].intersections;
-
+    
     const auto start_color = chr::high_resolution_clock::now();
     if constexpr (execution_model == ExecutionModel::GPU) {
       compute_colors<<<grid, block>>>(
@@ -236,16 +237,16 @@ void Renderer<execution_model>::render(const scene::Scene &scene, BGRA *pixels,
           to_ptr(world_space_eyes_), to_ptr(world_space_directions_),
           to_ptr(ignores_), to_ptr(color_multipliers_), to_ptr(disables_),
           to_ptr(best_intersections), shapes.data(), lights, num_lights,
-          to_ptr(colors_), use_kd_tree, is_first);
+          textures, to_ptr(colors_), use_kd_tree, is_first);
 
       CUDA_ERROR_CHK(cudaDeviceSynchronize());
     } else {
-      compute_colors_cpu(effective_width_, effective_height_, by_type_data_gpu,
-                         world_space_eyes_.data(),
-                         world_space_directions_.data(), ignores_.data(),
-                         color_multipliers_.data(), disables_.data(),
-                         best_intersections.data(), shapes.data(), lights,
-                         num_lights, colors_.data(), use_kd_tree, is_first);
+      compute_colors_cpu(
+          effective_width_, effective_height_, by_type_data_gpu,
+          world_space_eyes_.data(), world_space_directions_.data(),
+          ignores_.data(), color_multipliers_.data(), disables_.data(),
+          best_intersections.data(), shapes.data(), lights, num_lights,
+          textures, colors_.data(), use_kd_tree, is_first);
     }
     const auto end_color = chr::high_resolution_clock::now();
     dbg(chr::duration_cast<chr::duration<double>>(end_color - start_color)

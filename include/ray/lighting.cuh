@@ -17,8 +17,8 @@ __host__ __device__ void compute_color(
     unsigned *ignores, Eigen::Array3f *color_multipliers_, uint8_t *disables,
     const thrust::optional<BestIntersectionNormalUV> *best_intersections,
     const scene::ShapeData *shapes, const scene::Light *lights,
-    unsigned num_lights, scene::Color *colors, bool use_kd_tree,
-    bool is_first) {
+    unsigned num_lights, const scene::TextureImageRef *textures,
+    scene::Color *colors, bool use_kd_tree, bool is_first) {
   unsigned index = x + y * width;
 
   if (x >= width || y >= height) {
@@ -26,10 +26,10 @@ __host__ __device__ void compute_color(
   }
 
   auto &best_op = best_intersections[index];
+
   if ((!is_first && disables[index]) || !best_op.has_value()) {
     disables[index] = true;
   } else {
-
     auto &best = *best_op;
     auto &shape = shapes[best.shape_idx];
 
@@ -139,21 +139,22 @@ __host__ __device__ void compute_color(
       specular_lighting += light_factor * specular_factor;
     }
 
-    scene::Color color = material.ambient +
-#if 0
-            (material.texture_map_index.has_value() ? (1.0f - material.blend)
-                                                    : 1.0f) *
-#endif
-                         material.diffuse * diffuse_lighting +
-                         material.specular * specular_lighting;
+    auto get_blend_multiplier = [&](float blend) {
+      return material.texture_data.has_value() ? (1.0f - blend) : 1.0f;
+    };
 
-    if (material.texture_map_index.has_value()) {
-#if 0
-      assert(false);
-      auto tex_lighting = shape.texture.get().sample(textures_, solution.uv);
+    scene::Color color =
+        get_blend_multiplier(material.ambient_blend) * material.ambient +
+        get_blend_multiplier(material.diffuse_blend) * material.diffuse *
+            diffuse_lighting +
+        material.specular * specular_lighting;
 
-      lighting += shape.material.blend * tex_lighting * diffuse_lighting;
-#endif
+    if (material.texture_data.has_value()) {
+      auto tex_lighting =
+          material.texture_data->sample(textures, best.intersection.uv);
+
+      color += material.diffuse_blend * tex_lighting * diffuse_lighting;
+      color += material.ambient_blend * tex_lighting;
     }
 
     colors[index] += color_multipliers_[index] * color;
@@ -179,15 +180,15 @@ __global__ void compute_colors(
     unsigned *ignores, Eigen::Array3f *color_multipliers_, uint8_t *disables,
     const thrust::optional<BestIntersectionNormalUV> *best_intersections,
     const scene::ShapeData *shapes, const scene::Light *lights,
-    unsigned num_lights, scene::Color *colors, bool use_kd_tree,
-    bool is_first) {
+    unsigned num_lights, const scene::TextureImageRef *textures,
+    scene::Color *colors, bool use_kd_tree, bool is_first) {
   unsigned x = blockIdx.x * blockDim.x + threadIdx.x;
   unsigned y = blockIdx.y * blockDim.y + threadIdx.y;
 
   compute_color(x, y, width, height, by_type_data, world_space_eyes,
                 world_space_directions, ignores, color_multipliers_, disables,
-                best_intersections, shapes, lights, num_lights, colors,
-                use_kd_tree, is_first);
+                best_intersections, shapes, lights, num_lights, textures,
+                colors, use_kd_tree, is_first);
 }
 
 void compute_colors_cpu(
@@ -197,14 +198,14 @@ void compute_colors_cpu(
     unsigned *ignores, Eigen::Array3f *color_multipliers_, uint8_t *disables,
     const thrust::optional<BestIntersectionNormalUV> *best_intersections,
     const scene::ShapeData *shapes, const scene::Light *lights,
-    unsigned num_lights, scene::Color *colors, bool use_kd_tree,
-    bool is_first) {
+    unsigned num_lights, const scene::TextureImageRef *textures,
+    scene::Color *colors, bool use_kd_tree, bool is_first) {
   for (unsigned x = 0; x < width; x++) {
     for (unsigned y = 0; y < height; y++) {
       compute_color(x, y, width, height, by_type_data, world_space_eyes,
                     world_space_directions, ignores, color_multipliers_,
                     disables, best_intersections, shapes, lights, num_lights,
-                    colors, use_kd_tree, is_first);
+                    textures, colors, use_kd_tree, is_first);
     }
   }
 }

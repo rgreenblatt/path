@@ -12,9 +12,6 @@ Scene::~Scene() {
   // Do not delete m_camera, it is owned by SupportCanvas3D
 }
 
-Scene::TextureData::TextureData(size_t index, float repeat_u, float repeat_v)
-    : index(index), repeat_u(repeat_u), repeat_v(repeat_v) {}
-
 void Scene::parse(Scene *sceneToFill, const CS123ISceneParser &parser) {
   sceneToFill->lights_.clear();
   sceneToFill->shape_data_.clear();
@@ -87,20 +84,23 @@ void Scene::parse(Scene *sceneToFill, const CS123ISceneParser &parser) {
   }
 }
 
-Scene::TextureImage::TextureImage(const QImage &image) {
-  width = static_cast<size_t>(image.width());
-  height = static_cast<size_t>(image.height());
+scene::TextureImage from_qimage(const QImage &image) {
+  scene::TextureImage texture;
+
+  texture.width = static_cast<size_t>(image.width());
+  texture.height = static_cast<size_t>(image.height());
   auto bytes = reinterpret_cast<const uint8_t *>(image.bits());
   size_t pixels = static_cast<size_t>(image.byteCount()) / 4;
-  data.resize(pixels);
+  texture.data.resize(pixels);
   for (size_t i = 0; i < pixels; i++) {
-    data[i] =
-        Eigen::Vector3f(bytes[4 * i + 2], bytes[4 * i + 1], bytes[4 * i]) /
-        255.0f;
+    texture.data[i] =
+        scene::Color(bytes[4 * i], bytes[4 * i + 1], bytes[4 * i + 2]) / 255.0f;
   }
+
+  return texture;
 }
 
-boost::optional<Scene::TextureData>
+thrust::optional<scene::TextureData>
 Scene::getKeyAddTexture(const CS123SceneFileMap &file) {
   if (file.isUsed) {
     auto it = texture_file_name_indexes_.find(file.filename);
@@ -113,17 +113,17 @@ Scene::getKeyAddTexture(const CS123SceneFileMap &file) {
         std::cout
             << "couldn't load texture from file, proceeding without texture"
             << std::endl;
-        return boost::none;
+        return thrust::nullopt;
       }
       auto image_converted = image.convertToFormat(QImage::Format_RGB32);
-      textures_.push_back(TextureImage(image_converted));
+      textures_.push_back(from_qimage(image_converted));
     } else {
       index = it->second;
     }
 
-    return TextureData(index, file.repeatU, file.repeatV);
+    return scene::TextureData(index, file.repeatU, file.repeatV);
   } else {
-    return boost::none;
+    return thrust::nullopt;
   }
 }
 
@@ -137,7 +137,7 @@ void Scene::addPrimitive(const CS123ScenePrimitive &scenePrimitive,
 Scene::ShapeData::ShapeData(PrimitiveType type,
                             const CS123SceneMaterial &material,
                             const Eigen::Affine3f &transform,
-                            const boost::optional<TextureData> &texture)
+                            const thrust::optional<scene::TextureData> &texture)
     : type(type), material(material), transform(transform), texture(texture) {}
 
 void Scene::addLight(const CS123SceneLightData &sceneLight) {

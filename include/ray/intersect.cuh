@@ -97,7 +97,7 @@ __host__
   return optional_map(
       solve_type<normal_and_uv, shape_type>(
           object_space_eye, object_space_direction,
-          normal_and_uv && shape.get_material().texture_map_index.has_value()),
+          normal_and_uv && shape.get_material().texture_data.has_value()),
       [&](const auto &value) {
         return BestIntersectionGeneral<normal_and_uv>(value, shape_idx);
       });

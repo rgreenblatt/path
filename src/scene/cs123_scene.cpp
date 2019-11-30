@@ -30,8 +30,8 @@ CS123Scene::CS123Scene(const std::string &file_path, unsigned width,
                    Material(material.cDiffuse, material.cAmbient,
                             material.cReflective, material.cSpecular,
                             material.cTransparent, material.cEmissive,
-                            thrust::nullopt, material.blend, material.shininess,
-                            material.ior));
+                            shape.texture, material.blend, material.blend,
+                            material.shininess, material.ior));
 
     switch (shape.type) {
     case PrimitiveType::Sphere:
@@ -60,6 +60,9 @@ CS123Scene::CS123Scene(const std::string &file_path, unsigned width,
   std::copy(cubes.begin(), cubes.end(), std::back_inserter(shapes_));
   std::copy(cones.begin(), cones.end(), std::back_inserter(shapes_));
 
+  std::copy(scene.textures_.begin(), scene.textures_.end(),
+            std::back_inserter(textures_));
+
   for (const auto &light : scene.lights_) {
     switch (light.type) {
     case LightType::Directional:
@@ -82,7 +85,6 @@ CS123Scene::CS123Scene(const std::string &file_path, unsigned width,
   auto u = v.cross(w).normalized();
 
   Eigen::Matrix3f mat;
-  
 
   mat.row(0) = u;
   mat.row(1) = v;
@@ -98,5 +100,7 @@ CS123Scene::CS123Scene(const std::string &file_path, unsigned width,
                                      1.0f / (std::tan(theta_h / 2) * far),
                                      1.0f / far))
           .inverse();
+
+  copy_in_texture_refs();
 }
 } // namespace scene

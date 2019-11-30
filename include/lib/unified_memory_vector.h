@@ -2,7 +2,6 @@
 
 #include "lib/cuda_utils.h"
 
-#include <cstdio>
 #include <vector>
 
 template <class T> struct UMAllocator {

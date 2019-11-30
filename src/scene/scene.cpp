@@ -1,6 +1,15 @@
 #include <scene/scene.h>
 
+#include <dbg.h>
+
 namespace scene {
+void Scene::copy_in_texture_refs() {
+  std::transform(textures_.begin(), textures_.end(),
+                 std::back_inserter(textures_refs_),
+                 [&](const TextureImage &image) { return image.to_ref(); });
+
+}
+
 unsigned Scene::get_start_shape(Shape shape) const {
   switch (shape) {
   case Shape::Sphere:
