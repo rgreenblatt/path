@@ -49,7 +49,7 @@ private:
     ManangedMemVec<detail::KDTreeNode> nodes;
     scene::Shape shape_type;
 
-    detail::ByTypeDataGPU initialize(const scene::Scene &scene,
+    detail::ByTypeDataRef initialize(const scene::Scene &scene,
                                      scene::ShapeData *shapes);
 
     ByTypeData(unsigned pixel_size, scene::Shape shape_type)

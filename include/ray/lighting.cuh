@@ -12,7 +12,7 @@ namespace ray {
 namespace detail {
 __host__ __device__ void compute_color(
     unsigned x, unsigned y, unsigned width, unsigned height,
-    const std::array<ByTypeDataGPU, scene::shapes_size> &by_type_data,
+    const std::array<ByTypeDataRef, scene::shapes_size> &by_type_data,
     Eigen::Vector3f *world_space_eyes, Eigen::Vector3f *world_space_directions,
     unsigned *ignores, Eigen::Array3f *color_multipliers_, uint8_t *disables,
     const thrust::optional<BestIntersectionNormalUV> *best_intersections,
@@ -174,7 +174,7 @@ __host__ __device__ void compute_color(
 
 __global__ void compute_colors(
     unsigned width, unsigned height,
-    std::array<ByTypeDataGPU, scene::shapes_size> by_type_data,
+    std::array<ByTypeDataRef, scene::shapes_size> by_type_data,
     Eigen::Vector3f *world_space_eyes, Eigen::Vector3f *world_space_directions,
     unsigned *ignores, Eigen::Array3f *color_multipliers_, uint8_t *disables,
     const thrust::optional<BestIntersectionNormalUV> *best_intersections,
@@ -192,7 +192,7 @@ __global__ void compute_colors(
 
 void compute_colors_cpu(
     unsigned width, unsigned height,
-    std::array<ByTypeDataGPU, scene::shapes_size> by_type_data,
+    std::array<ByTypeDataRef, scene::shapes_size> by_type_data,
     Eigen::Vector3f *world_space_eyes, Eigen::Vector3f *world_space_directions,
     unsigned *ignores, Eigen::Array3f *color_multipliers_, uint8_t *disables,
     const thrust::optional<BestIntersectionNormalUV> *best_intersections,

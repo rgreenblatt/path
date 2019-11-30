@@ -106,7 +106,7 @@ __host__
 // Rename...
 template <scene::Shape shape_type, typename F>
 __host__ __device__ inline void solve_general_intersection(
-    const ByTypeDataGPU &by_type_data,
+    const ByTypeDataRef &by_type_data,
     const scene::ShapeData *shapes, const Eigen::Vector3f &world_space_eye,
     const Eigen::Vector3f &world_space_direction, const unsigned &ignore_v,
     const uint8_t &disable, thrust::optional<BestIntersection> &best,
@@ -205,7 +205,7 @@ __host__ __device__ inline void solve_general_intersection(
 template <scene::Shape shape_type>
 __host__ __device__ inline void
 solve_intersection(unsigned x, unsigned y, unsigned width, unsigned height,
-                   ByTypeDataGPU &by_type_data, const scene::ShapeData *shapes,
+                   ByTypeDataRef &by_type_data, const scene::ShapeData *shapes,
                    const Eigen::Vector3f *world_space_eyes,
                    const Eigen::Vector3f *world_space_directions,
                    const unsigned *ignores, const uint8_t *disables,
@@ -245,7 +245,7 @@ solve_intersection(unsigned x, unsigned y, unsigned width, unsigned height,
 
 template <scene::Shape shape_type>
 __global__ void solve_intersections(
-    unsigned width, unsigned height, ByTypeDataGPU by_type_data,
+    unsigned width, unsigned height, ByTypeDataRef by_type_data,
     const scene::ShapeData *shapes, const Eigen::Vector3f *world_space_eyes,
     const Eigen::Vector3f *world_space_directions, const unsigned *ignores,
     const uint8_t *disables, bool is_first, bool use_kd_tree) {
@@ -259,7 +259,7 @@ __global__ void solve_intersections(
 
 template <scene::Shape shape_type>
 inline void solve_intersections_cpu(
-    unsigned width, unsigned height, ByTypeDataGPU by_type_data,
+    unsigned width, unsigned height, ByTypeDataRef by_type_data,
     const scene::ShapeData *shapes, const Eigen::Vector3f *world_space_eyes,
     const Eigen::Vector3f *world_space_directions, const unsigned *ignores,
     const uint8_t *disables, bool is_first, bool use_kd_tree) {
