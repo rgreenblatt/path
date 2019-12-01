@@ -1,5 +1,6 @@
 #include "ray/render.h"
 #include "scene/cs123_scene.h"
+#include "scene/pool_scene.h"
 
 #include <QImage>
 #include <boost/lexical_cast.hpp>
@@ -39,38 +40,38 @@ void run_test(unsigned width, unsigned height, unsigned super_sampling_rate,
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 8) {
+  if (argc != 7) {
     std::cout << "wrong num args" << std::endl;
 
     return 1;
   }
 
-  const unsigned depth = boost::lexical_cast<unsigned>(argv[2]);
-  const unsigned width = boost::lexical_cast<unsigned>(argv[3]);
-  const unsigned height = boost::lexical_cast<unsigned>(argv[4]);
-  const unsigned super_sampling_rate = boost::lexical_cast<unsigned>(argv[5]);
-  const bool use_kd_tree = boost::lexical_cast<bool>(argv[6]);
-  const bool render_cpu = boost::lexical_cast<bool>(argv[7]);
+  const unsigned depth = boost::lexical_cast<unsigned>(argv[1]);
+  const unsigned width = boost::lexical_cast<unsigned>(argv[2]);
+  const unsigned height = boost::lexical_cast<unsigned>(argv[3]);
+  const unsigned super_sampling_rate = boost::lexical_cast<unsigned>(argv[4]);
+  const bool use_kd_tree = boost::lexical_cast<bool>(argv[5]);
+  const bool render_cpu = boost::lexical_cast<bool>(argv[6]);
 
-  for (size_t i = 1; i < /* static_cast<size_t>(argc) */ 2; i++) {
-    scene::CS123Scene scene(argv[i], width, height);
+    scene::PoolScene pool_scene;
 
-    const std::string file_name =
-        "out_" + boost::lexical_cast<std::string>(i) + ".png";
+    const std::string file_name = "out.png";
+
+    auto transform =
+        static_cast<Eigen::Affine3f>(Eigen::Translation3f(7, 0, 10));
 
     if (render_cpu) {
       std::cout << "rendering cpu" << std::endl;
       run_test<ray::ExecutionModel::CPU>(
-          width, height, super_sampling_rate, scene, scene.transform(),
+          width, height, super_sampling_rate, pool_scene, transform,
           "cpu_" + file_name, depth, use_kd_tree);
       std::cout << "=============" << std::endl;
     }
 
     std::cout << "rendering gpu" << std::endl;
-    run_test<ray::ExecutionModel::GPU>(
-        width, height, super_sampling_rate, scene, scene.transform(),
-        "gpu_" + file_name, depth, use_kd_tree);
-  }
+    run_test<ray::ExecutionModel::GPU>(width, height, super_sampling_rate,
+                                       pool_scene, transform,
+                                       "gpu_" + file_name, depth, use_kd_tree);
 
-  return 0;
+    return 0;
 }

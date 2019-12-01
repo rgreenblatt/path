@@ -1,5 +1,6 @@
 #include "cs123_compat/Scene.h"
 #include "cs123_compat/CS123ISceneParser.h"
+#include "scene/texture_qimage.h"
 
 #include <iostream>
 
@@ -84,22 +85,6 @@ void Scene::parse(Scene *sceneToFill, const CS123ISceneParser &parser) {
   }
 }
 
-scene::TextureImage from_qimage(const QImage &image) {
-  scene::TextureImage texture;
-
-  texture.width = static_cast<size_t>(image.width());
-  texture.height = static_cast<size_t>(image.height());
-  auto bytes = reinterpret_cast<const uint8_t *>(image.bits());
-  size_t pixels = static_cast<size_t>(image.byteCount()) / 4;
-  texture.data.resize(pixels);
-  for (size_t i = 0; i < pixels; i++) {
-    texture.data[i] =
-        scene::Color(bytes[4 * i], bytes[4 * i + 1], bytes[4 * i + 2]) / 255.0f;
-  }
-
-  return texture;
-}
-
 thrust::optional<scene::TextureData>
 Scene::getKeyAddTexture(const CS123SceneFileMap &file) {
   if (file.isUsed) {
@@ -107,16 +92,16 @@ Scene::getKeyAddTexture(const CS123SceneFileMap &file) {
     size_t index;
     if (it == texture_file_name_indexes_.end()) {
       index = textures_.size();
-      texture_file_name_indexes_.insert(std::make_pair(file.filename, index));
-      auto image = QImage(QString::fromStdString(file.filename));
-      if (image.isNull()) {
+      auto texture_image_op = scene::load_qimage(file.filename);
+
+      if (texture_image_op.has_value()) {
+        texture_file_name_indexes_.insert(std::make_pair(file.filename, index));
+        textures_.push_back(*texture_image_op);
+      } else {
         std::cout
             << "couldn't load texture from file, proceeding without texture"
             << std::endl;
-        return thrust::nullopt;
       }
-      auto image_converted = image.convertToFormat(QImage::Format_RGB32);
-      textures_.push_back(from_qimage(image_converted));
     } else {
       index = it->second;
     }

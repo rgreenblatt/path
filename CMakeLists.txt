@@ -40,7 +40,6 @@ ADD_LIBRARY(
   "${PROJECT_SOURCE_DIR}/src/ray/render.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/kdtree.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/scene.cpp"
-  "${PROJECT_SOURCE_DIR}/src/scene/pool_scene.cpp"
   )
 
 TARGET_INCLUDE_DIRECTORIES(renderer PUBLIC
@@ -58,6 +57,7 @@ ADD_EXECUTABLE(
   "${PROJECT_SOURCE_DIR}/src/main.cpp"
   "${PROJECT_SOURCE_DIR}/src/ui/mainwindow.cpp"
   "${PROJECT_SOURCE_DIR}/src/ui/canvas.cpp"
+  "${PROJECT_SOURCE_DIR}/src/scene/pool_scene.cpp"
   )
 
 ADD_EXECUTABLE(
@@ -66,6 +66,7 @@ ADD_EXECUTABLE(
   "${PROJECT_SOURCE_DIR}/src/scene/cs123_scene.cpp"
   "${PROJECT_SOURCE_DIR}/src/cs123_compat/Scene.cpp"
   "${PROJECT_SOURCE_DIR}/src/cs123_compat/CS123XmlSceneParser.cpp"
+  "${PROJECT_SOURCE_DIR}/src/scene/pool_scene.cpp"
   )
 
 

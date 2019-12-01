@@ -22,10 +22,6 @@ struct TextureImage {
   unsigned height;
   ManangedMemVec<Color> data;
 
-#if 0
-  TextureImage(const QImage &image);
-#endif
-
   inline const Color &index(unsigned x, unsigned y) const {
     return data[x + y * width];
   }
