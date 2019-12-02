@@ -23,9 +23,9 @@ TextureData PoolScene::loadTexture(const std::string &file) {
 }
 
 PoolScene::PoolScene() {
-  float diffuse_coeff = 1.0;
+  float diffuse_coeff = 0.5;
   float specular_coeff = 1.0;
-  float ambient_coeff = 0.3;
+  float ambient_coeff = 0.4;
 
   std::string common_path = "images/";
 
@@ -34,7 +34,7 @@ PoolScene::PoolScene() {
   num_cubes_ = 0;
   num_cones_ = 0;
 
-  float ball_diffuse = 0.2;
+  float ball_diffuse = 0.5;
   float ball_ambient = 0.5;
   float ball_reflective = 0.2;
   float ball_specular = 0.5;
@@ -53,10 +53,10 @@ PoolScene::PoolScene() {
              std::make_tuple(Eigen::Vector2f(-2, -2), Eigen::Vector2f(2, -2),
                              Eigen::Vector2f(2, -2), Eigen::Vector2f(2, -2),
                              "Ball2.jpg"),
-             std::make_tuple(Eigen::Vector2f(0, -2), Eigen::Vector2f(2, -2),
+             std::make_tuple(Eigen::Vector2f(0, -2), Eigen::Vector2f(2, -3),
                              Eigen::Vector2f(2, -2), Eigen::Vector2f(2, -2),
                              "Ball3.jpg"),
-             std::make_tuple(Eigen::Vector2f(2, -2), Eigen::Vector2f(2, -2),
+             std::make_tuple(Eigen::Vector2f(2, -2), Eigen::Vector2f(1.3, -2),
                              Eigen::Vector2f(2, -2), Eigen::Vector2f(2, -2),
                              "Ball4.jpg"),
              std::make_tuple(Eigen::Vector2f(4, -2), Eigen::Vector2f(2, -2),
@@ -80,7 +80,7 @@ PoolScene::PoolScene() {
              std::make_tuple(Eigen::Vector2f(2, -4), Eigen::Vector2f(2, -2),
                              Eigen::Vector2f(2, -2), Eigen::Vector2f(2, -2),
                              "Ball11.jpg"),
-             std::make_tuple(Eigen::Vector2f(4, -4), Eigen::Vector2f(2, -2),
+             std::make_tuple(Eigen::Vector2f(4, -4), Eigen::Vector2f(2, -4),
                              Eigen::Vector2f(2, -2), Eigen::Vector2f(2, -2),
                              "Ball12.jpg"),
              std::make_tuple(Eigen::Vector2f(6, -4), Eigen::Vector2f(2, -2),
@@ -127,14 +127,48 @@ PoolScene::PoolScene() {
 
   num_cubes_++;
 
+  float side_width = 1;
+  float wall_height = 8.5;
+
+  Eigen::Translation3f x_translate(wall_x_dist + side_width / 2, 0, 0);
+  Eigen::Translation3f z_translate(0, 0, wall_z_dist + side_width / 2);
+
+  auto z_scale =
+      Eigen::Scaling(Eigen::Vector3f(side_width, wall_height, wall_z_dist * 2));
+  auto x_scale = Eigen::Scaling(Eigen::Vector3f(
+      wall_x_dist * 2 + 2 * side_width, wall_height, side_width));
+
+  BGRA bgra_color(48, 38, 31, 0);
+
+  Color color = bgra_color.head<3>().cast<float>() / 255.0f;
+
+  for (const auto &transform :
+       {x_translate * z_scale, x_translate.inverse() * z_scale,
+        z_translate * x_scale, z_translate.inverse() * x_scale}) {
+    shapes_.push_back(ShapeData(
+        transform,
+        Material(color * diffuse_coeff, color * ambient_coeff,
+                 color * specular_coeff, color * specular_coeff, Color::Zero(),
+                 Color::Zero(), thrust::nullopt, 0, 0, 25, 0)));
+
+    num_cubes_++;
+  }
+
   step(0.0f);
 
   auto light_color = Color(1.0, 1.0, 1.0);
 
-  for (auto translate : {Eigen::Vector3f(5, 3, 5), Eigen::Vector3f(-4, 3, -4),
-                         Eigen::Vector3f(3, 3, -3)}) {
+  for (auto translate : {
+           Eigen::Vector3f(0, 3, 12),
+           Eigen::Vector3f(0, 3, 0),
+           Eigen::Vector3f(0, 3, -12),
+       }) {
     lights_.push_back(Light(
-        light_color, PointLight(translate, Eigen::Array3f(1, 0.01, 0.005))));
+        light_color, PointLight(translate, Eigen::Array3f(1, 0.0, 0.01))));
+  }
+
+  for (auto dir : {Eigen::Vector3f(-1, -1, 0), Eigen::Vector3f(1, -1, 0)}) {
+    lights_.push_back(Light(light_color * 0.5, DirectionalLight(dir)));
   }
 
   copy_in_texture_refs();

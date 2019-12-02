@@ -23,18 +23,6 @@
 		<position x="3" y="3" z="-3"/>
 	</lightdata>
 
-	<object type="tree" name="side">
-    <transblock>
-      <translate x="1" y="-1.0" z="-8"/>
-      <scale x="8" y="3" z="1"/>
-			<object type="primitive" name="cube" >
-        <texture file="/home/ryan/images/wood_side_table.jpg" u="1" v="1"/>
-        <blend v="0.3"/>
-				<diffuse r="0" g="0.0" b="0"/>
-			</object>
-		</transblock>
-	</object>
-
 	<object type="tree" name="root">
 		<transblock>
 			<object type="primitive" name="sphere" >
@@ -95,18 +83,6 @@
 			</object>
 		</transblock>
     
-		<transblock>
-			<translate x="-2.5" y="0" z="0"/>
-			<rotate x="0" y="1" z="0" angle="90"/>
-			<object type="master" name="side" />
-		</transblock>
-
-		<transblock>
-			<translate x="-4.5" y="0" z="-3"/>
-			<rotate x="0" y="1" z="0" angle="0"/>
-			<object type="master" name="side" />
-		</transblock>
-
 	</object>
 
 

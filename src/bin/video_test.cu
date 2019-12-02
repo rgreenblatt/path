@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
   const unsigned frames = boost::lexical_cast<unsigned>(argv[7]);
   const float frame_rate = boost::lexical_cast<float>(argv[8]);
   const unsigned physics_super_sampling_rate =
-      boost::lexical_cast<unsigned>(argv[8]);
+      boost::lexical_cast<unsigned>(argv[9]);
 
   scene::PoolScene pool_scene;
 
