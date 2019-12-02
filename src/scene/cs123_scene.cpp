@@ -2,6 +2,7 @@
 #include "cs123_compat/CS123ISceneParser.h"
 #include "cs123_compat/CS123XmlSceneParser.h"
 #include "cs123_compat/Scene.h"
+#include "scene/camera.h"
 
 #include <iostream>
 
@@ -80,26 +81,9 @@ CS123Scene::CS123Scene(const std::string &file_path, unsigned width,
 
   parser.getCameraData(camera_data);
 
-  auto w = -camera_data.look.normalized().eval();
-  auto v = (camera_data.up - camera_data.up.dot(w) * w).normalized().eval();
-  auto u = v.cross(w).normalized();
-
-  Eigen::Matrix3f mat;
-
-  mat.row(0) = u;
-  mat.row(1) = v;
-  mat.row(2) = w;
-
-  float theta_h = camera_data.heightAngle * M_PI / 180.0f;
-  float theta_w = std::atan(width * std::tan(theta_h / 2) / height) * 2;
-  float far = 30.0f;
-
-  transform_ =
-      (mat * Eigen::Translation3f(-camera_data.pos)).inverse() *
-      Eigen::Scaling(Eigen::Vector3f(1.0f / (std::tan(theta_w / 2) * far),
-                                     1.0f / (std::tan(theta_h / 2) * far),
-                                     1.0f / far))
-          .inverse();
+  transform_ = get_camera_transform(
+      camera_data.look, camera_data.up, camera_data.pos,
+      camera_data.heightAngle * M_PI / 180.0f, width, height);
 
   copy_in_texture_refs();
 }

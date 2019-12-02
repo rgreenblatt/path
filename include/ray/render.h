@@ -36,7 +36,8 @@ using DataType = typename get_vector_type<execution_model, T>::type;
 template <ExecutionModel execution_model> class Renderer {
 public:
   void render(const scene::Scene &scene, BGRA *pixels,
-              const scene::Transform &m_film_to_world, bool use_kd_tree);
+              const scene::Transform &m_film_to_world, bool use_kd_tree,
+              bool show_times);
 
   Renderer(unsigned width, unsigned height, unsigned super_sampling_rate,
            unsigned recursive_iterations);

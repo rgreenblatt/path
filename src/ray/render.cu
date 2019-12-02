@@ -101,7 +101,7 @@ void Renderer<execution_model>::minimize_intersections(
 template <ExecutionModel execution_model>
 void Renderer<execution_model>::render(const scene::Scene &scene, BGRA *pixels,
                                        const scene::Transform &m_film_to_world,
-                                       bool use_kd_tree) {
+                                       bool use_kd_tree, bool show_times) {
   namespace chr = std::chrono;
 
   const auto lights = scene.get_lights();
@@ -151,9 +151,11 @@ void Renderer<execution_model>::render(const scene::Scene &scene, BGRA *pixels,
                                        world_space_directions_.data());
   }
 
-  dbg(chr::duration_cast<chr::duration<double>>(
-          chr::high_resolution_clock::now() - start_fill)
-          .count());
+  if (show_times) {
+    dbg(chr::duration_cast<chr::duration<double>>(
+            chr::high_resolution_clock::now() - start_fill)
+            .count());
+  }
 
   const unsigned num_shapes = scene.num_shapes();
   ManangedMemVec<scene::ShapeData> shapes(num_shapes);
@@ -172,9 +174,11 @@ void Renderer<execution_model>::render(const scene::Scene &scene, BGRA *pixels,
     by_type_data_gpu[i] = by_type_data_[i].initialize(scene, shapes.data());
   }
 
+  if (show_times) {
   dbg(chr::duration_cast<chr::duration<double>>(
           chr::high_resolution_clock::now() - start_kdtree)
           .count());
+  }
 
   for (unsigned depth = 0; depth < recursive_iterations_; depth++) {
     bool is_first = depth == 0;
@@ -213,9 +217,11 @@ void Renderer<execution_model>::render(const scene::Scene &scene, BGRA *pixels,
 
     CUDA_ERROR_CHK(cudaDeviceSynchronize());
 
+  if (show_times) {
     dbg(chr::duration_cast<chr::duration<double>>(
             chr::high_resolution_clock::now() - start_intersect)
             .count());
+  }
 
     const auto start_minimize = chr::high_resolution_clock::now();
 
@@ -224,9 +230,11 @@ void Renderer<execution_model>::render(const scene::Scene &scene, BGRA *pixels,
                            by_type_data_[1], by_type_data_[2],
                            by_type_data_[3]);
 
+  if (show_times) {
     dbg(chr::duration_cast<chr::duration<double>>(
             chr::high_resolution_clock::now() - start_minimize)
             .count());
+  }
 
     auto &best_intersections = by_type_data_[0].intersections;
     
@@ -249,8 +257,10 @@ void Renderer<execution_model>::render(const scene::Scene &scene, BGRA *pixels,
           textures, colors_.data(), use_kd_tree, is_first);
     }
     const auto end_color = chr::high_resolution_clock::now();
+  if (show_times) {
     dbg(chr::duration_cast<chr::duration<double>>(end_color - start_color)
             .count());
+  }
   }
 
   const unsigned width = effective_width_ / super_sampling_rate_;
@@ -266,15 +276,19 @@ void Renderer<execution_model>::render(const scene::Scene &scene, BGRA *pixels,
         width, height, super_sampling_rate_, to_ptr(colors_), to_ptr(bgra_));
 
     CUDA_ERROR_CHK(cudaDeviceSynchronize());
+  if (show_times) {
     dbg(chr::duration_cast<chr::duration<double>>(
             chr::high_resolution_clock::now() - start_convert)
             .count());
+  }
 
     const auto start_copy_to_cpu = chr::high_resolution_clock::now();
     thrust::copy(bgra_.begin(), bgra_.end(), pixels);
+  if (show_times) {
     dbg(chr::duration_cast<chr::duration<double>>(
             chr::high_resolution_clock::now() - start_copy_to_cpu)
             .count());
+  }
   } else {
     floats_to_bgras_cpu(width, height, super_sampling_rate_, colors_.data(),
                         pixels);
