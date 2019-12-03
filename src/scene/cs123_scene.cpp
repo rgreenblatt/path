@@ -85,6 +85,6 @@ CS123Scene::CS123Scene(const std::string &file_path, unsigned width,
       camera_data.look, camera_data.up, camera_data.pos,
       camera_data.heightAngle * M_PI / 180.0f, width, height);
 
-  copy_in_texture_refs();
+  copyInTextureRefs();
 }
 } // namespace scene

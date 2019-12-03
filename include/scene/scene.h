@@ -10,29 +10,29 @@
 namespace scene {
 class Scene {
 public:
-  unsigned num_spheres() const { return num_spheres_; }
-  unsigned num_cylinders() const { return num_cylinders_; }
-  unsigned num_cubes() const { return num_cubes_; }
-  unsigned num_cones() const { return num_cones_; }
-  unsigned num_shapes() const { return shapes_.size(); }
+  unsigned numSpheres() const { return num_spheres_; }
+  unsigned numCylinders() const { return num_cylinders_; }
+  unsigned numCubes() const { return num_cubes_; }
+  unsigned numCones() const { return num_cones_; }
+  unsigned numShapes() const { return shapes_.size(); }
 
-  unsigned start_spheres() const { return 0; }
-  unsigned start_cylinders() const { return num_spheres_; }
-  unsigned start_cubes() const { return num_spheres_ + num_cylinders_; }
-  unsigned start_cones() const {
+  unsigned startSpheres() const { return 0; }
+  unsigned startCylinders() const { return num_spheres_; }
+  unsigned startCubes() const { return num_spheres_ + num_cylinders_; }
+  unsigned startCones() const {
     return num_spheres_ + num_cylinders_ + num_cubes_;
   }
 
-  virtual const ShapeData *get_shapes() const { return shapes_.data(); }
+  virtual const ShapeData *getShapes() const { return shapes_.data(); }
 
-  virtual const Light *get_lights() const { return lights_.data(); }
-  virtual unsigned get_num_lights() const { return lights_.size(); }
+  virtual const Light *getLights() const { return lights_.data(); }
+  virtual unsigned getNumLights() const { return lights_.size(); }
 
-  unsigned get_num_shape(Shape shape) const;
-  unsigned get_start_shape(Shape shape) const;
+  unsigned getNumShape(Shape shape) const;
+  unsigned getStartShape(Shape shape) const;
 
-  unsigned get_num_textures() const { return textures_refs_.size(); }
-  const TextureImageRef* get_textures() const { return textures_refs_.data(); }
+  unsigned getNumTextures() const { return textures_refs_.size(); }
+  const TextureImageRef* getTextures() const { return textures_refs_.data(); }
 
 protected:
   std::vector<ShapeData> shapes_;
@@ -44,7 +44,7 @@ protected:
   unsigned num_cubes_;
   unsigned num_cones_;
   
-  void copy_in_texture_refs();
+  void copyInTextureRefs();
 
 private:
   ManangedMemVec<TextureImageRef> textures_refs_;

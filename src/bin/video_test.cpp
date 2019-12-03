@@ -1,6 +1,6 @@
 #include "ray/render.h"
-#include "scene/pool_scene.h"
 #include "scene/camera.h"
+#include "scene/pool_scene.h"
 
 #include "ProgressBar.hpp"
 #include <QImage>
@@ -8,8 +8,8 @@
 #include <opencv2/opencv.hpp>
 
 #include <chrono>
-#include <iostream>
 #include <dbg.h>
+#include <iostream>
 
 template <ray::ExecutionModel execution_model>
 void render_frames(unsigned width, unsigned height,
@@ -37,8 +37,10 @@ void render_frames(unsigned width, unsigned height,
   cv::VideoWriter writer(dir_name + "out.avi", CV_FOURCC('M', 'J', 'P', 'G'),
                          frame_rate, cv::Size(width, height));
 
+  cv::Mat frame(height, width, CV_8UC4);
+  cv::Mat out(height, width, CV_8UC3);
+
   for (unsigned i = 0; i < frames; i++) {
-    cv::Mat frame(height, width, CV_8UC4);
     auto bgra_data = reinterpret_cast<BGRA *>(frame.data);
 
     renderer.render(scene, bgra_data, static_cast<scene::Transform>(transform),
@@ -47,8 +49,7 @@ void render_frames(unsigned width, unsigned height,
     for (unsigned i = 0; i < physics_super_sampling_rate; i++) {
       scene.step(secs_per_frame);
     }
-    
-    cv::Mat out(height, width, CV_8UC3);
+
     cv::cvtColor(frame, out, CV_RGBA2RGB);
     writer.write(out);
 

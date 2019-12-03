@@ -12,7 +12,6 @@ template <ray::ExecutionModel execution_model>
 void run_test(unsigned width, unsigned height, unsigned super_sampling_rate,
               const scene::Scene &scene, const Eigen::Affine3f &transform,
               const std::string &filename, unsigned depth, bool use_kd_tree) {
-
   QImage image(width, height, QImage::Format_RGB32);
 
   auto bgra_data = reinterpret_cast<BGRA *>(image.bits());
@@ -57,7 +56,8 @@ int main(int argc, char *argv[]) {
 
   const std::string file_name = "out.png";
 
-  /* auto transform = static_cast<Eigen::Affine3f>(Eigen::Translation3f(7, 0, 10)); */
+  /* auto transform = static_cast<Eigen::Affine3f>(Eigen::Translation3f(7, 0,
+   * 10)); */
   auto transform = scene.transform();
 
   if (render_cpu) {

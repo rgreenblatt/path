@@ -38,6 +38,7 @@ ADD_DEFINITIONS(-DEIGEN_DEFAULT_DENSE_INDEX_TYPE=int)
 
 ADD_LIBRARY(
   renderer
+  "${PROJECT_SOURCE_DIR}/src/ray/render_impl.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/render.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/kdtree.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/scene.cpp"
@@ -65,7 +66,7 @@ ADD_EXECUTABLE(
 
 ADD_EXECUTABLE(
   image_test
-  "${PROJECT_SOURCE_DIR}/src/bin/image_test.cu"
+  "${PROJECT_SOURCE_DIR}/src/bin/image_test.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/cs123_scene.cpp"
   "${PROJECT_SOURCE_DIR}/src/cs123_compat/Scene.cpp"
   "${PROJECT_SOURCE_DIR}/src/cs123_compat/CS123XmlSceneParser.cpp"
@@ -73,7 +74,7 @@ ADD_EXECUTABLE(
 
 ADD_EXECUTABLE(
   video_test
-  "${PROJECT_SOURCE_DIR}/src/bin/video_test.cu"
+  "${PROJECT_SOURCE_DIR}/src/bin/video_test.cpp"
   )
 
 QT5_USE_MODULES(final Widgets)

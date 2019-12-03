@@ -1,8 +1,9 @@
 #include "scene/pool_scene.h"
 #include "scene/texture_qimage.h"
 
-#include <boost/range/combine.hpp>
+#include <boost/iterator/counting_iterator.hpp>
 
+#include <chrono>
 #include <dbg.h>
 #include <iostream>
 
@@ -22,7 +23,52 @@ TextureData PoolScene::loadTexture(const std::string &file) {
   return TextureData(texture_index, 1, 1);
 }
 
+void PoolScene::setBreak() {
+  float max_noise = 1e-1;
+  std::uniform_real_distribution<float> dist(-max_noise, max_noise);
+  // TODO:
+  //  - measure cue ball starting position
+  //  - measure break point
+  //  - noise
+  for (auto &ball : states_) {
+    ball.angular_vel = Eigen::Vector3f::Zero();
+    ball.rot = Eigen::Quaternionf::Identity();
+    ball.vel = Eigen::Vector2f::Zero();
+  }
+
+  auto &cue_ball = states_[0];
+  cue_ball.pos = Eigen::Vector2f(0, 25);
+
+  float start_z = -10.0f;
+  float z_per_row = std::sqrt(3.0f) * ball_radius + 2e-1;
+
+  std::shuffle(shuffles_.begin(), shuffles_.end(), gen_);
+
+  unsigned shuffle_index = 0;
+  for (unsigned row = 0; row < 5; row++) {
+    float start_x = row * (ball_radius + 2e-1);
+    for (unsigned col = 0; col < row + 1; col++) {
+      unsigned ball_index = 0;
+      if (row == 2 && col == 1) {
+        ball_index = 8;
+      } else {
+        do {
+          ball_index = shuffles_[shuffle_index];
+          shuffle_index++;
+        } while (ball_index == 8 || ball_index == 0);
+      }
+      states_[ball_index].pos =
+          Eigen::Vector2f(start_x - col * (ball_radius * 2 + 2e-1) + dist(gen_),
+                          start_z - row * z_per_row + dist(gen_));
+      ball_index++;
+    }
+  }
+}
+
+// units are 1"
 PoolScene::PoolScene() {
+
+  gen_.seed(std::chrono::system_clock::now().time_since_epoch().count());
   float diffuse_coeff = 0.5;
   float specular_coeff = 1.0;
   float ambient_coeff = 0.4;
@@ -42,63 +88,14 @@ PoolScene::PoolScene() {
 
   std::string ball_path = common_path + "pool_ball_skins/";
 
-  for (auto ball_data : {
-         std::make_tuple(Eigen::Vector2f(-6, -2), Eigen::Vector2f(1, -2),
-                         Eigen::Vector2f(2, -2), Eigen::Vector2f(2, -2),
-                         "BallCue.jpg"),
-#if 1
-             std::make_tuple(Eigen::Vector2f(-4, -2), Eigen::Vector2f(-1, -2),
-                             Eigen::Vector2f(2, -2), Eigen::Vector2f(2, -2),
-                             "Ball1.jpg"),
-             std::make_tuple(Eigen::Vector2f(-2, -2), Eigen::Vector2f(2, -2),
-                             Eigen::Vector2f(2, -2), Eigen::Vector2f(2, -2),
-                             "Ball2.jpg"),
-             std::make_tuple(Eigen::Vector2f(0, -2), Eigen::Vector2f(2, -3),
-                             Eigen::Vector2f(2, -2), Eigen::Vector2f(2, -2),
-                             "Ball3.jpg"),
-             std::make_tuple(Eigen::Vector2f(2, -2), Eigen::Vector2f(1.3, -2),
-                             Eigen::Vector2f(2, -2), Eigen::Vector2f(2, -2),
-                             "Ball4.jpg"),
-             std::make_tuple(Eigen::Vector2f(4, -2), Eigen::Vector2f(2, -2),
-                             Eigen::Vector2f(2, -2), Eigen::Vector2f(2, -2),
-                             "Ball5.jpg"),
-             std::make_tuple(Eigen::Vector2f(6, -2), Eigen::Vector2f(2, -2),
-                             Eigen::Vector2f(2, -2), Eigen::Vector2f(2, -2),
-                             "Ball6.jpg"),
-             std::make_tuple(Eigen::Vector2f(-6, -4), Eigen::Vector2f(2, -2),
-                             Eigen::Vector2f(2, -2), Eigen::Vector2f(2, -2),
-                             "Ball7.jpg"),
-             std::make_tuple(Eigen::Vector2f(-4, -4), Eigen::Vector2f(2, -2),
-                             Eigen::Vector2f(2, -2), Eigen::Vector2f(2, -2),
-                             "Ball8.jpg"),
-             std::make_tuple(Eigen::Vector2f(-2, -4), Eigen::Vector2f(2, -2),
-                             Eigen::Vector2f(2, -2), Eigen::Vector2f(2, -2),
-                             "Ball9.jpg"),
-             std::make_tuple(Eigen::Vector2f(0, -4), Eigen::Vector2f(2, -2),
-                             Eigen::Vector2f(2, -2), Eigen::Vector2f(2, -2),
-                             "Ball10.jpg"),
-             std::make_tuple(Eigen::Vector2f(2, -4), Eigen::Vector2f(2, -2),
-                             Eigen::Vector2f(2, -2), Eigen::Vector2f(2, -2),
-                             "Ball11.jpg"),
-             std::make_tuple(Eigen::Vector2f(4, -4), Eigen::Vector2f(2, -4),
-                             Eigen::Vector2f(2, -2), Eigen::Vector2f(2, -2),
-                             "Ball12.jpg"),
-             std::make_tuple(Eigen::Vector2f(6, -4), Eigen::Vector2f(2, -2),
-                             Eigen::Vector2f(2, -2), Eigen::Vector2f(2, -2),
-                             "Ball13.jpg"),
-             std::make_tuple(Eigen::Vector2f(2, -6), Eigen::Vector2f(2, -2),
-                             Eigen::Vector2f(2, -2), Eigen::Vector2f(2, -2),
-                             "Ball14.jpg"),
-#endif
-             std::make_tuple(Eigen::Vector2f(4, -6), Eigen::Vector2f(2, -2),
-                             Eigen::Vector2f(2, -2), Eigen::Vector2f(2, -2),
-                             "Ball15.jpg")
-       }) {
-    auto [pos, vel, rot, angular_vel, filename] = ball_data;
-
+  for (auto filename :
+       {"BallCue.jpg", "Ball1.jpg", "Ball2.jpg", "Ball3.jpg", "Ball4.jpg",
+        "Ball5.jpg", "Ball6.jpg", "Ball7.jpg", "Ball8.jpg", "Ball9.jpg",
+        "Ball10.jpg", "Ball11.jpg", "Ball12.jpg", "Ball13.jpg", "Ball14.jpg",
+        "Ball15.jpg"}) {
     auto texture_data = loadTexture(ball_path + filename);
 
-    states_.push_back(BallState(shapes_.size(), pos, vel, rot, angular_vel));
+    states_.push_back(BallState(shapes_.size()));
 
     shapes_.push_back(ShapeData(
         Eigen::Affine3f::Identity(),
@@ -110,6 +107,12 @@ PoolScene::PoolScene() {
 
     num_spheres_++;
   }
+
+  shuffles_ = std::vector(
+      boost::make_counting_iterator(static_cast<unsigned>(0)),
+      boost::make_counting_iterator(static_cast<unsigned>(states_.size())));
+
+  setBreak();
 
   float surface_diffuse = 0.5;
   float surface_ambient = 0.5;
@@ -128,7 +131,7 @@ PoolScene::PoolScene() {
   num_cubes_++;
 
   float side_width = 1;
-  float wall_height = 8.5;
+  float wall_height = 5.5;
 
   Eigen::Translation3f x_translate(wall_x_dist + side_width / 2, 0, 0);
   Eigen::Translation3f z_translate(0, 0, wall_z_dist + side_width / 2);
@@ -146,10 +149,9 @@ PoolScene::PoolScene() {
        {x_translate * z_scale, x_translate.inverse() * z_scale,
         z_translate * x_scale, z_translate.inverse() * x_scale}) {
     shapes_.push_back(ShapeData(
-        transform,
-        Material(color * diffuse_coeff, color * ambient_coeff,
-                 color * specular_coeff, color * specular_coeff, Color::Zero(),
-                 Color::Zero(), thrust::nullopt, 0, 0, 25, 0)));
+        transform, Material(color * diffuse_coeff, color * ambient_coeff,
+                            Color::Zero(), Color::Zero(), Color::Zero(),
+                            Color::Zero(), thrust::nullopt, 0, 0, 25, 0)));
 
     num_cubes_++;
   }
@@ -159,38 +161,83 @@ PoolScene::PoolScene() {
   auto light_color = Color(1.0, 1.0, 1.0);
 
   for (auto translate : {
-           Eigen::Vector3f(0, 3, 12),
-           Eigen::Vector3f(0, 3, 0),
-           Eigen::Vector3f(0, 3, -12),
+           Eigen::Vector3f(0, 8, 30),
+           Eigen::Vector3f(0, 8, -30),
        }) {
     lights_.push_back(Light(
-        light_color, PointLight(translate, Eigen::Array3f(1, 0.0, 0.01))));
+        light_color, PointLight(translate, Eigen::Array3f(1, 0.0, 0.001))));
   }
 
   for (auto dir : {Eigen::Vector3f(-1, -1, 0), Eigen::Vector3f(1, -1, 0)}) {
     lights_.push_back(Light(light_color * 0.5, DirectionalLight(dir)));
   }
 
-  copy_in_texture_refs();
+  copyInTextureRefs();
 }
 
 void PoolScene::step(float secs) {
+  // static to avoid allocations...(not sure if needed...)
   for (unsigned state_index = 0; state_index < states_.size(); state_index++) {
     auto &state = states_[state_index];
+
+#if 1
+    Eigen::Vector2f vel_due_to_spin(-state.angular_vel.z() * ball_radius,
+                                    state.angular_vel.x() * ball_radius);
+    auto slip_rate = (state.vel - vel_due_to_spin).eval();
+    float slip_rate_norm = slip_rate.norm();
+    if (slip_rate_norm < 5e-3f) {
+      float vel_norm = state.vel.norm();
+      if (vel_norm < 5e-5f) {
+        state.vel = Eigen::Vector2f::Zero();
+      } else {
+        // different coeff??? TODO
+        state.vel -= state.vel * sliding_friction * secs / vel_norm;
+      }
+    } else {
+      state.vel -= slip_rate * sliding_friction * secs / slip_rate_norm;
+      auto change_angular =
+          (slip_rate * slide_to_roll * secs / slip_rate_norm / ball_radius)
+              .eval();
+      state.angular_vel.z() -= change_angular[0];
+      state.angular_vel.x() += change_angular[1];
+    }
+    float angular_vel_norm = state.angular_vel.norm();
+    if (angular_vel_norm < 1e-7f) {
+      state.angular_vel = Eigen::Vector3f::Zero();
+    } else {
+      state.angular_vel -=
+          rolling_friction * secs * state.angular_vel / angular_vel_norm;
+    }
+#endif
+
     auto new_pos = (state.pos + state.vel * secs).eval();
-    auto new_rot = (state.rot + state.angular_vel * secs).eval();
-    for (unsigned other_state_index = state_index + 1;
-         other_state_index < states_.size(); other_state_index++) {
+    auto angular_vel_time = state.angular_vel * secs;
+    Eigen::Quaternionf new_rot =
+        Eigen::AngleAxis(angular_vel_time.x(), Eigen::Vector3f(1, 0, 0)) *
+        Eigen::AngleAxis(angular_vel_time.y(), Eigen::Vector3f(0, 1, 0)) *
+        Eigen::AngleAxis(angular_vel_time.z(), Eigen::Vector3f(0, 0, 1)) *
+        state.rot;
+
+    std::shuffle(shuffles_.begin(), shuffles_.end(), gen_);
+
+    // collisions
+    for (unsigned other_state_index : shuffles_) {
+      if (other_state_index <= state_index) {
+        continue;
+      }
+
       auto &other_state = states_[other_state_index];
       auto other_new_pos = (other_state.pos + other_state.vel * secs).eval();
 
-      if ((other_new_pos - new_pos).norm() < 2 * ball_radius - 1e-3) {
+      auto pos_diff = (new_pos - other_new_pos).eval();
+      auto pos_diff_norm = pos_diff.norm();
+
+      if (pos_diff_norm < 2 * ball_radius - 1e-4f) {
         // not quite correct...
-        auto pos_diff = (state.pos - other_state.pos).eval();
-        auto change =
-            (((state.vel - other_state.vel).dot(pos_diff) / pos_diff.norm()) *
-             pos_diff)
-                .eval();
+        auto change = (((state.vel - other_state.vel).dot(pos_diff) /
+                        pos_diff.squaredNorm()) *
+                       pos_diff)
+                          .eval();
         state.vel_change -= change;
         other_state.vel_change += change;
       }
@@ -205,14 +252,16 @@ void PoolScene::step(float secs) {
     }
 
     state.pos = new_pos;
+    state.rot = new_rot;
+    
     state.vel += state.vel_change;
     state.vel_change.setZero();
-    state.rot = new_rot;
+
+    float ball_scale = ball_radius * 2.0f;
 
     shapes_[state.shape_index].set_transform(static_cast<Eigen::Affine3f>(
-        Eigen::Translation3f(state.pos[0], ball_height, state.pos[1]) *
-        Eigen::AngleAxis(state.rot[0], Eigen::Vector3f(0, 1, 0)) *
-        Eigen::AngleAxis(state.rot[1], Eigen::Vector3f(1, 0, 0))));
+        Eigen::Translation3f(state.pos[0], ball_center_y, state.pos[1]) *
+        state.rot * Eigen::Scaling(ball_scale, ball_scale, ball_scale)));
   }
 }
 } // namespace scene
