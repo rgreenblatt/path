@@ -49,7 +49,7 @@ void render_frames(unsigned width, unsigned height,
     auto bgra_data = reinterpret_cast<BGRA *>(frame.data);
 
     renderer.render(scene, bgra_data, static_cast<scene::Transform>(transform),
-                    use_kd_tree, true);
+                    use_kd_tree, false);
 
     for (unsigned i = 0; i < physics_super_sampling_rate; i++) {
       scene.step(secs_per_frame);
