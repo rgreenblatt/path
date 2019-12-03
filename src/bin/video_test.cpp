@@ -17,7 +17,7 @@ void render_frames(unsigned width, unsigned height,
                    const Eigen::Affine3f &transform,
                    const std::string &dir_name, unsigned depth,
                    bool use_kd_tree, unsigned frames, float frame_rate,
-                   unsigned physics_super_sampling_rate) {
+                   unsigned physics_super_sampling_rate, bool make_video) {
 #if 0
   if (!std::filesystem::exists(dir_name)) {
     std::filesystem::create_directories(dir_name);
@@ -34,8 +34,13 @@ void render_frames(unsigned width, unsigned height,
 
   ProgressBar progress(frames, 60);
 
-  cv::VideoWriter writer(dir_name + "out.avi", CV_FOURCC('M', 'J', 'P', 'G'),
-                         frame_rate, cv::Size(width, height));
+  std::optional<cv::VideoWriter> writer;
+
+  if (make_video) {
+    writer =
+        cv::VideoWriter(dir_name + "out.avi", CV_FOURCC('M', 'J', 'P', 'G'),
+                        frame_rate, cv::Size(width, height));
+  }
 
   cv::Mat frame(height, width, CV_8UC4);
   cv::Mat out(height, width, CV_8UC3);
@@ -44,14 +49,16 @@ void render_frames(unsigned width, unsigned height,
     auto bgra_data = reinterpret_cast<BGRA *>(frame.data);
 
     renderer.render(scene, bgra_data, static_cast<scene::Transform>(transform),
-                    use_kd_tree, false);
+                    use_kd_tree, true);
 
     for (unsigned i = 0; i < physics_super_sampling_rate; i++) {
       scene.step(secs_per_frame);
     }
 
-    cv::cvtColor(frame, out, CV_RGBA2RGB);
-    writer.write(out);
+    if (make_video) {
+      cv::cvtColor(frame, out, CV_RGBA2RGB);
+      writer->write(out);
+    }
 
     ++progress;
     progress.display();
@@ -66,11 +73,13 @@ void render_frames(unsigned width, unsigned height,
   std::cout << frames / time << " fps" << std::endl;
   std::cout << std::endl;
 
-  writer.release();
+  if (make_video) {
+    writer->release();
+  }
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 10) {
+  if (argc != 11) {
     std::cout << "wrong num args" << std::endl;
 
     return 1;
@@ -86,6 +95,8 @@ int main(int argc, char *argv[]) {
   const float frame_rate = boost::lexical_cast<float>(argv[8]);
   const unsigned physics_super_sampling_rate =
       boost::lexical_cast<unsigned>(argv[9]);
+  const bool make_video =
+      boost::lexical_cast<bool>(argv[10]);
 
   scene::PoolScene pool_scene;
 
@@ -99,14 +110,16 @@ int main(int argc, char *argv[]) {
     std::cout << "rendering cpu" << std::endl;
     render_frames<ray::ExecutionModel::CPU>(
         width, height, super_sampling_rate, pool_scene, transform, "cpu_video/",
-        depth, use_kd_tree, frames, frame_rate, physics_super_sampling_rate);
+        depth, use_kd_tree, frames, frame_rate, physics_super_sampling_rate,
+        make_video);
     std::cout << "=============" << std::endl;
   }
 
   std::cout << "rendering gpu" << std::endl;
   render_frames<ray::ExecutionModel::GPU>(
       width, height, super_sampling_rate, pool_scene, transform, "gpu_video/",
-      depth, use_kd_tree, frames, frame_rate, physics_super_sampling_rate);
+      depth, use_kd_tree, frames, frame_rate, physics_super_sampling_rate,
+      make_video);
 
   return 0;
 }
