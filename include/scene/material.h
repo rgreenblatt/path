@@ -12,8 +12,11 @@ struct Material {
   Color ambient;
   Color reflective;
   Color specular;
+
+#if 0
   Color transparent;
   Color emissive;
+#endif
 
   thrust::optional<TextureData> texture_data;
 
@@ -31,7 +34,10 @@ struct Material {
                        float diffuse_blend, float ambient_blend,
                        float shininess, float ior)
       : diffuse(diffuse), ambient(ambient), reflective(reflective),
-        specular(specular), transparent(transparent), emissive(emissive),
+        specular(specular), 
+#if 0
+        transparent(transparent), emissive(emissive),
+#endif
         texture_data(texture_map_index), diffuse_blend(diffuse_blend),
         ambient_blend(ambient_blend), shininess(shininess), ior(ior) {}
 

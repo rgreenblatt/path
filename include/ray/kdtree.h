@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ray/cube.h"
+
 #include <thrust/optional.h>
 
 namespace ray {
@@ -8,10 +9,10 @@ namespace detail {
 struct KDTreeNode;
 
 struct KDTreeSplit {
-  unsigned left_index;
-  unsigned right_index;
+  uint16_t left_index;
+  uint16_t right_index;
   float division_point;
-  KDTreeSplit(unsigned left_index, unsigned right_index, float division_point)
+  KDTreeSplit(uint16_t left_index, uint16_t right_index, float division_point)
       : left_index(left_index), right_index(right_index),
         division_point(division_point) {}
   KDTreeSplit() {}
@@ -30,13 +31,14 @@ struct KDTreeNode {
     is_split_ = true;
   }
 
-  KDTreeNode(const std::array<unsigned, 2> &data,
+  KDTreeNode(const std::array<uint16_t, 2> &data,
              const Eigen::Vector3f &min_bound, const Eigen::Vector3f &max_bound)
       : KDTreeNode(min_bound, max_bound) {
     data_ = data;
     is_split_ = false;
   }
 
+#if 0
   HOST_DEVICE thrust::optional<float>
   solveBoundingIntersectionOld(const Eigen::Vector3f &point,
                                const Eigen::Vector3f &direction) const {
@@ -53,6 +55,7 @@ struct KDTreeNode {
     return solve_cube<false>(kd_space_point, direction.cwiseProduct(scale),
                              false);
   }
+#endif
 
   // needs to be inline
   HOST_DEVICE thrust::optional<float>
@@ -81,17 +84,15 @@ struct KDTreeNode {
 
 private:
   KDTreeNode(const Eigen::Vector3f &min_bound, const Eigen::Vector3f &max_bound)
-      : min_bound(min_bound), max_bound(max_bound),
-        scale(1.0f / (max_bound - min_bound).array()),
-        translate(
-            (-min_bound - (max_bound - min_bound) * 0.5f).cwiseProduct(scale)) {
-  }
+      : min_bound(min_bound), max_bound(max_bound) {}
 
+#if 0
   Eigen::Vector3f scale;
   Eigen::Vector3f translate;
+#endif
   bool is_split_;
   KDTreeSplit split_;
-  std::array<unsigned, 2> data_;
+  std::array<uint16_t, 2> data_;
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -109,6 +110,6 @@ struct Bounds {
 };
 
 std::vector<KDTreeNode> construct_kd_tree(scene::ShapeData *shapes,
-                                          unsigned num_shapes);
+                                          uint16_t num_shapes);
 } // namespace detail
 } // namespace ray

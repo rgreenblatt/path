@@ -71,14 +71,14 @@ Eigen::Vector3f get_min_max_bound(const std::vector<Bounds> &bounds,
       });
 }
 
-unsigned construct_kd_tree(std::vector<KDTreeNode> &nodes, ShapeData *shapes,
-                           std::vector<Bounds> &bounds, unsigned start_shape,
-                           unsigned end_shape, int depth) {
+uint16_t construct_kd_tree(std::vector<KDTreeNode> &nodes, ShapeData *shapes,
+                           std::vector<Bounds> &bounds, uint16_t start_shape,
+                           uint16_t end_shape, int depth) {
   if (end_shape - start_shape <= final_shapes_per_division ||
       depth == maximum_kd_depth) {
     auto min_bound = get_min_max_bound<true>(bounds, start_shape, end_shape);
     auto max_bound = get_min_max_bound<false>(bounds, start_shape, end_shape);
-    unsigned index = nodes.size();
+    uint16_t index = nodes.size();
     nodes.push_back(KDTreeNode({start_shape, end_shape}, min_bound, max_bound));
 
     return index;
@@ -88,7 +88,7 @@ unsigned construct_kd_tree(std::vector<KDTreeNode> &nodes, ShapeData *shapes,
   kth_smallest(shapes, bounds, axis, start_shape, end_shape - 1, k);
   float median = bounds[k + start_shape].center[axis];
   int new_depth = depth + 1;
-  unsigned left_index, right_index;
+  uint16_t left_index, right_index;
   left_index = construct_kd_tree(nodes, shapes, bounds, start_shape,
                                  start_shape + k, new_depth);
   right_index = construct_kd_tree(nodes, shapes, bounds, start_shape + k,
@@ -99,7 +99,7 @@ unsigned construct_kd_tree(std::vector<KDTreeNode> &nodes, ShapeData *shapes,
   auto min_bounds = left.min_bound.cwiseMin(right.min_bound);
   auto max_bounds = left.max_bound.cwiseMax(right.max_bound);
 
-  unsigned index = nodes.size();
+  uint16_t index = nodes.size();
   nodes.push_back(KDTreeNode(KDTreeSplit(left_index, right_index, median),
                              min_bounds, max_bounds));
 
@@ -107,7 +107,7 @@ unsigned construct_kd_tree(std::vector<KDTreeNode> &nodes, ShapeData *shapes,
 }
 
 std::vector<KDTreeNode> construct_kd_tree(scene::ShapeData *shapes,
-                                          unsigned num_shapes) {
+                                          uint16_t num_shapes) {
   std::vector<Bounds> shape_bounds(num_shapes);
   std::transform(shapes, shapes + num_shapes, shape_bounds.begin(),
                  [](const ShapeData &shape) {

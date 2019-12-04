@@ -9,7 +9,7 @@ void Scene::copyInTextureRefs() {
                  [&](const TextureImage &image) { return image.to_ref(); });
 }
 
-unsigned Scene::getStartShape(Shape shape) const {
+uint16_t Scene::getStartShape(Shape shape) const {
   switch (shape) {
   case Shape::Sphere:
     return startSpheres();
@@ -24,7 +24,7 @@ unsigned Scene::getStartShape(Shape shape) const {
     assert(false);
   }
 }
-unsigned Scene::getNumShape(Shape shape) const {
+uint16_t Scene::getNumShape(Shape shape) const {
   switch (shape) {
   case Shape::Sphere:
     return numSpheres();

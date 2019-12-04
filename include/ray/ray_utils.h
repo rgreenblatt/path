@@ -12,7 +12,6 @@
 
 namespace ray {
 namespace detail {
-// TODO
 using UVPosition = Eigen::Array2f;
 
 template <class F, class... Args>
@@ -154,24 +153,6 @@ HOST_DEVICE inline UVPosition uv_square_face(UVPosition vec,
   return vec + 0.5f;
 }
 
-template <bool normal_and_uv, bool is_top> struct convert_cap;
-
-template <bool is_top> struct convert_cap<false, is_top> {
-  HOST_DEVICE static float convert(float t, const Eigen::Vector2f &, bool) {
-    return t;
-  }
-};
-
-template <bool is_top> struct convert_cap<true, is_top> {
-  HOST_DEVICE static IntersectionNormalUV
-  convert(float t, const Eigen::Vector2f &location, bool texture_map) {
-    return IntersectionNormalUV(
-        t, Eigen::Vector3f(0, is_top ? 1 : -1, 0),
-        texture_map ? uv_square_face(location, make_optional(!is_top, 1))
-                    : UVPosition());
-  }
-};
-
 template <bool normal_and_uv, bool is_top>
 HOST_DEVICE inline IntersectionOp<normal_and_uv>
 cap_sol(const Eigen::Vector3f &point, const Eigen::Vector3f &direction,
@@ -186,8 +167,19 @@ cap_sol(const Eigen::Vector3f &point, const Eigen::Vector3f &direction,
   const bool within_cap =
       sol_v >= 0 && x_z_intersection.squaredNorm() <= 0.25f + epsilon;
 
-  return make_optional(within_cap, convert_cap<normal_and_uv, is_top>::convert(
-                                       sol_v, x_z_intersection, texture_map));
+  return make_optional(
+      within_cap, invoke([&] {
+        if constexpr(normal_and_uv) {
+          return IntersectionNormalUV(
+              sol_v, Eigen::Vector3f(0, is_top ? 1 : -1, 0),
+              texture_map
+                  ? uv_square_face(x_z_intersection, make_optional(!is_top, 1))
+                  : UVPosition());
+
+        } else {
+          return sol_v;
+        }
+      }));
 }
 
 HOST_DEVICE inline thrust::optional<float>

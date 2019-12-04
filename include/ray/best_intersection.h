@@ -10,7 +10,7 @@ namespace detail {
 template <bool normals_and_uv> struct BestIntersectionGeneral {
   using Intersection = Intersection<normals_and_uv>;
   Intersection intersection;
-  unsigned shape_idx;
+  uint16_t shape_idx;
 
   HOST_DEVICE BestIntersectionGeneral(const Intersection &intersection,
                                       const unsigned shape_idx)

@@ -16,7 +16,7 @@ TextureData PoolScene::loadTexture(const std::string &file) {
     std::exit(1);
   }
 
-  unsigned texture_index = textures_.size();
+  uint16_t texture_index = textures_.size();
 
   textures_.push_back(*image_tex);
 

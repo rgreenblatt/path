@@ -88,7 +88,7 @@ template <bool normal_and_uv, scene::Shape shape_type>
 __host__
     __device__ inline thrust::optional<BestIntersectionGeneral<normal_and_uv>>
     get_shape_intersection(const scene::ShapeData *shapes,
-                           const unsigned shape_idx,
+                           const uint16_t shape_idx,
                            const Eigen::Vector3f &world_space_eye,
                            const Eigen::Vector3f &world_space_direction) {
   const auto &shape = shapes[shape_idx];
@@ -117,7 +117,7 @@ __host__ __device__ inline void solve_general_intersection(
     return;
   }
 
-  auto solve_index = [&](unsigned shape_idx) {
+  auto solve_index = [&](uint16_t shape_idx) {
     if (!is_first && ignore_v == shape_idx) {
       return false;
     }
@@ -129,48 +129,59 @@ __host__ __device__ inline void solve_general_intersection(
   if (use_kd_tree) {
     auto inv_direction = (1.0f / world_space_direction.array()).eval();
 
+    struct StackData {
+      uint16_t node_index;
+      uint8_t depth;
+
+      __device__ __host__ StackData(uint16_t node_index, uint8_t depth)
+          : node_index(node_index), depth(depth) {}
+
+      __device__ __host__ StackData() {}
+    };
+
     if (by_type_data.root_node_count != 0) {
-      std::array<std::array<unsigned, 2>, 64> node_stack;
-      node_stack[0] = {by_type_data.root_node_count - 1, 0};
+      std::array<StackData, 64> node_stack;
+      node_stack[0] = StackData(by_type_data.root_node_count - 1, 0);
       uint8_t node_stack_size = 1;
 
-      thrust::optional<std::array<unsigned, 2>> start_end = thrust::nullopt;
-      unsigned current_shape_index = 0;
+      thrust::optional<std::array<uint16_t, 2>> start_end = thrust::nullopt;
+      uint16_t current_shape_index = 0;
 
       while (node_stack_size != 0 || start_end.has_value()) {
         while (!start_end.has_value() && node_stack_size != 0) {
           const auto &stack_v = node_stack[node_stack_size - 1];
 
-          const auto &current_node = by_type_data.nodes[stack_v[0]];
-          auto depth = stack_v[1];
+          const auto &current_node = by_type_data.nodes[stack_v.node_index];
 
           auto bounding_intersection = current_node.solveBoundingIntersection(
               world_space_eye, inv_direction);
 
           if (bounding_intersection &&
-              (!best || best->intersection > *bounding_intersection)) {
+              (!best.has_value() ||
+               best->intersection > *bounding_intersection)) {
             current_node.case_split_or_data(
                 [&](const KDTreeSplit &split) {
+                  const uint8_t axis = stack_v.depth % 3;
                   const auto intersection_point =
-                      world_space_eye +
-                      world_space_direction * *bounding_intersection;
-                  const unsigned axis = depth % 3;
+                      world_space_eye[axis] +
+                      world_space_direction[axis] * *bounding_intersection;
                   auto first = split.left_index;
                   auto second = split.right_index;
 
-                  if (intersection_point[axis] > split.division_point) {
+                  if (intersection_point > split.division_point) {
                     auto temp = first;
                     first = second;
                     second = temp;
                   }
 
-                  unsigned new_depth = depth + 1;
-                  node_stack[node_stack_size - 1] = {second, new_depth};
+                  uint8_t new_depth = stack_v.depth + 1;
+                  node_stack[node_stack_size - 1] =
+                      StackData(second, new_depth);
                   node_stack_size++;
-                  node_stack[node_stack_size - 1] = {first, new_depth};
+                  node_stack[node_stack_size - 1] = StackData(first, new_depth);
                   node_stack_size++; // counter act --;
                 },
-                [&](const std::array<unsigned, 2> &data) {
+                [&](const std::array<uint16_t, 2> &data) {
                   start_end = thrust::make_optional(data);
                   current_shape_index = data[0];
                 });
@@ -181,7 +192,7 @@ __host__ __device__ inline void solve_general_intersection(
 
         if (start_end.has_value()) {
           auto local_end_shape = (*start_end)[1];
-          unsigned shape_idx = current_shape_index + by_type_data.start_shape;
+          uint16_t shape_idx = current_shape_index + by_type_data.start_shape;
           current_shape_index++;
           if (current_shape_index >= local_end_shape) {
             start_end = thrust::nullopt;
@@ -194,7 +205,7 @@ __host__ __device__ inline void solve_general_intersection(
       }
     }
   } else {
-    for (unsigned shape_idx = by_type_data.start_shape;
+    for (uint16_t shape_idx = by_type_data.start_shape;
          shape_idx < by_type_data.start_shape + by_type_data.num_shape;
          shape_idx++) {
       if (solve_index(shape_idx)) {

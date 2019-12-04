@@ -10,16 +10,16 @@
 namespace scene {
 class Scene {
 public:
-  unsigned numSpheres() const { return num_spheres_; }
-  unsigned numCylinders() const { return num_cylinders_; }
-  unsigned numCubes() const { return num_cubes_; }
-  unsigned numCones() const { return num_cones_; }
-  unsigned numShapes() const { return shapes_.size(); }
+  uint16_t numSpheres() const { return num_spheres_; }
+  uint16_t numCylinders() const { return num_cylinders_; }
+  uint16_t numCubes() const { return num_cubes_; }
+  uint16_t numCones() const { return num_cones_; }
+  uint16_t numShapes() const { return shapes_.size(); }
 
-  unsigned startSpheres() const { return 0; }
-  unsigned startCylinders() const { return num_spheres_; }
-  unsigned startCubes() const { return num_spheres_ + num_cylinders_; }
-  unsigned startCones() const {
+  uint16_t startSpheres() const { return 0; }
+  uint16_t startCylinders() const { return num_spheres_; }
+  uint16_t startCubes() const { return num_spheres_ + num_cylinders_; }
+  uint16_t startCones() const {
     return num_spheres_ + num_cylinders_ + num_cubes_;
   }
 
@@ -28,10 +28,10 @@ public:
   virtual const Light *getLights() const { return lights_.data(); }
   virtual unsigned getNumLights() const { return lights_.size(); }
 
-  unsigned getNumShape(Shape shape) const;
-  unsigned getStartShape(Shape shape) const;
+  uint16_t getNumShape(Shape shape) const;
+  uint16_t getStartShape(Shape shape) const;
 
-  unsigned getNumTextures() const { return textures_refs_.size(); }
+  uint16_t getNumTextures() const { return textures_refs_.size(); }
   const TextureImageRef* getTextures() const { return textures_refs_.data(); }
 
 protected:
@@ -39,10 +39,10 @@ protected:
   ManangedMemVec<Light> lights_;
   ManangedMemVec<TextureImage> textures_;
 
-  unsigned num_spheres_;
-  unsigned num_cylinders_;
-  unsigned num_cubes_;
-  unsigned num_cones_;
+  uint16_t num_spheres_;
+  uint16_t num_cylinders_;
+  uint16_t num_cubes_;
+  uint16_t num_cones_;
   
   void copyInTextureRefs();
 

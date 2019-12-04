@@ -60,8 +60,8 @@ template <typename T> const T *to_ptr(const std::vector<T> &vec) {
 template <ExecutionModel execution_model>
 ByTypeDataRef RendererImpl<execution_model>::ByTypeData::initialize(
     const scene::Scene &scene, scene::ShapeData *shapes) {
-  const unsigned num_shape = scene.getNumShape(shape_type);
-  const unsigned start_shape = scene.getStartShape(shape_type);
+  const uint16_t num_shape = scene.getNumShape(shape_type);
+  const uint16_t start_shape = scene.getStartShape(shape_type);
 
   auto kdtree = construct_kd_tree(shapes + start_shape, num_shape);
   nodes.resize(kdtree.size());
@@ -181,6 +181,7 @@ void RendererImpl<execution_model>::render(
 
     const auto start_intersect = chr::high_resolution_clock::now();
 
+#pragma omp parallel for
     for (auto &data : by_type_data_gpu) {
       auto solve = [&]<scene::Shape shape_type>() {
         if constexpr (execution_model == ExecutionModel::GPU) {
@@ -200,6 +201,7 @@ void RendererImpl<execution_model>::render(
               ignores_.data(), disables_.data(), is_first, use_kd_tree);
         }
       };
+
       switch (data.shape_type) {
       case scene::Shape::Sphere:
         solve.template operator()<scene::Shape::Sphere>();

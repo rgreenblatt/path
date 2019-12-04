@@ -2,6 +2,8 @@
 
 #include "ray/ray_utils.h"
 
+namespace ray {
+namespace detail {
 __inline__ __device__ std::tuple<unsigned, unsigned>
 get_block_idxs(unsigned general_block_idx, unsigned num_blocks_x) {
   unsigned block_idx_x = general_block_idx % num_blocks_x;
@@ -30,3 +32,5 @@ get_non_sparse_indexes(unsigned num_blocks_x, unsigned block_dim_x,
                        unsigned block_dim_y) {
   return get_indexes(nullptr, false, num_blocks_x, block_dim_x, block_dim_y);
 }
+} // namespace detail
+} // namespace ray
