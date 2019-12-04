@@ -29,7 +29,6 @@ void PoolScene::setBreak() {
   // TODO:
   //  - measure cue ball starting position
   //  - measure break point
-  //  - noise
   for (auto &ball : states_) {
     ball.angular_vel = Eigen::Vector3f::Zero();
     ball.rot = Eigen::Quaternionf::Identity();
@@ -79,6 +78,8 @@ PoolScene::PoolScene() {
   num_cylinders_ = 0;
   num_cubes_ = 0;
   num_cones_ = 0;
+
+#if 1
 
   float ball_diffuse = 0.5;
   float ball_ambient = 0.5;
@@ -171,6 +172,7 @@ PoolScene::PoolScene() {
   for (auto dir : {Eigen::Vector3f(-1, -1, 0), Eigen::Vector3f(1, -1, 0)}) {
     lights_.push_back(Light(light_color * 0.5, DirectionalLight(dir)));
   }
+#endif
 
   copyInTextureRefs();
 }
@@ -180,7 +182,6 @@ void PoolScene::step(float secs) {
   for (unsigned state_index = 0; state_index < states_.size(); state_index++) {
     auto &state = states_[state_index];
 
-#if 1
     Eigen::Vector2f vel_due_to_spin(-state.angular_vel.z() * ball_radius,
                                     state.angular_vel.x() * ball_radius);
     auto slip_rate = (state.vel - vel_due_to_spin).eval();
@@ -208,7 +209,6 @@ void PoolScene::step(float secs) {
       state.angular_vel -=
           rolling_friction * secs * state.angular_vel / angular_vel_norm;
     }
-#endif
 
     auto new_pos = (state.pos + state.vel * secs).eval();
     auto angular_vel_time = state.angular_vel * secs;
@@ -253,7 +253,7 @@ void PoolScene::step(float secs) {
 
     state.pos = new_pos;
     state.rot = new_rot;
-    
+
     state.vel += state.vel_change;
     state.vel_change.setZero();
 

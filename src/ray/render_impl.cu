@@ -66,35 +66,9 @@ ByTypeDataRef RendererImpl<execution_model>::ByTypeData::initialize(
   auto kdtree = construct_kd_tree(shapes + start_shape, num_shape);
   nodes.resize(kdtree.size());
   std::copy(kdtree.begin(), kdtree.end(), nodes.begin());
+
   return ByTypeDataRef(to_ptr(intersections), nodes.data(), nodes.size(),
                        shape_type, start_shape, num_shape);
-}
-
-template <ExecutionModel execution_model>
-template <typename... T>
-void RendererImpl<execution_model>::minimize_intersections(
-    unsigned size, bool is_first, const DataType<uint8_t> &disables,
-    T &... values) {
-  if constexpr (execution_model == ExecutionModel::GPU) {
-    const unsigned minimize_block_size = 256;
-    minimize_all_intersections<<<num_blocks(size, minimize_block_size),
-                                 minimize_block_size>>>(
-        size, is_first, to_ptr(disables), to_ptr(values.intersections)...);
-
-    CUDA_ERROR_CHK(cudaDeviceSynchronize());
-  } else {
-    minimize_all_intersections_cpu(size, is_first, disables.data(),
-                                   values.intersections.data()...);
-  }
-}
-
-template <ExecutionModel execution_model>
-template <typename... T>
-void RendererImpl<execution_model>::minimize_intersections(
-    bool is_first, const DataType<uint8_t> &disables, ByTypeData &first,
-    const T &... rest) {
-  minimize_intersections(static_cast<unsigned>(first.intersections.size()),
-                         is_first, disables, first, rest...);
 }
 
 template <ExecutionModel execution_model>
@@ -109,12 +83,20 @@ void RendererImpl<execution_model>::render(
   const unsigned num_pixels = effective_width_ * effective_height_;
   const auto textures = scene.getTextures();
 
-  const unsigned width_block_size = 8;
-  const unsigned height_block_size = 8;
+  const unsigned block_dim_x = 32;
+  const unsigned block_dim_y = 8;
 
-  const dim3 grid(num_blocks(effective_width_, width_block_size),
-                  num_blocks(effective_height_, height_block_size), 1);
-  const dim3 block(width_block_size, height_block_size, 1);
+  const unsigned num_blocks_x = num_blocks(effective_width_, block_dim_x);
+  const unsigned num_blocks_y =
+      num_blocks(effective_height_, block_dim_y);
+
+  const unsigned general_num_blocks = num_blocks_x * num_blocks_y;
+  const unsigned general_block_size = block_dim_x * block_dim_y;
+
+  group_disables_.resize(general_num_blocks);
+  group_indexes_.resize(general_num_blocks);
+  
+  unsigned current_num_blocks = general_num_blocks;
 
   const Eigen::Vector3f world_space_eye = m_film_to_world.translation();
 
@@ -127,15 +109,17 @@ void RendererImpl<execution_model>::render(
   // could be made async until...
   if constexpr (execution_model == ExecutionModel::GPU) {
     const unsigned fill_block_size = 256;
-    fill<<<num_blocks(num_pixels, fill_block_size), fill_block_size>>>(
+    const unsigned fill_num_blocks = num_blocks(num_pixels, fill_block_size);
+    fill<<<fill_num_blocks, fill_block_size>>>(
         to_ptr(world_space_eyes_), num_pixels, world_space_eye);
-    fill<<<num_blocks(num_pixels, fill_block_size), fill_block_size>>>(
+    fill<<<fill_num_blocks, fill_block_size>>>(
         to_ptr(color_multipliers_), num_pixels, initial_multiplier);
-    fill<<<num_blocks(num_pixels, fill_block_size), fill_block_size>>>(
+    fill<<<fill_num_blocks, fill_block_size>>>(
         to_ptr(colors_), num_pixels, initial_color);
 
-    initial_world_space_directions<<<grid, block>>>(
-        effective_width_, effective_height_, world_space_eye, m_film_to_world,
+    initial_world_space_directions<<<general_num_blocks, general_block_size>>>(
+        effective_width_, effective_height_, num_blocks_x, block_dim_x,
+        block_dim_y, world_space_eye, m_film_to_world,
         to_ptr(world_space_directions_));
 
     CUDA_ERROR_CHK(cudaDeviceSynchronize());
@@ -183,15 +167,32 @@ void RendererImpl<execution_model>::render(
   for (unsigned depth = 0; depth < recursive_iterations_; depth++) {
     bool is_first = depth == 0;
 
+    // do this on gpu????
+    if (!is_first && execution_model == ExecutionModel::GPU) {
+      current_num_blocks = 0;
+
+      for (unsigned i = 0; i < group_disables_.size(); i++) {
+        if (!group_disables_[i]) {
+          group_indexes_[current_num_blocks] = i;
+          current_num_blocks++;
+        }
+      }
+    }
+
     const auto start_intersect = chr::high_resolution_clock::now();
 
     for (auto &data : by_type_data_gpu) {
       auto solve = [&]<scene::Shape shape_type>() {
         if constexpr (execution_model == ExecutionModel::GPU) {
-          solve_intersections<shape_type><<<grid, block>>>(
-              effective_width_, effective_height_, data, shapes.data(),
-              to_ptr(world_space_eyes_), to_ptr(world_space_directions_),
-              to_ptr(ignores_), to_ptr(disables_), is_first, use_kd_tree);
+          if (current_num_blocks != 0) {
+            solve_intersections<shape_type>
+                <<<current_num_blocks, general_block_size>>>(
+                    effective_width_, effective_height_, data, shapes.data(),
+                    to_ptr(world_space_eyes_), to_ptr(world_space_directions_),
+                    to_ptr(ignores_), to_ptr(disables_), group_indexes_.data(),
+                    num_blocks_x, block_dim_x, block_dim_y, is_first,
+                    use_kd_tree);
+          }
         } else {
           solve_intersections_cpu<shape_type>(
               effective_width_, effective_height_, data, shapes.data(),
@@ -225,9 +226,26 @@ void RendererImpl<execution_model>::render(
 
     const auto start_minimize = chr::high_resolution_clock::now();
 
+    auto minimize_intersections = [&](auto &... values) {
+      if constexpr (execution_model == ExecutionModel::GPU) {
+        if (current_num_blocks != 0) {
+          minimize_all_intersections<<<current_num_blocks,
+                                       block_dim_x * block_dim_y>>>(
+              effective_width_, effective_height_, group_indexes_.data(),
+              num_blocks_x, block_dim_x, block_dim_y, is_first,
+              to_ptr(disables_), to_ptr(values.intersections)...);
+
+          CUDA_ERROR_CHK(cudaDeviceSynchronize());
+        }
+      } else {
+        minimize_all_intersections_cpu(effective_width_, effective_height_,
+                                       is_first, disables_.data(),
+                                       values.intersections.data()...);
+      }
+    };
+
     // fuse kernel???
-    minimize_intersections(is_first, disables_, by_type_data_[0],
-                           by_type_data_[1], by_type_data_[2],
+    minimize_intersections(by_type_data_[0], by_type_data_[1], by_type_data_[2],
                            by_type_data_[3]);
 
     if (show_times) {
@@ -240,14 +258,19 @@ void RendererImpl<execution_model>::render(
 
     const auto start_color = chr::high_resolution_clock::now();
     if constexpr (execution_model == ExecutionModel::GPU) {
-      compute_colors<<<grid, block>>>(
-          effective_width_, effective_height_, by_type_data_gpu,
-          to_ptr(world_space_eyes_), to_ptr(world_space_directions_),
-          to_ptr(ignores_), to_ptr(color_multipliers_), to_ptr(disables_),
-          to_ptr(best_intersections), shapes.data(), lights, num_lights,
-          textures, to_ptr(colors_), use_kd_tree, is_first);
+      if (current_num_blocks != 0) {
+        compute_colors<<<current_num_blocks, general_block_size>>>(
+            effective_width_, effective_height_, by_type_data_gpu,
+            to_ptr(world_space_eyes_), to_ptr(world_space_directions_),
+            to_ptr(ignores_), to_ptr(color_multipliers_), to_ptr(disables_),
+            group_disables_.data(), group_indexes_.data(), num_blocks_x,
+            block_dim_x, block_dim_y,
 
-      CUDA_ERROR_CHK(cudaDeviceSynchronize());
+            to_ptr(best_intersections), shapes.data(), lights, num_lights,
+            textures, to_ptr(colors_), use_kd_tree, is_first);
+
+        CUDA_ERROR_CHK(cudaDeviceSynchronize());
+      }
     } else {
       compute_colors_cpu(
           effective_width_, effective_height_, by_type_data_gpu,
@@ -256,6 +279,7 @@ void RendererImpl<execution_model>::render(
           best_intersections.data(), shapes.data(), lights, num_lights,
           textures, colors_.data(), use_kd_tree, is_first);
     }
+
     const auto end_color = chr::high_resolution_clock::now();
     if (show_times) {
       dbg(chr::duration_cast<chr::duration<double>>(end_color - start_color)
@@ -267,13 +291,10 @@ void RendererImpl<execution_model>::render(
   const unsigned height = effective_height_ / super_sampling_rate_;
 
   if constexpr (execution_model == ExecutionModel::GPU) {
-    const dim3 to_bgra_grid(num_blocks(width, width_block_size),
-                            num_blocks(height, height_block_size), 1);
-    const dim3 to_bgra_block(width_block_size, height_block_size, 1);
-
     const auto start_convert = chr::high_resolution_clock::now();
-    floats_to_bgras<<<to_bgra_grid, to_bgra_block>>>(
-        width, height, super_sampling_rate_, to_ptr(colors_), to_ptr(bgra_));
+    floats_to_bgras<<<general_num_blocks, general_block_size>>>(
+        width, height, num_blocks_x, block_dim_x, block_dim_y,
+        super_sampling_rate_, to_ptr(colors_), to_ptr(bgra_));
 
     CUDA_ERROR_CHK(cudaDeviceSynchronize());
     if (show_times) {

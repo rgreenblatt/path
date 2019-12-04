@@ -53,14 +53,6 @@ private:
         : intersections(pixel_size), shape_type(shape_type) {}
   };
 
-  template <typename... T>
-  void minimize_intersections(unsigned size, bool is_first,
-                              const DataType<uint8_t> &disables, T &... values);
-
-  template <typename... T>
-  void minimize_intersections(bool is_first, const DataType<uint8_t> &disables,
-                              ByTypeData &first, const T &... rest);
-
   unsigned effective_width_;
   unsigned effective_height_;
   unsigned super_sampling_rate_;
@@ -77,5 +69,7 @@ private:
   DataType<uint8_t> disables_;
   DataType<scene::Color> colors_;
   DataType<BGRA> bgra_;
+  ManangedMemVec<uint8_t> group_disables_;
+  ManangedMemVec<unsigned> group_indexes_;
 };
 } // namespace ray

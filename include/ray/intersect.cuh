@@ -7,6 +7,7 @@
 #include "ray/cylinder.h"
 #include "ray/kdtree.h"
 #include "ray/ray_utils.h"
+#include "ray/cuda_ray_utils.cuh"
 #include "ray/sphere.h"
 #include "scene/shape.h"
 #include "scene/shape_data.h"
@@ -44,11 +45,12 @@ initial_world_space_directions(unsigned x, unsigned y, unsigned width,
 
 __global__ void
 initial_world_space_directions(unsigned width, unsigned height,
+                               unsigned num_blocks_x, unsigned block_dim_x,
+                               unsigned block_dim_y,
                                const Eigen::Vector3f world_space_eye,
                                const scene::Transform m_film_to_world,
                                Eigen::Vector3f *world_space_directions) {
-  unsigned x = blockIdx.x * blockDim.x + threadIdx.x;
-  unsigned y = blockIdx.y * blockDim.y + threadIdx.y;
+  auto [x, y] = get_non_sparse_indexes(num_blocks_x, block_dim_x, block_dim_y);
 
   initial_world_space_directions(x, y, width, height, world_space_eye,
                                  m_film_to_world, world_space_directions);
@@ -106,8 +108,8 @@ __host__
 // Rename...
 template <scene::Shape shape_type, typename F>
 __host__ __device__ inline void solve_general_intersection(
-    const ByTypeDataRef &by_type_data,
-    const scene::ShapeData *shapes, const Eigen::Vector3f &world_space_eye,
+    const ByTypeDataRef &by_type_data, const scene::ShapeData *shapes,
+    const Eigen::Vector3f &world_space_eye,
     const Eigen::Vector3f &world_space_direction, const unsigned &ignore_v,
     const uint8_t &disable, thrust::optional<BestIntersection> &best,
     bool is_first, bool use_kd_tree, const F &f) {
@@ -216,6 +218,10 @@ solve_intersection(unsigned x, unsigned y, unsigned width, unsigned height,
 
   unsigned index = x + y * width;
 
+  if (!is_first && disables[index]) {
+    return;
+  }
+
   thrust::optional<BestIntersection> best = thrust::nullopt;
 
   const auto &world_space_direction = world_space_directions[index];
@@ -248,9 +254,12 @@ __global__ void solve_intersections(
     unsigned width, unsigned height, ByTypeDataRef by_type_data,
     const scene::ShapeData *shapes, const Eigen::Vector3f *world_space_eyes,
     const Eigen::Vector3f *world_space_directions, const unsigned *ignores,
-    const uint8_t *disables, bool is_first, bool use_kd_tree) {
-  unsigned x = blockIdx.x * blockDim.x + threadIdx.x;
-  unsigned y = blockIdx.y * blockDim.y + threadIdx.y;
+    const uint8_t *disables, const unsigned *group_indexes,
+    unsigned num_blocks_x, unsigned block_dim_x, unsigned block_dim_y,
+    bool is_first, bool use_kd_tree) {
+
+  auto [x, y] = get_indexes(group_indexes, !is_first, num_blocks_x, block_dim_x,
+                            block_dim_y);
 
   solve_intersection<shape_type>(x, y, width, height, by_type_data, shapes,
                                  world_space_eyes, world_space_directions,
@@ -273,12 +282,17 @@ inline void solve_intersections_cpu(
 }
 
 template <typename... T>
-__host__ __device__ void minimize_intersections(
-    unsigned index, unsigned size, bool is_first, const uint8_t *disables,
-    thrust::optional<BestIntersectionNormalUV> *first, T... rest) {
-  if (index >= size) {
+__host__ __device__ void
+minimize_intersections(unsigned x, unsigned y, unsigned width, unsigned height,
+                       bool is_first, const uint8_t *disables,
+                       thrust::optional<BestIntersectionNormalUV> *first,
+                       T... rest) {
+  if (x >= width || y >= height) {
     return;
   }
+
+  unsigned index = x + y * width;
+
   if (!is_first && disables[index]) {
     return;
   }
@@ -289,17 +303,25 @@ __host__ __device__ void minimize_intersections(
 }
 
 template <typename... T>
-__global__ void minimize_all_intersections(unsigned size, bool is_first,
-                                           const uint8_t *disables, T... rest) {
-  unsigned index = blockIdx.x * blockDim.x + threadIdx.x;
-  minimize_intersections(index, size, is_first, disables, rest...);
+__global__ void
+minimize_all_intersections(unsigned width, unsigned height,
+                           const unsigned *group_indexes, unsigned num_blocks_x,
+                           unsigned block_dim_x, unsigned block_dim_y,
+                           bool is_first, const uint8_t *disables, T... rest) {
+  auto [x, y] = get_indexes(group_indexes, !is_first, num_blocks_x, block_dim_x,
+                            block_dim_y);
+
+  minimize_intersections(x, y, width, height, is_first, disables, rest...);
 }
 
 template <typename... T>
-void minimize_all_intersections_cpu(unsigned size, bool is_first,
-                                    const uint8_t *disables, T... rest) {
-  for (unsigned index = 0; index < size; index++) {
-    minimize_intersections(index, size, is_first, disables, rest...);
+void minimize_all_intersections_cpu(unsigned width, unsigned height,
+                                    bool is_first, const uint8_t *disables,
+                                    T... rest) {
+  for (unsigned x = 0; x < width; x++) {
+    for (unsigned y = 0; y < height; y++) {
+      minimize_intersections(x, y, width, height, is_first, disables, rest...);
+    }
   }
 }
 } // namespace detail
