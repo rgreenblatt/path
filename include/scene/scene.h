@@ -24,6 +24,7 @@ public:
   }
 
   virtual const ShapeData *getShapes() const { return shapes_.data(); }
+  virtual uint16_t getNumShapes() const { return shapes_.size(); }
 
   virtual const Light *getLights() const { return lights_.data(); }
   virtual unsigned getNumLights() const { return lights_.size(); }

@@ -104,7 +104,8 @@ PoolScene::PoolScene() {
                  Color::Ones() * ball_reflective * specular_coeff,
                  Color::Ones() * ball_specular * specular_coeff, Color::Zero(),
                  Color::Zero(), texture_data, ball_diffuse * diffuse_coeff,
-                 ball_ambient * ambient_coeff, ball_shininess, 0)));
+                 ball_ambient * ambient_coeff, ball_shininess, 0),
+        scene::Shape::Sphere));
 
     num_spheres_++;
   }
@@ -127,7 +128,8 @@ PoolScene::PoolScene() {
       Material(Color::Zero(), Color::Zero(), Color::Zero(), Color::Zero(),
                Color::Zero(), Color::Zero(), surface_texture_data,
                surface_diffuse * diffuse_coeff, surface_ambient * ambient_coeff,
-               0, 0)));
+               0, 0),
+      scene::Shape::Cube));
 
   num_cubes_++;
 
@@ -149,10 +151,12 @@ PoolScene::PoolScene() {
   for (const auto &transform :
        {x_translate * z_scale, x_translate.inverse() * z_scale,
         z_translate * x_scale, z_translate.inverse() * x_scale}) {
-    shapes_.push_back(ShapeData(
-        transform, Material(color * diffuse_coeff, color * ambient_coeff,
-                            Color::Zero(), Color::Zero(), Color::Zero(),
-                            Color::Zero(), thrust::nullopt, 0, 0, 25, 0)));
+    shapes_.push_back(
+        ShapeData(transform,
+                  Material(color * diffuse_coeff, color * ambient_coeff,
+                           Color::Zero(), Color::Zero(), Color::Zero(),
+                           Color::Zero(), thrust::nullopt, 0, 0, 25, 0),
+                  scene::Shape::Cube));
 
     num_cubes_++;
   }

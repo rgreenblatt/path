@@ -2,6 +2,7 @@
 
 #include "lib/cuda_utils.h"
 #include "scene/material.h"
+#include "scene/shape.h"
 #include "ray/ray_utils.h"
 
 #include <Eigen/Core>
@@ -13,6 +14,10 @@ using UVPosition = Eigen::Array2f;
 
 class ALIGN_STRUCT(32) ShapeData {
 public:
+  HOST_DEVICE const scene::Shape &get_shape() const {
+    return shape_type_;
+  }
+  
   HOST_DEVICE const Transform &get_transform() const {
     return transform_;
   }
@@ -33,8 +38,9 @@ public:
     object_normal_to_world_ = transform_.linear().transpose().inverse();
   }
 
-  HOST_DEVICE ShapeData(const Transform &transform, const Material &material)
-      : material_(material) {
+  HOST_DEVICE ShapeData(const Transform &transform, const Material &material,
+      const scene::Shape shape_type)
+      : material_(material), shape_type_(shape_type) {
     set_transform(transform);
   }
   
@@ -45,6 +51,7 @@ private:
   Transform world_to_object_;
   Eigen::Matrix3f object_normal_to_world_;
   Material material_;
+  scene::Shape shape_type_;
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW

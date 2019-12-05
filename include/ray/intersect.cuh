@@ -4,10 +4,10 @@
 #include "ray/by_type_data.h"
 #include "ray/cone.h"
 #include "ray/cube.h"
+#include "ray/cuda_ray_utils.cuh"
 #include "ray/cylinder.h"
 #include "ray/kdtree.h"
 #include "ray/ray_utils.h"
-#include "ray/cuda_ray_utils.cuh"
 #include "ray/sphere.h"
 #include "scene/shape.h"
 #include "scene/shape_data.h"
@@ -22,7 +22,7 @@ template <typename T> __global__ void fill(T *data, unsigned size, T value) {
   }
 }
 
-inline __host__ __device__ void
+__inline__ __host__ __device__ void
 initial_world_space_directions(unsigned x, unsigned y, unsigned width,
                                unsigned height,
                                const Eigen::Vector3f &world_space_eye,
@@ -69,24 +69,25 @@ initial_world_space_directions_cpu(unsigned width, unsigned height,
   }
 }
 
-template <bool normal_and_uv, scene::Shape shape_type>
-__host__ __device__ IntersectionOp<normal_and_uv>
-solve_type(const Eigen::Vector3f &point, const Eigen::Vector3f &direction,
-           bool texture_map) {
-  if constexpr (shape_type == scene::Shape::Sphere) {
+template <bool normal_and_uv>
+__inline__ __host__ __device__ IntersectionOp<normal_and_uv>
+solve_type(scene::Shape shape_type, const Eigen::Vector3f &point,
+           const Eigen::Vector3f &direction, bool texture_map) {
+  switch (shape_type) {
+  case scene::Shape::Sphere:
     return solve_sphere<normal_and_uv>(point, direction, texture_map);
-  } else if constexpr (shape_type == scene::Shape::Cylinder) {
+  case scene::Shape::Cylinder:
     return solve_cylinder<normal_and_uv>(point, direction, texture_map);
-  } else if constexpr (shape_type == scene::Shape::Cube) {
+  case scene::Shape::Cube:
     return solve_cube<normal_and_uv>(point, direction, texture_map);
-  } else if constexpr (shape_type == scene::Shape::Cone) {
+  case scene::Shape::Cone:
     return solve_cone<normal_and_uv>(point, direction, texture_map);
   }
 }
 
-template <bool normal_and_uv, scene::Shape shape_type>
-__host__
-    __device__ inline thrust::optional<BestIntersectionGeneral<normal_and_uv>>
+template <bool normal_and_uv>
+__inline__ __host__
+    __device__ thrust::optional<BestIntersectionGeneral<normal_and_uv>>
     get_shape_intersection(const scene::ShapeData *shapes,
                            const uint16_t shape_idx,
                            const Eigen::Vector3f &world_space_eye,
@@ -97,8 +98,8 @@ __host__
       shape.get_world_to_object().linear() * world_space_direction;
 
   return optional_map(
-      solve_type<normal_and_uv, shape_type>(
-          object_space_eye, object_space_direction,
+      solve_type<normal_and_uv>(
+          shape.get_shape(), object_space_eye, object_space_direction,
           normal_and_uv && shape.get_material().texture_data.has_value()),
       [&](const auto &value) {
         return BestIntersectionGeneral<normal_and_uv>(value, shape_idx);
@@ -106,8 +107,8 @@ __host__
 }
 
 // Rename...
-template <scene::Shape shape_type, typename F>
-__host__ __device__ inline void solve_general_intersection(
+template <typename F>
+__inline__ __host__ __device__ void solve_general_intersection(
     const ByTypeDataRef &by_type_data, const scene::ShapeData *shapes,
     const Eigen::Vector3f &world_space_eye,
     const Eigen::Vector3f &world_space_direction, const unsigned &ignore_v,
@@ -122,8 +123,8 @@ __host__ __device__ inline void solve_general_intersection(
       return false;
     }
 
-    return f(get_shape_intersection<false, shape_type>(
-        shapes, shape_idx, world_space_eye, world_space_direction));
+    return f(get_shape_intersection<false>(shapes, shape_idx, world_space_eye,
+                                           world_space_direction));
   };
 
   if (use_kd_tree) {
@@ -211,127 +212,6 @@ __host__ __device__ inline void solve_general_intersection(
       if (solve_index(shape_idx)) {
         return;
       }
-    }
-  }
-}
-
-template <scene::Shape shape_type>
-__host__ __device__ inline void
-solve_intersection(unsigned x, unsigned y, unsigned width, unsigned height,
-                   ByTypeDataRef &by_type_data, const scene::ShapeData *shapes,
-                   const Eigen::Vector3f *world_space_eyes,
-                   const Eigen::Vector3f *world_space_directions,
-                   const unsigned *ignores, const uint8_t *disables,
-                   bool is_first, bool use_kd_tree) {
-  if (x >= width || y >= height) {
-    return;
-  }
-
-  unsigned index = x + y * width;
-
-  if (!is_first && disables[index]) {
-    return;
-  }
-
-  thrust::optional<BestIntersection> best = thrust::nullopt;
-
-  const auto &world_space_direction = world_space_directions[index];
-  const auto &world_space_eye = world_space_eyes[index];
-
-  solve_general_intersection<shape_type>(
-      by_type_data, shapes, world_space_eye, world_space_direction,
-      ignores[index], disables[index], best, is_first, use_kd_tree,
-      [&](const thrust::optional<BestIntersection> &new_best) {
-        best = optional_min(best, new_best);
-
-        return false;
-      });
-
-  auto &best_normals_uv = by_type_data.intersections[index];
-
-  if (best.has_value()) {
-    // TODO: why required
-    auto out = get_shape_intersection<true, shape_type>(
-        shapes, best->shape_idx, world_space_eye, world_space_direction);
-    best_normals_uv = out;
-  } else {
-    best_normals_uv =
-        thrust::optional<BestIntersectionNormalUV>(thrust::nullopt);
-  }
-}
-
-template <scene::Shape shape_type>
-__global__ void solve_intersections(
-    unsigned width, unsigned height, ByTypeDataRef by_type_data,
-    const scene::ShapeData *shapes, const Eigen::Vector3f *world_space_eyes,
-    const Eigen::Vector3f *world_space_directions, const unsigned *ignores,
-    const uint8_t *disables, const unsigned *group_indexes,
-    unsigned num_blocks_x, unsigned block_dim_x, unsigned block_dim_y,
-    bool is_first, bool use_kd_tree) {
-
-  auto [x, y] = get_indexes(group_indexes, !is_first, num_blocks_x, block_dim_x,
-                            block_dim_y);
-
-  solve_intersection<shape_type>(x, y, width, height, by_type_data, shapes,
-                                 world_space_eyes, world_space_directions,
-                                 ignores, disables, is_first, use_kd_tree);
-}
-
-template <scene::Shape shape_type>
-inline void solve_intersections_cpu(
-    unsigned width, unsigned height, ByTypeDataRef by_type_data,
-    const scene::ShapeData *shapes, const Eigen::Vector3f *world_space_eyes,
-    const Eigen::Vector3f *world_space_directions, const unsigned *ignores,
-    const uint8_t *disables, bool is_first, bool use_kd_tree) {
-  for (unsigned x = 0; x < width; x++) {
-    for (unsigned y = 0; y < height; y++) {
-      solve_intersection<shape_type>(x, y, width, height, by_type_data, shapes,
-                                     world_space_eyes, world_space_directions,
-                                     ignores, disables, is_first, use_kd_tree);
-    }
-  }
-}
-
-template <typename... T>
-__host__ __device__ void
-minimize_intersections(unsigned x, unsigned y, unsigned width, unsigned height,
-                       bool is_first, const uint8_t *disables,
-                       thrust::optional<BestIntersectionNormalUV> *first,
-                       T... rest) {
-  if (x >= width || y >= height) {
-    return;
-  }
-
-  unsigned index = x + y * width;
-
-  if (!is_first && disables[index]) {
-    return;
-  }
-
-  // needed????
-  auto new_first = optional_min(first[index], rest[index]...);
-  first[index] = new_first;
-}
-
-template <typename... T>
-__global__ void
-minimize_all_intersections(unsigned width, unsigned height,
-                           const unsigned *group_indexes, unsigned num_blocks_x,
-                           unsigned block_dim_x, unsigned block_dim_y,
-                           bool is_first, const uint8_t *disables, T... rest) {
-  auto [x, y] = get_indexes(group_indexes, !is_first, num_blocks_x, block_dim_x,
-                            block_dim_y);
-
-  minimize_intersections(x, y, width, height, is_first, disables, rest...);
-}
-
-template <typename... T>
-void minimize_all_intersections_cpu(unsigned width, unsigned height,
-                                    bool is_first, const uint8_t *disables,
-                                    T... rest) {
-  for (unsigned x = 0; x < width; x++) {
-    for (unsigned y = 0; y < height; y++) {
-      minimize_intersections(x, y, width, height, is_first, disables, rest...);
     }
   }
 }

@@ -42,15 +42,13 @@ private:
   template <typename T> using DataType = detail::DataType<execution_model, T>;
 
   struct ByTypeData {
-    DataType<thrust::optional<detail::BestIntersectionNormalUV>> intersections;
     ManangedMemVec<detail::KDTreeNode> nodes;
     scene::Shape shape_type;
 
     detail::ByTypeDataRef initialize(const scene::Scene &scene,
                                      scene::ShapeData *shapes);
 
-    ByTypeData(unsigned pixel_size, scene::Shape shape_type)
-        : intersections(pixel_size), shape_type(shape_type) {}
+    ByTypeData(scene::Shape shape_type) : shape_type(shape_type) {}
   };
 
   unsigned effective_width_;
@@ -60,7 +58,7 @@ private:
 
   unsigned recursive_iterations_;
 
-  std::array<ByTypeData, scene::shapes_size> by_type_data_;
+  std::array<ByTypeData, 1> by_type_data_;
 
   DataType<Eigen::Vector3f> world_space_eyes_;
   DataType<Eigen::Vector3f> world_space_directions_;

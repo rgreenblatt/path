@@ -27,26 +27,29 @@ CS123Scene::CS123Scene(const std::string &file_path, unsigned width,
 
   for (const auto &shape : scene.shape_data_) {
     const auto &material = shape.material;
-    ShapeData next(shape.transform,
-                   Material(material.cDiffuse, material.cAmbient,
-                            material.cReflective, material.cSpecular,
-                            material.cTransparent, material.cEmissive,
-                            shape.texture, material.blend, material.blend,
-                            material.shininess, material.ior));
+    auto get_next = [&](scene::Shape shape_type) {
+      return ShapeData(shape.transform,
+                       Material(material.cDiffuse, material.cAmbient,
+                                material.cReflective, material.cSpecular,
+                                material.cTransparent, material.cEmissive,
+                                shape.texture, material.blend, material.blend,
+                                material.shininess, material.ior),
+                       shape_type);
+    };
 
     switch (shape.type) {
     case PrimitiveType::Sphere:
-      spheres.push_back(next);
+      spheres.push_back(get_next(scene::Shape::Sphere));
       break;
     case PrimitiveType::Cylinder:
-      cylinders.push_back(next);
+      spheres.push_back(get_next(scene::Shape::Cylinder));
       break;
     case PrimitiveType::Cube:
-      cubes.push_back(next);
+      spheres.push_back(get_next(scene::Shape::Cube));
       break;
     case PrimitiveType::Cone:
     default:
-      cones.push_back(next);
+      spheres.push_back(get_next(scene::Shape::Cone));
       break;
     }
   }

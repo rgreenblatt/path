@@ -49,7 +49,7 @@ void render_frames(unsigned width, unsigned height,
     auto bgra_data = reinterpret_cast<BGRA *>(frame.data);
 
     renderer.render(scene, bgra_data, static_cast<scene::Transform>(transform),
-                    use_kd_tree, true);
+                    use_kd_tree, false);
 
     for (unsigned i = 0; i < physics_super_sampling_rate; i++) {
       scene.step(secs_per_frame);
@@ -103,8 +103,8 @@ int main(int argc, char *argv[]) {
   const std::string file_name = "out.png";
 
   auto transform = scene::get_camera_transform(
-      Eigen::Vector3f(-1, -1, -1), Eigen::Vector3f(0, 1, 0),
-      Eigen::Vector3f(20, 20, 20), 1.0f, width, height);
+      Eigen::Vector3f(-2, -1, 0), Eigen::Vector3f(0, 1, 0),
+      Eigen::Vector3f(50, 30, 0), 1.0f, width, height);
 
   if (render_cpu) {
     std::cout << "rendering cpu" << std::endl;
