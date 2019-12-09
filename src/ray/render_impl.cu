@@ -163,11 +163,78 @@ void RendererImpl<execution_model>::render(
             .count());
   }
 
+  const Eigen::Vector3f camera_loc = m_film_to_world.translation();
+
+  auto find_projection_info = [&](const Eigen::Vector3f &loc) {
+    auto &last_node = by_type_data_[0].nodes[by_type_data_[0].nodes.size() - 1];
+    const auto &min_bound = last_node.get_contents().get_min_bound();
+    const auto &max_bound = last_node.get_contents().get_max_bound();
+    const auto center = (max_bound + min_bound) / 2;
+    const auto dims = max_bound - min_bound;
+    const auto dir = loc - center;
+    const auto normalized_directions = dir.array() / dims.array();
+    unsigned max_axis;
+    float max_axis_v = std::numeric_limits<float>::lowest();
+    for (unsigned axis = 0; axis < 3; axis++) {
+      float abs_v = std::abs(normalized_directions[axis]);
+      if (abs_v > max_axis_v) {
+        max_axis = axis;
+        max_axis_v = abs_v;
+      }
+    }
+
+    float projection_value = normalized_directions[max_axis] > 0
+                                 ? max_bound[max_axis]
+                                 : min_bound[max_axis];
+
+    return std::make_tuple(max_axis, projection_value);
+  };
+
+  auto [axis_v, value_to_project_to_v] = find_projection_info(camera_loc);
+  const uint8_t axis = axis_v;
+  const float value_to_project_to = value_to_project_to_v;
+
+  std::vector<KDTreeNode<ProjectedAABBInfo>> projection_nodes(
+      by_type_data_[0].nodes.size());
+
+  std::transform(by_type_data_[0].nodes.begin(), by_type_data_[0].nodes.end(),
+                 projection_nodes.begin(), [&](const KDTreeNode<AABB> &node) {
+                   return node.transform([&](const AABB &aa_bb) {
+                     return aa_bb
+                         .project_to_axis(axis, value_to_project_to, camera_loc)
+                         .get_info();
+                   });
+                 });
+
+  const auto start_traversal_grid = chr::high_resolution_clock::now();
+
+  auto [traversals, disables, actions] =
+      get_traversal_grid(projection_nodes, effective_width_, effective_height_,
+                         m_film_to_world, block_dim_x, block_dim_y,
+                         num_blocks_x, num_blocks_y, axis, value_to_project_to);
+
+  if (show_times) {
+    dbg(chr::duration_cast<chr::duration<double>>(
+            chr::high_resolution_clock::now() - start_traversal_grid)
+            .count());
+  }
+
+  std::copy(disables.begin(), disables.end(), group_disables_.begin());
+
+  if constexpr (execution_model == ExecutionModel::GPU) {
+    camera_traversals_.resize(traversals.size());
+    camera_actions_.resize(actions.size());
+
+    thrust::copy(traversals.begin(), traversals.end(),
+                 camera_traversals_.begin());
+    thrust::copy(actions.begin(), actions.end(), camera_actions_.begin());
+  }
+
   for (unsigned depth = 0; depth < recursive_iterations_; depth++) {
     bool is_first = depth == 0;
 
     // do this on gpu????
-    if (!is_first && execution_model == ExecutionModel::GPU) {
+    if (execution_model == ExecutionModel::GPU) {
       current_num_blocks = 0;
 
       for (unsigned i = 0; i < group_disables_.size(); i++) {
@@ -186,11 +253,13 @@ void RendererImpl<execution_model>::render(
         if (current_num_blocks != 0) {
           raytrace<<<current_num_blocks, general_block_size>>>(
               effective_width_, effective_height_, num_blocks_x, block_dim_x,
-              block_dim_y, data, shapes.data(), lights, num_lights, textures,
-              to_ptr(world_space_eyes_), to_ptr(world_space_directions_),
-              to_ptr(color_multipliers_), to_ptr(colors_), to_ptr(ignores_),
-              to_ptr(disables_), group_disables_.data(), group_indexes_.data(),
-              is_first, use_kd_tree);
+              block_dim_y, data, to_ptr(camera_traversals_),
+              to_ptr(camera_actions_), shapes.data(), lights, num_lights,
+              textures, to_ptr(world_space_eyes_),
+              to_ptr(world_space_directions_), to_ptr(color_multipliers_),
+              to_ptr(colors_), to_ptr(ignores_), to_ptr(disables_),
+              group_disables_.data(), group_indexes_.data(), is_first,
+              use_kd_tree);
         }
       } else {
         raytrace_cpu(effective_width_, effective_height_, data, shapes.data(),

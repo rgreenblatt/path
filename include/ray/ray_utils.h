@@ -103,7 +103,7 @@ constexpr auto optional_min(const thrust::optional<T> &... values) {
 template <typename T>
 constexpr thrust::optional<T> make_optional(bool condition, const T &v) {
   if (condition) {
-    return thrust::make_optional(v);
+    return v;
   } else {
     return thrust::nullopt;
   }

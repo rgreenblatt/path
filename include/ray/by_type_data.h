@@ -7,13 +7,13 @@
 namespace ray {
 namespace detail {
 struct ByTypeDataRef {
-  KDTreeNode *nodes;
+  KDTreeNode<AABB> *nodes;
   unsigned root_node_count;
   scene::Shape shape_type;
   unsigned start_shape;
   unsigned num_shape;
 
-  ByTypeDataRef(detail::KDTreeNode *nodes, unsigned root_node_count,
+  ByTypeDataRef(KDTreeNode<AABB> *nodes, unsigned root_node_count,
                 scene::Shape shape_type, unsigned start_shape,
                 unsigned num_shape)
       : nodes(nodes), root_node_count(root_node_count), shape_type(shape_type),

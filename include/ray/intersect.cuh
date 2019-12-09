@@ -34,13 +34,8 @@ initial_world_space_directions(unsigned x, unsigned y, unsigned width,
 
   unsigned index = x + y * width;
 
-  const Eigen::Vector3f camera_space_film_plane(
-      (2.0f * static_cast<float>(x)) / static_cast<float>(width) - 1.0f,
-      (-2.0f * static_cast<float>(y)) / static_cast<float>(height) + 1.0f,
-      -1.0f);
-  const auto world_space_film_plane = m_film_to_world * camera_space_film_plane;
-  world_space_directions[index] =
-      (world_space_film_plane - world_space_eye).normalized();
+  world_space_directions[index] = initial_world_space_direction(
+      x, y, width, height, world_space_eye, m_film_to_world);
 }
 
 __global__ void
@@ -109,11 +104,12 @@ __inline__ __host__
 // Rename...
 template <typename F>
 __inline__ __host__ __device__ void solve_general_intersection(
-    const ByTypeDataRef &by_type_data, const scene::ShapeData *shapes,
+    const ByTypeDataRef &by_type_data, const Traversal &traversal,
+    const Action *actions, const scene::ShapeData *shapes,
     const Eigen::Vector3f &world_space_eye,
     const Eigen::Vector3f &world_space_direction, const unsigned &ignore_v,
     const uint8_t &disable, thrust::optional<BestIntersection> &best,
-    bool is_first, bool use_kd_tree, const F &f) {
+    bool is_first, bool use_traversals, bool use_kd_tree, const F &f) {
   if (!is_first && disable) {
     return;
   }
@@ -127,7 +123,25 @@ __inline__ __host__ __device__ void solve_general_intersection(
                                            world_space_direction));
   };
 
-  if (use_kd_tree) {
+  if (use_traversals) {
+    uint16_t action_index = traversal.start;
+    thrust::optional<Action> next_action = thrust::nullopt;
+    while (action_index < traversal.size || next_action.has_value()) {
+      if (!next_action.has_value()) {
+        next_action = actions[action_index];
+        action_index++;
+      }
+
+      if (solve_index(next_action->shape_idx_start)) {
+        return;
+      }
+
+      next_action->shape_idx_start++;
+      if (next_action->shape_idx_start >= next_action->shape_idx_end) {
+        next_action = thrust::nullopt;
+      }
+    }
+  } else if (use_kd_tree) {
     auto inv_direction = (1.0f / world_space_direction.array()).eval();
 
     struct StackData {
@@ -154,8 +168,9 @@ __inline__ __host__ __device__ void solve_general_intersection(
 
           const auto &current_node = by_type_data.nodes[stack_v.node_index];
 
-          auto bounding_intersection = current_node.solveBoundingIntersection(
-              world_space_eye, inv_direction);
+          auto bounding_intersection =
+              current_node.get_contents().solveBoundingIntersection(
+                  world_space_eye, inv_direction);
 
           if (bounding_intersection &&
               (!best.has_value() ||

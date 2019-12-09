@@ -42,7 +42,7 @@ private:
   template <typename T> using DataType = detail::DataType<execution_model, T>;
 
   struct ByTypeData {
-    ManangedMemVec<detail::KDTreeNode> nodes;
+    ManangedMemVec<detail::KDTreeNode<detail::AABB>> nodes;
     scene::Shape shape_type;
 
     detail::ByTypeDataRef initialize(const scene::Scene &scene,
@@ -69,5 +69,7 @@ private:
   DataType<BGRA> bgra_;
   ManangedMemVec<uint8_t> group_disables_;
   ManangedMemVec<unsigned> group_indexes_;
+  DataType<detail::Traversal> camera_traversals_;
+  DataType<detail::Action> camera_actions_;
 };
 } // namespace ray

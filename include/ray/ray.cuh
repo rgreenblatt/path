@@ -8,14 +8,17 @@
 
 namespace ray {
 namespace detail {
-__host__ __device__ inline void raytrace_impl(
-    unsigned x, unsigned y, unsigned width, unsigned height,
-    const ByTypeDataRef &by_type_data, const scene::ShapeData *shapes,
-    const scene::Light *lights, unsigned num_lights,
-    const scene::TextureImageRef *textures, Eigen::Vector3f *world_space_eyes,
-    Eigen::Vector3f *world_space_directions, Eigen::Array3f *color_multipliers,
-    scene::Color *colors, unsigned *ignores, uint8_t *disables,
-    uint8_t &group_disable, bool is_first, bool use_kd_tree) {
+__host__ __device__ inline void
+raytrace_impl(unsigned x, unsigned y, unsigned width, unsigned height,
+              const ByTypeDataRef &by_type_data,
+              const Traversal &camera_traversal, const Action *camera_actions,
+              const scene::ShapeData *shapes, const scene::Light *lights,
+              unsigned num_lights, const scene::TextureImageRef *textures,
+              Eigen::Vector3f *world_space_eyes,
+              Eigen::Vector3f *world_space_directions,
+              Eigen::Array3f *color_multipliers, scene::Color *colors,
+              unsigned *ignores, uint8_t *disables, uint8_t &group_disable,
+              bool is_first, bool use_kd_tree, bool use_traversals) {
   uint8_t disable = false;
 
   if (x >= width || y >= height) {
@@ -38,8 +41,9 @@ __host__ __device__ inline void raytrace_impl(
         const auto &world_space_eye = world_space_eyes[index];
 
         solve_general_intersection(
-            by_type_data, shapes, world_space_eye, world_space_direction,
-            ignores[index], disables[index], best, is_first, use_kd_tree,
+            by_type_data, camera_traversal, camera_actions, shapes,
+            world_space_eye, world_space_direction, ignores[index],
+            disables[index], best, is_first, use_traversals, use_kd_tree,
             [&](const thrust::optional<BestIntersection> &new_best) {
               best = optional_min(best, new_best);
 
@@ -110,9 +114,9 @@ __host__ __device__ inline void raytrace_impl(
         thrust::optional<BestIntersection> holder = thrust::nullopt;
 
         solve_general_intersection(
-            by_type_data, shapes, world_space_intersection, light_direction,
-            best.shape_idx, !is_first && disables[index], holder, false,
-            use_kd_tree,
+            by_type_data, camera_traversal, camera_actions, shapes,
+            world_space_intersection, light_direction, best.shape_idx,
+            !is_first && disables[index], holder, false, false, use_kd_tree,
             [&](const thrust::optional<BestIntersection>
                     &possible_intersection) {
               if (possible_intersection.has_value() &&
@@ -194,7 +198,8 @@ __host__ __device__ inline void raytrace_impl(
 __global__ void
 raytrace(unsigned width, unsigned height, unsigned num_blocks_x,
          unsigned block_dim_x, unsigned block_dim_y,
-         const ByTypeDataRef by_type_data, const scene::ShapeData *shapes,
+         const ByTypeDataRef by_type_data, const Traversal *camera_traversals,
+         const Action *camera_actions, const scene::ShapeData *shapes,
          const scene::Light *lights, unsigned num_lights,
          const scene::TextureImageRef *textures,
          Eigen::Vector3f *world_space_eyes,
@@ -203,14 +208,22 @@ raytrace(unsigned width, unsigned height, unsigned num_blocks_x,
          unsigned *ignores, uint8_t *disables, uint8_t *group_disables,
          const unsigned *group_indexes, bool is_first, bool use_kd_tree) {
 
-  auto [x, y] = get_indexes(group_indexes, !is_first, num_blocks_x, block_dim_x,
+  auto [x, y] = get_indexes(group_indexes, 
+#if 0
+      !is_first
+#else
+      true
+#endif
+      , num_blocks_x, block_dim_x,
                             block_dim_y);
 
-  uint8_t &group_disable = group_disables[group_indexes[blockIdx.x]];
-  raytrace_impl(x, y, width, height, by_type_data, shapes, lights, num_lights,
-                textures, world_space_eyes, world_space_directions,
-                color_multipliers, colors, ignores, disables, group_disable,
-                is_first, use_kd_tree);
+  unsigned group_index = group_indexes[blockIdx.x];
+
+  raytrace_impl(x, y, width, height, by_type_data,
+                camera_traversals[group_index], camera_actions, shapes, lights,
+                num_lights, textures, world_space_eyes, world_space_directions,
+                color_multipliers, colors, ignores, disables,
+                group_disables[group_index], is_first, use_kd_tree, is_first);
 }
 
 inline void raytrace_cpu(
@@ -223,10 +236,10 @@ inline void raytrace_cpu(
   for (unsigned x = 0; x < width; x++) {
     for (unsigned y = 0; y < height; y++) {
       uint8_t discard;
-      raytrace_impl(x, y, width, height, by_type_data, shapes, lights,
-                    num_lights, textures, world_space_eyes,
+      raytrace_impl(x, y, width, height, by_type_data, Traversal(), nullptr,
+                    shapes, lights, num_lights, textures, world_space_eyes,
                     world_space_directions, color_multipliers, colors, ignores,
-                    disables, discard, is_first, use_kd_tree);
+                    disables, discard, is_first, use_kd_tree, false);
     }
   }
 }
