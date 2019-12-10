@@ -71,5 +71,11 @@ private:
   ManangedMemVec<unsigned> group_indexes_;
   DataType<detail::Traversal> camera_traversals_;
   DataType<detail::Action> camera_actions_;
+  DataType<detail::Traversal> light_traversals_;
+  DataType<detail::Action> light_actions_;
+  DataType<detail::LightTraversalData> light_traversal_data_;
+  std::vector<detail::Traversal> light_traversals_cpu_;
+  std::vector<detail::Action> light_actions_cpu_;
+  std::vector<detail::LightTraversalData> light_traversal_data_cpu_;
 };
 } // namespace ray

@@ -165,69 +165,134 @@ void RendererImpl<execution_model>::render(
 
   const Eigen::Vector3f camera_loc = m_film_to_world.translation();
 
-  auto find_projection_info = [&](const Eigen::Vector3f &loc) {
+  auto get_projection_info = [&](bool is_loc,
+                                 const Eigen::Vector3f &loc_or_dir) {
     auto &last_node = by_type_data_[0].nodes[by_type_data_[0].nodes.size() - 1];
     const auto &min_bound = last_node.get_contents().get_min_bound();
     const auto &max_bound = last_node.get_contents().get_max_bound();
     const auto center = (max_bound + min_bound) / 2;
     const auto dims = max_bound - min_bound;
-    const auto dir = loc - center;
+    const auto dir = is_loc ? loc_or_dir - center : loc_or_dir;
     const auto normalized_directions = dir.array() / dims.array();
-    unsigned max_axis;
+    unsigned axis;
     float max_axis_v = std::numeric_limits<float>::lowest();
-    for (unsigned axis = 0; axis < 3; axis++) {
-      float abs_v = std::abs(normalized_directions[axis]);
+    for (unsigned test_axis = 0; test_axis < 3; test_axis++) {
+      float abs_v = std::abs(normalized_directions[test_axis]);
       if (abs_v > max_axis_v) {
-        max_axis = axis;
+        axis = test_axis;
         max_axis_v = abs_v;
       }
     }
 
-    float projection_value = normalized_directions[max_axis] > 0
-                                 ? max_bound[max_axis]
-                                 : min_bound[max_axis];
+    bool is_min = normalized_directions[axis] < 0;
 
-    return std::make_tuple(max_axis, projection_value);
+    float projection_value = is_min ? min_bound[axis] : max_bound[axis];
+
+    Eigen::Vector2f min_point(std::numeric_limits<float>::max(),
+                              std::numeric_limits<float>::max());
+    Eigen::Vector2f max_point(std::numeric_limits<float>::lowest(),
+                              std::numeric_limits<float>::lowest());
+    std::vector<KDTreeNode<ProjectedAABBInfo>> projected_aabb(
+        by_type_data_[0].nodes.size());
+    std::transform(by_type_data_[0].nodes.begin(), by_type_data_[0].nodes.end(),
+                   projected_aabb.begin(), [&](const KDTreeNode<AABB> &node) {
+                     return node.transform([&](const AABB &aa_bb) {
+                       auto out =
+                           aa_bb
+                               .project_to_axis(is_loc, axis, projection_value,
+                                                loc_or_dir)
+                               .get_info();
+                       min_point = min_point.cwiseMin(out.flattened_min);
+                       max_point = max_point.cwiseMax(out.flattened_max);
+
+                       return out;
+                     });
+                   });
+
+    return std::make_tuple(axis, projection_value, min_point, max_point,
+                           projected_aabb);
   };
 
-  auto [axis_v, value_to_project_to_v] = find_projection_info(camera_loc);
-  const uint8_t axis = axis_v;
-  const float value_to_project_to = value_to_project_to_v;
-
-  std::vector<KDTreeNode<ProjectedAABBInfo>> projection_nodes(
-      by_type_data_[0].nodes.size());
-
-  std::transform(by_type_data_[0].nodes.begin(), by_type_data_[0].nodes.end(),
-                 projection_nodes.begin(), [&](const KDTreeNode<AABB> &node) {
-                   return node.transform([&](const AABB &aa_bb) {
-                     return aa_bb
-                         .project_to_axis(axis, value_to_project_to, camera_loc)
-                         .get_info();
-                   });
-                 });
-
-  const auto start_traversal_grid = chr::high_resolution_clock::now();
-
-  auto [traversals, disables, actions] =
-      get_traversal_grid(projection_nodes, effective_width_, effective_height_,
-                         m_film_to_world, block_dim_x, block_dim_y,
-                         num_blocks_x, num_blocks_y, axis, value_to_project_to);
-
-  if (show_times) {
-    dbg(chr::duration_cast<chr::duration<double>>(
-            chr::high_resolution_clock::now() - start_traversal_grid)
-            .count());
-  }
-
-  std::copy(disables.begin(), disables.end(), group_disables_.begin());
+  unsigned num_blocks_light_x = 1;
+  unsigned num_blocks_light_y = 1;
 
   if constexpr (execution_model == ExecutionModel::GPU) {
+    auto [axis, value_to_project_to, min_p, max_p, projected_aabb] =
+        get_projection_info(true, camera_loc);
+
+    const auto start_traversal_grid = chr::high_resolution_clock::now();
+
+    auto [traversals, disables, actions] = get_traversal_grid_from_transform(
+        projected_aabb, effective_width_, effective_height_, m_film_to_world,
+        block_dim_x, block_dim_y, num_blocks_x, num_blocks_y, axis,
+        value_to_project_to);
+
+    std::copy(disables.begin(), disables.end(), group_disables_.begin());
+
     camera_traversals_.resize(traversals.size());
     camera_actions_.resize(actions.size());
 
     thrust::copy(traversals.begin(), traversals.end(),
                  camera_traversals_.begin());
     thrust::copy(actions.begin(), actions.end(), camera_actions_.begin());
+
+    light_traversals_cpu_.resize(num_blocks_light_x * num_blocks_light_y *
+                                 num_lights);
+    light_actions_cpu_.clear();
+    light_traversal_data_cpu_.resize(num_lights);
+    unsigned last_offset = 0;
+
+    for (unsigned light_idx = 0; light_idx < num_lights; light_idx++) {
+      const auto &light = lights[light_idx];
+      light.visit([&](auto &&light_data) {
+        using T = std::decay_t<decltype(light_data)>;
+        auto copy_in_light = [&](bool is_loc,
+                                 const Eigen::Vector3f &loc_or_dir) {
+          auto [axis, value_to_project_to, min_p, max_p, projected_aabb] =
+              get_projection_info(is_loc, loc_or_dir);
+
+          auto [traversals, _, actions] = get_traversal_grid_from_bounds(
+              projected_aabb, min_p, max_p, num_blocks_light_x,
+              num_blocks_light_y);
+
+          std::copy(traversals.data(), traversals.data() + traversals.size(),
+                    light_traversals_cpu_.begin() +
+                        num_blocks_light_x * num_blocks_light_y * light_idx);
+          light_actions_cpu_.insert(light_actions_cpu_.begin() + last_offset,
+                                    actions.begin(), actions.end());
+          light_traversal_data_cpu_[light_idx] = LightTraversalData(
+              last_offset, min_p, max_p, axis, value_to_project_to);
+          last_offset += actions.size();
+        };
+        if constexpr (std::is_same<T, scene::DirectionalLight>::value) {
+          copy_in_light(false, light_data.direction);
+        } else {
+          copy_in_light(true, light_data.position);
+        }
+      });
+    }
+
+    light_traversals_.resize(light_traversals_cpu_.size());
+    thrust::copy(light_traversals_cpu_.data(),
+                 light_traversals_cpu_.data() + light_traversals_cpu_.size(),
+                 light_traversals_.begin());
+
+    light_actions_.resize(light_actions_cpu_.size());
+    thrust::copy(light_actions_cpu_.data(),
+                 light_actions_cpu_.data() + light_actions_cpu_.size(),
+                 light_actions_.begin());
+
+    light_traversal_data_.resize(light_traversal_data_cpu_.size());
+    thrust::copy(light_traversal_data_cpu_.data(),
+                 light_traversal_data_cpu_.data() +
+                     light_traversal_data_cpu_.size(),
+                 light_traversal_data_.begin());
+
+    if (show_times) {
+      dbg(chr::duration_cast<chr::duration<double>>(
+              chr::high_resolution_clock::now() - start_traversal_grid)
+              .count());
+    }
   }
 
   for (unsigned depth = 0; depth < recursive_iterations_; depth++) {
@@ -254,8 +319,10 @@ void RendererImpl<execution_model>::render(
           raytrace<<<current_num_blocks, general_block_size>>>(
               effective_width_, effective_height_, num_blocks_x, block_dim_x,
               block_dim_y, data, to_ptr(camera_traversals_),
-              to_ptr(camera_actions_), shapes.data(), lights, num_lights,
-              textures, to_ptr(world_space_eyes_),
+              to_ptr(camera_actions_), to_ptr(light_traversals_),
+              to_ptr(light_actions_), to_ptr(light_traversal_data_),
+              num_blocks_light_x, num_blocks_light_y, shapes.data(), lights,
+              num_lights, textures, to_ptr(world_space_eyes_),
               to_ptr(world_space_directions_), to_ptr(color_multipliers_),
               to_ptr(colors_), to_ptr(ignores_), to_ptr(disables_),
               group_disables_.data(), group_indexes_.data(), is_first,

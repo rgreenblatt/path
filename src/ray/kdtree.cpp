@@ -256,13 +256,11 @@ thrust::optional<std::array<uint16_t, 2>> get_traversal_grid(
 
 namespace bg = boost::geometry;
 
+template <typename F>
 std::tuple<std::vector<Traversal>, std::vector<uint8_t>, std::vector<Action>>
-get_traversal_grid(const std::vector<KDTreeNode<ProjectedAABBInfo>> &nodes,
-                   unsigned width, unsigned height,
-                   const scene::Transform &m_film_to_world,
-                   unsigned block_dim_x, unsigned block_dim_y,
-                   unsigned num_blocks_x, unsigned num_blocks_y, uint8_t axis,
-                   float value_to_project_to) {
+get_general_traversal_grid(
+    const std::vector<KDTreeNode<ProjectedAABBInfo>> &nodes,
+    const F &get_intersection_point_for_bound, unsigned num_blocks_x, unsigned num_blocks_y) {
   unsigned size = num_blocks_x * num_blocks_y;
 
   std::vector<Traversal> traversals(size, Traversal(0, 0));
@@ -293,9 +291,6 @@ get_traversal_grid(const std::vector<KDTreeNode<ProjectedAABBInfo>> &nodes,
   
   bg::index::rtree<bounding_value, bg::index::rstar<16>> tree(boxes);
 
-
-  auto &world_space_eye = m_film_to_world.translation();
-
   std::vector<bounding_value> aa_bb_indexes;
 
   for (unsigned block_index_y = 0; block_index_y < num_blocks_y;
@@ -303,6 +298,10 @@ get_traversal_grid(const std::vector<KDTreeNode<ProjectedAABBInfo>> &nodes,
     for (unsigned block_index_x = 0; block_index_x < num_blocks_x;
          block_index_x++) {
       auto get_intersection_point = [&](bool is_x_min, bool is_y_min) {
+        return get_intersection_point_for_bound(
+            is_x_min ? block_index_x : block_index_x + 1,
+            is_y_min ? block_index_y : block_index_y + 1);
+#if 0
         auto dir = initial_world_space_direction(
             is_x_min ? block_index_x * block_dim_x
                      : (block_index_x + 1) * block_dim_x - 1,
@@ -315,6 +314,7 @@ get_traversal_grid(const std::vector<KDTreeNode<ProjectedAABBInfo>> &nodes,
         return (dist * get_not_axis(dir, axis) +
                 get_not_axis(world_space_eye, axis))
             .eval();
+#endif
       };
 
       auto l_l = get_intersection_point(true, true);
@@ -403,6 +403,45 @@ get_traversal_grid(const std::vector<KDTreeNode<ProjectedAABBInfo>> &nodes,
   }
 
   return std::make_tuple(traversals, disables, actions);
+}
+
+std::tuple<std::vector<Traversal>, std::vector<uint8_t>, std::vector<Action>>
+get_traversal_grid_from_transform(
+    const std::vector<KDTreeNode<ProjectedAABBInfo>> &nodes, unsigned width,
+    unsigned height, const scene::Transform &transform_v, unsigned block_dim_x,
+    unsigned block_dim_y, unsigned num_blocks_x, unsigned num_blocks_y,
+    uint8_t axis, float value_to_project_to) {
+
+  const auto &world_space_eye = transform_v.translation();
+
+  return get_general_traversal_grid(
+      nodes,
+      [&](unsigned block_idx_x, unsigned block_idx_y) {
+        auto dir = initial_world_space_direction(
+            block_idx_x * block_dim_x, block_idx_y * block_dim_y, width, height,
+            world_space_eye, transform_v);
+
+        return get_intersection_point(dir, value_to_project_to, world_space_eye,
+                                      axis);
+      },
+      num_blocks_x, num_blocks_y);
+}
+
+std::tuple<std::vector<Traversal>, std::vector<uint8_t>, std::vector<Action>>
+get_traversal_grid_from_bounds(
+    const std::vector<KDTreeNode<ProjectedAABBInfo>> &nodes,
+    const Eigen::Array2f &min_bound, const Eigen::Array2f &max_bound,
+    unsigned num_blocks_x, unsigned num_blocks_y) {
+
+  return get_general_traversal_grid(
+      nodes,
+      [&](unsigned x, unsigned y) {
+        Eigen::Array2f interp(x, y);
+        interp.array() /= Eigen::Array2f(num_blocks_x, num_blocks_y);
+
+        return (max_bound * interp + min_bound).eval();
+      },
+      num_blocks_x, num_blocks_y);
 }
 } // namespace detail
 } // namespace ray

@@ -188,8 +188,8 @@ public:
 
   // template for efficiency?
   template <uint8_t axis>
-  HOST_DEVICE ProjectedAABB
-  project_to_axis(float value, const Eigen::Vector3f &camera_loc) const {
+  HOST_DEVICE ProjectedAABB project_to_axis(
+      bool is_loc, float value, const Eigen::Vector3f &loc_or_dir) const {
     bool max_is_closer =
         std::abs(value - max_bound_[axis]) < std::abs(value - min_bound_[axis]);
 
@@ -204,7 +204,7 @@ public:
     further_min[axis] = further_max[axis];
 
     auto project = [&](const Eigen::Vector3f &point) {
-      const auto dir = (point - camera_loc).eval();
+      const auto dir = is_loc ? (point - loc_or_dir).eval() : loc_or_dir;
       float intersect_dist = (value - point[axis]) / dir[axis];
       const auto intersect_point = (point + dir * intersect_dist).eval();
       const auto camera_point_dist = dir.norm();
@@ -221,15 +221,16 @@ public:
                          max_bound_);
   }
 
-  HOST_DEVICE ProjectedAABB project_to_axis(
-      uint8_t axis, float value, const Eigen::Vector3f &camera_loc) const {
+  HOST_DEVICE ProjectedAABB
+  project_to_axis(bool is_loc, uint8_t axis, float value,
+                  const Eigen::Vector3f &loc_or_dir) const {
     switch (axis) {
     case 0:
-      return project_to_axis<0>(value, camera_loc);
+      return project_to_axis<0>(is_loc, value, loc_or_dir);
     case 1:
-      return project_to_axis<1>(value, camera_loc);
+      return project_to_axis<1>(is_loc, value, loc_or_dir);
     case 2:
-      return project_to_axis<2>(value, camera_loc);
+      return project_to_axis<2>(is_loc, value, loc_or_dir);
     }
 
     abort();
@@ -386,6 +387,22 @@ struct Traversal {
 #endif
 };
 
+struct LightTraversalData {
+  unsigned offset;
+  Eigen::Vector2f side_min;
+  Eigen::Vector2f side_max;
+  uint8_t axis;
+  float value;
+
+  HOST_DEVICE LightTraversalData(unsigned offset, Eigen::Vector2f side_min,
+                                 Eigen::Vector2f side_max, uint8_t axis,
+                                 float value)
+      : offset(offset), side_min(side_min), side_max(side_max), axis(axis),
+        value(value) {}
+
+  HOST_DEVICE LightTraversalData() {}
+};
+
 template <typename Contents> struct KDTreeNode {
   HOST_DEVICE KDTreeNode() {}
 
@@ -463,12 +480,26 @@ initial_world_space_direction(unsigned x, unsigned y, unsigned width,
   return (world_space_film_plane - world_space_eye).normalized();
 }
 
+inline HOST_DEVICE Eigen::Vector2f
+get_intersection_point(const Eigen::Vector3f &dir, float value_to_project_to,
+                       const Eigen::Vector3f &world_space_eye, uint8_t axis) {
+  float dist = (value_to_project_to - world_space_eye[axis]) / dir[axis];
+
+  return (dist * get_not_axis(dir, axis) + get_not_axis(world_space_eye, axis))
+      .eval();
+}
+
 std::tuple<std::vector<Traversal>, std::vector<uint8_t>, std::vector<Action>>
-get_traversal_grid(const std::vector<KDTreeNode<ProjectedAABBInfo>> &nodes,
-                   unsigned width, unsigned height,
-                   const scene::Transform &m_film_to_world,
-                   unsigned block_size_x, unsigned block_size_y,
-                   unsigned num_blocks_x, unsigned num_blocks_y, uint8_t axis,
-                   float value_to_project_to);
+get_traversal_grid_from_transform(
+    const std::vector<KDTreeNode<ProjectedAABBInfo>> &nodes, unsigned width,
+    unsigned height, const scene::Transform &m_film_to_world,
+    unsigned block_dim_x, unsigned block_dim_y, unsigned num_blocks_x,
+    unsigned num_blocks_y, uint8_t axis, float value_to_project_to);
+
+std::tuple<std::vector<Traversal>, std::vector<uint8_t>, std::vector<Action>>
+get_traversal_grid_from_bounds(
+    const std::vector<KDTreeNode<ProjectedAABBInfo>> &nodes,
+    const Eigen::Array2f &min_bound, const Eigen::Array2f &max_bound,
+    unsigned num_blocks_x, unsigned num_blocks_y);
 } // namespace detail
 } // namespace ray
