@@ -124,21 +124,10 @@ __inline__ __host__ __device__ void solve_general_intersection(
   };
 
   if (use_traversals) {
-    uint16_t action_index = traversal.start;
-    thrust::optional<Action> next_action = thrust::nullopt;
-    while (action_index < traversal.size || next_action.has_value()) {
-      if (!next_action.has_value()) {
-        next_action = actions[action_index];
-        action_index++;
-      }
-
-      if (solve_index(next_action->shape_idx_start)) {
+    for (uint16_t action_index = traversal.start; action_index < traversal.size;
+         action_index++) {
+      if (solve_index(actions[action_index].shape_idx)) {
         return;
-      }
-
-      next_action->shape_idx_start++;
-      if (next_action->shape_idx_start >= next_action->shape_idx_end) {
-        next_action = thrust::nullopt;
       }
     }
   } else if (use_kd_tree) {

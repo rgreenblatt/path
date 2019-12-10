@@ -345,11 +345,10 @@ struct Action {
   bool is_known;
   float min_dist;
 #endif
-  uint16_t shape_idx_start;
-  uint16_t shape_idx_end;
+  uint16_t shape_idx;
+  /* uint16_t shape_idx_end; */
 
-  Action(uint16_t shape_idx_start, uint16_t shape_idx_end)
-      : shape_idx_start(shape_idx_start), shape_idx_end(shape_idx_end) {}
+  Action(uint16_t shape_idx) : shape_idx(shape_idx) {}
 
   HOST_DEVICE
   Action() {}
@@ -463,6 +462,28 @@ struct Bounds {
       : min(min), center(center), max(max) {}
 };
 
+inline std::tuple<Eigen::Vector3f, Eigen::Vector3f>
+get_shape_bounds(const scene::ShapeData &shape) {
+  Eigen::Vector3f min_bound(std::numeric_limits<float>::max(),
+                            std::numeric_limits<float>::max(),
+                            std::numeric_limits<float>::max());
+  Eigen::Vector3f max_bound(std::numeric_limits<float>::lowest(),
+                            std::numeric_limits<float>::lowest(),
+                            std::numeric_limits<float>::lowest());
+  for (auto x : {-0.5f, 0.5f}) {
+    for (auto y : {-0.5f, 0.5f}) {
+      for (auto z : {-0.5f, 0.5f}) {
+        Eigen::Vector3f transformed_edge =
+            Eigen::Vector3f(shape.get_transform() * Eigen::Vector3f(x, y, z));
+        min_bound = min_bound.cwiseMin(transformed_edge);
+        max_bound = max_bound.cwiseMax(transformed_edge);
+      }
+    }
+  }
+
+  return std::make_tuple(min_bound, max_bound);
+}
+
 std::vector<KDTreeNode<AABB>> construct_kd_tree(scene::ShapeData *shapes,
                                                 uint16_t num_shapes);
 
@@ -491,14 +512,14 @@ get_intersection_point(const Eigen::Vector3f &dir, float value_to_project_to,
 
 std::tuple<std::vector<Traversal>, std::vector<uint8_t>, std::vector<Action>>
 get_traversal_grid_from_transform(
-    const std::vector<KDTreeNode<ProjectedAABBInfo>> &nodes, unsigned width,
-    unsigned height, const scene::Transform &m_film_to_world,
+    const std::vector<std::pair<ProjectedAABBInfo, uint16_t>> &shapes,
+    unsigned width, unsigned height, const scene::Transform &m_film_to_world,
     unsigned block_dim_x, unsigned block_dim_y, unsigned num_blocks_x,
     unsigned num_blocks_y, uint8_t axis, float value_to_project_to);
 
 std::tuple<std::vector<Traversal>, std::vector<uint8_t>, std::vector<Action>>
 get_traversal_grid_from_bounds(
-    const std::vector<KDTreeNode<ProjectedAABBInfo>> &nodes,
+    const std::vector<std::pair<ProjectedAABBInfo, uint16_t>> &shapes,
     const Eigen::Array2f &min_bound, const Eigen::Array2f &max_bound,
     unsigned num_blocks_x, unsigned num_blocks_y);
 } // namespace detail

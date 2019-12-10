@@ -163,67 +163,75 @@ void RendererImpl<execution_model>::render(
             .count());
   }
 
-  const Eigen::Vector3f camera_loc = m_film_to_world.translation();
+  unsigned num_blocks_light_x = 16;
+  unsigned num_blocks_light_y = 16;
 
-  auto get_projection_info = [&](bool is_loc,
-                                 const Eigen::Vector3f &loc_or_dir) {
-    auto &last_node = by_type_data_[0].nodes[by_type_data_[0].nodes.size() - 1];
-    const auto &min_bound = last_node.get_contents().get_min_bound();
-    const auto &max_bound = last_node.get_contents().get_max_bound();
-    const auto center = (max_bound + min_bound) / 2;
-    const auto dims = max_bound - min_bound;
-    const auto dir = is_loc ? loc_or_dir - center : loc_or_dir;
-    const auto normalized_directions = dir.array() / dims.array();
-    unsigned axis;
-    float max_axis_v = std::numeric_limits<float>::lowest();
-    for (unsigned test_axis = 0; test_axis < 3; test_axis++) {
-      float abs_v = std::abs(normalized_directions[test_axis]);
-      if (abs_v > max_axis_v) {
-        axis = test_axis;
-        max_axis_v = abs_v;
-      }
+  if constexpr (execution_model == ExecutionModel::GPU) {
+    const Eigen::Vector3f camera_loc = m_film_to_world.translation();
+
+    std::vector<std::pair<AABB, uint16_t>> bounded_shapes(shapes.size());
+
+    for (uint16_t i = 0; i < shapes.size(); i++) {
+      auto [min_bound, max_bound] = get_shape_bounds(shapes[i]);
+      bounded_shapes[i] = std::make_pair(AABB(min_bound, max_bound), i);
     }
 
-    bool is_min = normalized_directions[axis] < 0;
+    std::vector<std::pair<ProjectedAABBInfo, uint16_t>> projected_shapes(
+        shapes.size());
 
-    float projection_value = is_min ? min_bound[axis] : max_bound[axis];
+    auto get_projection_info = [&](bool is_loc,
+                                   const Eigen::Vector3f &loc_or_dir) {
+      auto &last_node =
+          by_type_data_[0].nodes[by_type_data_[0].nodes.size() - 1];
+      const auto &min_bound = last_node.get_contents().get_min_bound();
+      const auto &max_bound = last_node.get_contents().get_max_bound();
+      const auto center = (max_bound + min_bound) / 2;
+      const auto dims = max_bound - min_bound;
+      const auto dir = is_loc ? loc_or_dir - center : loc_or_dir;
+      const auto normalized_directions = dir.array() / dims.array();
+      unsigned axis;
+      float max_axis_v = std::numeric_limits<float>::lowest();
+      for (unsigned test_axis = 0; test_axis < 3; test_axis++) {
+        float abs_v = std::abs(normalized_directions[test_axis]);
+        if (abs_v > max_axis_v) {
+          axis = test_axis;
+          max_axis_v = abs_v;
+        }
+      }
 
-    Eigen::Vector2f min_point(std::numeric_limits<float>::max(),
-                              std::numeric_limits<float>::max());
-    Eigen::Vector2f max_point(std::numeric_limits<float>::lowest(),
-                              std::numeric_limits<float>::lowest());
-    std::vector<KDTreeNode<ProjectedAABBInfo>> projected_aabb(
-        by_type_data_[0].nodes.size());
-    std::transform(by_type_data_[0].nodes.begin(), by_type_data_[0].nodes.end(),
-                   projected_aabb.begin(), [&](const KDTreeNode<AABB> &node) {
-                     return node.transform([&](const AABB &aa_bb) {
-                       auto out =
-                           aa_bb
+      bool is_min = normalized_directions[axis] < 0;
+
+      float projection_value = is_min ? min_bound[axis] : max_bound[axis];
+
+      Eigen::Vector2f min_point(std::numeric_limits<float>::max(),
+                                std::numeric_limits<float>::max());
+      Eigen::Vector2f max_point(std::numeric_limits<float>::lowest(),
+                                std::numeric_limits<float>::lowest());
+      std::transform(bounded_shapes.begin(), bounded_shapes.end(),
+                     projected_shapes.begin(),
+                     [&](const std::pair<AABB, uint16_t> &bounded_shape) {
+                       const auto projected =
+                           bounded_shape.first
                                .project_to_axis(is_loc, axis, projection_value,
                                                 loc_or_dir)
                                .get_info();
-                       min_point = min_point.cwiseMin(out.flattened_min);
-                       max_point = max_point.cwiseMax(out.flattened_max);
 
-                       return out;
+                       min_point = projected.flattened_min.cwiseMin(min_point);
+                       max_point = projected.flattened_max.cwiseMax(max_point);
+
+                       return std::make_pair(projected, bounded_shape.second);
                      });
-                   });
 
-    return std::make_tuple(axis, projection_value, min_point, max_point,
-                           projected_aabb);
-  };
+      return std::make_tuple(axis, projection_value, min_point, max_point);
+    };
 
-  unsigned num_blocks_light_x = 1;
-  unsigned num_blocks_light_y = 1;
-
-  if constexpr (execution_model == ExecutionModel::GPU) {
-    auto [axis, value_to_project_to, min_p, max_p, projected_aabb] =
+    auto [axis, value_to_project_to, min_p, max_p] =
         get_projection_info(true, camera_loc);
 
     const auto start_traversal_grid = chr::high_resolution_clock::now();
 
     auto [traversals, disables, actions] = get_traversal_grid_from_transform(
-        projected_aabb, effective_width_, effective_height_, m_film_to_world,
+        projected_shapes, effective_width_, effective_height_, m_film_to_world,
         block_dim_x, block_dim_y, num_blocks_x, num_blocks_y, axis,
         value_to_project_to);
 
@@ -248,11 +256,11 @@ void RendererImpl<execution_model>::render(
         using T = std::decay_t<decltype(light_data)>;
         auto copy_in_light = [&](bool is_loc,
                                  const Eigen::Vector3f &loc_or_dir) {
-          auto [axis, value_to_project_to, min_p, max_p, projected_aabb] =
+          auto [axis, value_to_project_to, min_p, max_p] =
               get_projection_info(is_loc, loc_or_dir);
 
           auto [traversals, _, actions] = get_traversal_grid_from_bounds(
-              projected_aabb, min_p, max_p, num_blocks_light_x,
+              projected_shapes, min_p, max_p, num_blocks_light_x,
               num_blocks_light_y);
 
           std::copy(traversals.data(), traversals.data() + traversals.size(),

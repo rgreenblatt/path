@@ -127,8 +127,10 @@ __host__ __device__ inline void raytrace_impl(
               traversal_data.axis);
 
           Eigen::Array2<uint16_t> light_block_idxes =
-              ((intersection_point + traversal_data.side_min).array() /
-               traversal_data.side_max.array())
+              (((intersection_point - traversal_data.side_min).array() /
+                (traversal_data.side_max.array() -
+                 traversal_data.side_min.array())) *
+               Eigen::Array2f(num_blocks_light_x, num_blocks_light_y))
                   .cast<uint16_t>();
 
           traversal_index = size_lights_traversals * light_idx +
