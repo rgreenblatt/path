@@ -69,13 +69,11 @@ private:
   DataType<BGRA> bgra_;
   ManangedMemVec<uint8_t> group_disables_;
   ManangedMemVec<unsigned> group_indexes_;
-  DataType<detail::Traversal> camera_traversals_;
-  DataType<detail::Action> camera_actions_;
-  DataType<detail::Traversal> light_traversals_;
-  DataType<detail::Action> light_actions_;
-  DataType<detail::LightTraversalData> light_traversal_data_;
-  std::vector<detail::Traversal> light_traversals_cpu_;
-  std::vector<detail::Action> light_actions_cpu_;
-  std::vector<detail::LightTraversalData> light_traversal_data_cpu_;
+  DataType<detail::Traversal> traversals_;
+  DataType<detail::Action> actions_;
+  DataType<detail::TraversalData> traversal_data_;
+  std::vector<detail::Traversal> traversals_cpu_;
+  std::vector<detail::Action> actions_cpu_;
+  std::vector<detail::TraversalData> traversal_data_cpu_;
 };
 } // namespace ray

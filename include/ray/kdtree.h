@@ -355,51 +355,40 @@ struct Action {
 };
 
 struct Traversal {
-#if 0
   bool is_final;
-#endif
   uint16_t start;
   uint16_t size;
-#if 0
-  uint8_t axis;
   float comp;
   uint16_t traversal_index_smaller;
   uint16_t traversal_index_larger;
+#if 0
+  uint8_t axis;
 #endif
 
   HOST_DEVICE Traversal() {}
 
   HOST_DEVICE Traversal(uint16_t start, uint16_t size)
-      :
-#if 0
-        is_final(true),
-#endif
-        start(start), size(size) {
-  }
+      : is_final(true), start(start), size(size) {}
 
-#if 0
-  Traversal(uint8_t axis, float comp, uint16_t traversal_index_smaller,
-           uint16_t traversal_index_larger)
-      : is_final(false), axis(axis), comp(comp),
+  Traversal(float comp, uint16_t traversal_index_smaller,
+            uint16_t traversal_index_larger)
+      : is_final(false), comp(comp),
         traversal_index_smaller(traversal_index_smaller),
         traversal_index_larger(traversal_index_larger) {}
-#endif
 };
 
-struct LightTraversalData {
-  unsigned offset;
-  Eigen::Vector2f side_min;
-  Eigen::Vector2f side_max;
+struct TraversalData {
+  uint16_t traversal_start;
   uint8_t axis;
   float value;
+  uint8_t partition_axis;
 
-  HOST_DEVICE LightTraversalData(unsigned offset, Eigen::Vector2f side_min,
-                                 Eigen::Vector2f side_max, uint8_t axis,
-                                 float value)
-      : offset(offset), side_min(side_min), side_max(side_max), axis(axis),
-        value(value) {}
+  HOST_DEVICE TraversalData(uint16_t traversal_start, uint8_t axis, float value,
+                            uint8_t partition_axis)
+      : traversal_start(traversal_start), axis(axis), value(value),
+        partition_axis(partition_axis) {}
 
-  HOST_DEVICE LightTraversalData() {}
+  HOST_DEVICE TraversalData() {}
 };
 
 template <typename Contents> struct KDTreeNode {
@@ -510,17 +499,9 @@ get_intersection_point(const Eigen::Vector3f &dir, float value_to_project_to,
       .eval();
 }
 
-std::tuple<std::vector<Traversal>, std::vector<uint8_t>, std::vector<Action>>
-get_traversal_grid_from_transform(
+std::tuple<std::vector<Traversal>, std::vector<Action>> get_traversal_grid(
     const std::vector<std::pair<ProjectedAABBInfo, uint16_t>> &shapes,
-    unsigned width, unsigned height, const scene::Transform &m_film_to_world,
-    unsigned block_dim_x, unsigned block_dim_y, unsigned num_blocks_x,
-    unsigned num_blocks_y, uint8_t axis, float value_to_project_to);
-
-std::tuple<std::vector<Traversal>, std::vector<uint8_t>, std::vector<Action>>
-get_traversal_grid_from_bounds(
-    const std::vector<std::pair<ProjectedAABBInfo, uint16_t>> &shapes,
-    const Eigen::Array2f &min_bound, const Eigen::Array2f &max_bound,
-    unsigned num_blocks_x, unsigned num_blocks_y);
+    uint8_t target_depth, std::vector<Traversal> &traversals,
+    std::vector<Action> &actions);
 } // namespace detail
 } // namespace ray

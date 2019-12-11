@@ -104,9 +104,9 @@ __inline__ __host__
 // Rename...
 template <typename F>
 __inline__ __host__ __device__ void solve_general_intersection(
-    const ByTypeDataRef &by_type_data, const Traversal &traversal,
-    const Action *actions, const scene::ShapeData *shapes,
-    const Eigen::Vector3f &world_space_eye,
+    const ByTypeDataRef &by_type_data, const TraversalData &traversal_data,
+    const Traversal *traversals, const Action *actions,
+    const scene::ShapeData *shapes, const Eigen::Vector3f &world_space_eye,
     const Eigen::Vector3f &world_space_direction, const unsigned &ignore_v,
     const uint8_t &disable, thrust::optional<BestIntersection> &best,
     bool is_first, bool use_traversals, bool use_kd_tree, const F &f) {
@@ -124,6 +124,22 @@ __inline__ __host__ __device__ void solve_general_intersection(
   };
 
   if (use_traversals) {
+    Eigen::Vector2f intersection_point =
+        get_intersection_point(world_space_direction, traversal_data.value,
+                               world_space_eye, traversal_data.axis);
+    uint16_t current_traversal = traversal_data.traversal_start;
+    uint8_t traversal_partition_axis = traversal_data.partition_axis;
+    while (!traversals[current_traversal].is_final) {
+      const auto &traversal = traversals[current_traversal];
+      current_traversal =
+          intersection_point[traversal_partition_axis] < traversal.comp
+              ? traversal.traversal_index_smaller
+              : traversal.traversal_index_larger;
+      traversal_partition_axis = !traversal_partition_axis;
+    }
+
+    const auto &traversal = traversals[current_traversal];
+
     for (uint16_t action_index = traversal.start; action_index < traversal.size;
          action_index++) {
       if (solve_index(actions[action_index].shape_idx)) {

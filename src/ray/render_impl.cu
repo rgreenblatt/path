@@ -163,9 +163,6 @@ void RendererImpl<execution_model>::render(
             .count());
   }
 
-  unsigned num_blocks_light_x = 16;
-  unsigned num_blocks_light_y = 16;
-
   if constexpr (execution_model == ExecutionModel::GPU) {
     const Eigen::Vector3f camera_loc = m_film_to_world.translation();
 
@@ -179,8 +176,13 @@ void RendererImpl<execution_model>::render(
     std::vector<std::pair<ProjectedAABBInfo, uint16_t>> projected_shapes(
         shapes.size());
 
-    auto get_projection_info = [&](bool is_loc,
-                                   const Eigen::Vector3f &loc_or_dir) {
+    unsigned traversals_offset = 0;
+    unsigned projection_index = 0;
+
+    traversal_data_cpu_.resize(num_lights + 1);
+
+    auto add_projection = [&](bool is_loc, const Eigen::Vector3f &loc_or_dir,
+                              uint8_t target_depth) {
       auto &last_node =
           by_type_data_[0].nodes[by_type_data_[0].nodes.size() - 1];
       const auto &min_bound = last_node.get_contents().get_min_bound();
@@ -222,79 +224,53 @@ void RendererImpl<execution_model>::render(
                        return std::make_pair(projected, bounded_shape.second);
                      });
 
-      return std::make_tuple(axis, projection_value, min_point, max_point);
+      get_traversal_grid(projected_shapes, target_depth, traversals_cpu_,
+                         actions_cpu_);
+
+      // TODO
+      traversal_data_cpu_[projection_index] =
+          TraversalData(traversals_offset, axis, projection_value, 0);
+      traversals_offset = traversals_cpu_.size();
+      projection_index++;
     };
 
-    auto [axis, value_to_project_to, min_p, max_p] =
-        get_projection_info(true, camera_loc);
+    uint8_t target_depth_camera = 5;
+    uint8_t target_depth_lights = 4;
 
     const auto start_traversal_grid = chr::high_resolution_clock::now();
 
-    auto [traversals, disables, actions] = get_traversal_grid_from_transform(
-        projected_shapes, effective_width_, effective_height_, m_film_to_world,
-        block_dim_x, block_dim_y, num_blocks_x, num_blocks_y, axis,
-        value_to_project_to);
+    add_projection(true, camera_loc, target_depth_camera);
 
-    std::copy(disables.begin(), disables.end(), group_disables_.begin());
-
-    camera_traversals_.resize(traversals.size());
-    camera_actions_.resize(actions.size());
-
-    thrust::copy(traversals.begin(), traversals.end(),
-                 camera_traversals_.begin());
-    thrust::copy(actions.begin(), actions.end(), camera_actions_.begin());
-
-    light_traversals_cpu_.resize(num_blocks_light_x * num_blocks_light_y *
-                                 num_lights);
-    light_actions_cpu_.clear();
-    light_traversal_data_cpu_.resize(num_lights);
-    unsigned last_offset = 0;
+    {
+      std::vector<uint8_t> disables(group_disables_.size(), false);
+      std::copy(disables.begin(), disables.end(), group_disables_.begin());
+    }
 
     for (unsigned light_idx = 0; light_idx < num_lights; light_idx++) {
       const auto &light = lights[light_idx];
       light.visit([&](auto &&light_data) {
         using T = std::decay_t<decltype(light_data)>;
-        auto copy_in_light = [&](bool is_loc,
-                                 const Eigen::Vector3f &loc_or_dir) {
-          auto [axis, value_to_project_to, min_p, max_p] =
-              get_projection_info(is_loc, loc_or_dir);
-
-          auto [traversals, _, actions] = get_traversal_grid_from_bounds(
-              projected_shapes, min_p, max_p, num_blocks_light_x,
-              num_blocks_light_y);
-
-          std::copy(traversals.data(), traversals.data() + traversals.size(),
-                    light_traversals_cpu_.begin() +
-                        num_blocks_light_x * num_blocks_light_y * light_idx);
-          light_actions_cpu_.insert(light_actions_cpu_.begin() + last_offset,
-                                    actions.begin(), actions.end());
-          light_traversal_data_cpu_[light_idx] = LightTraversalData(
-              last_offset, min_p, max_p, axis, value_to_project_to);
-          last_offset += actions.size();
-        };
         if constexpr (std::is_same<T, scene::DirectionalLight>::value) {
-          copy_in_light(false, light_data.direction);
+          add_projection(false, light_data.direction, target_depth_lights);
         } else {
-          copy_in_light(true, light_data.position);
+          add_projection(true, light_data.position, target_depth_lights);
         }
       });
     }
 
-    light_traversals_.resize(light_traversals_cpu_.size());
-    thrust::copy(light_traversals_cpu_.data(),
-                 light_traversals_cpu_.data() + light_traversals_cpu_.size(),
-                 light_traversals_.begin());
+    traversals_.resize(traversals_cpu_.size());
+    thrust::copy(traversals_cpu_.data(),
+                 traversals_cpu_.data() + traversals_cpu_.size(),
+                 traversals_.begin());
 
-    light_actions_.resize(light_actions_cpu_.size());
-    thrust::copy(light_actions_cpu_.data(),
-                 light_actions_cpu_.data() + light_actions_cpu_.size(),
-                 light_actions_.begin());
+    actions_.resize(actions_cpu_.size());
+    thrust::copy(actions_cpu_.data(), actions_cpu_.data() + actions_cpu_.size(),
+                 actions_.begin());
 
-    light_traversal_data_.resize(light_traversal_data_cpu_.size());
-    thrust::copy(light_traversal_data_cpu_.data(),
-                 light_traversal_data_cpu_.data() +
-                     light_traversal_data_cpu_.size(),
-                 light_traversal_data_.begin());
+    traversal_data_.resize(traversal_data_cpu_.size());
+    thrust::copy(traversal_data_cpu_.data(),
+                 traversal_data_cpu_.data() + traversal_data_cpu_.size(),
+                 traversal_data_.begin());
 
     if (show_times) {
       dbg(chr::duration_cast<chr::duration<double>>(
@@ -326,15 +302,12 @@ void RendererImpl<execution_model>::render(
         if (current_num_blocks != 0) {
           raytrace<<<current_num_blocks, general_block_size>>>(
               effective_width_, effective_height_, num_blocks_x, block_dim_x,
-              block_dim_y, data, to_ptr(camera_traversals_),
-              to_ptr(camera_actions_), to_ptr(light_traversals_),
-              to_ptr(light_actions_), to_ptr(light_traversal_data_),
-              num_blocks_light_x, num_blocks_light_y, shapes.data(), lights,
-              num_lights, textures, to_ptr(world_space_eyes_),
-              to_ptr(world_space_directions_), to_ptr(color_multipliers_),
-              to_ptr(colors_), to_ptr(ignores_), to_ptr(disables_),
-              group_disables_.data(), group_indexes_.data(), is_first,
-              use_kd_tree);
+              block_dim_y, data, to_ptr(traversal_data_), to_ptr(traversals_),
+              to_ptr(actions_), shapes.data(), lights, num_lights, textures,
+              to_ptr(world_space_eyes_), to_ptr(world_space_directions_),
+              to_ptr(color_multipliers_), to_ptr(colors_), to_ptr(ignores_),
+              to_ptr(disables_), group_disables_.data(), group_indexes_.data(),
+              is_first, use_kd_tree);
         }
       } else {
         raytrace_cpu(effective_width_, effective_height_, data, shapes.data(),
