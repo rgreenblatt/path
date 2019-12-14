@@ -37,6 +37,16 @@ inline __host__ __device__ void float_to_bgra(unsigned x, unsigned y,
                               .cwiseMax(0)
                               .cwiseMin(255)
                               .cast<uint8_t>();
+  auto bounds = [](unsigned v, unsigned close) {
+    return std::abs(float(v) - close) < 3;
+  };
+  if (bounds(x, 512) && bounds(y, 512)) {
+    bgra[index] = BGRA(230, 0, 0, 0);
+  } else if (bounds(x, 512) && bounds(y, 392)) {
+    bgra[index] = BGRA(0, 230, 0, 0);
+  } else if (bounds(x, 610) && bounds(y, 456)) {
+    bgra[index] = BGRA(0, 0, 230, 0);
+  }
 }
 
 __global__ void floats_to_bgras(unsigned width, unsigned height,

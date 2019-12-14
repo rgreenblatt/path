@@ -1,8 +1,8 @@
 #include "ray/kdtree.h"
 #include "ray/ray_utils.h"
+#include <boost/function_output_iterator.hpp>
 #include <boost/geometry.hpp>
 #include <boost/iterator/counting_iterator.hpp>
-#include <boost/function_output_iterator.hpp>
 #include <boost/range/adaptor/indexed.hpp>
 #include <boost/range/combine.hpp>
 #include <numeric>
@@ -145,142 +145,6 @@ using RTree = bg::index::rtree<BoundingValue, bg::index::rstar<16>>;
 
 Eigen::Array2f point_to_eigen(const Point &p) {
   return Eigen::Array2f(p.get<0>(), p.get<1>());
-}
-
-void construct_traversal_tree(std::vector<Traversal> &traversals,
-                              std::vector<Action> &actions,
-                              std::vector<BoundingValue> &boxes_in_volume,
-                              const RTree &tree, const Box &bounding,
-                              uint8_t depth, uint8_t target_depth) {
-  uint8_t axis = depth % 2;
-
-  boxes_in_volume.clear();
-
-  // metric: harmonic mean of left and right disjoint
-
-  tree.query(bg::index::intersects(bounding),
-             std::back_inserter(boxes_in_volume));
-
-  if (boxes_in_volume.empty() || depth == target_depth) {
-    uint16_t start_actions = actions.size();
-    uint16_t num_actions = boxes_in_volume.size();
-    for(const auto& box_index : boxes_in_volume) {
-      actions.push_back(box_index.second);
-    }
-
-    traversals.push_back(Traversal(start_actions, num_actions));
-
-    return;
-  }
-
-  uint16_t middle_index = (boxes_in_volume.size()) / 2;
-#if 0
-  uint16_t middle_first_half = (boxes_in_volume.size() - 1 - middle_index) / 2;
-  uint16_t middle_second_half = boxes_in_volume.size() - 1 - middle_first_half;
-
-  // some index which isn't yet tested...
-  uint16_t last_tested = boxes_in_volume.size();
-#endif
-
-  float best_partition_score = -1.0f;
-  float best_partition_point;
-  Box best_partition_left_box;
-  Box best_partition_right_box;
-
-  Eigen::Vector2f min_bounding = point_to_eigen(bounding.min_corner());
-  Eigen::Vector2f max_bounding = point_to_eigen(bounding.max_corner());
-
-  for (uint16_t to_test :
-#if 0
-       {middle_first_half, middle_index, middle_second_half}
-#else
-       { middle_index }
-#endif
-  ) {
-#if 0
-    if (to_test == last_tested) {
-      continue;
-    }
-#endif
-
-    const auto &test_box = boxes_in_volume[to_test].first;
-
-    // epsilon to avoid self intersection....
-    auto min_corner_v = point_to_eigen(test_box.min_corner())[axis] - 1e-3f;
-    auto max_corner_v = point_to_eigen(test_box.max_corner())[axis] + 1e-3f;
-
-    for (float partition_point : {min_corner_v, max_corner_v}) {
-      auto make_point = [&](const float other) {
-        return Point(axis ? other : partition_point,
-                     axis ? partition_point : other);
-      };
-
-      auto partition_min_corner = make_point(min_bounding[!axis]);
-      auto partition_max_corner = make_point(max_bounding[!axis]);
-
-      // Will this work????
-      Box seg(partition_min_corner, partition_max_corner);
-
-      Box new_left_box(bounding.min_corner(), partition_max_corner);
-      Box new_right_box(partition_min_corner, bounding.max_corner());
-
-      uint16_t num_left = 0;
-      uint16_t num_right = 0;
-
-      tree.query(bg::index::intersects(new_left_box) &&
-                     !bg::index::intersects(seg),
-                 boost::make_function_output_iterator(
-                     [&](const auto &) { num_left++; }));
-      tree.query(bg::index::intersects(new_right_box) &&
-                     !bg::index::intersects(seg),
-                 boost::make_function_output_iterator(
-                     [&](const auto &) { num_right++; }));
-
-      float partition_score =
-          (2.0f * num_left * num_right) / (num_left + num_right);
-      if (partition_score > best_partition_score) {
-        best_partition_point = partition_point;
-        best_partition_left_box = new_left_box;
-        best_partition_right_box = new_right_box;
-      }
-    }
-  }
-
-  construct_traversal_tree(traversals, actions, boxes_in_volume, tree,
-                           best_partition_left_box, depth + 1, target_depth);
-  uint16_t left_index = traversals.size() - 1;
-  construct_traversal_tree(traversals, actions, boxes_in_volume, tree,
-                           best_partition_right_box, depth + 1, target_depth);
-  uint16_t right_index = traversals.size() - 1;
-  traversals.push_back(
-      Traversal(best_partition_point, left_index, right_index));
-
-  return;
-}
-
-std::tuple<std::vector<Traversal>, std::vector<Action>> get_traversal_grid(
-    const std::vector<std::pair<ProjectedAABBInfo, uint16_t>> &shapes,
-    uint8_t target_depth, std::vector<Traversal> &traversals,
-    std::vector<Action> &actions) {
-  auto to_point = [](const Eigen::Vector2f &v) { return Point(v.x(), v.y()); };
-
-  std::vector<std::pair<Box, uint16_t>> boxes;
-
-  for (const auto &shape : shapes) {
-    Box b(to_point(shape.first.flattened_min),
-          to_point(shape.first.flattened_max));
-    boxes.push_back(std::make_pair(b, shape.second));
-  }
-
-  RTree tree(boxes);
-
-  std::vector<BoundingValue> temp;
-
-  construct_traversal_tree(traversals, actions, temp, tree,
-                           Box(Point(-1000, -1000), Point(1000, 1000)), 0,
-                           target_depth);
-
-  return std::make_tuple(traversals, actions);
 }
 } // namespace detail
 } // namespace ray

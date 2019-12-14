@@ -1,8 +1,8 @@
 #include "lib/unified_memory_vector.h"
 #include "ray/intersect.cuh"
+#include "ray/action_grid.h"
 #include "ray/kdtree.h"
 #include "ray/lighting.cuh"
-#include "ray/render_impl.h"
 #include "ray/render_impl.h"
 #include "ray/ray.cuh"
 
@@ -24,12 +24,15 @@ unsigned num_blocks(unsigned size, unsigned block_size) {
 template <ExecutionModel execution_model>
 RendererImpl<execution_model>::RendererImpl(unsigned width, unsigned height,
                                             unsigned super_sampling_rate,
-                                            unsigned recursive_iterations)
+                                            unsigned recursive_iterations,
+                                            const Eigen::Vector3f &min_possible,
+                                            const Eigen::Vector3f &max_possible)
     : effective_width_(width * super_sampling_rate),
       effective_height_(height * super_sampling_rate),
       super_sampling_rate_(super_sampling_rate),
       pixel_size_(effective_width_ * effective_height_),
-      recursive_iterations_(recursive_iterations), by_type_data_(invoke([&] {
+      recursive_iterations_(recursive_iterations), min_possible_(min_possible),
+      max_possible_(max_possible), by_type_data_(invoke([&] {
         auto get_by_type = [&](scene::Shape shape_type) {
           return ByTypeData(shape_type);
         };
@@ -74,7 +77,8 @@ ByTypeDataRef RendererImpl<execution_model>::ByTypeData::initialize(
 template <ExecutionModel execution_model>
 void RendererImpl<execution_model>::render(
     const scene::Scene &scene, BGRA *pixels,
-    const scene::Transform &m_film_to_world, bool use_kd_tree,
+    const scene::Transform &m_film_to_world,
+    const Eigen::Projective3f &world_to_film, bool use_kd_tree,
     bool show_times) {
   namespace chr = std::chrono;
 
@@ -152,7 +156,6 @@ void RendererImpl<execution_model>::render(
 
   std::array<ByTypeDataRef, scene::shapes_size> by_type_data_gpu;
 
-#pragma omp parallel for
   for (unsigned i = 0; i < 1; i++) {
     by_type_data_gpu[i] = by_type_data_[i].initialize(scene, shapes.data());
   }
@@ -164,22 +167,41 @@ void RendererImpl<execution_model>::render(
   }
 
   if constexpr (execution_model == ExecutionModel::GPU) {
-    const Eigen::Vector3f camera_loc = m_film_to_world.translation();
+    const auto start_traversal_grid = chr::high_resolution_clock::now();
 
-    std::vector<std::pair<AABB, uint16_t>> bounded_shapes(shapes.size());
-
-    for (uint16_t i = 0; i < shapes.size(); i++) {
-      auto [min_bound, max_bound] = get_shape_bounds(shapes[i]);
-      bounded_shapes[i] = std::make_pair(AABB(min_bound, max_bound), i);
-    }
-
-    std::vector<std::pair<ProjectedAABBInfo, uint16_t>> projected_shapes(
-        shapes.size());
+    TraversalGrid camera_grid(Plane(2, -0.5).get_transform(m_film_to_world),
+                              world_to_film, shapes.data(), shapes.size(),
+                              Eigen::Array2f(-1, -1), Eigen::Array2f(1, 1),
+                              num_blocks_x, num_blocks_y);
 
     unsigned traversals_offset = 0;
-    unsigned projection_index = 0;
 
-    traversal_data_cpu_.resize(num_lights + 1);
+
+#if 0
+    traversal_data_cpu_.resize(num_lights);
+#endif
+
+    traversals_cpu_.clear();
+    actions_cpu_.clear();
+
+    camera_grid.copy_into(traversals_cpu_, actions_cpu_);
+
+    dbg(traversals_cpu_.size());
+    dbg(group_disables_.size());
+    std::transform(
+        traversals_cpu_.begin(), traversals_cpu_.end(), group_disables_.begin(),
+        [&](const Traversal &traversal) { 
+#if 1
+        return traversal.size == 0; 
+#else
+        return false;
+#endif
+        });
+
+    traversals_offset = traversals_cpu_.size();
+
+    
+#if 0
 
     auto add_projection = [&](bool is_loc, const Eigen::Vector3f &loc_or_dir,
                               uint8_t target_depth) {
@@ -224,8 +246,8 @@ void RendererImpl<execution_model>::render(
                        return std::make_pair(projected, bounded_shape.second);
                      });
 
-      get_traversal_grid(projected_shapes, target_depth, traversals_cpu_,
-                         actions_cpu_);
+      /* TraversalGrid(projected_shapes, target_depth, traversals_cpu_, */
+      /*                    actions_cpu_); */
 
       // TODO
       traversal_data_cpu_[projection_index] =
@@ -236,8 +258,6 @@ void RendererImpl<execution_model>::render(
 
     uint8_t target_depth_camera = 5;
     uint8_t target_depth_lights = 4;
-
-    const auto start_traversal_grid = chr::high_resolution_clock::now();
 
     add_projection(true, camera_loc, target_depth_camera);
 
@@ -257,8 +277,10 @@ void RendererImpl<execution_model>::render(
         }
       });
     }
+#endif
 
     traversals_.resize(traversals_cpu_.size());
+    dbg(traversals_cpu_[0].size);
     thrust::copy(traversals_cpu_.data(),
                  traversals_cpu_.data() + traversals_cpu_.size(),
                  traversals_.begin());

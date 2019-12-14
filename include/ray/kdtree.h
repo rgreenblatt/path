@@ -340,57 +340,6 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
-struct Action {
-#if 0
-  bool is_known;
-  float min_dist;
-#endif
-  uint16_t shape_idx;
-  /* uint16_t shape_idx_end; */
-
-  Action(uint16_t shape_idx) : shape_idx(shape_idx) {}
-
-  HOST_DEVICE
-  Action() {}
-};
-
-struct Traversal {
-  bool is_final;
-  uint16_t start;
-  uint16_t size;
-  float comp;
-  uint16_t traversal_index_smaller;
-  uint16_t traversal_index_larger;
-#if 0
-  uint8_t axis;
-#endif
-
-  HOST_DEVICE Traversal() {}
-
-  HOST_DEVICE Traversal(uint16_t start, uint16_t size)
-      : is_final(true), start(start), size(size) {}
-
-  Traversal(float comp, uint16_t traversal_index_smaller,
-            uint16_t traversal_index_larger)
-      : is_final(false), comp(comp),
-        traversal_index_smaller(traversal_index_smaller),
-        traversal_index_larger(traversal_index_larger) {}
-};
-
-struct TraversalData {
-  uint16_t traversal_start;
-  uint8_t axis;
-  float value;
-  uint8_t partition_axis;
-
-  HOST_DEVICE TraversalData(uint16_t traversal_start, uint8_t axis, float value,
-                            uint8_t partition_axis)
-      : traversal_start(traversal_start), axis(axis), value(value),
-        partition_axis(partition_axis) {}
-
-  HOST_DEVICE TraversalData() {}
-};
-
 template <typename Contents> struct KDTreeNode {
   HOST_DEVICE KDTreeNode() {}
 
@@ -498,10 +447,5 @@ get_intersection_point(const Eigen::Vector3f &dir, float value_to_project_to,
   return (dist * get_not_axis(dir, axis) + get_not_axis(world_space_eye, axis))
       .eval();
 }
-
-std::tuple<std::vector<Traversal>, std::vector<Action>> get_traversal_grid(
-    const std::vector<std::pair<ProjectedAABBInfo, uint16_t>> &shapes,
-    uint8_t target_depth, std::vector<Traversal> &traversals,
-    std::vector<Action> &actions);
 } // namespace detail
 } // namespace ray

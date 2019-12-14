@@ -329,8 +329,10 @@ void Canvas::topView() {
 }
 
 void Canvas::resetTransform() {
-  transform_ =
+  auto [film_to_world, world_to_film] = 
       scene::get_camera_transform(look_, up_, pos_, 1.0f, width_, height_);
+  film_to_world_ = film_to_world;
+  world_to_film_ = world_to_film;
 }
 
 void Canvas::tick() {
@@ -437,7 +439,7 @@ void Canvas::paintEvent(QPaintEvent * /* event */) {
 
   if (renderer_) {
     renderer_->render(pool_scene_, reinterpret_cast<BGRA *>(image_.bits()),
-                      transform_, true, false);
+                      film_to_world_, world_to_film_, true, false);
   }
 
   QPainter painter(this);

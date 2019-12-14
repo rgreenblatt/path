@@ -14,10 +14,8 @@ using UVPosition = Eigen::Array2f;
 
 class ALIGN_STRUCT(32) ShapeData {
 public:
-  HOST_DEVICE const scene::Shape &get_shape() const {
-    return shape_type_;
-  }
-  
+  HOST_DEVICE scene::Shape get_shape() const { return shape_type_; }
+
   HOST_DEVICE const Transform &get_transform() const {
     return transform_;
   }

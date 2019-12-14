@@ -2,10 +2,11 @@
 
 #include "lib/bgra.h"
 #include "lib/unified_memory_vector.h"
+#include "ray/action_grid.h"
 #include "ray/best_intersection.h"
 #include "ray/by_type_data.h"
-#include "ray/kdtree.h"
 #include "ray/execution_model.h"
+#include "ray/kdtree.h"
 #include "scene/scene.h"
 
 #include <thrust/device_vector.h>
@@ -32,11 +33,14 @@ using DataType = typename get_vector_type<execution_model, T>::type;
 template <ExecutionModel execution_model> class RendererImpl {
 public:
   void render(const scene::Scene &scene, BGRA *pixels,
-              const scene::Transform &m_film_to_world, bool use_kd_tree,
+              const scene::Transform &m_film_to_world,
+              const Eigen::Projective3f &world_to_film, bool use_kd_tree,
               bool show_times);
 
   RendererImpl(unsigned width, unsigned height, unsigned super_sampling_rate,
-               unsigned recursive_iterations);
+               unsigned recursive_iterations,
+               const Eigen::Vector3f &min_possible,
+               const Eigen::Vector3f &max_possible);
 
 private:
   template <typename T> using DataType = detail::DataType<execution_model, T>;
@@ -57,6 +61,9 @@ private:
   unsigned pixel_size_;
 
   unsigned recursive_iterations_;
+
+  Eigen::Vector3f min_possible_;
+  Eigen::Vector3f max_possible_;
 
   std::array<ByTypeData, 1> by_type_data_;
 

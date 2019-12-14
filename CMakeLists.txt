@@ -44,6 +44,7 @@ ADD_LIBRARY(
   "${PROJECT_SOURCE_DIR}/src/scene/scene.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/pool_scene.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/camera.cpp"
+  "${PROJECT_SOURCE_DIR}/src/ray/action_grid.cpp"
   )
 
 TARGET_INCLUDE_DIRECTORIES(renderer PUBLIC
