@@ -28,6 +28,10 @@ public:
 
   void clearUpdates() { updated_shapes_.clear(); }
 
+  virtual void step(float secs) = 0;
+
+  virtual ~Scene() {}
+
 protected:
   void copyInTextureRefs();
 

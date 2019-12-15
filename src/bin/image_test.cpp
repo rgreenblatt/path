@@ -10,26 +10,27 @@
 
 template <ray::ExecutionModel execution_model>
 void run_test(unsigned width, unsigned height, unsigned super_sampling_rate,
-              const scene::Scene &scene, const Eigen::Affine3f &film_to_world,
+              const scene::CS123Scene &scene,
+              const Eigen::Affine3f &film_to_world,
               const Eigen::Projective3f &world_to_film,
               const std::string &filename, unsigned depth, bool use_kd_tree) {
   QImage image(width, height, QImage::Format_RGB32);
 
   auto bgra_data = reinterpret_cast<BGRA *>(image.bits());
 
+  std::unique_ptr<scene::Scene> s = std::make_unique<scene::CS123Scene>(scene);
+
   ray::Renderer<execution_model> renderer(width, height, super_sampling_rate,
-                                          depth);
+                                          depth, s);
 
 #if 1
   // realistic memory benchmark
-  renderer.render(scene, bgra_data, film_to_world, world_to_film, use_kd_tree,
-                  false);
+  renderer.render(bgra_data, film_to_world, world_to_film, use_kd_tree, false);
 #endif
 
   std::cout << "start:" << std::endl;
   auto start = std::chrono::high_resolution_clock::now();
-  renderer.render(scene, bgra_data, film_to_world, world_to_film, use_kd_tree,
-                  true);
+  renderer.render(bgra_data, film_to_world, world_to_film, use_kd_tree, true);
   std::cout << "rendered in "
             << std::chrono::duration_cast<std::chrono::duration<double>>(
                    std::chrono::high_resolution_clock::now() - start)

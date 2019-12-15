@@ -22,9 +22,6 @@ TextureData PoolScene::loadTexture(const std::string &file) {
 void PoolScene::setBreak() {
   float max_noise = 1e-1;
   std::uniform_real_distribution<float> dist(-max_noise, max_noise);
-  // TODO:
-  //  - measure cue ball starting position
-  //  - measure break point
   for (auto &ball : states_) {
     ball.angular_vel = Eigen::Vector3f::Zero();
     ball.rot = Eigen::Quaternionf::Identity();

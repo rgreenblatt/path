@@ -13,6 +13,8 @@ public:
 
   const Eigen::Projective3f &world_to_film() const { return world_to_film_; }
 
+  void step(float) override {}
+
 private:
   Eigen::Affine3f film_to_world_;
   Eigen::Projective3f world_to_film_;

@@ -5,11 +5,11 @@ namespace ray {
 template <ExecutionModel execution_model>
 Renderer<execution_model>::Renderer(unsigned width, unsigned height,
                                     unsigned super_sampling_rate,
-                                    unsigned recursive_iterations)
+                                    unsigned recursive_iterations,
+                                    std::unique_ptr<scene::Scene> &s)
+    // needs to not be smart pointer (compiler error otherwise)
     : renderer_impl_(new RendererImpl<execution_model>(
-          width, height, super_sampling_rate, recursive_iterations,
-          // TODO*****
-          Eigen::Vector3f(), Eigen::Vector3f())) {}
+          width, height, super_sampling_rate, recursive_iterations, s)) {}
 
 template <ExecutionModel execution_model>
 Renderer<execution_model>::~Renderer() {
@@ -17,12 +17,22 @@ Renderer<execution_model>::~Renderer() {
 }
 
 template <ExecutionModel execution_model>
-void Renderer<execution_model>::render(const scene::Scene &scene, BGRA *pixels,
+void Renderer<execution_model>::render(BGRA *pixels,
                                        const scene::Transform &m_film_to_world,
                                        const Eigen::Projective3f &world_to_film,
                                        bool use_kd_tree, bool show_times) {
-  renderer_impl_->render(scene, pixels, m_film_to_world, world_to_film,
-                         use_kd_tree, show_times);
+  renderer_impl_->render(pixels, m_film_to_world, world_to_film, use_kd_tree,
+                         show_times);
+}
+
+template <ExecutionModel execution_model>
+scene::Scene &Renderer<execution_model>::get_scene() {
+  return renderer_impl_->get_scene();
+}
+
+template <ExecutionModel execution_model>
+const scene::Scene &Renderer<execution_model>::get_scene() const {
+  return renderer_impl_->get_scene();
 }
 
 template class Renderer<ExecutionModel::CPU>;

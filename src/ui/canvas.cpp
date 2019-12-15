@@ -253,7 +253,7 @@ Canvas::~Canvas() {
 }
 
 void Canvas::mousePressEvent(QMouseEvent *event) {
-  pool_scene_ = scene::PoolScene();
+  resetRenderer();
   time_.restart();
   update();
 }
@@ -312,8 +312,9 @@ void Canvas::resize(int width_in, int height_in) {
 }
 
 void Canvas::resetRenderer() {
+  std::unique_ptr<scene::Scene> s = std::make_unique<scene::PoolScene>();
   renderer_ = new ray::Renderer<ray::ExecutionModel::GPU>(
-      width_, height_, super_sampling_rate_, recursive_iterations_);
+      width_, height_, super_sampling_rate_, recursive_iterations_, s);
 }
 
 void Canvas::sideView() {
@@ -338,13 +339,18 @@ void Canvas::resetTransform() {
 void Canvas::tick() {
   {
     std::lock_guard<std::mutex> guard(event_queue_mutex_);
+    auto &pool_scene = renderer_->get_scene();
     for (const auto &event : event_queue_) {
       auto set_ball_prop = [&](const auto &f) {
-        if (pool_scene_.getNumBalls() > event.unsigned_value) {
-          f(pool_scene_.getBallState(event.unsigned_value));
+#if 0
+        if (pool_scene.getNumBalls() > event.unsigned_value) {
+          f(pool_scene.getBallState(event.unsigned_value));
         } else {
           std::cout << "invalid ball index" << std::endl;
         }
+#else
+        std::cout << "not currently supported" << std::endl;
+#endif
       };
 
       switch (event.event) {
@@ -393,7 +399,11 @@ void Canvas::tick() {
         resetTransform();
         break;
       case Event::SetBreak:
+#if 0
         pool_scene_.setBreak();
+#else
+        std::cout << "not currently supported" << std::endl;
+#endif
         break;
       case Event::BallReset:
         set_ball_prop([&](scene::PoolScene::BallState &ball) {
@@ -434,11 +444,11 @@ void Canvas::paintEvent(QPaintEvent * /* event */) {
   unsigned steps = std::max(secs / min_physics_step_size, 1.0f);
   float time_per_step = secs / steps;
   for (unsigned i = 0; i < steps; i++) {
-    pool_scene_.step(time_per_step);
+    renderer_->get_scene().step(time_per_step);
   }
 
   if (renderer_) {
-    renderer_->render(pool_scene_, reinterpret_cast<BGRA *>(image_.bits()),
+    renderer_->render(reinterpret_cast<BGRA *>(image_.bits()),
                       film_to_world_, world_to_film_, true, false);
   }
 

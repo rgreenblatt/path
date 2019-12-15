@@ -24,9 +24,11 @@ void render_frames(unsigned width, unsigned height,
     std::filesystem::create_directories(dir_name);
   }
 #endif
+  std::unique_ptr<scene::Scene> s =
+      std::make_unique<scene::PoolScene>(scene);
 
   ray::Renderer<execution_model> renderer(width, height, super_sampling_rate,
-                                          depth);
+                                          depth, s);
 
   std::cout << "start:" << std::endl;
   auto start = std::chrono::high_resolution_clock::now();
@@ -49,11 +51,11 @@ void render_frames(unsigned width, unsigned height,
   for (unsigned i = 0; i < frames; i++) {
     auto bgra_data = reinterpret_cast<BGRA *>(frame.data);
 
-    renderer.render(scene, bgra_data, film_to_world, world_to_film, use_kd_tree,
+    renderer.render(bgra_data, film_to_world, world_to_film, use_kd_tree,
                     false);
 
     for (unsigned i = 0; i < physics_super_sampling_rate; i++) {
-      scene.step(secs_per_frame);
+      renderer.get_scene().step(secs_per_frame);
     }
 
     if (make_video) {

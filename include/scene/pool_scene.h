@@ -10,8 +10,8 @@ class PoolScene : public Scene {
 public:
   PoolScene();
 
-  void step(float secs);
-  
+  void step(float secs) override;
+
   void setBreak();
 
   struct BallState {

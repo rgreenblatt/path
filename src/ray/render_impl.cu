@@ -25,14 +25,13 @@ template <ExecutionModel execution_model>
 RendererImpl<execution_model>::RendererImpl(unsigned width, unsigned height,
                                             unsigned super_sampling_rate,
                                             unsigned recursive_iterations,
-                                            const Eigen::Vector3f &min_possible,
-                                            const Eigen::Vector3f &max_possible)
+                                            std::unique_ptr<scene::Scene> &s)
     : effective_width_(width * super_sampling_rate),
       effective_height_(height * super_sampling_rate),
       super_sampling_rate_(super_sampling_rate),
       pixel_size_(effective_width_ * effective_height_),
-      recursive_iterations_(recursive_iterations), min_possible_(min_possible),
-      max_possible_(max_possible), by_type_data_(invoke([&] {
+      recursive_iterations_(recursive_iterations), scene_(std::move(s)),
+      by_type_data_(invoke([&] {
         auto get_by_type = [&](scene::Shape shape_type) {
           return ByTypeData(shape_type);
         };
@@ -76,16 +75,15 @@ ByTypeDataRef RendererImpl<execution_model>::ByTypeData::initialize(
 
 template <ExecutionModel execution_model>
 void RendererImpl<execution_model>::render(
-    const scene::Scene &scene, BGRA *pixels,
-    const scene::Transform &m_film_to_world,
+    BGRA *pixels, const scene::Transform &m_film_to_world,
     const Eigen::Projective3f &world_to_film, bool use_kd_tree,
     bool show_times) {
   namespace chr = std::chrono;
 
-  const auto lights = scene.getLights();
-  const unsigned num_lights = scene.getNumLights();
+  const auto lights = scene_->getLights();
+  const unsigned num_lights = scene_->getNumLights();
   const unsigned num_pixels = effective_width_ * effective_height_;
-  const auto textures = scene.getTextures();
+  const auto textures = scene_->getTextures();
 
   const unsigned block_dim_x = 32;
   const unsigned block_dim_y = 8;
@@ -144,11 +142,11 @@ void RendererImpl<execution_model>::render(
             .count());
   }
 
-  const unsigned num_shapes = scene.getNumShapes();
+  const unsigned num_shapes = scene_->getNumShapes();
   ManangedMemVec<scene::ShapeData> shapes(num_shapes);
 
   {
-    auto start_shape = scene.getShapes();
+    auto start_shape = scene_->getShapes();
     std::copy(start_shape, start_shape + num_shapes, shapes.begin());
   }
 
@@ -157,7 +155,7 @@ void RendererImpl<execution_model>::render(
   std::array<ByTypeDataRef, scene::shapes_size> by_type_data_gpu;
 
   for (unsigned i = 0; i < 1; i++) {
-    by_type_data_gpu[i] = by_type_data_[i].initialize(scene, shapes.data());
+    by_type_data_gpu[i] = by_type_data_[i].initialize(*scene_, shapes.data());
   }
 
   if (show_times) {
