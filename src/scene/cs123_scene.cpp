@@ -54,7 +54,7 @@ CS123Scene::CS123Scene(const std::string &file_path, unsigned width,
     }
   }
 
-  for(const auto& tex : scene.textures_) {
+  for (const auto &tex : scene.textures_) {
     addTexture(tex);
   }
 
@@ -81,7 +81,6 @@ CS123Scene::CS123Scene(const std::string &file_path, unsigned width,
   film_to_world_ = film_to_world;
   world_to_film_ = world_to_film;
   unhinging_ = unhinging;
-
 
   finishConstructScene();
 }

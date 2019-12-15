@@ -56,8 +56,10 @@ public:
                 const Eigen::Projective3f &unhinging,
                 const scene::ShapeData *shapes, uint16_t num_shapes,
                 const Eigen::Array2f &min, const Eigen::Array2f &max,
-                uint16_t num_divisions_x, uint16_t num_divisions_y, bool flip_x,
-                bool flip_y);
+                uint16_t num_divisions_x, uint16_t num_divisions_y,
+                bool flip_x = false, bool flip_y = false,
+                thrust::optional<std::vector<ProjectedTriangle> *>
+                    save_triangles = thrust::nullopt);
 
   void resize(unsigned new_num_shapes);
 

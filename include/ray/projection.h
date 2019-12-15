@@ -56,7 +56,7 @@ struct Plane {
 
   Plane get_transform(const Eigen::Affine3f &transform,
                       const Eigen::Projective3f &unhinging) const {
-    return Plane(transform.linear() * normal,
+    return Plane((unhinging * transform).linear() * normal,
                  apply_projective(origin_location, transform, unhinging));
   }
 

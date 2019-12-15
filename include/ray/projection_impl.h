@@ -3,8 +3,6 @@
 #include "ray/projection.h"
 #include <boost/range/adaptor/indexed.hpp>
 
-#include <dbg.h>
-
 namespace ray {
 namespace detail {
 inline Eigen::Array2f get_xy(const Eigen::Vector3f &vec) {
@@ -30,24 +28,24 @@ inline Eigen::Vector3f get_triangle_normal(const Triangle &tri) {
   return (tri[1] - tri[0]).cross(tri[2] - tri[1]).normalized();
 }
 
-const static std::array<Triangle, 2> cube_polys = {{
-    /* {{{0.5f, 0.5f, 0.5f}, {0.5f, -0.5f, 0.5f}, {0.5f, -0.5f, -0.5f}}}, */
-    /* {{{0.5f, 0.5f, -0.5f}, {0.5f, 0.5f, 0.5f}, {0.5f, -0.5f, -0.5f}}}, */
+const static std::array<Triangle, 12> cube_polys = {{
+    {{{0.5f, 0.5f, 0.5f}, {0.5f, -0.5f, 0.5f}, {0.5f, -0.5f, -0.5f}}},
+    {{{0.5f, 0.5f, -0.5f}, {0.5f, 0.5f, 0.5f}, {0.5f, -0.5f, -0.5f}}},
 
     {{{0.5f, 0.5f, 0.5f}, {0.5f, 0.5f, -0.5f}, {-0.5f, 0.5f, -0.5f}}},
     {{{-0.5f, 0.5f, 0.5f}, {0.5f, 0.5f, 0.5f}, {-0.5f, 0.5f, -0.5f}}},
 
-/*     {{{0.5f, 0.5f, 0.5f}, {-0.5f, 0.5f, 0.5f}, {-0.5f, -0.5f, 0.5f}}}, */
-/*     {{{0.5f, -0.5f, 0.5f}, {0.5f, 0.5f, 0.5f}, {-0.5f, -0.5f, 0.5f}}}, */
+    {{{0.5f, 0.5f, 0.5f}, {-0.5f, 0.5f, 0.5f}, {-0.5f, -0.5f, 0.5f}}},
+    {{{0.5f, -0.5f, 0.5f}, {0.5f, 0.5f, 0.5f}, {-0.5f, -0.5f, 0.5f}}},
 
-/*     {{{-0.5f, 0.5f, -0.5f}, {-0.5f, -0.5f, -0.5f}, {-0.5f, 0.5f, 0.5f}}}, */
-/*     {{{-0.5f, -0.5f, -0.5f}, {-0.5f, -0.5f, 0.5f}, {-0.5f, 0.5f, 0.5f}}}, */
+    {{{-0.5f, 0.5f, -0.5f}, {-0.5f, -0.5f, -0.5f}, {-0.5f, 0.5f, 0.5f}}},
+    {{{-0.5f, -0.5f, -0.5f}, {-0.5f, -0.5f, 0.5f}, {-0.5f, 0.5f, 0.5f}}},
 
-/*     {{{-0.5f, -0.5f, 0.5f}, {-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, 0.5f}}}, */
-/*     {{{-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, 0.5f}}}, */
+    {{{-0.5f, -0.5f, 0.5f}, {-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, 0.5f}}},
+    {{{-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, 0.5f}}},
 
-/*     {{{0.5f, -0.5f, -0.5f}, {-0.5f, -0.5f, -0.5f}, {0.5f, 0.5f, -0.5f}}}, */
-/*     {{{-0.5f, -0.5f, -0.5f}, {-0.5f, 0.5f, -0.5f}, {0.5f, 0.5f, -0.5f}}}, */
+    {{{0.5f, -0.5f, -0.5f}, {-0.5f, -0.5f, -0.5f}, {0.5f, 0.5f, -0.5f}}},
+    {{{-0.5f, -0.5f, -0.5f}, {-0.5f, 0.5f, -0.5f}, {0.5f, 0.5f, -0.5f}}},
 }};
 
 constexpr float pi = static_cast<float>(M_PI);
@@ -113,12 +111,7 @@ project_triangles(const Plane &plane, const Eigen::Affine3f &transform,
   for (const auto &triangle : triangles) {
     const auto transformed_triangle =
         transform_triangle(transform, unhinging, triangle);
-    dbg("h");
-    std::cout << transformed_triangle[0] << std::endl;
-    std::cout << transformed_triangle[1] << std::endl;
-    std::cout << transformed_triangle[2] << std::endl;
     const auto triangle_normal = get_triangle_normal(transformed_triangle);
-    std::cout << triangle_normal << std::endl;
     if (triangle_normal.z() > 0.0f) {
       std::array<Eigen::Array2f, 3> projected_points;
       std::transform(transformed_triangle.begin(), transformed_triangle.end(),

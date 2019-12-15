@@ -3,16 +3,15 @@
 
 namespace ray {
 namespace detail {
-TraversalGrid::TraversalGrid(const Plane &plane,
-                             const Eigen::Affine3f &transform,
-                             const Eigen::Projective3f &unhinging,
-                             const scene::ShapeData *shapes,
-                             uint16_t num_shapes, const Eigen::Array2f &min,
-                             const Eigen::Array2f &max,
-                             uint16_t num_divisions_x, uint16_t num_divisions_y,
-                             bool flip_x, bool flip_y)
-    : plane_(plane), transform_(transform), unhinging_(unhinging),
-       min_(min), max_(max), min_indexes_(0, 0),
+TraversalGrid::TraversalGrid(
+    const Plane &plane, const Eigen::Affine3f &transform,
+    const Eigen::Projective3f &unhinging, const scene::ShapeData *shapes,
+    uint16_t num_shapes, const Eigen::Array2f &min, const Eigen::Array2f &max,
+    uint16_t num_divisions_x, uint16_t num_divisions_y, bool flip_x,
+    bool flip_y,
+    thrust::optional<std::vector<ProjectedTriangle> *> save_triangles)
+    : plane_(plane), transform_(transform), unhinging_(unhinging), min_(min),
+      max_(max), min_indexes_(0, 0),
       max_indexes_(num_divisions_x, num_divisions_y), difference_(max - min),
       inverse_difference_(Eigen::Array2f(num_divisions_x, num_divisions_y) /
                           difference_),
@@ -20,12 +19,17 @@ TraversalGrid::TraversalGrid(const Plane &plane,
       flip_x_(flip_x), flip_y_(flip_y),
       action_num_(num_divisions_x * num_divisions_y) {
   resize(num_shapes);
-#pragma omp parallel if (num_shapes > 128)
+#pragma omp parallel if (num_shapes > 128 && !save_triangles.has_value())
   {
     std::vector<ProjectedTriangle> triangles;
 #pragma omp for
     for (uint16_t shape_idx = 0; shape_idx < num_shapes; shape_idx++) {
       updateShape(shapes, shape_idx, triangles);
+      if (save_triangles.has_value()) {
+        (*save_triangles)
+            ->insert((*save_triangles)->end(), triangles.begin(),
+                     triangles.end());
+      }
     }
   }
 }

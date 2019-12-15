@@ -170,9 +170,11 @@ void RendererImpl<execution_model>::render(
     const auto start_traversal_grid = chr::high_resolution_clock::now();
 
     TraversalGrid camera_grid(
-        Plane(2, -0.5).get_transform(m_film_to_world, unhinging), world_to_film,
-        unhinging, shapes.data(), shapes.size(), Eigen::Array2f(-1, -1),
-        Eigen::Array2f(1, 1), num_blocks_x, num_blocks_y, false, true);
+        Plane(2, -0.5).get_transform(m_film_to_world,
+                                     Eigen::Projective3f::Identity()),
+        world_to_film, unhinging, shapes.data(), shapes.size(),
+        Eigen::Array2f(-1, -1), Eigen::Array2f(1, 1), num_blocks_x,
+        num_blocks_y, false, true);
 
     unsigned traversals_offset = 0;
 
@@ -385,14 +387,21 @@ void RendererImpl<execution_model>::render(
 
 #if 0
   auto draw_point = [&](unsigned x, unsigned y, BGRA color) {
-    for (unsigned y_draw = std::max(y, 3u) - 3; y_draw < std::min(y, height - 3);
+    for (unsigned y_draw = std::max(y, 6u) - 6; y_draw < std::min(y, height - 6);
          y_draw++) {
-      for (unsigned x_draw = std::max(x, 3u) - 3;
-           x_draw < std::min(x, width - 3); x_draw++) {
+      for (unsigned x_draw = std::max(x, 6u) - 6;
+           x_draw < std::min(x, width - 6); x_draw++) {
         pixels[x_draw + y_draw * width] = color;
       }
     }
   };
+
+  for (const auto &triangle : output_triangles) {
+    for (const auto &point : triangle.points()) {
+      draw_point(((point[0] + 1) / 2) * width, ((point[1] + 1) / 2) * height,
+                 BGRA(200, 200, 200, 0));
+    }
+  }
 #endif
 }
 

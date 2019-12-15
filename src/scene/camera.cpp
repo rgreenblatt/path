@@ -1,10 +1,14 @@
 #include "scene/camera.h"
 
+#include "ray/kdtree.h"
+#include "ray/projection.h"
+#include <dbg.h>
+
 namespace scene {
 std::tuple<Eigen::Affine3f, Eigen::Affine3f, Eigen::Projective3f>
 get_camera_transform(const Eigen::Vector3f &look, const Eigen::Vector3f &up,
                      const Eigen::Vector3f &pos, float height_angle,
-                     float width, float height, float far, 
+                     float width, float height, float far,
                      thrust::optional<Eigen::Vector3f> scale) {
   auto w = -look.normalized().eval();
   auto normalized_up = up.normalized().eval();
@@ -27,7 +31,6 @@ get_camera_transform(const Eigen::Vector3f &look, const Eigen::Vector3f &up,
           ? *scale
           : Eigen::Vector3f(1.0f / (std::tan(theta_w / 2) * far),
                             1.0f / (std::tan(theta_h / 2) * far), 1.0f / far);
-
 
   Eigen::Affine3f scaling =
       Eigen::Scaling(scaling_vec) * Eigen::Affine3f::Identity();

@@ -108,7 +108,7 @@ __host__ __device__ inline void raytrace_impl(
 
         light_direction.normalize();
 
-#if 0
+#if 1
         bool shadowed = false;
 
         thrust::optional<BestIntersection> holder = thrust::nullopt;
