@@ -4,6 +4,7 @@
 #include "ray/render.h"
 #include "scene/camera.h"
 #include "scene/pool_scene.h"
+#include "scene/reflec_balls.h"
 
 #include <QApplication>
 #include <QKeyEvent>
@@ -15,7 +16,7 @@
 
 Canvas::Canvas(QWidget *parent)
     : QWidget(parent), time_(), timer_(), capture_mouse_(false), fps_(0) {
-  sideView();
+  insideView();
   // Canvas needs all mouse move events, not just mouse drag events
   setMouseTracking(true);
 
@@ -152,6 +153,8 @@ Canvas::Canvas(QWidget *parent)
             event_queue_.push_back(InputEvent(Event::TopView));
           } else if (words[0] == "side_view") {
             event_queue_.push_back(InputEvent(Event::SideView));
+          } else if (words[0] == "inside_view") {
+            event_queue_.push_back(InputEvent(Event::InsideView));
           } else if (words[0] == "look") {
             if (words.size() == 4) {
               try {
@@ -312,7 +315,7 @@ void Canvas::resize(int width_in, int height_in) {
 }
 
 void Canvas::resetRenderer() {
-  std::unique_ptr<scene::Scene> s = std::make_unique<scene::PoolScene>();
+  std::unique_ptr<scene::Scene> s = std::make_unique<scene::ReflecBalls>();
   renderer_ = new ray::Renderer<ray::ExecutionModel::GPU>(
       width_, height_, super_sampling_rate_, recursive_iterations_, s);
 }
@@ -323,6 +326,12 @@ void Canvas::sideView() {
   pos_ = Eigen::Vector3f(50, 30, 0);
 }
 
+void Canvas::insideView() {
+  look_ = Eigen::Vector3f(-2, -1, 0);
+  up_ = Eigen::Vector3f(0, 1, 0);
+  pos_ = Eigen::Vector3f(20, 15, 0);
+}
+
 void Canvas::topView() {
   look_ = Eigen::Vector3f(0, -1, 0);
   up_ = Eigen::Vector3f(1, 0, 0);
@@ -330,10 +339,11 @@ void Canvas::topView() {
 }
 
 void Canvas::resetTransform() {
-  auto [film_to_world, world_to_film] =
-      scene::get_camera_transform(look_, up_, pos_, 1.0f, width_, height_);
+  auto [film_to_world, world_to_film, unhinging] = scene::get_camera_transform(
+      look_, up_, pos_, 1.0f, width_, height_, 30.0f);
   film_to_world_ = film_to_world;
   world_to_film_ = world_to_film;
+  unhinging_ = unhinging;
 }
 
 void Canvas::tick() {
@@ -419,6 +429,9 @@ void Canvas::tick() {
       case Event::SideView:
         sideView();
         resetTransform();
+      case Event::InsideView:
+        insideView();
+        resetTransform();
         break;
       }
     }
@@ -448,8 +461,8 @@ void Canvas::paintEvent(QPaintEvent * /* event */) {
   }
 
   if (renderer_) {
-    renderer_->render(reinterpret_cast<BGRA *>(image_.bits()),
-                      film_to_world_, world_to_film_, true, false);
+    renderer_->render(reinterpret_cast<BGRA *>(image_.bits()), film_to_world_,
+                      world_to_film_, unhinging_, true, false);
   }
 
   QPainter painter(this);

@@ -29,7 +29,7 @@ private:
   QImage image_;
   float fps_;
   unsigned super_sampling_rate_ = 1;
-  unsigned recursive_iterations_ = 3;
+  unsigned recursive_iterations_ = 8;
   int width_;
   int height_;
   Eigen::Vector3f look_;
@@ -52,6 +52,7 @@ private:
     BallReset,
     TopView,
     SideView,
+    InsideView,
   };
 
   struct InputEvent {
@@ -68,7 +69,8 @@ private:
   std::thread handle_;
 
   Eigen::Affine3f film_to_world_;
-  Eigen::Projective3f world_to_film_;
+  Eigen::Affine3f world_to_film_;
+  Eigen::Projective3f unhinging_;
   ray::Renderer<ray::ExecutionModel::GPU> *renderer_;
 
   static constexpr float min_physics_step_size = 0.0001;
@@ -91,6 +93,7 @@ private:
   void resize(int width, int height);
 
   void sideView();
+  void insideView();
   void topView();
 
   void resetTransform();

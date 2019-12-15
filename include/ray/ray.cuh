@@ -11,13 +11,13 @@ namespace detail {
 __host__ __device__ inline void raytrace_impl(
     unsigned x, unsigned y, unsigned width, unsigned height,
     const ByTypeDataRef &by_type_data, const Traversal &camera_traversal,
-    const TraversalData *light_traversal_data, const Traversal *light_traversals,
-    const Action *actions, const scene::ShapeData *shapes,
-    const scene::Light *lights, unsigned num_lights,
-    const scene::TextureImageRef *textures, Eigen::Vector3f *world_space_eyes,
-    Eigen::Vector3f *world_space_directions, Eigen::Array3f *color_multipliers,
-    scene::Color *colors, unsigned *ignores, uint8_t *disables,
-    uint8_t &group_disable, bool is_first, bool use_kd_tree,
+    const TraversalData *light_traversal_data,
+    const Traversal *light_traversals, const Action *actions,
+    const scene::ShapeData *shapes, const scene::Light *lights,
+    unsigned num_lights, const scene::TextureImageRef *textures,
+    Eigen::Vector3f *world_space_eyes, Eigen::Vector3f *world_space_directions,
+    Eigen::Array3f *color_multipliers, scene::Color *colors, unsigned *ignores,
+    uint8_t *disables, uint8_t &group_disable, bool is_first, bool use_kd_tree,
     bool use_traversals) {
   uint8_t disable = false;
 
@@ -45,22 +45,10 @@ __host__ __device__ inline void raytrace_impl(
             world_space_direction, ignores[index], disables[index], best,
             is_first, use_traversals && is_first, use_kd_tree,
             [&](const thrust::optional<BestIntersection> &new_best) {
-              if (new_best.has_value() && index == 8003) {
-                printf_dbg(index);
-              }
-
               best = optional_min(best, new_best);
 
               return false;
             });
-
-#if 0
-#if defined(__CUDA_ARCH__)
-        colors[index] = scene::Color(1.0, 0, 0);
-        disable = true;
-        goto set_disable;
-#endif
-#endif
 
         if (best.has_value()) {
           // TODO: why required
@@ -85,14 +73,15 @@ __host__ __device__ inline void raytrace_impl(
       auto &world_space_direction = world_space_directions[index];
 
       const auto world_space_intersection =
-          world_space_direction * intersection + world_space_eye;
+          (world_space_direction * intersection + world_space_eye).eval();
 
       scene::Color diffuse_lighting(0, 0, 0);
       scene::Color specular_lighting(0, 0, 0);
 
       auto reflect_over_normal = [&](const Eigen::Vector3f &vec) {
         return (vec + 2.0f * -vec.dot(world_space_normal) * world_space_normal)
-            .normalized();
+            .normalized()
+            .eval();
       };
 
       const auto &material = shape.get_material();
@@ -129,8 +118,16 @@ __host__ __device__ inline void raytrace_impl(
           unsigned light_traversal_index;
 
           if (use_traversals) {
-            // TODO
-            light_traversal_data[light_idx].traversal_start;
+            auto &traversal_data = light_traversal_data[light_idx];
+            auto intersection = get_intersection_point(
+                light_direction, traversal_data.value, world_space_intersection,
+                traversal_data.axis);
+            auto x_y_idx = ((intersection.array() - traversal_data.min) *
+                            traversal_data.convert_space_coords)
+                               .cast<unsigned>()
+                               .eval();
+            light_traversal_index =
+                x_y_idx.x() + x_y_idx.y() * traversal_data.num_divisions_x;
           }
 
           bool use_traversals = false;

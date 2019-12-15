@@ -210,7 +210,7 @@ get_shape_bounds(const scene::ShapeData &shape) {
     for (auto y : {-0.5f, 0.5f}) {
       for (auto z : {-0.5f, 0.5f}) {
         Eigen::Vector3f transformed_edge =
-            Eigen::Vector3f(shape.get_transform() * Eigen::Vector3f(x, y, z));
+            shape.get_transform() * Eigen::Vector3f(x, y, z);
         min_bound = min_bound.cwiseMin(transformed_edge);
         max_bound = max_bound.cwiseMax(transformed_edge);
       }

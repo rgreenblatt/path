@@ -30,17 +30,30 @@ struct TraversalData {
   uint16_t traversal_start;
   uint8_t axis;
   float value;
+  Eigen::Array2f min;
+  Eigen::Array2f convert_space_coords;
+  uint16_t num_divisions_x;
 
-  HOST_DEVICE TraversalData(uint16_t traversal_start, uint8_t axis, float value)
-      : traversal_start(traversal_start), axis(axis), value(value) {}
+  HOST_DEVICE TraversalData(uint16_t traversal_start, uint8_t axis, float value,
+                            const Eigen::Array2f &min,
+                            const Eigen::Array2f &max, uint16_t num_divisions_x,
+                            uint16_t num_divisions_y)
+      : traversal_start(traversal_start), axis(axis), value(value), min(min),
+        convert_space_coords(Eigen::Array2f(num_divisions_x, num_divisions_y) /
+                             (max - min).array()),
+        num_divisions_x(num_divisions_x) {}
 
   HOST_DEVICE TraversalData() {}
+
+public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 class TraversalGrid {
 public:
   // num_divisions_x > 0, num_divisions_y > 0
-  TraversalGrid(const Plane &plane, const Eigen::Projective3f &transform,
+  TraversalGrid(const Plane &plane, const Eigen::Affine3f &transform,
+                const Eigen::Projective3f &unhinging,
                 const scene::ShapeData *shapes, uint16_t num_shapes,
                 const Eigen::Array2f &min, const Eigen::Array2f &max,
                 uint16_t num_divisions_x, uint16_t num_divisions_y, bool flip_x,
@@ -58,11 +71,12 @@ public:
 
 private:
   Plane plane_;
-  Eigen::Projective3f transform_;
+  Eigen::Affine3f transform_;
+  Eigen::Projective3f unhinging_;
   Eigen::Array2f min_;
   Eigen::Array2f max_;
-  Eigen::Array2f offset_min_;
-  Eigen::Array2f offset_max_;
+  Eigen::Array2f min_indexes_;
+  Eigen::Array2f max_indexes_;
   Eigen::Array2f difference_;
   Eigen::Array2f inverse_difference_;
   uint16_t num_divisions_x_;

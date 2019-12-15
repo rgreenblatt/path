@@ -11,12 +11,15 @@ public:
 
   const Eigen::Affine3f &film_to_world() const { return film_to_world_; }
 
-  const Eigen::Projective3f &world_to_film() const { return world_to_film_; }
+  const Eigen::Affine3f &world_to_film() const { return world_to_film_; }
+
+  const Eigen::Projective3f &unhinging() const { return unhinging_; }
 
   void step(float) override {}
 
 private:
   Eigen::Affine3f film_to_world_;
-  Eigen::Projective3f world_to_film_;
+  Eigen::Affine3f world_to_film_;
+  Eigen::Projective3f unhinging_;
 };
 } // namespace scene

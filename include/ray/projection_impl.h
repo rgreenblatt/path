@@ -1,3 +1,5 @@
+#pragma once
+
 #include "ray/projection.h"
 #include <boost/range/adaptor/indexed.hpp>
 
@@ -14,9 +16,12 @@ inline Eigen::Array2f get_xy(const Eigen::Vector3f &vec) {
 
 using Triangle = std::array<Eigen::Vector3f, 3>;
 
-inline Triangle transform_triangle(const Eigen::Projective3f &transform,
+inline Triangle transform_triangle(const Eigen::Affine3f &transform,
+                                   const Eigen::Projective3f &unhinging,
                                    const Triangle &tri) {
-  auto get_nth = [&](uint8_t n) { return apply_projective(tri[n], transform); };
+  auto get_nth = [&](uint8_t n) {
+    return apply_projective(tri[n], transform, unhinging);
+  };
 
   return {get_nth(0), get_nth(1), get_nth(2)};
 }
@@ -25,24 +30,24 @@ inline Eigen::Vector3f get_triangle_normal(const Triangle &tri) {
   return (tri[1] - tri[0]).cross(tri[2] - tri[1]).normalized();
 }
 
-const static std::array<Triangle, 12> cube_polys = {{
-    {{{0.5f, 0.5f, 0.5f}, {0.5f, -0.5f, 0.5f}, {0.5f, -0.5f, -0.5f}}},
-    {{{0.5f, 0.5f, -0.5f}, {0.5f, 0.5f, 0.5f}, {0.5f, -0.5f, -0.5f}}},
+const static std::array<Triangle, 2> cube_polys = {{
+    /* {{{0.5f, 0.5f, 0.5f}, {0.5f, -0.5f, 0.5f}, {0.5f, -0.5f, -0.5f}}}, */
+    /* {{{0.5f, 0.5f, -0.5f}, {0.5f, 0.5f, 0.5f}, {0.5f, -0.5f, -0.5f}}}, */
 
     {{{0.5f, 0.5f, 0.5f}, {0.5f, 0.5f, -0.5f}, {-0.5f, 0.5f, -0.5f}}},
     {{{-0.5f, 0.5f, 0.5f}, {0.5f, 0.5f, 0.5f}, {-0.5f, 0.5f, -0.5f}}},
 
-    {{{0.5f, 0.5f, 0.5f}, {-0.5f, 0.5f, 0.5f}, {-0.5f, -0.5f, 0.5f}}},
-    {{{0.5f, -0.5f, 0.5f}, {0.5f, 0.5f, 0.5f}, {-0.5f, -0.5f, 0.5f}}},
+/*     {{{0.5f, 0.5f, 0.5f}, {-0.5f, 0.5f, 0.5f}, {-0.5f, -0.5f, 0.5f}}}, */
+/*     {{{0.5f, -0.5f, 0.5f}, {0.5f, 0.5f, 0.5f}, {-0.5f, -0.5f, 0.5f}}}, */
 
-    {{{-0.5f, 0.5f, -0.5f}, {-0.5f, -0.5f, -0.5f}, {-0.5f, 0.5f, 0.5f}}},
-    {{{-0.5f, -0.5f, -0.5f}, {-0.5f, -0.5f, 0.5f}, {-0.5f, 0.5f, 0.5f}}},
+/*     {{{-0.5f, 0.5f, -0.5f}, {-0.5f, -0.5f, -0.5f}, {-0.5f, 0.5f, 0.5f}}}, */
+/*     {{{-0.5f, -0.5f, -0.5f}, {-0.5f, -0.5f, 0.5f}, {-0.5f, 0.5f, 0.5f}}}, */
 
-    {{{-0.5f, -0.5f, 0.5f}, {-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, 0.5f}}},
-    {{{-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, 0.5f}}},
+/*     {{{-0.5f, -0.5f, 0.5f}, {-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, 0.5f}}}, */
+/*     {{{-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, 0.5f}}}, */
 
-    {{{0.5f, -0.5f, -0.5f}, {-0.5f, -0.5f, -0.5f}, {0.5f, 0.5f, -0.5f}}},
-    {{{-0.5f, -0.5f, -0.5f}, {-0.5f, 0.5f, -0.5f}, {0.5f, 0.5f, -0.5f}}},
+/*     {{{0.5f, -0.5f, -0.5f}, {-0.5f, -0.5f, -0.5f}, {0.5f, 0.5f, -0.5f}}}, */
+/*     {{{-0.5f, -0.5f, -0.5f}, {-0.5f, 0.5f, -0.5f}, {0.5f, 0.5f, -0.5f}}}, */
 }};
 
 constexpr float pi = static_cast<float>(M_PI);
@@ -101,12 +106,19 @@ const static auto bounding_cylinder_polys = cube_polys;
 
 template <size_t num_triangles, typename F>
 inline void
-project_triangles(const Plane &plane, const Eigen::Projective3f &transform,
+project_triangles(const Plane &plane, const Eigen::Affine3f &transform,
+                  const Eigen::Projective3f &unhinging,
                   const std::array<Triangle, num_triangles> &triangles,
                   bool flip_x, bool flip_y, const F &add_tri) {
   for (const auto &triangle : triangles) {
-    const auto transformed_triangle = transform_triangle(transform, triangle);
+    const auto transformed_triangle =
+        transform_triangle(transform, unhinging, triangle);
+    dbg("h");
+    std::cout << transformed_triangle[0] << std::endl;
+    std::cout << transformed_triangle[1] << std::endl;
+    std::cout << transformed_triangle[2] << std::endl;
     const auto triangle_normal = get_triangle_normal(transformed_triangle);
+    std::cout << triangle_normal << std::endl;
     if (triangle_normal.z() > 0.0f) {
       std::array<Eigen::Array2f, 3> projected_points;
       std::transform(transformed_triangle.begin(), transformed_triangle.end(),
@@ -127,15 +139,16 @@ project_triangles(const Plane &plane, const Eigen::Projective3f &transform,
   }
 }
 
-void project_shape(const scene::ShapeData &shape, const Plane &plane,
-                   const Eigen::Projective3f &projection,
-                   std::vector<ProjectedTriangle> &projected_triangles,
-                   bool flip_x, bool flip_y) {
-  const Plane projected_plane = plane.get_transform(projection);
+inline void project_shape(const scene::ShapeData &shape, const Plane &plane,
+                          const Eigen::Affine3f &projection,
+                          const Eigen::Projective3f &unhinging,
+                          std::vector<ProjectedTriangle> &projected_triangles,
+                          bool flip_x, bool flip_y, bool check = false) {
+  const Plane projected_plane = plane.get_transform(projection, unhinging);
 
-  Eigen::Projective3f transform = projection * shape.get_transform();
+  Eigen::Affine3f transform = projection * shape.get_transform();
   auto project_triangles_s = [&](const auto &triangles, bool is_guaranteed) {
-    project_triangles(projected_plane, transform, triangles, flip_x, flip_y,
+    project_triangles(projected_plane, transform, unhinging, triangles, flip_x, flip_y,
                       [&](const std::array<Eigen::Array2f, 3> &points) {
                         projected_triangles.push_back(
                             ProjectedTriangle(points, is_guaranteed));

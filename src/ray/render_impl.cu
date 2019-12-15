@@ -5,6 +5,8 @@
 #include "ray/lighting.cuh"
 #include "ray/render_impl.h"
 #include "ray/ray.cuh"
+#include "scene/camera.h"
+#include "ray/projection_impl.h"
 
 #include <boost/range/adaptor/indexed.hpp>
 #include <boost/range/combine.hpp>
@@ -76,8 +78,8 @@ ByTypeDataRef RendererImpl<execution_model>::ByTypeData::initialize(
 template <ExecutionModel execution_model>
 void RendererImpl<execution_model>::render(
     BGRA *pixels, const scene::Transform &m_film_to_world,
-    const Eigen::Projective3f &world_to_film, bool use_kd_tree,
-    bool show_times) {
+    const Eigen::Affine3f &world_to_film, const Eigen::Projective3f &unhinging,
+    bool use_kd_tree, bool show_times) {
   namespace chr = std::chrono;
 
   const auto lights = scene_->getLights();
@@ -167,16 +169,12 @@ void RendererImpl<execution_model>::render(
   if constexpr (execution_model == ExecutionModel::GPU) {
     const auto start_traversal_grid = chr::high_resolution_clock::now();
 
-    TraversalGrid camera_grid(Plane(2, -0.5).get_transform(m_film_to_world),
-                              world_to_film, shapes.data(), shapes.size(),
-                              Eigen::Array2f(-1, -1), Eigen::Array2f(1, 1),
-                              num_blocks_x, num_blocks_y, false, true);
+    TraversalGrid camera_grid(
+        Plane(2, -0.5).get_transform(m_film_to_world, unhinging), world_to_film,
+        unhinging, shapes.data(), shapes.size(), Eigen::Array2f(-1, -1),
+        Eigen::Array2f(1, 1), num_blocks_x, num_blocks_y, false, true);
 
     unsigned traversals_offset = 0;
-
-#if 0
-    traversal_data_cpu_.resize(num_lights);
-#endif
 
     traversals_cpu_.clear();
     actions_cpu_.clear();
@@ -189,15 +187,19 @@ void RendererImpl<execution_model>::render(
 
     traversals_offset = traversals_cpu_.size();
 
-#if 0
+    traversal_data_cpu_.resize(num_lights);
+
+    unsigned projection_index = 0;
+
+    unsigned num_division_light_x = 32;
+    unsigned num_division_light_y = 32;
+
     auto add_projection = [&](bool is_loc, const Eigen::Vector3f &loc_or_dir) {
-      auto &last_node =
-          by_type_data_[0].nodes[by_type_data_[0].nodes.size() - 1];
-      const auto &min_bound = last_node.get_contents().get_min_bound();
-      const auto &max_bound = last_node.get_contents().get_max_bound();
-      const auto center = (max_bound + min_bound) / 2;
-      const auto dims = max_bound - min_bound;
-      const auto dir = is_loc ? loc_or_dir - center : loc_or_dir;
+      auto &max_bound = scene_->getMaxBound();
+      auto &min_bound = scene_->getMinBound();
+      const auto center = ((min_bound + max_bound) / 2).eval();
+      const auto dims = (max_bound - min_bound).eval();
+      const auto dir = is_loc ? (center - loc_or_dir).eval() : loc_or_dir;
       const auto normalized_directions = dir.array() / dims.array();
       unsigned axis;
       float max_axis_v = std::numeric_limits<float>::lowest();
@@ -213,57 +215,76 @@ void RendererImpl<execution_model>::render(
 
       float projection_value = is_min ? min_bound[axis] : max_bound[axis];
 
-      Eigen::Vector2f min_point(std::numeric_limits<float>::max(),
-                                std::numeric_limits<float>::max());
-      Eigen::Vector2f max_point(std::numeric_limits<float>::lowest(),
-                                std::numeric_limits<float>::lowest());
-      std::transform(bounded_shapes.begin(), bounded_shapes.end(),
-                     projected_shapes.begin(),
-                     [&](const std::pair<AABB, uint16_t> &bounded_shape) {
-                       const auto projected =
-                           bounded_shape.first
-                               .project_to_axis(is_loc, axis, projection_value,
-                                                loc_or_dir)
-                               .get_info();
+      auto [_, projection, unhinging] = scene::get_camera_transform(
+          dir,
+          axis == 2 || axis == 0 ? Eigen::Vector3f(0, 1, 0)
+                                 : Eigen::Vector3f(0, 0, 1),
+          is_loc ? loc_or_dir : Eigen::Array3f::Zero(), 0.0f, 0.0f, 0.0f, 30.0f,
+          Eigen::Vector3f::Ones() / 30.0f);
 
-                       min_point = projected.flattened_min.cwiseMin(min_point);
-                       max_point = projected.flattened_max.cwiseMax(max_point);
+      Plane plane(axis, projection_value);
+      std::vector<ProjectedTriangle> triangles;
+      Eigen::Affine3f bounding_transform = Eigen::Scaling(dims) *
+                                           Eigen::Translation3f(center) *
+                                           Eigen::Affine3f::Identity();
+      project_shape(scene::ShapeData(bounding_transform, scene::Material(),
+                                     scene::Shape::Cube),
+                    plane, projection, unhinging, triangles, false, true, true);
+      Eigen::Array2f projected_min = Eigen::Array2f(
+          std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+      Eigen::Array2f projected_max =
+          Eigen::Array2f(std::numeric_limits<float>::lowest(),
+                         std::numeric_limits<float>::lowest());
+      for (const auto &triangle : triangles) {
+        for (const auto &point : triangle.points()) {
+          projected_min = projected_min.cwiseMin(point);
+          projected_max = projected_max.cwiseMax(point);
+        }
+      }
 
-                       return std::make_pair(projected, bounded_shape.second);
-                     });
+      TraversalGrid grid(plane, projection, unhinging, shapes.data(),
+                         shapes.size(), projected_min, projected_max,
+                         num_division_light_x, num_division_light_y, false,
+                         false);
 
-      /* TraversalGrid(projected_shapes, target_depth, traversals_cpu_, */
-      /*                    actions_cpu_); */
+      grid.copy_into(traversals_cpu_, actions_cpu_);
 
-      // TODO
-      traversal_data_cpu_[projection_index] =
-          TraversalData(traversals_offset, axis, projection_value, 0);
+      Eigen::Vector2f intersected_min(std::numeric_limits<float>::max(),
+                                      std::numeric_limits<float>::max());
+      Eigen::Vector2f intersected_max(std::numeric_limits<float>::lowest(),
+                                      std::numeric_limits<float>::lowest());
+      for (auto x : {-0.5f, 0.5f}) {
+        for (auto y : {-0.5f, 0.5f}) {
+          for (auto z : {-0.5f, 0.5f}) {
+            Eigen::Vector3f transformed_point =
+                bounding_transform * Eigen::Vector3f(x, y, z);
+            auto intersection = get_intersection_point(
+                is_loc ? (loc_or_dir - transformed_point).eval() : loc_or_dir,
+                projection_value, transformed_point, axis);
+            intersected_min = intersected_min.cwiseMin(intersection);
+            intersected_max = intersected_max.cwiseMax(intersection);
+          }
+        }
+      }
+
+      traversal_data_cpu_[projection_index] = TraversalData(
+          traversals_offset, axis, projection_value, intersected_min,
+          intersected_max, num_division_light_x, num_division_light_y);
       traversals_offset = traversals_cpu_.size();
       projection_index++;
     };
-
-    uint8_t target_depth_camera = 5;
-    uint8_t target_depth_lights = 4;
-
-    add_projection(true, camera_loc, target_depth_camera);
-
-    {
-      std::vector<uint8_t> disables(group_disables_.size(), false);
-      std::copy(disables.begin(), disables.end(), group_disables_.begin());
-    }
 
     for (unsigned light_idx = 0; light_idx < num_lights; light_idx++) {
       const auto &light = lights[light_idx];
       light.visit([&](auto &&light_data) {
         using T = std::decay_t<decltype(light_data)>;
         if constexpr (std::is_same<T, scene::DirectionalLight>::value) {
-          add_projection(false, light_data.direction, target_depth_lights);
+          add_projection(false, light_data.direction);
         } else {
-          add_projection(true, light_data.position, target_depth_lights);
+          add_projection(true, light_data.position);
         }
       });
     }
-#endif
 
     traversals_.resize(traversals_cpu_.size());
     thrust::copy(traversals_cpu_.data(),
@@ -284,11 +305,6 @@ void RendererImpl<execution_model>::render(
               chr::high_resolution_clock::now() - start_traversal_grid)
               .count());
     }
-  } else {
-    TraversalGrid camera_grid(Plane(2, -0.5).get_transform(m_film_to_world),
-                              world_to_film, shapes.data(), shapes.size(),
-                              Eigen::Array2f(-1, -1), Eigen::Array2f(1, 1),
-                              num_blocks_x, num_blocks_y, false, true);
   }
 
   for (unsigned depth = 0; depth < recursive_iterations_; depth++) {
@@ -366,6 +382,18 @@ void RendererImpl<execution_model>::render(
     floats_to_bgras_cpu(width, height, super_sampling_rate_, colors_.data(),
                         pixels);
   }
+
+#if 0
+  auto draw_point = [&](unsigned x, unsigned y, BGRA color) {
+    for (unsigned y_draw = std::max(y, 3u) - 3; y_draw < std::min(y, height - 3);
+         y_draw++) {
+      for (unsigned x_draw = std::max(x, 3u) - 3;
+           x_draw < std::min(x, width - 3); x_draw++) {
+        pixels[x_draw + y_draw * width] = color;
+      }
+    }
+  };
+#endif
 }
 
 template class RendererImpl<ExecutionModel::CPU>;

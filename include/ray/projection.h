@@ -26,13 +26,18 @@ public:
 };
 
 inline Eigen::Vector3f apply_projective(const Eigen::Vector3f &vec,
-                                        const Eigen::Projective3f &transform) {
+                                        const Eigen::Affine3f &transform,
+                                        const Eigen::Projective3f &unhinging) {
+  auto first_t = transform * vec;
+  /* if (std::abs(first_t.x()) > 1 || std::abs(first_t.z()) > 1) { */
+  /*   return first_t; */
+  /* } */
   Eigen::Vector4f homog;
-  homog.template head<3>() = vec;
+  homog.template head<3>() = first_t;
   homog[3] = 1.0f;
-  auto out = transform * homog;
+  auto out = unhinging * homog;
 
-  return out.head<3>() / out[3];
+  return (out.head<3>() / out[3]).eval();
 }
 
 struct Plane {
@@ -49,9 +54,10 @@ struct Plane {
     return Eigen::sqrt(ratioed * ratioed + dist * dist) * Eigen::sign(dist);
   }
 
-  Plane get_transform(const Eigen::Projective3f &transform) const {
+  Plane get_transform(const Eigen::Affine3f &transform,
+                      const Eigen::Projective3f &unhinging) const {
     return Plane(transform.linear() * normal,
-                 apply_projective(origin_location, transform));
+                 apply_projective(origin_location, transform, unhinging));
   }
 
   Plane(const Eigen::Vector3f &normal, const Eigen::Vector3f &origin_location)

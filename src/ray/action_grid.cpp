@@ -4,15 +4,16 @@
 namespace ray {
 namespace detail {
 TraversalGrid::TraversalGrid(const Plane &plane,
-                             const Eigen::Projective3f &transform,
+                             const Eigen::Affine3f &transform,
+                             const Eigen::Projective3f &unhinging,
                              const scene::ShapeData *shapes,
                              uint16_t num_shapes, const Eigen::Array2f &min,
                              const Eigen::Array2f &max,
                              uint16_t num_divisions_x, uint16_t num_divisions_y,
                              bool flip_x, bool flip_y)
-    : plane_(plane), transform_(transform), min_(min), max_(max),
-      offset_min_(min_ + 1e-4f), offset_max_(max_ - 1e-4f),
-      difference_(max - min),
+    : plane_(plane), transform_(transform), unhinging_(unhinging),
+       min_(min), max_(max), min_indexes_(0, 0),
+      max_indexes_(num_divisions_x, num_divisions_y), difference_(max - min),
       inverse_difference_(Eigen::Array2f(num_divisions_x, num_divisions_y) /
                           difference_),
       num_divisions_x_(num_divisions_x), num_divisions_y_(num_divisions_y),
@@ -57,26 +58,28 @@ void TraversalGrid::updateShape(const scene::ShapeData *shapes,
 
   triangles.clear();
 
-  project_shape(shapes[shape_to_update], plane_, transform_, triangles, flip_x_,
-                flip_y_);
+  project_shape(shapes[shape_to_update], plane_, transform_, unhinging_,
+                triangles, flip_x_, flip_y_);
 
   unsigned shape_grids_start = shape_to_update * num_divisions_y_;
 
   for (const auto &triangle : triangles) {
     const auto &points = triangle.points();
-    auto min_p = points[0]
-                     .cwiseMin(points[1].cwiseMin(points[2]))
-                     .cwiseMax(offset_min_)
-                     .eval();
-    auto max_p = points[0]
-                     .cwiseMax(points[1].cwiseMax(points[2]))
-                     .cwiseMin(offset_max_)
-                     .eval();
+    auto min_p = points[0].cwiseMin(points[1].cwiseMin(points[2])).eval();
+    auto max_p = points[0].cwiseMax(points[1].cwiseMax(points[2])).eval();
 
-    auto max_grid_indexes =
-        ((max_p - min_) * inverse_difference_).ceil().cast<uint16_t>().eval();
-    auto min_grid_indexes =
-        ((min_p - min_) * inverse_difference_).floor().cast<uint16_t>().eval();
+    auto max_grid_indexes = ((max_p - min_) * inverse_difference_)
+                                .ceil()
+                                .cwiseMin(max_indexes_)
+                                .cwiseMax(min_indexes_)
+                                .cast<uint16_t>()
+                                .eval();
+    auto min_grid_indexes = ((min_p - min_) * inverse_difference_)
+                                .floor()
+                                .cwiseMin(max_indexes_)
+                                .cwiseMax(min_indexes_)
+                                .cast<uint16_t>()
+                                .eval();
 
     std::array<Eigen::Array2f, 3> dirs = {
         points[1] - points[0], points[2] - points[1], points[0] - points[2]};
@@ -109,9 +112,7 @@ void TraversalGrid::updateShape(const scene::ShapeData *shapes,
           return thrust::nullopt;
         }
 
-        return (points[point_idx] + dirs[point_idx] * t)
-            .cwiseMax(offset_min_)
-            .cwiseMin(offset_max_);
+        return (points[point_idx] + dirs[point_idx] * t);
       };
 
       thrust::optional<Eigen::Array2f> smaller_x = thrust::nullopt;
@@ -183,26 +184,31 @@ void TraversalGrid::updateShape(const scene::ShapeData *shapes,
           }
         }
 
+        auto bound_clamp = [&](uint16_t bound) -> uint16_t {
+          return std::clamp(bound, uint16_t(min_indexes_.x()),
+                            uint16_t(max_indexes_.x()));
+        };
+
         auto min_bound = ((smaller_smaller_x - min_) * inverse_difference_).x();
         auto max_bound = ((larger_larger_x - min_) * inverse_difference_).x();
 
         auto &shape_row_possibles =
             shape_grids_[shape_grids_start + (grid_index_y - 1)];
 
-        shape_row_possibles[0] =
-            std::min(shape_row_possibles[0], uint16_t(std::floor(min_bound)));
+        shape_row_possibles[0] = std::min(shape_row_possibles[0],
+                                          bound_clamp(std::floor(min_bound)));
         shape_row_possibles[1] =
-            std::max(shape_row_possibles[1], uint16_t(std::ceil(max_bound)));
+            std::max(shape_row_possibles[1], bound_clamp(std::ceil(max_bound)));
 
         if (triangle.is_guaranteed()) {
           auto min_bound =
               ((larger_smaller_x - min_) * inverse_difference_).x();
           auto max_bound =
               ((smaller_larger_x - min_) * inverse_difference_).x();
-          shape_row_possibles[2] =
-              std::min(shape_row_possibles[2], uint16_t(std::ceil(min_bound)));
-          shape_row_possibles[3] =
-              std::max(shape_row_possibles[3], uint16_t(std::floor(max_bound)));
+          shape_row_possibles[2] = std::min(shape_row_possibles[2],
+                                            bound_clamp(std::ceil(min_bound)));
+          shape_row_possibles[3] = std::max(shape_row_possibles[3],
+                                            bound_clamp(std::floor(max_bound)));
         }
 
         y_division_index++;
@@ -258,8 +264,8 @@ void TraversalGrid::copy_into(std::vector<Traversal> &traversals,
       for (uint16_t division_x = shape_row_possibles[0];
            division_x < shape_row_possibles[1]; division_x++) {
         unsigned traversal_index = division_y * num_divisions_x_ + division_x;
-        unsigned action_idx =
-            traversals[traversal_index].start + action_num_[traversal_index];
+        unsigned action_idx = start_traversals[traversal_index].start +
+                              action_num_[traversal_index];
 
         bool is_guaranteed = division_x >= shape_row_possibles[2] &&
                              division_x < shape_row_possibles[3];

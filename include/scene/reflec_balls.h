@@ -6,9 +6,9 @@
 #include <vector>
 
 namespace scene {
-class PoolScene : public Scene {
+class ReflecBalls : public Scene {
 public:
-  PoolScene();
+  ReflecBalls();
 
   void step(float secs) override;
 
@@ -33,12 +33,7 @@ public:
   unsigned getNumBalls() { return states_.size(); }
 
 private:
-  // unit is 1"
-  // pool ball is 2.25 in
-  static constexpr float ball_radius = 2.25f / 2.0f;
-  static constexpr float ball_center_y = 0.5f + ball_radius;
-  static constexpr float wall_x_dist = 22.0f;
-  static constexpr float wall_z_dist = 44.0f;
+  static constexpr float ball_radius = 1.0f;
   static constexpr float sliding_friction = 5.0f;
   static constexpr float slide_to_roll = 20.0f;
   static constexpr float rolling_friction = 3.0f;

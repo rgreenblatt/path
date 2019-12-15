@@ -33,7 +33,8 @@ using DataType = typename get_vector_type<execution_model, T>::type;
 template <ExecutionModel execution_model> class RendererImpl {
 public:
   void render(BGRA *pixels, const scene::Transform &m_film_to_world,
-              const Eigen::Projective3f &world_to_film, bool use_kd_tree,
+              const Eigen::Affine3f &world_to_film,
+              const Eigen::Projective3f &unhinging, bool use_kd_tree,
               bool show_times);
 
   RendererImpl(unsigned width, unsigned height, unsigned super_sampling_rate,

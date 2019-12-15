@@ -1,14 +1,12 @@
-#include "scene/pool_scene.h"
-#include "scene/texture_qimage.h"
+#include "scene/reflec_balls.h"
 
 #include <boost/iterator/counting_iterator.hpp>
 
 #include <chrono>
-#include <dbg.h>
-#include <iostream>
 
 namespace scene {
-void PoolScene::setBreak() {
+void ReflecBalls::setBreak() {
+#if 0
   float max_noise = 1e-1;
   std::uniform_real_distribution<float> dist(-max_noise, max_noise);
   for (auto &ball : states_) {
@@ -44,11 +42,11 @@ void PoolScene::setBreak() {
       ball_index++;
     }
   }
+#endif
 }
 
 // units are 1"
-PoolScene::PoolScene() {
-
+ReflecBalls::ReflecBalls() {
   gen_.seed(std::chrono::system_clock::now().time_since_epoch().count());
   float diffuse_coeff = 0.5;
   float specular_coeff = 1.0;
@@ -64,6 +62,7 @@ PoolScene::PoolScene() {
 
   std::string ball_path = common_path + "pool_ball_skins/";
 
+#if 0
   for (auto filename :
        {"BallCue.jpg", "Ball1.jpg", "Ball2.jpg", "Ball3.jpg", "Ball4.jpg",
         "Ball5.jpg", "Ball6.jpg", "Ball7.jpg", "Ball8.jpg", "Ball9.jpg",
@@ -80,6 +79,7 @@ PoolScene::PoolScene() {
                  ball_ambient * ambient_coeff, ball_shininess, 0),
         scene::Shape::Sphere))));
   }
+#endif
 
   shuffles_ = std::vector(
       boost::make_counting_iterator(static_cast<unsigned>(0)),
@@ -87,44 +87,51 @@ PoolScene::PoolScene() {
 
   setBreak();
 
-  float surface_diffuse = 0.5;
-  float surface_ambient = 0.5;
+  const std::array<BGRA, 6> colors = {{
+      {60, 60, 60, 0},
+      {60, 60, 60, 0},
+      {168, 159, 96, 0},
+      {96, 159, 168, 0},
+      {60, 60, 60, 0},
+      {60, 60, 60, 0},
+  }};
 
-  auto surface_texture_data =
-      loadTexture(common_path + "pool_table_surface.jpg");
+  for (std::tuple<int, Eigen::AngleAxis<float>> axis_rot : {
+           std::make_tuple(
+               0, Eigen::AngleAxis(float(M_PI / 2), Eigen::Vector3f(0, 0, 1))),
+           std::make_tuple(1, Eigen::AngleAxis(0.0f, Eigen::Vector3f(0, 1, 0))),
+           std::make_tuple(
+               2, Eigen::AngleAxis(float(M_PI / 2), Eigen::Vector3f(1, 0, 0))),
+       }) {
+    static constexpr float surface_dim = 100.0f;
+    static constexpr float surface_width = 8.0f;
+    static constexpr float surface_gap = 30.0f;
+    static constexpr float surface_inside_dist = 10.0f;
 
-  addShape(ShapeData(
-      static_cast<Eigen::Affine3f>(
-          Eigen::Scaling(Eigen::Vector3f(wall_x_dist * 2, 1, wall_z_dist * 2))),
-      Material(Color::Zero(), Color::Zero(), Color::Zero(), Color::Zero(),
-               Color::Zero(), Color::Zero(), surface_texture_data,
-               surface_diffuse * diffuse_coeff, surface_ambient * ambient_coeff,
-               0, 0),
-      scene::Shape::Cube));
-
-  float side_width = 1;
-  float wall_height = 5.5;
-
-  Eigen::Translation3f x_translate(wall_x_dist + side_width / 2, 0, 0);
-  Eigen::Translation3f z_translate(0, 0, wall_z_dist + side_width / 2);
-
-  auto z_scale =
-      Eigen::Scaling(Eigen::Vector3f(side_width, wall_height, wall_z_dist * 2));
-  auto x_scale = Eigen::Scaling(Eigen::Vector3f(
-      wall_x_dist * 2 + 2 * side_width, wall_height, side_width));
-
-  BGRA bgra_color(48, 38, 31, 0);
-
-  Color color = bgra_color.head<3>().cast<float>() / 255.0f;
-
-  for (const auto &transform :
-       {x_translate * z_scale, x_translate.inverse() * z_scale,
-        z_translate * x_scale, z_translate.inverse() * x_scale}) {
-    addShape(ShapeData(transform,
-                       Material(color * diffuse_coeff, color * ambient_coeff,
-                                Color::Zero(), Color::Zero(), Color::Zero(),
-                                Color::Zero(), thrust::nullopt, 0, 0, 25, 0),
-                       scene::Shape::Cube));
+    for (bool neg : {false, true}) {
+      auto [axis, rot] = axis_rot;
+      float surface_diffuse = 0.5;
+      float surface_ambient = 0.5;
+      const auto &color =
+          colors[axis * 2 + neg].head<3>().cast<float>() / 255.0f;
+      Eigen::Vector3f axis_vec = Eigen::Vector3f::Zero();
+      axis_vec[axis] = surface_dim + surface_gap;
+      if (axis == 1) {
+        axis_vec[axis] -= surface_inside_dist + surface_gap;
+      }
+      if (neg) {
+        axis_vec[axis] *= -1.0f;
+      }
+      addShape(ShapeData(
+          static_cast<Eigen::Affine3f>(
+              Eigen::Translation3f(axis_vec) * rot *
+              Eigen::Scaling(Eigen::Vector3f(surface_dim * 2, surface_width,
+                                             surface_dim * 2))),
+          Material(color * diffuse_coeff, color * ambient_coeff,
+                   color * specular_coeff, color * specular_coeff,
+                   Color::Zero(), Color::Zero(), thrust::nullopt, 0, 0, 25, 0),
+          scene::Shape::Cube));
+    }
   }
 
   step(0.0f);
@@ -146,7 +153,8 @@ PoolScene::PoolScene() {
   finishConstructScene();
 }
 
-void PoolScene::step(float secs) {
+void ReflecBalls::step(float secs) {
+#if 0
   // static to avoid allocations...(not sure if needed...)
   for (unsigned state_index = 0; state_index < states_.size(); state_index++) {
     auto &state = states_[state_index];
@@ -234,5 +242,6 @@ void PoolScene::step(float secs) {
             Eigen::Translation3f(state.pos[0], ball_center_y, state.pos[1]) *
             state.rot * Eigen::Scaling(ball_scale, ball_scale, ball_scale)));
   }
+#endif
 }
 } // namespace scene

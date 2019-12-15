@@ -43,6 +43,7 @@ ADD_LIBRARY(
   "${PROJECT_SOURCE_DIR}/src/ray/kdtree.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/scene.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/pool_scene.cpp"
+  "${PROJECT_SOURCE_DIR}/src/scene/reflec_ball.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/camera.cpp"
   "${PROJECT_SOURCE_DIR}/src/ray/action_grid.cpp"
   )

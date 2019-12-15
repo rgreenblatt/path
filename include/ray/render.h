@@ -15,7 +15,8 @@ public:
            unsigned recursive_iterations, std::unique_ptr<scene::Scene> &s);
   ~Renderer();
   void render(BGRA *pixels, const scene::Transform &m_film_to_world,
-              const Eigen::Projective3f &world_to_film, bool use_kd_tree,
+              const Eigen::Affine3f &world_to_film,
+              const Eigen::Projective3f &unhinging, bool use_kd_tree,
               bool show_times);
 
   scene::Scene &get_scene();

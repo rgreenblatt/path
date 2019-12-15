@@ -20,9 +20,9 @@ public:
   uint16_t getNumTextures() const { return textures_refs_.size(); }
   const TextureImageRef *getTextures() const { return textures_refs_.data(); }
 
-  Eigen::Vector3f getMinBound() const { return min_bound_; }
+  const Eigen::Vector3f &getMinBound() const { return min_bound_; }
 
-  Eigen::Vector3f getMaxBound() const { return max_bound_; };
+  const Eigen::Vector3f &getMaxBound() const { return max_bound_; };
 
   const std::set<uint16_t> &updatedShapes() const { return updated_shapes_; }
 
@@ -33,7 +33,7 @@ public:
   virtual ~Scene() {}
 
 protected:
-  void copyInTextureRefs();
+  void finishConstructScene();
 
   unsigned addShape(const ShapeData &shape_data) {
     unsigned index = shapes_.size();
@@ -55,6 +55,8 @@ protected:
     updated_shapes_.insert(shape_index);
     shapes_[shape_index].set_transform(new_transform);
   }
+
+  TextureData loadTexture(const std::string &file);
 
   Eigen::Vector3f min_bound_;
   Eigen::Vector3f max_bound_;

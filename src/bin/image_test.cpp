@@ -12,8 +12,9 @@ template <ray::ExecutionModel execution_model>
 void run_test(unsigned width, unsigned height, unsigned super_sampling_rate,
               const scene::CS123Scene &scene,
               const Eigen::Affine3f &film_to_world,
-              const Eigen::Projective3f &world_to_film,
-              const std::string &filename, unsigned depth, bool use_kd_tree) {
+              const Eigen::Affine3f &world_to_film,
+              const Eigen::Projective3f &unhinging, const std::string &filename,
+              unsigned depth, bool use_kd_tree) {
   QImage image(width, height, QImage::Format_RGB32);
 
   auto bgra_data = reinterpret_cast<BGRA *>(image.bits());
@@ -25,12 +26,14 @@ void run_test(unsigned width, unsigned height, unsigned super_sampling_rate,
 
 #if 1
   // realistic memory benchmark
-  renderer.render(bgra_data, film_to_world, world_to_film, use_kd_tree, false);
+  renderer.render(bgra_data, film_to_world, world_to_film, unhinging,
+                  use_kd_tree, false);
 #endif
 
   std::cout << "start:" << std::endl;
   auto start = std::chrono::high_resolution_clock::now();
-  renderer.render(bgra_data, film_to_world, world_to_film, use_kd_tree, true);
+  renderer.render(bgra_data, film_to_world, world_to_film, unhinging,
+                  use_kd_tree, true);
   std::cout << "rendered in "
             << std::chrono::duration_cast<std::chrono::duration<double>>(
                    std::chrono::high_resolution_clock::now() - start)
@@ -62,18 +65,19 @@ int main(int argc, char *argv[]) {
    * 10)); */
   auto film_to_world = scene.film_to_world();
   auto world_to_film = scene.world_to_film();
+  auto unhinging = scene.unhinging();
 
   if (render_cpu) {
     std::cout << "rendering cpu" << std::endl;
-    run_test<ray::ExecutionModel::CPU>(width, height, super_sampling_rate,
-                                       scene, film_to_world, world_to_film,
-                                       "cpu_" + file_name, depth, use_kd_tree);
+    run_test<ray::ExecutionModel::CPU>(
+        width, height, super_sampling_rate, scene, film_to_world, world_to_film,
+        unhinging, "cpu_" + file_name, depth, use_kd_tree);
     std::cout << "=============" << std::endl;
   }
 
   std::cout << "rendering gpu" << std::endl;
   run_test<ray::ExecutionModel::GPU>(width, height, super_sampling_rate, scene,
-                                     film_to_world, world_to_film,
+                                     film_to_world, world_to_film, unhinging,
                                      "gpu_" + file_name, depth, use_kd_tree);
 
   return 0;

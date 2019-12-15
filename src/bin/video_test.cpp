@@ -15,7 +15,8 @@ template <ray::ExecutionModel execution_model>
 void render_frames(unsigned width, unsigned height,
                    unsigned super_sampling_rate, scene::PoolScene &scene,
                    const Eigen::Affine3f &film_to_world,
-                   const Eigen::Projective3f &world_to_film,
+                   const Eigen::Affine3f&world_to_film,
+                   const Eigen::Projective3f &unhinging,
                    const std::string &dir_name, unsigned depth,
                    bool use_kd_tree, unsigned frames, float frame_rate,
                    unsigned physics_super_sampling_rate, bool make_video) {
@@ -51,7 +52,7 @@ void render_frames(unsigned width, unsigned height,
   for (unsigned i = 0; i < frames; i++) {
     auto bgra_data = reinterpret_cast<BGRA *>(frame.data);
 
-    renderer.render(bgra_data, film_to_world, world_to_film, use_kd_tree,
+    renderer.render(bgra_data, film_to_world, world_to_film, unhinging, use_kd_tree,
                     false);
 
     for (unsigned i = 0; i < physics_super_sampling_rate; i++) {
@@ -105,14 +106,14 @@ int main(int argc, char *argv[]) {
 
   const std::string file_name = "out.png";
 
-  auto [film_to_world, world_to_film] = scene::get_camera_transform(
+  auto [film_to_world, world_to_film, unhinging] = scene::get_camera_transform(
       Eigen::Vector3f(-2, -1, 0), Eigen::Vector3f(0, 1, 0),
-      Eigen::Vector3f(50, 30, 0), 1.0f, width, height);
+      Eigen::Vector3f(50, 30, 0), 1.0f, width, height, 30.0f);
 
   if (render_cpu) {
     std::cout << "rendering cpu" << std::endl;
     render_frames<ray::ExecutionModel::CPU>(
-        width, height, super_sampling_rate, pool_scene, film_to_world, world_to_film, "cpu_video/",
+        width, height, super_sampling_rate, pool_scene, film_to_world, world_to_film, unhinging,  "cpu_video/",
         depth, use_kd_tree, frames, frame_rate, physics_super_sampling_rate,
         make_video);
     std::cout << "=============" << std::endl;
@@ -121,8 +122,8 @@ int main(int argc, char *argv[]) {
   std::cout << "rendering gpu" << std::endl;
   render_frames<ray::ExecutionModel::GPU>(
       width, height, super_sampling_rate, pool_scene, film_to_world,
-      world_to_film, "gpu_video/", depth, use_kd_tree, frames, frame_rate,
-      physics_super_sampling_rate, make_video);
+      world_to_film, unhinging, "gpu_video/", depth, use_kd_tree, frames,
+      frame_rate, physics_super_sampling_rate, make_video);
 
   return 0;
 }
