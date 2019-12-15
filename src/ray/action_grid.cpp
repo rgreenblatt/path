@@ -1,8 +1,6 @@
 #include "ray/action_grid.h"
 #include "ray/projection_impl.h"
 
-#include <chrono>
-
 namespace ray {
 namespace detail {
 TraversalGrid::TraversalGrid(const Plane &plane,
@@ -21,7 +19,6 @@ TraversalGrid::TraversalGrid(const Plane &plane,
       flip_x_(flip_x), flip_y_(flip_y),
       action_num_(num_divisions_x * num_divisions_y) {
   resize(num_shapes);
-  auto start = std::chrono::high_resolution_clock::now();
 #pragma omp parallel if (num_shapes > 128)
   {
     std::vector<ProjectedTriangle> triangles;
@@ -30,9 +27,6 @@ TraversalGrid::TraversalGrid(const Plane &plane,
       updateShape(shapes, shape_idx, triangles);
     }
   }
-  auto end = std::chrono::high_resolution_clock::now();
-  dbg(std::chrono::duration_cast<std::chrono::duration<double>>(end - start)
-          .count());
 }
 
 void TraversalGrid::resize(unsigned new_num_shapes) {
@@ -222,7 +216,6 @@ void TraversalGrid::updateShape(const scene::ShapeData *shapes,
 
 void TraversalGrid::copy_into(std::vector<Traversal> &traversals,
                               std::vector<Action> &actions) {
-  auto start = std::chrono::high_resolution_clock::now();
   unsigned traversal_size = num_divisions_x_ * num_divisions_y_;
   unsigned traversal_start_index = traversals.size();
   traversals.insert(traversals.end(), traversal_size, Traversal(0, 0));
@@ -277,9 +270,6 @@ void TraversalGrid::copy_into(std::vector<Traversal> &traversals,
       }
     }
   }
-  auto end = std::chrono::high_resolution_clock::now();
-  /* dbg(std::chrono::duration_cast<std::chrono::duration<double>>(end - start) */
-  /*         .count()); */
 }
 } // namespace detail
 } // namespace ray

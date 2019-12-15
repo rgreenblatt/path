@@ -22,15 +22,7 @@ inline Triangle transform_triangle(const Eigen::Projective3f &transform,
 }
 
 inline Eigen::Vector3f get_triangle_normal(const Triangle &tri) {
-  auto to_norm = (tri[1] - tri[0]).cross(tri[2] - tri[1]);
-#if 0
-  dbg("norm");
-  std::cout << tri[0] << std::endl;
-  std::cout << tri[1] << std::endl;
-  std::cout << tri[2] << std::endl;
-  std::cout << to_norm << std::endl;
-#endif
-  return to_norm.normalized().eval();
+  return (tri[1] - tri[0]).cross(tri[2] - tri[1]).normalized();
 }
 
 const static std::array<Triangle, 12> cube_polys = {{
@@ -115,7 +107,7 @@ project_triangles(const Plane &plane, const Eigen::Projective3f &transform,
   for (const auto &triangle : triangles) {
     const auto transformed_triangle = transform_triangle(transform, triangle);
     const auto triangle_normal = get_triangle_normal(transformed_triangle);
-    if (triangle_normal.x() > 0.0f) {
+    if (triangle_normal.z() > 0.0f) {
       std::array<Eigen::Array2f, 3> projected_points;
       std::transform(transformed_triangle.begin(), transformed_triangle.end(),
                      projected_points.begin(),
