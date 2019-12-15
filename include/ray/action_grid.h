@@ -43,13 +43,15 @@ public:
   TraversalGrid(const Plane &plane, const Eigen::Projective3f &transform,
                 const scene::ShapeData *shapes, uint16_t num_shapes,
                 const Eigen::Array2f &min, const Eigen::Array2f &max,
-                uint8_t num_divisions_x, uint8_t num_divisions_y);
+                uint16_t num_divisions_x, uint16_t num_divisions_y, bool flip_x,
+                bool flip_y);
 
   void resize(unsigned new_num_shapes);
 
   void wipeShape(unsigned shape_to_wipe);
 
-  void updateShape(const scene::ShapeData *shapes, unsigned shape_to_update);
+  void updateShape(const scene::ShapeData *shapes, unsigned shape_to_update,
+                   std::vector<ProjectedTriangle> &triangles);
 
   void copy_into(std::vector<Traversal> &traversals,
                  std::vector<Action> &actions);
@@ -59,13 +61,16 @@ private:
   Eigen::Projective3f transform_;
   Eigen::Array2f min_;
   Eigen::Array2f max_;
+  Eigen::Array2f offset_min_;
+  Eigen::Array2f offset_max_;
   Eigen::Array2f difference_;
   Eigen::Array2f inverse_difference_;
-  uint8_t num_divisions_x_;
-  uint8_t num_divisions_y_;
-  using ShapeRowPossibles = std::array<uint8_t, 4>;
+  uint16_t num_divisions_x_;
+  uint16_t num_divisions_y_;
+  bool flip_x_;
+  bool flip_y_;
+  using ShapeRowPossibles = std::array<uint16_t, 4>;
   std::vector<ShapeRowPossibles> shape_grids_;
-  std::vector<ProjectedTriangle> triangles_;
   std::vector<unsigned> action_num_;
 
 public:

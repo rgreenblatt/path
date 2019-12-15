@@ -5,49 +5,62 @@
 #include "scene/shape.h"
 #include "scene/shape_data.h"
 
+#include <set>
 #include <vector>
 
 namespace scene {
 class Scene {
 public:
-  uint16_t numSpheres() const { return num_spheres_; }
-  uint16_t numCylinders() const { return num_cylinders_; }
-  uint16_t numCubes() const { return num_cubes_; }
-  uint16_t numCones() const { return num_cones_; }
-  uint16_t numShapes() const { return shapes_.size(); }
+  const ShapeData *getShapes() const { return shapes_.data(); }
+  uint16_t getNumShapes() const { return shapes_.size(); }
 
-  uint16_t startSpheres() const { return 0; }
-  uint16_t startCylinders() const { return num_spheres_; }
-  uint16_t startCubes() const { return num_spheres_ + num_cylinders_; }
-  uint16_t startCones() const {
-    return num_spheres_ + num_cylinders_ + num_cubes_;
-  }
-
-  virtual const ShapeData *getShapes() const { return shapes_.data(); }
-  virtual uint16_t getNumShapes() const { return shapes_.size(); }
-
-  virtual const Light *getLights() const { return lights_.data(); }
-  virtual unsigned getNumLights() const { return lights_.size(); }
-
-  uint16_t getNumShape(Shape shape) const;
-  uint16_t getStartShape(Shape shape) const;
+  const Light *getLights() const { return lights_.data(); }
+  unsigned getNumLights() const { return lights_.size(); }
 
   uint16_t getNumTextures() const { return textures_refs_.size(); }
-  const TextureImageRef* getTextures() const { return textures_refs_.data(); }
+  const TextureImageRef *getTextures() const { return textures_refs_.data(); }
+
+  Eigen::Vector3f getMinBound() const { return min_bound_; }
+
+  Eigen::Vector3f getMaxBound() const { return max_bound_; };
+
+  const std::set<uint16_t> &updatedShapes() const { return updated_shapes_; }
+
+  void clearUpdates() { updated_shapes_.clear(); }
 
 protected:
+  void copyInTextureRefs();
+
+  unsigned addShape(const ShapeData &shape_data) {
+    unsigned index = shapes_.size();
+    shapes_.push_back(shape_data);
+    return index;
+  };
+
+  void addLight(const Light &light) { lights_.push_back(light); }
+
+  unsigned addTexture(const TextureImage &tex) {
+    unsigned index = textures_.size();
+    textures_.push_back(tex);
+
+    return index;
+  }
+
+  void updateTransformShape(uint16_t shape_index,
+                            const Eigen::Affine3f &new_transform) {
+    updated_shapes_.insert(shape_index);
+    shapes_[shape_index].set_transform(new_transform);
+  }
+
+  Eigen::Vector3f min_bound_;
+  Eigen::Vector3f max_bound_;
+
+private:
   std::vector<ShapeData> shapes_;
+  std::set<uint16_t> updated_shapes_;
   ManangedMemVec<Light> lights_;
   ManangedMemVec<TextureImage> textures_;
 
-  uint16_t num_spheres_;
-  uint16_t num_cylinders_;
-  uint16_t num_cubes_;
-  uint16_t num_cones_;
-  
-  void copyInTextureRefs();
-
-private:
   ManangedMemVec<TextureImageRef> textures_refs_;
 };
 } // namespace scene

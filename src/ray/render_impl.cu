@@ -144,7 +144,7 @@ void RendererImpl<execution_model>::render(
             .count());
   }
 
-  const unsigned num_shapes = scene.numShapes();
+  const unsigned num_shapes = scene.getNumShapes();
   ManangedMemVec<scene::ShapeData> shapes(num_shapes);
 
   {
@@ -172,10 +172,9 @@ void RendererImpl<execution_model>::render(
     TraversalGrid camera_grid(Plane(2, -0.5).get_transform(m_film_to_world),
                               world_to_film, shapes.data(), shapes.size(),
                               Eigen::Array2f(-1, -1), Eigen::Array2f(1, 1),
-                              num_blocks_x, num_blocks_y);
+                              num_blocks_x, num_blocks_y, false, true);
 
     unsigned traversals_offset = 0;
-
 
 #if 0
     traversal_data_cpu_.resize(num_lights);
@@ -186,25 +185,14 @@ void RendererImpl<execution_model>::render(
 
     camera_grid.copy_into(traversals_cpu_, actions_cpu_);
 
-    dbg(traversals_cpu_.size());
-    dbg(group_disables_.size());
     std::transform(
         traversals_cpu_.begin(), traversals_cpu_.end(), group_disables_.begin(),
-        [&](const Traversal &traversal) { 
-#if 1
-        return traversal.size == 0; 
-#else
-        return false;
-#endif
-        });
+        [&](const Traversal &traversal) { return traversal.size == 0; });
 
     traversals_offset = traversals_cpu_.size();
 
-    
 #if 0
-
-    auto add_projection = [&](bool is_loc, const Eigen::Vector3f &loc_or_dir,
-                              uint8_t target_depth) {
+    auto add_projection = [&](bool is_loc, const Eigen::Vector3f &loc_or_dir) {
       auto &last_node =
           by_type_data_[0].nodes[by_type_data_[0].nodes.size() - 1];
       const auto &min_bound = last_node.get_contents().get_min_bound();
@@ -280,7 +268,6 @@ void RendererImpl<execution_model>::render(
 #endif
 
     traversals_.resize(traversals_cpu_.size());
-    dbg(traversals_cpu_[0].size);
     thrust::copy(traversals_cpu_.data(),
                  traversals_cpu_.data() + traversals_cpu_.size(),
                  traversals_.begin());
@@ -299,6 +286,11 @@ void RendererImpl<execution_model>::render(
               chr::high_resolution_clock::now() - start_traversal_grid)
               .count());
     }
+  } else {
+    TraversalGrid camera_grid(Plane(2, -0.5).get_transform(m_film_to_world),
+                              world_to_film, shapes.data(), shapes.size(),
+                              Eigen::Array2f(-1, -1), Eigen::Array2f(1, 1),
+                              num_blocks_x, num_blocks_y, false, true);
   }
 
   for (unsigned depth = 0; depth < recursive_iterations_; depth++) {

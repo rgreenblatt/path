@@ -125,8 +125,8 @@ __inline__ __host__ __device__ void solve_general_intersection(
   };
 
   if (use_traversals) {
-    for (uint16_t action_index = traversal.start; action_index < traversal.size;
-         action_index++) {
+    for (uint16_t action_index = traversal.start;
+         action_index < traversal.start + traversal.size; action_index++) {
       if (solve_index(actions[action_index].shape_idx)) {
         return;
       }
@@ -162,7 +162,7 @@ __inline__ __host__ __device__ void solve_general_intersection(
               current_node.get_contents().solveBoundingIntersection(
                   world_space_eye, inv_direction);
 
-          if (bounding_intersection &&
+          if (bounding_intersection.has_value() &&
               (!best.has_value() ||
                best->intersection > *bounding_intersection)) {
             current_node.case_split_or_data(

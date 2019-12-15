@@ -45,6 +45,10 @@ __host__ __device__ inline void raytrace_impl(
             world_space_direction, ignores[index], disables[index], best,
             is_first, use_traversals && is_first, use_kd_tree,
             [&](const thrust::optional<BestIntersection> &new_best) {
+              if (new_best.has_value() && index == 8003) {
+                printf_dbg(index);
+              }
+
               best = optional_min(best, new_best);
 
               return false;
@@ -71,10 +75,9 @@ __host__ __device__ inline void raytrace_impl(
 
       auto &best = *best_normals_uv;
       auto &shape = shapes[best.shape_idx];
-
-      const Eigen::Vector3f world_space_normal =
-          (shape.get_object_normal_to_world() * best.intersection.normal)
-              .normalized();
+      Eigen::Vector3f prod =
+          shape.get_object_normal_to_world() * best.intersection.normal;
+      const Eigen::Vector3f world_space_normal = prod.normalized();
 
       const float intersection = best.intersection.intersection;
 
@@ -116,7 +119,7 @@ __host__ __device__ inline void raytrace_impl(
 
         light_direction.normalize();
 
-#if 1
+#if 0
         bool shadowed = false;
 
         thrust::optional<BestIntersection> holder = thrust::nullopt;
@@ -244,7 +247,7 @@ raytrace(unsigned width, unsigned height, unsigned num_blocks_x,
                 traversal_data, traversals, actions, shapes, lights, num_lights,
                 textures, world_space_eyes, world_space_directions,
                 color_multipliers, colors, ignores, disables,
-                group_disables[group_index], is_first, use_kd_tree, false);
+                group_disables[group_index], is_first, use_kd_tree, true);
 }
 
 inline void raytrace_cpu(

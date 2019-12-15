@@ -39,43 +39,33 @@ CS123Scene::CS123Scene(const std::string &file_path, unsigned width,
 
     switch (shape.type) {
     case PrimitiveType::Sphere:
-      spheres.push_back(get_next(scene::Shape::Sphere));
+      addShape(get_next(scene::Shape::Sphere));
       break;
     case PrimitiveType::Cylinder:
-      spheres.push_back(get_next(scene::Shape::Cylinder));
+      addShape(get_next(scene::Shape::Cylinder));
       break;
     case PrimitiveType::Cube:
-      spheres.push_back(get_next(scene::Shape::Cube));
+      addShape(get_next(scene::Shape::Cube));
       break;
     case PrimitiveType::Cone:
     default:
-      spheres.push_back(get_next(scene::Shape::Cone));
+      addShape(get_next(scene::Shape::Cone));
       break;
     }
   }
 
-  num_spheres_ = spheres.size();
-  num_cubes_ = cubes.size();
-  num_cylinders_ = cylinders.size();
-  num_cones_ = cones.size();
-
-  std::copy(spheres.begin(), spheres.end(), std::back_inserter(shapes_));
-  std::copy(cylinders.begin(), cylinders.end(), std::back_inserter(shapes_));
-  std::copy(cubes.begin(), cubes.end(), std::back_inserter(shapes_));
-  std::copy(cones.begin(), cones.end(), std::back_inserter(shapes_));
-
-  std::copy(scene.textures_.begin(), scene.textures_.end(),
-            std::back_inserter(textures_));
+  for(const auto& tex : scene.textures_) {
+    addTexture(tex);
+  }
 
   for (const auto &light : scene.lights_) {
     switch (light.type) {
     case LightType::Directional:
-      lights_.push_back(Light(light.color, DirectionalLight(light.dir)));
+      addLight(Light(light.color, DirectionalLight(light.dir)));
       break;
     case LightType::Point:
     default:
-      lights_.push_back(
-          Light(light.color, PointLight(light.pos, light.function)));
+      addLight(Light(light.color, PointLight(light.pos, light.function)));
       break;
     }
   }

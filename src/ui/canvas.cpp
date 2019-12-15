@@ -15,7 +15,7 @@
 
 Canvas::Canvas(QWidget *parent)
     : QWidget(parent), time_(), timer_(), capture_mouse_(false), fps_(0) {
-  topView();
+  sideView();
   // Canvas needs all mouse move events, not just mouse drag events
   setMouseTracking(true);
 
@@ -329,7 +329,7 @@ void Canvas::topView() {
 }
 
 void Canvas::resetTransform() {
-  auto [film_to_world, world_to_film] = 
+  auto [film_to_world, world_to_film] =
       scene::get_camera_transform(look_, up_, pos_, 1.0f, width_, height_);
   film_to_world_ = film_to_world;
   world_to_film_ = world_to_film;

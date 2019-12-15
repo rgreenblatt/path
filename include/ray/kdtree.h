@@ -17,158 +17,6 @@ struct KDTreeSplit {
   KDTreeSplit() {}
 };
 
-struct ProjectedPoint {
-  Eigen::Vector2f point;
-  float dist;
-  float shift_multiplier;
-
-  HOST_DEVICE ProjectedPoint(const Eigen::Vector2f &point, float dist,
-                             float shift_multiplier)
-      : point(point), dist(dist), shift_multiplier(shift_multiplier) {}
-
-  HOST_DEVICE ProjectedPoint() {}
-
-  // Can we know more???
-  HOST_DEVICE Eigen::Vector2f shift(const Eigen::Vector2f &shift) {
-    return point + shift * shift_multiplier;
-  }
-};
-
-struct ShiftedProjectedAABB {
-  Eigen::Vector2f flattened_min;
-  Eigen::Vector2f flattened_max;
-  float axis_min;
-  float axis_max;
-
-  HOST_DEVICE
-  ShiftedProjectedAABB(const Eigen::Vector2f &flattened_min,
-                       const Eigen::Vector2f &flattened_max, float axis_min,
-                       float axis_max)
-      : flattened_min(flattened_min), flattened_max(flattened_max),
-        axis_min(axis_min), axis_max(axis_max) {}
-
-  HOST_DEVICE ShiftedProjectedAABB() {}
-
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-};
-
-struct ProjectedAABBInfo {
-  Eigen::Vector2f flattened_min;
-  Eigen::Vector2f flattened_max;
-  Eigen::Vector2f intermediate;
-  Eigen::Vector3f min_bound;
-  Eigen::Vector3f max_bound;
-  Eigen::Array2<bool> is_intermediate_max;
-  float a_line_term;
-  float c_line_term;
-  float dist_pos;
-  float dist_neg;
-  float dist_axis_face;
-  float dist_pos_face;
-  float dist_neg_face;
-
-  ProjectedAABBInfo(const Eigen::Vector2f &flattened_min,
-                    const Eigen::Vector2f &flattened_max,
-                    const Eigen::Vector2f &intermediate,
-                    const Eigen::Vector3f &min_bound,
-                    const Eigen::Vector3f max_bound,
-                    const Eigen::Array2<bool> &is_intermediate_max,
-                    float a_line_term, float c_line_term, float dist_pos,
-                    float dist_neg)
-      : flattened_min(flattened_min), flattened_max(flattened_max),
-        intermediate(intermediate), min_bound(min_bound), max_bound(max_bound),
-        is_intermediate_max(is_intermediate_max), a_line_term(a_line_term),
-        c_line_term(c_line_term), dist_pos(dist_pos), dist_neg(dist_neg) {}
-
-  // TODO
-  ProjectedAABBInfo(const Eigen::Vector2f &flattened_min,
-                    const Eigen::Vector2f &flattened_max)
-      : flattened_min(flattened_min), flattened_max(flattened_max) {}
-
-  HOST_DEVICE ProjectedAABBInfo() {}
-
-  struct DistType {
-    float dist;
-    uint8_t type;
-
-    DistType(float dist, uint8_t type) : dist(dist), type(type) {}
-  };
-
-  HOST_DEVICE thrust::optional<DistType>
-  getInsideDist(const Eigen::Vector2f &location) const {
-    if ((location.array() <= flattened_max.array()).all() &&
-        (location.array() >= flattened_min.array()).all()) {
-      auto inside_intermediate =
-          ((location.array() >= intermediate.array()) != is_intermediate_max)
-              .eval();
-      if (inside_intermediate.all()) {
-        return DistType(dist_axis_face, 0);
-      } else {
-        float signed_dist =
-            location[0] * a_line_term + location[1] + c_line_term;
-        if (signed_dist > 0) {
-          return make_optional(signed_dist <= dist_pos,
-                               DistType(dist_pos_face, 1));
-        } else {
-          return make_optional(signed_dist >= dist_neg,
-                               DistType(dist_neg_face, 2));
-        }
-      }
-    } else {
-      return thrust::nullopt;
-    }
-  }
-
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-};
-
-struct ProjectedAABB {
-  ProjectedPoint closer_min;
-  ProjectedPoint closer_max;
-  ProjectedPoint further_min;
-  ProjectedPoint further_max;
-  Eigen::Vector3f min_bound;
-  Eigen::Vector3f max_bound;
-
-  HOST_DEVICE
-  ProjectedAABB(ProjectedPoint closer_min, ProjectedPoint closer_max,
-                ProjectedPoint further_min, ProjectedPoint further_max,
-                Eigen::Vector3f min_bound, Eigen::Vector3f max_bound)
-      : closer_min(closer_min), closer_max(closer_max),
-        further_min(further_min), further_max(further_max),
-        min_bound(min_bound), max_bound(max_bound) {}
-
-  HOST_DEVICE ProjectedAABB() {}
-
-  ProjectedAABBInfo get_info() {
-#if 1
-    return ProjectedAABBInfo(closer_min.point.cwiseMin(further_min.point),
-                             closer_max.point.cwiseMax(further_max.point));
-#else
-    return ProjectedAABBInfo();
-#endif
-  }
-
-#if 0
-  HOST_DEVICE ShiftedProjectedAABB shift(const Eigen::Vector2f &shift) {
-    return ShiftedProjectedAABB(
-        closer_min.shift(shift).cwiseMin(further_min.shift(shift)),
-        closer_max.shift(shift).cwiseMax(further_max.shift(shift)), axis_min,
-        axis_max);
-  }
-#endif
-
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-};
-
-inline HOST_DEVICE Eigen::Vector2f get_not_axis(const Eigen::Vector3f &vec,
-                                                uint8_t axis) {
-  return Eigen::Vector2f(vec[(axis + 1) % 3], vec[(axis + 2) % 3]);
-}
-
 class AABB {
 public:
   HOST_DEVICE
@@ -184,56 +32,6 @@ public:
 
   HOST_DEVICE const Eigen::Vector3f &get_max_bound() const {
     return max_bound_;
-  }
-
-  // template for efficiency?
-  template <uint8_t axis>
-  HOST_DEVICE ProjectedAABB project_to_axis(
-      bool is_loc, float value, const Eigen::Vector3f &loc_or_dir) const {
-    bool max_is_closer =
-        std::abs(value - max_bound_[axis]) < std::abs(value - min_bound_[axis]);
-
-    Eigen::Vector3f closer_max = max_bound_;
-    closer_max[axis] = max_is_closer ? closer_max[axis] : min_bound_[axis];
-    Eigen::Vector3f closer_min = min_bound_;
-    closer_min[axis] = closer_max[axis];
-
-    Eigen::Vector3f further_max = max_bound_;
-    further_max[axis] = max_is_closer ? min_bound_[axis] : further_max[axis];
-    Eigen::Vector3f further_min = min_bound_;
-    further_min[axis] = further_max[axis];
-
-    auto project = [&](const Eigen::Vector3f &point) {
-      const auto dir = is_loc ? (point - loc_or_dir).eval() : loc_or_dir;
-      float intersect_dist = (value - point[axis]) / dir[axis];
-      const auto intersect_point = (point + dir * intersect_dist).eval();
-      const auto camera_point_dist = dir.norm();
-      const auto intersect_point_dist = (point - intersect_point).norm();
-
-      return ProjectedPoint(get_not_axis(intersect_point, axis),
-                            // TODO dist???
-                            camera_point_dist,
-                            intersect_point_dist / camera_point_dist);
-    };
-
-    return ProjectedAABB(project(closer_min), project(closer_max),
-                         project(further_min), project(further_max), min_bound_,
-                         max_bound_);
-  }
-
-  HOST_DEVICE ProjectedAABB
-  project_to_axis(bool is_loc, uint8_t axis, float value,
-                  const Eigen::Vector3f &loc_or_dir) const {
-    switch (axis) {
-    case 0:
-      return project_to_axis<0>(is_loc, value, loc_or_dir);
-    case 1:
-      return project_to_axis<1>(is_loc, value, loc_or_dir);
-    case 2:
-      return project_to_axis<2>(is_loc, value, loc_or_dir);
-    }
-
-    abort();
   }
 
   // needs to be inline
@@ -437,6 +235,11 @@ initial_world_space_direction(unsigned x, unsigned y, unsigned width,
   const auto world_space_film_plane = m_film_to_world * camera_space_film_plane;
 
   return (world_space_film_plane - world_space_eye).normalized();
+}
+
+inline HOST_DEVICE Eigen::Vector2f get_not_axis(const Eigen::Vector3f &vec,
+                                                uint8_t axis) {
+  return Eigen::Vector2f(vec[(axis + 1) % 3], vec[(axis + 2) % 3]);
 }
 
 inline HOST_DEVICE Eigen::Vector2f

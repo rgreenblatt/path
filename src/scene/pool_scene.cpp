@@ -16,11 +16,7 @@ TextureData PoolScene::loadTexture(const std::string &file) {
     std::exit(1);
   }
 
-  uint16_t texture_index = textures_.size();
-
-  textures_.push_back(*image_tex);
-
-  return TextureData(texture_index, 1, 1);
+  return TextureData(addTexture(*image_tex), 1, 1);
 }
 
 void PoolScene::setBreak() {
@@ -74,13 +70,6 @@ PoolScene::PoolScene() {
 
   std::string common_path = "images/";
 
-  num_spheres_ = 0;
-  num_cylinders_ = 0;
-  num_cubes_ = 0;
-  num_cones_ = 0;
-
-#if 1
-
   float ball_diffuse = 0.5;
   float ball_ambient = 0.5;
   float ball_reflective = 0.2;
@@ -96,18 +85,14 @@ PoolScene::PoolScene() {
         "Ball15.jpg"}) {
     auto texture_data = loadTexture(ball_path + filename);
 
-    states_.push_back(BallState(shapes_.size()));
-
-    shapes_.push_back(ShapeData(
+    states_.push_back(BallState(addShape(ShapeData(
         Eigen::Affine3f::Identity(),
         Material(Color::Zero(), Color::Zero(),
                  Color::Ones() * ball_reflective * specular_coeff,
                  Color::Ones() * ball_specular * specular_coeff, Color::Zero(),
                  Color::Zero(), texture_data, ball_diffuse * diffuse_coeff,
                  ball_ambient * ambient_coeff, ball_shininess, 0),
-        scene::Shape::Sphere));
-
-    num_spheres_++;
+        scene::Shape::Sphere))));
   }
 
   shuffles_ = std::vector(
@@ -122,7 +107,7 @@ PoolScene::PoolScene() {
   auto surface_texture_data =
       loadTexture(common_path + "pool_table_surface.jpg");
 
-  shapes_.push_back(ShapeData(
+  addShape(ShapeData(
       static_cast<Eigen::Affine3f>(
           Eigen::Scaling(Eigen::Vector3f(wall_x_dist * 2, 1, wall_z_dist * 2))),
       Material(Color::Zero(), Color::Zero(), Color::Zero(), Color::Zero(),
@@ -130,8 +115,6 @@ PoolScene::PoolScene() {
                surface_diffuse * diffuse_coeff, surface_ambient * ambient_coeff,
                0, 0),
       scene::Shape::Cube));
-
-  num_cubes_++;
 
   float side_width = 1;
   float wall_height = 5.5;
@@ -151,14 +134,11 @@ PoolScene::PoolScene() {
   for (const auto &transform :
        {x_translate * z_scale, x_translate.inverse() * z_scale,
         z_translate * x_scale, z_translate.inverse() * x_scale}) {
-    shapes_.push_back(
-        ShapeData(transform,
-                  Material(color * diffuse_coeff, color * ambient_coeff,
-                           Color::Zero(), Color::Zero(), Color::Zero(),
-                           Color::Zero(), thrust::nullopt, 0, 0, 25, 0),
-                  scene::Shape::Cube));
-
-    num_cubes_++;
+    addShape(ShapeData(transform,
+                       Material(color * diffuse_coeff, color * ambient_coeff,
+                                Color::Zero(), Color::Zero(), Color::Zero(),
+                                Color::Zero(), thrust::nullopt, 0, 0, 25, 0),
+                       scene::Shape::Cube));
   }
 
   step(0.0f);
@@ -169,14 +149,13 @@ PoolScene::PoolScene() {
            Eigen::Vector3f(0, 8, 30),
            Eigen::Vector3f(0, 8, -30),
        }) {
-    lights_.push_back(Light(
-        light_color, PointLight(translate, Eigen::Array3f(1, 0.0, 0.001))));
+    addLight(Light(light_color,
+                   PointLight(translate, Eigen::Array3f(1, 0.0, 0.001))));
   }
 
   for (auto dir : {Eigen::Vector3f(-1, -1, 0), Eigen::Vector3f(1, -1, 0)}) {
-    lights_.push_back(Light(light_color * 0.5, DirectionalLight(dir)));
+    addLight(Light(light_color * 0.5, DirectionalLight(dir)));
   }
-#endif
 
   copyInTextureRefs();
 }
@@ -263,9 +242,11 @@ void PoolScene::step(float secs) {
 
     float ball_scale = ball_radius * 2.0f;
 
-    shapes_[state.shape_index].set_transform(static_cast<Eigen::Affine3f>(
-        Eigen::Translation3f(state.pos[0], ball_center_y, state.pos[1]) *
-        state.rot * Eigen::Scaling(ball_scale, ball_scale, ball_scale)));
+    updateTransformShape(
+        state.shape_index,
+        static_cast<Eigen::Affine3f>(
+            Eigen::Translation3f(state.pos[0], ball_center_y, state.pos[1]) *
+            state.rot * Eigen::Scaling(ball_scale, ball_scale, ball_scale)));
   }
 }
 } // namespace scene

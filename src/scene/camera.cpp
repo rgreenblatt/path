@@ -30,9 +30,6 @@ get_camera_transform(const Eigen::Vector3f &look, const Eigen::Vector3f &up,
 
   auto film_to_world = f * Eigen::Scaling(scaling_vec).inverse();
 
-  dbg("mat");
-  std::cout << film_to_world.matrix() << std::endl;
-
   Eigen::Matrix4f unhinging = Eigen::Matrix4f::Identity();
   float c = -1.0f / 30.0f;
   unhinging(2, 2) = -1.0f / (c + 1);
