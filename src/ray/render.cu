@@ -19,11 +19,11 @@ Renderer<execution_model>::~Renderer() {
 template <ExecutionModel execution_model>
 void Renderer<execution_model>::render(BGRA *pixels,
                                        const scene::Transform &m_film_to_world,
-                                       const Eigen::Affine3f &world_to_film,
-                                       const Eigen::Projective3f &unhinging,
-                                       bool use_kd_tree, bool show_times) {
-  renderer_impl_->render(pixels, m_film_to_world, world_to_film, unhinging,
-                         use_kd_tree, show_times);
+                                       const Eigen::Projective3f &world_to_film,
+                                       bool use_kd_tree, bool use_traversals,
+                                       bool show_times) {
+  renderer_impl_->render(pixels, m_film_to_world, world_to_film, use_kd_tree,
+                         use_traversals, show_times);
 }
 
 template <ExecutionModel execution_model>

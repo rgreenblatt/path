@@ -5,7 +5,7 @@
 #include <dbg.h>
 
 namespace scene {
-std::tuple<Eigen::Affine3f, Eigen::Affine3f, Eigen::Projective3f>
+std::tuple<Eigen::Affine3f, Eigen::Projective3f>
 get_camera_transform(const Eigen::Vector3f &look, const Eigen::Vector3f &up,
                      const Eigen::Vector3f &pos, float height_angle,
                      float width, float height, float far,
@@ -44,8 +44,10 @@ get_camera_transform(const Eigen::Vector3f &look, const Eigen::Vector3f &up,
   unhinging(3, 2) = -1;
   unhinging(3, 3) = 0;
 
-  Eigen::Affine3f world_to_film = scaling * mat * Eigen::Translation3f(-pos);
+  Eigen::Projective3f world_to_film =
+      unhinging * static_cast<Eigen::Projective3f>(scaling * mat *
+                                                   Eigen::Translation3f(-pos));
 
-  return std::make_tuple(film_to_world, world_to_film, unhinging);
+  return std::make_tuple(film_to_world, world_to_film);
 }
 } // namespace scene

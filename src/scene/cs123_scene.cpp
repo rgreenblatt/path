@@ -74,13 +74,12 @@ CS123Scene::CS123Scene(const std::string &file_path, unsigned width,
 
   parser.getCameraData(camera_data);
 
-  auto [film_to_world, world_to_film, unhinging] = get_camera_transform(
+  auto [film_to_world, world_to_film] = get_camera_transform(
       camera_data.look, camera_data.up, camera_data.pos,
       camera_data.heightAngle * M_PI / 180.0f, width, height, 30.0f);
 
   film_to_world_ = film_to_world;
   world_to_film_ = world_to_film;
-  unhinging_ = unhinging;
 
   finishConstructScene();
 }

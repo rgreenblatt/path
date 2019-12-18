@@ -12,55 +12,49 @@
 #include "scene/shape.h"
 #include "scene/shape_data.h"
 #include "ray/action_grid.h"
+#include "ray/block_data.h"
+#include "ray/intersect.h"
 
 namespace ray {
 namespace detail {
+__inline__ __host__ __device__ void initial_world_space_directions_impl(
+    unsigned block_index, unsigned thread_index, const BlockData &block_data,
+    const Eigen::Vector3f &world_space_eye,
+    const scene::Transform &m_film_to_world,
+    Span<Eigen::Vector3f> world_space_directions) {
+  auto [x, y, index, outside_bounds] =
+      block_data.getIndexes(block_index, thread_index);
 
-template <typename T> __global__ void fill(T *data, unsigned size, T value) {
-  unsigned index = blockIdx.x * blockDim.x + threadIdx.x;
-  if (index < size) {
-    data[index] = value;
-  }
-}
-
-__inline__ __host__ __device__ void
-initial_world_space_directions(unsigned x, unsigned y, unsigned width,
-                               unsigned height,
-                               const Eigen::Vector3f &world_space_eye,
-                               const scene::Transform &m_film_to_world,
-                               Eigen::Vector3f *world_space_directions) {
-  if (x >= width || y >= height) {
+  if (outside_bounds) {
     return;
   }
 
-  unsigned index = x + y * width;
-
-  world_space_directions[index] = initial_world_space_direction(
-      x, y, width, height, world_space_eye, m_film_to_world);
+  world_space_directions[index] =
+      initial_world_space_direction(x, y, block_data.x_dim, block_data.y_dim,
+                                    world_space_eye, m_film_to_world);
 }
 
 __global__ void
-initial_world_space_directions(unsigned width, unsigned height,
-                               unsigned num_blocks_x, unsigned block_dim_x,
-                               unsigned block_dim_y,
+initial_world_space_directions(BlockData block_data,
                                const Eigen::Vector3f world_space_eye,
                                const scene::Transform m_film_to_world,
-                               Eigen::Vector3f *world_space_directions) {
-  auto [x, y] = get_non_sparse_indexes(num_blocks_x, block_dim_x, block_dim_y);
-
-  initial_world_space_directions(x, y, width, height, world_space_eye,
-                                 m_film_to_world, world_space_directions);
+                               Span<Eigen::Vector3f> world_space_directions) {
+  initial_world_space_directions_impl(blockIdx.x, threadIdx.x, block_data,
+                                 world_space_eye, m_film_to_world,
+                                 world_space_directions);
 }
 
-inline void
-initial_world_space_directions_cpu(unsigned width, unsigned height,
-                                   const Eigen::Vector3f &world_space_eye,
-                                   const scene::Transform &m_film_to_world,
-                                   Eigen::Vector3f *world_space_directions) {
-  for (unsigned x = 0; x < width; x++) {
-    for (unsigned y = 0; y < height; y++) {
-      initial_world_space_directions(x, y, width, height, world_space_eye,
-                                     m_film_to_world, world_space_directions);
+inline void initial_world_space_directions_cpu(
+    BlockData block_data, const Eigen::Vector3f &world_space_eye,
+    const scene::Transform &m_film_to_world,
+    Span<Eigen::Vector3f> world_space_directions) {
+  for (unsigned block_index = 0; block_index < block_data.generalNumBlocks();
+       block_index++) {
+    for (unsigned thread_index = 0;
+         thread_index < block_data.generalBlockSize(); thread_index++) {
+      initial_world_space_directions_impl(block_index, thread_index, block_data,
+                                          world_space_eye, m_film_to_world,
+                                          world_space_directions);
     }
   }
 }
@@ -84,7 +78,7 @@ solve_type(scene::Shape shape_type, const Eigen::Vector3f &point,
 template <bool normal_and_uv>
 __inline__ __host__
     __device__ thrust::optional<BestIntersectionGeneral<normal_and_uv>>
-    get_shape_intersection(const scene::ShapeData *shapes,
+    get_shape_intersection(Span<const scene::ShapeData> shapes,
                            const uint16_t shape_idx,
                            const Eigen::Vector3f &world_space_eye,
                            const Eigen::Vector3f &world_space_direction) {
@@ -106,7 +100,7 @@ __inline__ __host__
 template <typename F>
 __inline__ __host__ __device__ void solve_general_intersection(
     const ByTypeDataRef &by_type_data, const Traversal &traversal,
-    const Action *actions, const scene::ShapeData *shapes,
+    Span<const Action> actions, Span<const scene::ShapeData> shapes,
     const Eigen::Vector3f &world_space_eye,
     const Eigen::Vector3f &world_space_direction, const unsigned &ignore_v,
     const uint8_t &disable, thrust::optional<BestIntersection> &best,

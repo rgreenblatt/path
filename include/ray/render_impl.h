@@ -8,6 +8,7 @@
 #include "ray/execution_model.h"
 #include "ray/kdtree.h"
 #include "scene/scene.h"
+#include "ray/block_data.h"
 
 #include <thrust/device_vector.h>
 #include <thrust/optional.h>
@@ -33,9 +34,8 @@ using DataType = typename get_vector_type<execution_model, T>::type;
 template <ExecutionModel execution_model> class RendererImpl {
 public:
   void render(BGRA *pixels, const scene::Transform &m_film_to_world,
-              const Eigen::Affine3f &world_to_film,
-              const Eigen::Projective3f &unhinging, bool use_kd_tree,
-              bool show_times);
+              const Eigen::Projective3f &world_to_film, bool use_kd_tree,
+              bool use_traversals, bool show_times);
 
   RendererImpl(unsigned width, unsigned height, unsigned super_sampling_rate,
                unsigned recursive_iterations, std::unique_ptr<scene::Scene> &s);
@@ -57,10 +57,8 @@ private:
     ByTypeData(scene::Shape shape_type) : shape_type(shape_type) {}
   };
 
-  unsigned effective_width_;
-  unsigned effective_height_;
-  unsigned super_sampling_rate_;
-  unsigned pixel_size_;
+  const detail::BlockData block_data_;
+  const unsigned super_sampling_rate_;
 
   unsigned recursive_iterations_;
 
@@ -79,7 +77,7 @@ private:
   ManangedMemVec<unsigned> group_indexes_;
   DataType<detail::Traversal> traversals_;
   DataType<detail::Action> actions_;
-  DataType<detail::TraversalData> traversal_data_;
+  ManangedMemVec<detail::TraversalData> traversal_data_;
   std::vector<detail::Traversal> traversals_cpu_;
   std::vector<detail::Action> actions_cpu_;
   std::vector<detail::TraversalData> traversal_data_cpu_;

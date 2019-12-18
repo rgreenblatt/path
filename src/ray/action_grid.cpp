@@ -4,14 +4,12 @@
 namespace ray {
 namespace detail {
 TraversalGrid::TraversalGrid(
-    const Plane &plane, const Eigen::Affine3f &transform,
-    const Eigen::Projective3f &unhinging, const scene::ShapeData *shapes,
+    const TriangleProjector &projector, const scene::ShapeData *shapes,
     uint16_t num_shapes, const Eigen::Array2f &min, const Eigen::Array2f &max,
     uint16_t num_divisions_x, uint16_t num_divisions_y, bool flip_x,
     bool flip_y,
     thrust::optional<std::vector<ProjectedTriangle> *> save_triangles)
-    : plane_(plane), transform_(transform), unhinging_(unhinging), min_(min),
-      max_(max), min_indexes_(0, 0),
+    : projector_(projector), min_(min), max_(max), min_indexes_(0, 0),
       max_indexes_(num_divisions_x, num_divisions_y), difference_(max - min),
       inverse_difference_(Eigen::Array2f(num_divisions_x, num_divisions_y) /
                           difference_),
@@ -62,8 +60,8 @@ void TraversalGrid::updateShape(const scene::ShapeData *shapes,
 
   triangles.clear();
 
-  project_shape(shapes[shape_to_update], plane_, transform_, unhinging_,
-                triangles, flip_x_, flip_y_);
+  project_shape(shapes[shape_to_update], projector_, triangles, flip_x_,
+                flip_y_);
 
   unsigned shape_grids_start = shape_to_update * num_divisions_y_;
 
@@ -90,8 +88,6 @@ void TraversalGrid::updateShape(const scene::ShapeData *shapes,
 
     thrust::optional<Eigen::Array2f> last_smaller_x;
     thrust::optional<Eigen::Array2f> last_larger_x;
-
-    unsigned y_division_index = 0;
 
     if (max_grid_indexes.y() - min_grid_indexes.y() == 1) {
       auto &shape_row_possibles =
@@ -122,9 +118,11 @@ void TraversalGrid::updateShape(const scene::ShapeData *shapes,
       thrust::optional<Eigen::Array2f> smaller_x = thrust::nullopt;
       thrust::optional<Eigen::Array2f> larger_x = thrust::nullopt;
 
+      uint8_t num_intersections = 0;
       for (uint8_t point_idx = 0; point_idx < 3; point_idx++) {
         auto out = get_intersection(point_idx);
         if (out.has_value()) {
+          num_intersections++;
           if (smaller_x.has_value()) {
             // can only have 2 intersections, so must have same value in this
             // case...
@@ -188,9 +186,8 @@ void TraversalGrid::updateShape(const scene::ShapeData *shapes,
           }
         }
 
-        auto bound_clamp = [&](uint16_t bound) -> uint16_t {
-          return std::clamp(bound, uint16_t(min_indexes_.x()),
-                            uint16_t(max_indexes_.x()));
+        auto bound_clamp = [&](float bound) -> uint16_t {
+          return std::clamp(bound, min_indexes_.x(), max_indexes_.x());
         };
 
         auto min_bound = ((smaller_smaller_x - min_) * inverse_difference_).x();
@@ -214,8 +211,6 @@ void TraversalGrid::updateShape(const scene::ShapeData *shapes,
           shape_row_possibles[3] = std::max(shape_row_possibles[3],
                                             bound_clamp(std::floor(max_bound)));
         }
-
-        y_division_index++;
       }
 
       last_smaller_x = smaller_x;
@@ -255,7 +250,9 @@ void TraversalGrid::copy_into(std::vector<Traversal> &traversals,
 
   const auto &last_traversal = start_traversals[traversal_size - 1];
 
-  actions.insert(actions.end(), last_traversal.start + last_traversal.size,
+  actions.insert(actions.end(),
+                 (last_traversal.start - action_start_index) +
+                     last_traversal.size,
                  Action());
 
   std::fill(action_num_.begin(), action_num_.end(), 0);

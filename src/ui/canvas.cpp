@@ -339,11 +339,10 @@ void Canvas::topView() {
 }
 
 void Canvas::resetTransform() {
-  auto [film_to_world, world_to_film, unhinging] = scene::get_camera_transform(
+  auto [film_to_world, world_to_film] = scene::get_camera_transform(
       look_, up_, pos_, 1.0f, width_, height_, 30.0f);
   film_to_world_ = film_to_world;
   world_to_film_ = world_to_film;
-  unhinging_ = unhinging;
 }
 
 void Canvas::tick() {
@@ -462,7 +461,7 @@ void Canvas::paintEvent(QPaintEvent * /* event */) {
 
   if (renderer_) {
     renderer_->render(reinterpret_cast<BGRA *>(image_.bits()), film_to_world_,
-                      world_to_film_, unhinging_, true, false);
+                      world_to_film_, true, true, false);
   }
 
   QPainter painter(this);

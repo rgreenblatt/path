@@ -5,11 +5,10 @@
 
 namespace ray {
 namespace detail {
-inline __host__ __device__ void float_to_bgra(unsigned x, unsigned y,
-                                              unsigned width, unsigned height,
-                                              unsigned super_sampling_rate,
-                                              const scene::Color *colors,
-                                              BGRA *bgra) {
+inline __host__ __device__ void
+float_to_bgras_impl(unsigned x, unsigned y, unsigned width, unsigned height,
+                    unsigned super_sampling_rate,
+                    Span<const scene::Color> colors, Span<BGRA> bgra) {
   if (x >= width || y >= height) {
     return;
   }
@@ -40,21 +39,22 @@ inline __host__ __device__ void float_to_bgra(unsigned x, unsigned y,
 }
 
 __global__ void floats_to_bgras(unsigned width, unsigned height,
-                                unsigned num_blocks_x, unsigned block_dim_x,
-                                unsigned block_dim_y,
                                 unsigned super_sampling_rate,
-                                const scene::Color *colors, BGRA *bgra) {
-  auto [x, y] = get_non_sparse_indexes(num_blocks_x, block_dim_x, block_dim_y);
+                                Span<const scene::Color> colors,
+                                Span<BGRA> bgra) {
+  unsigned x = threadIdx.x + blockIdx.x * blockDim.x;
+  unsigned y = threadIdx.y + blockIdx.y * blockDim.y;
 
-  float_to_bgra(x, y, width, height, super_sampling_rate, colors, bgra);
+  float_to_bgras_impl(x, y, width, height, super_sampling_rate, colors, bgra);
 }
 
 void floats_to_bgras_cpu(unsigned width, unsigned height,
                          unsigned super_sampling_rate,
-                         const scene::Color *colors, BGRA *bgra) {
+                         Span<const scene::Color> colors, Span<BGRA> bgra) {
   for (unsigned x = 0; x < width; x++) {
-    for (unsigned y = 0; y < width; y++) {
-      float_to_bgra(x, y, width, height, super_sampling_rate, colors, bgra);
+    for (unsigned y = 0; y < height; y++) {
+      float_to_bgras_impl(x, y, width, height, super_sampling_rate, colors,
+                         bgra);
     }
   }
 }

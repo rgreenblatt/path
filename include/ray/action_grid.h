@@ -1,7 +1,9 @@
 #pragma once
 
+#include "ray/intersect.h"
 #include "ray/projection.h"
 #include "ray/ray_utils.h"
+#include <lib/span.h>
 
 namespace ray {
 namespace detail {
@@ -26,7 +28,7 @@ struct Traversal {
   HOST_DEVICE Traversal() {}
 };
 
-struct TraversalData {
+struct ALIGN_STRUCT(16) TraversalData {
   uint16_t traversal_start;
   uint8_t axis;
   float value;
@@ -40,7 +42,7 @@ struct TraversalData {
                             uint16_t num_divisions_y)
       : traversal_start(traversal_start), axis(axis), value(value), min(min),
         convert_space_coords(Eigen::Array2f(num_divisions_x, num_divisions_y) /
-                             (max - min).array()),
+                             (1e-5f + max - min).array()),
         num_divisions_x(num_divisions_x) {}
 
   HOST_DEVICE TraversalData() {}
@@ -52,8 +54,7 @@ public:
 class TraversalGrid {
 public:
   // num_divisions_x > 0, num_divisions_y > 0
-  TraversalGrid(const Plane &plane, const Eigen::Affine3f &transform,
-                const Eigen::Projective3f &unhinging,
+  TraversalGrid(const TriangleProjector &projector,
                 const scene::ShapeData *shapes, uint16_t num_shapes,
                 const Eigen::Array2f &min, const Eigen::Array2f &max,
                 uint16_t num_divisions_x, uint16_t num_divisions_y,
@@ -72,9 +73,7 @@ public:
                  std::vector<Action> &actions);
 
 private:
-  Plane plane_;
-  Eigen::Affine3f transform_;
-  Eigen::Projective3f unhinging_;
+  TriangleProjector projector_;
   Eigen::Array2f min_;
   Eigen::Array2f max_;
   Eigen::Array2f min_indexes_;
@@ -91,6 +90,45 @@ private:
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+};
+
+class TraversalGridsRef {
+public:
+  TraversalGridsRef(Span<const Action> actions,
+                    Span<const TraversalData> traversal_data,
+                    Span<const Traversal> traversals)
+      : actions(actions), traversal_data_(traversal_data),
+        traversals_(traversals) {}
+
+  HOST_DEVICE const Traversal &getCameraTraversal(unsigned group_index) const {
+    return traversals_[group_index];
+  }
+
+  HOST_DEVICE const Traversal &
+  getLightTraversal(unsigned light_idx, const Eigen::Vector3f &direction,
+                    const Eigen::Vector3f &point) const {
+    const auto &traversal_data = traversal_data_[light_idx];
+
+    auto intersection = get_intersection_point(direction, traversal_data.value,
+                                               point, traversal_data.axis);
+
+    auto x_y_idx = ((intersection.array() - traversal_data.min) *
+                    traversal_data.convert_space_coords)
+                       .cast<unsigned>()
+                       .eval();
+
+    unsigned light_traversal_index =
+        x_y_idx.x() + x_y_idx.y() * traversal_data.num_divisions_x +
+        traversal_data.traversal_start;
+
+    return traversals_[light_traversal_index];
+  }
+
+  const Span<const Action> actions;
+
+private:
+  const Span<const TraversalData> traversal_data_;
+  const Span<const Traversal> traversals_;
 };
 } // namespace detail
 } // namespace ray

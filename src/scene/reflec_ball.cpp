@@ -139,16 +139,18 @@ ReflecBalls::ReflecBalls() {
   auto light_color = Color(1.0, 1.0, 1.0);
 
   for (auto translate : {
-           Eigen::Vector3f(0, 8, 30),
-           Eigen::Vector3f(0, 8, -30),
+           Eigen::Vector3f(0, 8, 1000),
+           /* Eigen::Vector3f(0, 8, -30), */
        }) {
     addLight(Light(light_color,
                    PointLight(translate, Eigen::Array3f(1, 0.0, 0.001))));
   }
 
+#if 0
   for (auto dir : {Eigen::Vector3f(-1, -1, 0), Eigen::Vector3f(1, -1, 0)}) {
     addLight(Light(light_color * 0.5, DirectionalLight(dir)));
   }
+#endif
 
   finishConstructScene();
 }

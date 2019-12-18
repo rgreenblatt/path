@@ -2,6 +2,7 @@
 
 #include "lib/unified_memory_vector.h"
 #include "scene/color.h"
+#include "lib/span.h"
 
 namespace scene {
 struct TextureImageRef {
@@ -41,8 +42,9 @@ struct TextureData {
   TextureData(unsigned index, float repeat_u, float repeat_v)
       : index(index), repeat_u(repeat_u), repeat_v(repeat_v) {}
 
-  inline const HOST_DEVICE Color &sample(const TextureImageRef *textures,
-                                         const Eigen::Array2f &uv) const {
+  inline const HOST_DEVICE Color &
+  sample(const Span<const TextureImageRef> textures,
+         const Eigen::Array2f &uv) const {
     const auto &texture = textures[index];
     unsigned x = static_cast<unsigned>(
                      uv[0] * static_cast<float>(texture.width) * repeat_u) %

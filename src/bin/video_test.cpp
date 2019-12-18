@@ -1,6 +1,7 @@
 #include "ray/render.h"
 #include "scene/camera.h"
 #include "scene/pool_scene.h"
+#include "scene/reflec_balls.h"
 
 #include "ProgressBar.hpp"
 #include <QImage>
@@ -13,20 +14,19 @@
 
 template <ray::ExecutionModel execution_model>
 void render_frames(unsigned width, unsigned height,
-                   unsigned super_sampling_rate, scene::PoolScene &scene,
+                   unsigned super_sampling_rate, scene::ReflecBalls &scene,
                    const Eigen::Affine3f &film_to_world,
-                   const Eigen::Affine3f&world_to_film,
-                   const Eigen::Projective3f &unhinging,
+                   const Eigen::Projective3f &world_to_film,
                    const std::string &dir_name, unsigned depth,
-                   bool use_kd_tree, unsigned frames, float frame_rate,
-                   unsigned physics_super_sampling_rate, bool make_video) {
+                   bool use_kd_tree, bool use_traversals, unsigned frames,
+                   float frame_rate, unsigned physics_super_sampling_rate,
+                   bool make_video) {
 #if 0
   if (!std::filesystem::exists(dir_name)) {
     std::filesystem::create_directories(dir_name);
   }
 #endif
-  std::unique_ptr<scene::Scene> s =
-      std::make_unique<scene::PoolScene>(scene);
+  std::unique_ptr<scene::Scene> s = std::make_unique<scene::ReflecBalls>(scene);
 
   ray::Renderer<execution_model> renderer(width, height, super_sampling_rate,
                                           depth, s);
@@ -52,8 +52,8 @@ void render_frames(unsigned width, unsigned height,
   for (unsigned i = 0; i < frames; i++) {
     auto bgra_data = reinterpret_cast<BGRA *>(frame.data);
 
-    renderer.render(bgra_data, film_to_world, world_to_film, unhinging, use_kd_tree,
-                    false);
+    renderer.render(bgra_data, film_to_world, world_to_film, use_kd_tree,
+                    use_traversals, false);
 
     for (unsigned i = 0; i < physics_super_sampling_rate; i++) {
       renderer.get_scene().step(secs_per_frame);
@@ -83,7 +83,7 @@ void render_frames(unsigned width, unsigned height,
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 11) {
+  if (argc != 12) {
     std::cout << "wrong num args" << std::endl;
 
     return 1;
@@ -94,35 +94,35 @@ int main(int argc, char *argv[]) {
   const unsigned height = boost::lexical_cast<unsigned>(argv[3]);
   const unsigned super_sampling_rate = boost::lexical_cast<unsigned>(argv[4]);
   const bool use_kd_tree = boost::lexical_cast<bool>(argv[5]);
-  const bool render_cpu = boost::lexical_cast<bool>(argv[6]);
-  const unsigned frames = boost::lexical_cast<unsigned>(argv[7]);
-  const float frame_rate = boost::lexical_cast<float>(argv[8]);
+  const bool use_traversals = boost::lexical_cast<bool>(argv[6]);
+  const bool render_cpu = boost::lexical_cast<bool>(argv[7]);
+  const unsigned frames = boost::lexical_cast<unsigned>(argv[8]);
+  const float frame_rate = boost::lexical_cast<float>(argv[9]);
   const unsigned physics_super_sampling_rate =
-      boost::lexical_cast<unsigned>(argv[9]);
-  const bool make_video =
-      boost::lexical_cast<bool>(argv[10]);
+      boost::lexical_cast<unsigned>(argv[10]);
+  const bool make_video = boost::lexical_cast<bool>(argv[11]);
 
-  scene::PoolScene pool_scene;
+  scene::ReflecBalls pool_scene;
 
   const std::string file_name = "out.png";
 
-  auto [film_to_world, world_to_film, unhinging] = scene::get_camera_transform(
+  auto [film_to_world, world_to_film] = scene::get_camera_transform(
       Eigen::Vector3f(-2, -1, 0), Eigen::Vector3f(0, 1, 0),
       Eigen::Vector3f(50, 30, 0), 1.0f, width, height, 30.0f);
 
   if (render_cpu) {
     std::cout << "rendering cpu" << std::endl;
     render_frames<ray::ExecutionModel::CPU>(
-        width, height, super_sampling_rate, pool_scene, film_to_world, world_to_film, unhinging,  "cpu_video/",
-        depth, use_kd_tree, frames, frame_rate, physics_super_sampling_rate,
-        make_video);
+        width, height, super_sampling_rate, pool_scene, film_to_world,
+        world_to_film, "cpu_video/", depth, use_kd_tree, use_traversals, frames,
+        frame_rate, physics_super_sampling_rate, make_video);
     std::cout << "=============" << std::endl;
   }
 
   std::cout << "rendering gpu" << std::endl;
   render_frames<ray::ExecutionModel::GPU>(
       width, height, super_sampling_rate, pool_scene, film_to_world,
-      world_to_film, unhinging, "gpu_video/", depth, use_kd_tree, frames,
+      world_to_film, "gpu_video/", depth, use_kd_tree, use_traversals, frames,
       frame_rate, physics_super_sampling_rate, make_video);
 
   return 0;

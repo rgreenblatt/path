@@ -4,6 +4,8 @@
 #include "scene/shape_data.h"
 #include <Eigen/Dense>
 
+#include <dbg.h>
+
 namespace ray {
 namespace detail {
 class ProjectedTriangle {
@@ -25,53 +27,83 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
+struct DirectionPlane {
+  Eigen::Vector3f loc_or_dir;
+  bool is_loc;
+  float value_to_project_to;
+  uint8_t axis;
+
+  DirectionPlane(const Eigen::Vector3f &loc_or_dir, bool is_loc,
+                 float value_to_project_to, uint8_t axis)
+      : loc_or_dir(loc_or_dir), is_loc(is_loc),
+        value_to_project_to(value_to_project_to), axis(axis) {}
+
+public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+};
+
+class TriangleProjector {
+public:
+  enum class Type {
+    Transform,
+    DirectionPlane,
+  };
+
+  TriangleProjector(const TriangleProjector &other) : type_(other.type_) {
+    switch (type_) {
+    case Type::DirectionPlane:
+      direction_plane_ = other.direction_plane_;
+    case Type::Transform:
+      transform_ = other.transform_;
+    }
+  }
+
+  TriangleProjector(const Eigen::Projective3f &transform)
+      : type_(Type::Transform), transform_(transform) {}
+
+  TriangleProjector(const DirectionPlane &direction_plane)
+      : type_(Type::DirectionPlane), direction_plane_(direction_plane) {}
+
+  Type type() const { return type_; }
+
+  Eigen::Projective3f
+  get_total_transform(const Eigen::Affine3f &other_transform) const {
+    switch (type_) {
+    case Type::DirectionPlane:
+      return other_transform;
+    case Type::Transform:
+      return transform_ * other_transform;
+    }
+  }
+
+  template <typename F> auto visit(const F &f) const {
+    switch (type_) {
+    case Type::DirectionPlane:
+      return f(direction_plane_);
+    case Type::Transform:
+      return f(uint8_t());
+    }
+  }
+
+private:
+  Type type_;
+  union {
+    Eigen::Projective3f transform_;
+    DirectionPlane direction_plane_;
+  };
+
+public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+};
+
 inline Eigen::Vector3f apply_projective(const Eigen::Vector3f &vec,
-                                        const Eigen::Affine3f &transform,
-                                        const Eigen::Projective3f &unhinging) {
-  auto first_t = transform * vec;
-  /* if (std::abs(first_t.x()) > 1 || std::abs(first_t.z()) > 1) { */
-  /*   return first_t; */
-  /* } */
+                                        const Eigen::Projective3f &projection) {
   Eigen::Vector4f homog;
-  homog.template head<3>() = first_t;
+  homog.template head<3>() = vec;
   homog[3] = 1.0f;
-  auto out = unhinging * homog;
+  auto out = projection * homog;
 
   return (out.head<3>() / out[3]).eval();
 }
-
-struct Plane {
-  Eigen::Vector3f normal;
-  Eigen::Vector3f origin_location;
-
-  Eigen::Array2f find_plane_coordinate(const Eigen::Vector3f &vec) const {
-    auto dist = (vec.template head<2>() - origin_location.template head<2>())
-                    .array()
-                    .eval();
-    auto ratioed =
-        ((normal.template head<2>().array() * dist) / normal.z()).eval();
-
-    return Eigen::sqrt(ratioed * ratioed + dist * dist) * Eigen::sign(dist);
-  }
-
-  Plane get_transform(const Eigen::Affine3f &transform,
-                      const Eigen::Projective3f &unhinging) const {
-    return Plane((unhinging * transform).linear() * normal,
-                 apply_projective(origin_location, transform, unhinging));
-  }
-
-  Plane(const Eigen::Vector3f &normal, const Eigen::Vector3f &origin_location)
-      : normal(normal), origin_location(origin_location) {}
-
-  Plane(uint8_t axis, float value) {
-    normal = Eigen::Vector3f::Zero();
-    //TODO (sgn???)
-    normal[axis] = 1.0f;
-    origin_location = Eigen::Vector3f::Zero();
-    origin_location[axis] = value;
-  }
-
-  Plane() {}
-};
 } // namespace detail
 } // namespace ray

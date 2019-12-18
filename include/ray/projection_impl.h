@@ -1,7 +1,10 @@
 #pragma once
 
+#include "ray/intersect.h"
 #include "ray/projection.h"
 #include <boost/range/adaptor/indexed.hpp>
+
+#include <dbg.h>
 
 namespace ray {
 namespace detail {
@@ -9,23 +12,17 @@ inline Eigen::Array2f get_xy(const Eigen::Vector3f &vec) {
   return Eigen::Array2f(vec[0], vec[1]);
 }
 
-/* inline float point_plane_dist(const Plane &plane, */
-/*                               const Eigen::Vector3f &point) {} */
-
 using Triangle = std::array<Eigen::Vector3f, 3>;
 
-inline Triangle transform_triangle(const Eigen::Affine3f &transform,
-                                   const Eigen::Projective3f &unhinging,
+inline Triangle transform_triangle(const Eigen::Projective3f &transform,
                                    const Triangle &tri) {
-  auto get_nth = [&](uint8_t n) {
-    return apply_projective(tri[n], transform, unhinging);
-  };
+  auto get_nth = [&](uint8_t n) { return apply_projective(tri[n], transform); };
 
   return {get_nth(0), get_nth(1), get_nth(2)};
 }
 
-inline Eigen::Vector3f get_triangle_normal(const Triangle &tri) {
-  return (tri[1] - tri[0]).cross(tri[2] - tri[1]).normalized();
+inline bool get_triangle_normal_sign(const Triangle &tri) {
+  return (tri[1] - tri[0]).cross(tri[2] - tri[1]).normalized().z() > 0.0f;
 }
 
 const static std::array<Triangle, 12> cube_polys = {{
@@ -104,20 +101,31 @@ const static auto bounding_cylinder_polys = cube_polys;
 
 template <size_t num_triangles, typename F>
 inline void
-project_triangles(const Plane &plane, const Eigen::Affine3f &transform,
-                  const Eigen::Projective3f &unhinging,
+project_triangles(const Eigen::Projective3f &transform,
+                  const TriangleProjector &projector,
                   const std::array<Triangle, num_triangles> &triangles,
                   bool flip_x, bool flip_y, const F &add_tri) {
   for (const auto &triangle : triangles) {
-    const auto transformed_triangle =
-        transform_triangle(transform, unhinging, triangle);
-    const auto triangle_normal = get_triangle_normal(transformed_triangle);
-    if (triangle_normal.z() > 0.0f) {
+    Triangle transformed_triangle = transform_triangle(transform, triangle);
+
+    projector.visit([&](const auto &v) {
+      using T = std::decay_t<decltype(v)>;
+      if constexpr (std::is_same<T, DirectionPlane>::value) {
+        for (auto &transformed_point : transformed_triangle) {
+          transformed_point.head<2>() = get_intersection_point(
+              v.is_loc ? (v.loc_or_dir - transformed_point).eval()
+                       : v.loc_or_dir,
+              v.value_to_project_to, transformed_point, v.axis);
+        }
+      }
+    });
+
+    if (get_triangle_normal_sign(transformed_triangle)) {
       std::array<Eigen::Array2f, 3> projected_points;
       std::transform(transformed_triangle.begin(), transformed_triangle.end(),
                      projected_points.begin(),
                      [&](const Eigen::Vector3f &point) {
-                       auto new_point = plane.find_plane_coordinate(point);
+                       Eigen::Array2f new_point = point.head<2>();
                        if (flip_x) {
                          new_point.x() *= -1.0f;
                        }
@@ -132,16 +140,14 @@ project_triangles(const Plane &plane, const Eigen::Affine3f &transform,
   }
 }
 
-inline void project_shape(const scene::ShapeData &shape, const Plane &plane,
-                          const Eigen::Affine3f &projection,
-                          const Eigen::Projective3f &unhinging,
+inline void project_shape(const scene::ShapeData &shape,
+                          const TriangleProjector &projector,
                           std::vector<ProjectedTriangle> &projected_triangles,
-                          bool flip_x, bool flip_y, bool check = false) {
-  const Plane projected_plane = plane.get_transform(projection, unhinging);
-
-  Eigen::Affine3f transform = projection * shape.get_transform();
+                          bool flip_x = false, bool flip_y = false) {
+  Eigen::Projective3f transform =
+      projector.get_total_transform(shape.get_transform());
   auto project_triangles_s = [&](const auto &triangles, bool is_guaranteed) {
-    project_triangles(projected_plane, transform, unhinging, triangles, flip_x, flip_y,
+    project_triangles(transform, projector, triangles, flip_x, flip_y,
                       [&](const std::array<Eigen::Array2f, 3> &points) {
                         projected_triangles.push_back(
                             ProjectedTriangle(points, is_guaranteed));
@@ -150,7 +156,7 @@ inline void project_shape(const scene::ShapeData &shape, const Plane &plane,
 
   switch (shape.get_shape()) {
   case scene::Shape::Sphere:
-    project_triangles_s(within_sphere_polys, true);
+    /* project_triangles_s(within_sphere_polys, true); */
     project_triangles_s(bounding_sphere_polys, false);
     break;
   case scene::Shape::Cube:

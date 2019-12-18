@@ -69,8 +69,7 @@ private:
   std::thread handle_;
 
   Eigen::Affine3f film_to_world_;
-  Eigen::Affine3f world_to_film_;
-  Eigen::Projective3f unhinging_;
+  Eigen::Projective3f world_to_film_;
   ray::Renderer<ray::ExecutionModel::GPU> *renderer_;
 
   static constexpr float min_physics_step_size = 0.0001;
