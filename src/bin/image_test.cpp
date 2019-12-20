@@ -35,6 +35,7 @@ void run_test(unsigned width, unsigned height, unsigned super_sampling_rate,
   renderer.render(bgra_data, film_to_world, world_to_film, use_kd_tree,
                   use_traversals, true);
 
+#if 0
   unsigned x_rad = 4;
   unsigned y_rad = 4;
 
@@ -49,6 +50,7 @@ void run_test(unsigned width, unsigned height, unsigned super_sampling_rate,
   };
 
   draw_point(650, 290, BGRA(100, 100, 100, 0));
+#endif
 
   std::cout << "rendered in "
             << std::chrono::duration_cast<std::chrono::duration<double>>(

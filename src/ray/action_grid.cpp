@@ -66,13 +66,15 @@ void TraversalGrid::updateShape(const scene::ShapeData *shapes,
     auto min_p = points[0].cwiseMin(points[1].cwiseMin(points[2])).eval();
     auto max_p = points[0].cwiseMax(points[1].cwiseMax(points[2])).eval();
 
-    auto max_grid_indexes = ((max_p - min_) * inverse_difference_)
+    // small epsilon required because of Ofast????
+    auto max_grid_indexes = ((max_p - min_) * inverse_difference_ - 1e-5f)
                                 .ceil()
                                 .cwiseMin(max_indexes_)
                                 .cwiseMax(min_indexes_)
                                 .cast<uint16_t>()
                                 .eval();
-    auto min_grid_indexes = ((min_p - min_) * inverse_difference_)
+    auto min_grid_indexes = 
+      ((min_p - min_) * inverse_difference_ + 1e-5f)
                                 .floor()
                                 .cwiseMin(max_indexes_)
                                 .cwiseMax(min_indexes_)
