@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// needed for some reason when using clang...
+#define CUB_USE_COOPERATIVE_GROUPS
+
 #ifdef __CUDACC__
 #define HOST_DEVICE __host__ __device__
 #else

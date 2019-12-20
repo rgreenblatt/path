@@ -94,8 +94,8 @@ ByTypeDataRef RendererImpl<execution_model>::ByTypeData::initialize(
 template <ExecutionModel execution_model>
 void RendererImpl<execution_model>::render(
     BGRA *pixels, const scene::Transform &m_film_to_world,
-    const Eigen::Projective3f &world_to_film,
-    bool use_kd_tree, bool use_traversals, bool show_times) {
+    const Eigen::Projective3f &world_to_film, bool use_kd_tree,
+    bool use_traversals, bool show_times) {
   namespace chr = std::chrono;
 
   const auto lights = scene_->getLights();
@@ -203,23 +203,27 @@ void RendererImpl<execution_model>::render(
 
   traversals_offset = traversals_cpu_.size();
 
-  traversal_data_cpu_.resize(num_lights);
+  const Eigen::Array3<unsigned> num_divisions(16, 16, 16);
+
+  const Eigen::Array3<unsigned> num_translations = 2 * num_divisions + 1;
+
+  const Eigen::Array3<unsigned> total_translations(
+      num_translations[1] * num_translations[2],
+      num_translations[0] * num_translations[2],
+      num_translations[0] * num_translations[1]);
+  const unsigned total_size = total_translations.sum();
+
+  traversal_data_cpu_.resize(num_lights + total_size);
 
   unsigned projection_index = 0;
 
-  unsigned num_division_light_x = 32;
-  unsigned num_division_light_y = 32;
+  const auto &max_bound = scene_->getMaxBound();
+  const auto &min_bound = scene_->getMinBound();
 
-  auto add_projection = [&](bool is_loc, const Eigen::Vector3f &loc_or_dir) {
-    auto &max_bound = scene_->getMaxBound();
-    auto &min_bound = scene_->getMinBound();
-    if (is_loc && (loc_or_dir.array() <= max_bound.array()).all() &&
-        (loc_or_dir.array() >= min_bound.array()).all()) {
-      dbg("INTERNAL POINT LIGHTS NOT SUPPORTED");
-      abort();
-    }
-    const auto center = ((min_bound + max_bound) / 2).eval();
-    const auto dims = (max_bound - min_bound).eval();
+  const auto center = ((min_bound + max_bound) / 2).eval();
+  const auto dims = (max_bound - min_bound).eval();
+
+  auto get_axis = [&](bool is_loc, const Eigen::Vector3f &loc_or_dir) {
     const auto dir = is_loc ? (center - loc_or_dir).eval() : loc_or_dir;
     const auto normalized_directions = dir.array() / dims.array();
     unsigned axis;
@@ -236,83 +240,138 @@ void RendererImpl<execution_model>::render(
 
     float projection_value = is_min ? min_bound[axis] : max_bound[axis];
 
-    std::vector<ProjectedTriangle> triangles;
-    Eigen::Affine3f bounding_transform = Eigen::Translation3f(center) *
-                                         Eigen::Scaling(dims) *
-                                         Eigen::Affine3f::Identity();
-    TriangleProjector projector(
-        DirectionPlane(loc_or_dir, is_loc, projection_value, axis));
-    project_shape(scene::ShapeData(bounding_transform, scene::Material(),
-                                   scene::Shape::Cube),
-                  projector, triangles);
-    Eigen::Array2f projected_min = Eigen::Array2f(
-        std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-    Eigen::Array2f projected_max =
-        Eigen::Array2f(std::numeric_limits<float>::lowest(),
-                       std::numeric_limits<float>::lowest());
-    for (const auto &triangle : triangles) {
-      for (const auto &point : triangle.points()) {
-        projected_min = projected_min.cwiseMin(point);
-        projected_max = projected_max.cwiseMax(point);
-      }
-    }
-
-    TraversalGrid grid(projector, shapes.data(), shapes.size(), projected_min,
-                       projected_max, num_division_light_x,
-                       num_division_light_y);
-
-    grid.copy_into(traversals_cpu_, actions_cpu_);
-
-    Eigen::Vector2f intersected_min(std::numeric_limits<float>::max(),
-                                    std::numeric_limits<float>::max());
-    Eigen::Vector2f intersected_max(std::numeric_limits<float>::lowest(),
-                                    std::numeric_limits<float>::lowest());
-    for (auto x : {-0.5f, 0.5f}) {
-      for (auto y : {-0.5f, 0.5f}) {
-        for (auto z : {-0.5f, 0.5f}) {
-          Eigen::Vector3f transformed_point =
-              bounding_transform * Eigen::Vector3f(x, y, z);
-          auto intersection = get_intersection_point(
-              is_loc ? (loc_or_dir - transformed_point).eval() : loc_or_dir,
-              projection_value, transformed_point, axis);
-          intersected_min = intersected_min.cwiseMin(intersection);
-          intersected_max = intersected_max.cwiseMax(intersection);
-        }
-      }
-    }
-
-    traversal_data_cpu_[projection_index] = TraversalData(
-        traversals_offset, axis, projection_value, intersected_min,
-        intersected_max, num_division_light_x, num_division_light_y);
-
-#if 0
-    dbg("intersected min max");
-    std::cout << intersected_min << std::endl;
-    std::cout << intersected_max << std::endl;
-    std::cout << min_bound << std::endl;
-    std::cout << max_bound << std::endl;
-    std::cout << loc_or_dir << std::endl;
-    dbg(axis);
-    dbg(projection_value);
-    std::cout << traversal_data_cpu_[projection_index].convert_space_coords
-              << std::endl;
-    std::cout << bounding_transform.matrix() << std::endl;
-#endif
-
-    traversals_offset = traversals_cpu_.size();
-    projection_index++;
+    return std::make_tuple(axis, projection_value);
   };
+
+  auto add_projection =
+      [&](bool is_loc, const Eigen::Vector3f &loc_or_dir,
+          unsigned num_divisions_x, unsigned num_divisions_y, uint8_t axis,
+          float projection_value,
+          const thrust::optional<std::tuple<Eigen::Array2f, Eigen::Array2f>>
+              &projection_surface_min_max) {
+        if (is_loc && (loc_or_dir.array() <= max_bound.array()).all() &&
+            (loc_or_dir.array() >= min_bound.array()).all()) {
+          dbg("INTERNAL POINT LIGHTS NOT SUPPORTED");
+          abort();
+        }
+
+        std::vector<ProjectedTriangle> triangles;
+        Eigen::Affine3f bounding_transform = Eigen::Translation3f(center) *
+                                             Eigen::Scaling(dims) *
+                                             Eigen::Affine3f::Identity();
+        TriangleProjector projector(
+            DirectionPlane(loc_or_dir, is_loc, projection_value, axis));
+        project_shape(scene::ShapeData(bounding_transform, scene::Material(),
+                                       scene::Shape::Cube),
+                      projector, triangles);
+
+        Eigen::Array2f projected_min =
+            Eigen::Array2f(std::numeric_limits<float>::max(),
+                           std::numeric_limits<float>::max());
+        Eigen::Array2f projected_max =
+            Eigen::Array2f(std::numeric_limits<float>::lowest(),
+                           std::numeric_limits<float>::lowest());
+
+        if (projection_surface_min_max.has_value()) {
+          const auto &[p_min, p_max] = *projection_surface_min_max;
+          projected_min = p_min;
+          projected_max = p_max;
+        } else {
+          for (const auto &triangle : triangles) {
+            for (const auto &point : triangle.points()) {
+              projected_min = projected_min.cwiseMin(point);
+              projected_max = projected_max.cwiseMax(point);
+            }
+          }
+        }
+
+        TraversalGrid grid(projector, shapes.data(), shapes.size(),
+                           projected_min, projected_max, num_divisions_x,
+                           num_divisions_y);
+
+        traversal_data_cpu_[projection_index] = TraversalData(
+            traversals_offset, axis, projection_value, projected_min,
+            projected_max, num_divisions_x, num_divisions_y);
+
+        grid.copy_into(traversals_cpu_, actions_cpu_);
+
+        traversals_offset = traversals_cpu_.size();
+        projection_index++;
+      };
+
+  unsigned num_division_light_x = 32;
+  unsigned num_division_light_y = 32;
 
   for (unsigned light_idx = 0; light_idx < num_lights; light_idx++) {
     const auto &light = lights[light_idx];
     light.visit([&](auto &&light_data) {
       using T = std::decay_t<decltype(light_data)>;
       if constexpr (std::is_same<T, scene::DirectionalLight>::value) {
-        add_projection(false, light_data.direction);
+        auto [axis, value] = get_axis(false, light_data.direction);
+        add_projection(false, light_data.direction, num_division_light_x,
+                       num_division_light_y, axis, value, thrust::nullopt);
       } else {
-        add_projection(true, light_data.position);
+        auto [axis, value] = get_axis(true, light_data.position);
+        add_projection(true, light_data.position, num_division_light_x,
+                       num_division_light_y, axis, value, thrust::nullopt);
       }
     });
+  }
+
+  std::array<unsigned, 3> traversal_data_starts;
+
+  Eigen::Array3f multipliers = dims.array() / num_divisions.cast<float>();
+  std::array<Eigen::Array2f, 3> min_side_bounds;
+  std::array<Eigen::Array2f, 3> max_side_bounds;
+  std::array<Eigen::Array2<int>, 3> min_side_diffs;
+  std::array<Eigen::Array2<int>, 3> max_side_diffs;
+
+  Eigen::Array3f inverse_multipliers = 1.0f / multipliers;
+
+  for (uint8_t axis : {0, 1, 2}) {
+    traversal_data_starts[axis] = projection_index;
+    uint8_t first_axis = (axis + 1) % 3;
+    uint8_t second_axis = (axis + 2) % 3;
+    float first_multip = multipliers[first_axis];
+    float second_multip = multipliers[second_axis];
+    int first_divisions = num_divisions[first_axis];
+    int second_divisions = num_divisions[second_axis];
+    Eigen::Vector3f dir;
+    dir[axis] = max_bound[axis] - min_bound[axis];
+
+    min_side_bounds[axis] =
+        (get_not_axis(min_bound, axis) -
+         get_not_axis(multipliers, axis) *
+             get_not_axis(num_divisions, axis).cast<float>()) *
+        get_not_axis(inverse_multipliers, axis);
+    max_side_bounds[axis] =
+        (get_not_axis(max_bound, axis) +
+         get_not_axis(multipliers, axis) *
+             get_not_axis(num_divisions, axis).cast<float>()) *
+        get_not_axis(inverse_multipliers, axis);
+    min_side_diffs[axis] = -get_not_axis(num_divisions, axis).cast<int>();
+    max_side_diffs[axis] = get_not_axis(num_divisions, axis).cast<int>();
+
+    for (int translation_second = -second_divisions;
+         translation_second <= second_divisions; translation_second++) {
+      for (int translation_first = -first_divisions;
+           translation_first <= first_divisions; translation_first++) {
+        dir[first_axis] = translation_first * first_multip;
+        dir[second_axis] = translation_second * second_multip;
+
+        // TODO check args...
+        add_projection(
+            false, dir,
+            num_divisions[first_axis] + unsigned(std::abs(translation_first)),
+            num_divisions[second_axis] + unsigned(std::abs(translation_second)),
+            axis, max_bound[axis], thrust::nullopt);
+      }
+    }
+  }
+
+  if (traversal_data_cpu_.size() != projection_index) {
+    dbg("INVALID SIZE");
+    abort();
   }
 
   auto copy = [](auto start, auto end, auto start_copy) {
@@ -341,6 +400,12 @@ void RendererImpl<execution_model>::render(
             .count());
   }
 
+  TraversalGridsRef traveral_grids_ref(
+      to_const_span(actions_), to_const_span(traversal_data_),
+      to_const_span(traversals_), traversal_data_starts, min_bound, max_bound,
+      inverse_multipliers, min_side_bounds, max_side_bounds, min_side_diffs,
+      max_side_diffs);
+
   for (unsigned depth = 0; depth < recursive_iterations_; depth++) {
     bool is_first = depth == 0;
 
@@ -354,10 +419,6 @@ void RendererImpl<execution_model>::render(
     }
 
     const auto start_intersect = chr::high_resolution_clock::now();
-
-    TraversalGridsRef traveral_grids_ref(to_const_span(actions_),
-                                         to_const_span(traversal_data_),
-                                         to_const_span(traversals_));
 
     /* #pragma omp parallel for */
     for (auto &data : by_type_data_gpu) {
@@ -384,7 +445,7 @@ void RendererImpl<execution_model>::render(
             to_span(group_disables_),
             Span<const unsigned, false>(group_indexes_.data(),
                                         group_indexes_.size()),
-            is_first, use_kd_tree, use_traversals);
+            is_first, use_kd_tree, use_traversals, current_num_blocks);
       }
     }
 

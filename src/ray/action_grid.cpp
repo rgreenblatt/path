@@ -17,17 +17,13 @@ TraversalGrid::TraversalGrid(
       flip_x_(flip_x), flip_y_(flip_y),
       action_num_(num_divisions_x * num_divisions_y) {
   resize(num_shapes);
-#pragma omp parallel if (num_shapes > 128 && !save_triangles.has_value())
-  {
-    std::vector<ProjectedTriangle> triangles;
-#pragma omp for
-    for (uint16_t shape_idx = 0; shape_idx < num_shapes; shape_idx++) {
-      updateShape(shapes, shape_idx, triangles);
-      if (save_triangles.has_value()) {
-        (*save_triangles)
-            ->insert((*save_triangles)->end(), triangles.begin(),
-                     triangles.end());
-      }
+  std::vector<ProjectedTriangle> triangles;
+  for (uint16_t shape_idx = 0; shape_idx < num_shapes; shape_idx++) {
+    updateShape(shapes, shape_idx, triangles);
+    if (save_triangles.has_value()) {
+      (*save_triangles)
+          ->insert((*save_triangles)->end(), triangles.begin(),
+                   triangles.end());
     }
   }
 }

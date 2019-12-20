@@ -46,16 +46,17 @@ __host__ __device__ inline void raytrace_impl(
         const auto &world_space_direction = world_space_directions[index];
         const auto &world_space_eye = world_space_eyes[index];
 
-        bool use_camera_traversals = use_traversals && is_first;
+        /* bool use_camera_traversals = use_traversals && is_first; */
+
+        Traversal traversal = use_traversals
+                                  ? traversal_grids_ref.getGeneralTraversal(
+                                        world_space_direction, world_space_eye)
+                                  : Traversal();
 
         solve_general_intersection(
-            by_type_data,
-            use_camera_traversals
-                ? traversal_grids_ref.getCameraTraversal(group_index)
-                : Traversal(),
-            traversal_grids_ref.actions, shapes, world_space_eye,
-            world_space_direction, ignores[index], disables[index], best,
-            is_first, use_camera_traversals, use_kd_tree,
+            by_type_data, traversal, traversal_grids_ref.actions, shapes,
+            world_space_eye, world_space_direction, ignores[index],
+            disables[index], best, is_first, use_traversals, use_kd_tree,
             [&](const thrust::optional<BestIntersection> &new_best) {
               best = optional_min(best, new_best);
 
@@ -125,10 +126,10 @@ __host__ __device__ inline void raytrace_impl(
 
         thrust::optional<BestIntersection> holder = thrust::nullopt;
 
-        auto traversal = use_traversals ? traversal_grids_ref.getLightTraversal(
-                                              light_idx, light_direction,
-                                              world_space_intersection)
-                                        : Traversal();
+        auto traversal = use_traversals
+                             ? traversal_grids_ref.getGeneralTraversal(
+                                   light_direction, world_space_intersection)
+                             : Traversal();
 
         solve_general_intersection(
             by_type_data, traversal, traversal_grids_ref.actions, shapes,
@@ -247,8 +248,9 @@ inline void raytrace_cpu(const BlockData block_data,
                          Span<scene::Color> colors, Span<unsigned> ignores,
                          Span<uint8_t> disables, Span<uint8_t> group_disables,
                          Span<const unsigned, false> group_indexes,
-                         bool is_first, bool use_kd_tree, bool use_traversals) {
-  for (unsigned block_index = 0; block_index < group_indexes.size();
+                         bool is_first, bool use_kd_tree, bool use_traversals,
+                         unsigned current_num_blocks) {
+  for (unsigned block_index = 0; block_index < current_num_blocks;
        block_index++) {
     for (unsigned thread_index = 0;
          thread_index < block_data.generalBlockSize(); thread_index++) {

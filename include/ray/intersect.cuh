@@ -119,7 +119,7 @@ __inline__ __host__ __device__ void solve_general_intersection(
   };
 
   if (use_traversals) {
-    for (uint16_t action_index = traversal.start;
+    for (unsigned action_index = traversal.start;
          action_index < traversal.start + traversal.size; action_index++) {
       if (solve_index(actions[action_index].shape_idx)) {
         return;

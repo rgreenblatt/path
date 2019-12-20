@@ -7,12 +7,19 @@
 
 namespace ray {
 namespace detail {
-inline HOST_DEVICE Eigen::Vector2f get_not_axis(const Eigen::Vector3f &vec,
-                                                uint8_t axis) {
-  return Eigen::Vector2f(vec[(axis + 1) % 3], vec[(axis + 2) % 3]);
+template <typename T>
+inline HOST_DEVICE Eigen::Array2<T> get_not_axis(const Eigen::Vector3<T> &v,
+                                                 uint8_t axis) {
+  return Eigen::Array2<T>(v[(axis + 1) % 3], v[(axis + 2) % 3]);
 }
 
-inline HOST_DEVICE Eigen::Vector2f
+template <typename T>
+inline HOST_DEVICE Eigen::Array2<T> get_not_axis(const Eigen::Array3<T> &v,
+                                                 uint8_t axis) {
+  return Eigen::Array2<T>(v[(axis + 1) % 3], v[(axis + 2) % 3]);
+}
+
+inline HOST_DEVICE Eigen::Array2f
 get_intersection_point(const Eigen::Vector3f &dir, float value_to_project_to,
                        const Eigen::Vector3f &world_space_eye, uint8_t axis) {
   float dist = (value_to_project_to - world_space_eye[axis]) / dir[axis];
