@@ -19,10 +19,10 @@ struct Action {
 
 struct Traversal {
   unsigned start;
-  uint16_t size;
+  unsigned end;
 
-  HOST_DEVICE Traversal(unsigned start, uint16_t size)
-      : start(start), size(size) {}
+  HOST_DEVICE Traversal(unsigned start, unsigned end)
+      : start(start), end(end) {}
 
   HOST_DEVICE Traversal() {}
 };
@@ -58,9 +58,7 @@ public:
   TraversalGrid(const TriangleProjector &projector, const Eigen::Array2f &min,
                 const Eigen::Array2f &max, uint8_t num_divisions_x,
                 uint8_t num_divisions_y, unsigned start_shape_grids,
-#if 0
-                unsigned start_hash_index,
-#endif
+                unsigned start_count_index,
                 bool flip_x = false, bool flip_y = false);
 
   TraversalGrid() : projector_(Eigen::Projective3f::Identity()) {}
@@ -70,12 +68,13 @@ public:
   void updateShape(Span<const scene::ShapeData> shapes,
                    Span<ShapePossibles> shape_grids, unsigned shape_to_update);
 
-  void copy_into(Span<const ShapePossibles> shape_grids, unsigned num_shapes,
-                 std::vector<Traversal> &traversals,
-                 std::vector<Action> &actions,
-                 std::vector<unsigned> &action_num);
+  void getCount(Span<const ShapePossibles> shape_grids, unsigned shape_idx,
+                Span<int> counts);
 
-  TraversalData traversalData(unsigned traversal_start) const {
+  void addActions(Span<const ShapePossibles> shape_grids, unsigned shape_idx,
+                  Span<int> action_indexes, Span<Action> actions);
+
+  TraversalData traversalData() const {
     uint8_t axis;
     float projection_value;
 
@@ -90,7 +89,7 @@ public:
       }
     });
 
-    return TraversalData(traversal_start, axis, projection_value, min_, max_,
+    return TraversalData(start_count_index_, axis, projection_value, min_, max_,
                          num_divisions_x_, num_divisions_y_);
   }
 
@@ -110,7 +109,7 @@ private:
   uint8_t num_divisions_x_;
   uint8_t num_divisions_y_;
   unsigned start_shape_grids_;
-  /* unsigned start_hash_index_; */
+  unsigned start_count_index_;
   bool flip_x_;
   bool flip_y_;
 
@@ -263,5 +262,13 @@ void update_shapes(Span<TraversalGrid, false> grids,
                    Span<ShapePossibles> shape_grids,
                    Span<const scene::ShapeData, false> shapes);
 
+void update_counts(Span<TraversalGrid, false> grids,
+                   Span<const ShapePossibles> shape_grids, Span<int> counts,
+                   unsigned num_shapes);
+
+void add_actions(Span<TraversalGrid, false> grids,
+                 Span<const ShapePossibles> shape_grids,
+                 Span<int> action_indexes, Span<Action> actions,
+                 unsigned num_shapes);
 } // namespace detail
 } // namespace ray

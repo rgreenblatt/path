@@ -77,8 +77,8 @@ __inline__ __host__ __device__ void solve_general_intersection(
   };
 
   if (use_traversals) {
-    for (unsigned action_index = traversal.start;
-         action_index < traversal.start + traversal.size; action_index++) {
+    for (unsigned action_index = traversal.start; action_index < traversal.end;
+         action_index++) {
       if (solve_index(actions[action_index].shape_idx)) {
         return;
       }

@@ -85,5 +85,7 @@ private:
   std::vector<detail::TraversalData> traversal_data_cpu_;
   std::vector<detail::TraversalGrid> traversal_grids_;
   std::vector<detail::ShapePossibles> shape_grids_;
+  std::vector<int> action_starts_;
+  std::vector<int> action_ends_;
 };
 } // namespace ray
