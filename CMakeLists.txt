@@ -39,13 +39,16 @@ ADD_DEFINITIONS(-DEIGEN_DEFAULT_DENSE_INDEX_TYPE=int)
 ADD_LIBRARY(
   renderer
   "${PROJECT_SOURCE_DIR}/src/ray/render_impl.cu"
+  "${PROJECT_SOURCE_DIR}/src/ray/render_impl_traversal_grid.cu"
+  "${PROJECT_SOURCE_DIR}/src/ray/render_impl_fill.cu"
+  "${PROJECT_SOURCE_DIR}/src/ray/render_impl_raytrace.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/render.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/kdtree.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/scene.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/pool_scene.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/reflec_ball.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/camera.cpp"
-  "${PROJECT_SOURCE_DIR}/src/ray/action_grid.cpp"
+  "${PROJECT_SOURCE_DIR}/src/ray/traversal_grid.cpp"
   )
 
 TARGET_INCLUDE_DIRECTORIES(renderer PUBLIC

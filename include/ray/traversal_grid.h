@@ -1,9 +1,10 @@
 #pragma once
 
+#include "lib/span.h"
 #include "ray/intersect.h"
 #include "ray/projection.h"
-#include "ray/ray_utils.h"
-#include <lib/span.h>
+
+#include <iostream>
 
 namespace ray {
 namespace detail {
@@ -28,7 +29,7 @@ struct Traversal {
   HOST_DEVICE Traversal() {}
 };
 
-struct ALIGN_STRUCT(16) TraversalData {
+struct TraversalData {
   unsigned traversal_start;
   uint8_t axis;
   float value;
@@ -54,13 +55,12 @@ public:
 class TraversalGrid {
 public:
   // num_divisions_x > 0, num_divisions_y > 0
-  TraversalGrid(const TriangleProjector &projector,
-                const scene::ShapeData *shapes, uint16_t num_shapes,
+  TraversalGrid(const TriangleProjector &projector, uint16_t num_shapes,
                 const Eigen::Array2f &min, const Eigen::Array2f &max,
                 uint16_t num_divisions_x, uint16_t num_divisions_y,
-                bool flip_x = false, bool flip_y = false,
-                thrust::optional<std::vector<ProjectedTriangle> *>
-                    save_triangles = thrust::nullopt);
+                bool flip_x = false, bool flip_y = false);
+
+  TraversalGrid() : projector_(Eigen::Projective3f::Identity()) {}
 
   void resize(unsigned new_num_shapes);
 
@@ -71,6 +71,30 @@ public:
 
   void copy_into(std::vector<Traversal> &traversals,
                  std::vector<Action> &actions);
+
+  TraversalData traversalData(unsigned traversal_start) const {
+    uint8_t axis;
+    float projection_value;
+
+    projector_.visit([&](const auto &v) {
+      using T = std::decay_t<decltype(v)>;
+      if constexpr (std::is_same<T, DirectionPlane>::value) {
+        axis = v.axis;
+        projection_value = v.projection_value;
+      } else {
+        std::cout << "TRAVERSAL DATA CANNOT BE OBTAINED" << std::endl;
+        abort();
+      }
+    });
+
+    return TraversalData(traversal_start, axis, projection_value, min_, max_,
+                         num_divisions_x_, num_divisions_y_);
+  }
+
+  uint16_t num_divisions_x() const { return num_divisions_x_; }
+  uint16_t num_divisions_y() const { return num_divisions_y_; }
+  const Eigen::Array2f &min() const { return min_; }
+  const Eigen::Array2f &max() const { return max_; }
 
 private:
   TriangleProjector projector_;
@@ -86,6 +110,8 @@ private:
   bool flip_y_;
   using ShapeRowPossibles = std::array<uint16_t, 4>;
   std::vector<ShapeRowPossibles> shape_grids_;
+  using ShapeColPossibles = std::array<uint16_t, 2>;
+  std::vector<ShapeColPossibles> shape_col_grids_;
   std::vector<unsigned> action_num_;
 
 public:
@@ -94,6 +120,8 @@ public:
 
 class TraversalGridsRef {
 public:
+  TraversalGridsRef() {}
+
   TraversalGridsRef(Span<const Action> actions,
                     Span<const TraversalData> traversal_data,
                     Span<const Traversal> traversals,
@@ -105,9 +133,8 @@ public:
                     const std::array<Eigen::Array2f, 3> &max_side_bounds,
                     const std::array<Eigen::Array2<int>, 3> &min_side_diffs,
                     const std::array<Eigen::Array2<int>, 3> &max_side_diffs)
-      : actions(actions), traversal_data_(traversal_data),
-        traversals_(traversals),
-        start_traversal_data_(start_traversal_data),
+      : actions_(actions), traversal_data_(traversal_data),
+        traversals_(traversals), start_traversal_data_(start_traversal_data),
         min_bound_(min_bound), max_bound_(max_bound),
         inverse_direction_multipliers_({{
             get_not_axis(inverse_direction_multipliers, 0),
@@ -211,14 +238,13 @@ public:
     return empty_traversal_;
   }
 
-  const Span<const Action> actions;
-
-  const Traversal empty_traversal_ = Traversal(0, 0);
-
+  HOST_DEVICE Span<const Action> actions() const { return actions_; }
 
 private:
-  const Span<const TraversalData> traversal_data_;
-  const Span<const Traversal> traversals_;
+  Span<const Action> actions_;
+  Traversal empty_traversal_ = Traversal(0, 0);
+  Span<const TraversalData> traversal_data_;
+  Span<const Traversal> traversals_;
   std::array<unsigned, 3> start_traversal_data_;
   Eigen::Vector3f min_bound_;
   Eigen::Vector3f max_bound_;
@@ -228,6 +254,13 @@ private:
   std::array<Eigen::Array2<int>, 3> min_side_diffs_;
   std::array<Eigen::Array2<int>, 3> max_shifted_side_diffs_;
   std::array<int, 3> multipliers_;
+
+public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
+
+void update_shapes(Span<TraversalGrid, false> grids,
+                   Span<const scene::ShapeData, false> shapes);
+
 } // namespace detail
 } // namespace ray

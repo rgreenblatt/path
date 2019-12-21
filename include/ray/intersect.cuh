@@ -1,64 +1,22 @@
 #pragma once
 
+#include "ray/traversal_grid.h"
 #include "ray/best_intersection.h"
-#include "ray/by_type_data.h"
+#include "ray/block_data.h"
+#include "ray/kdtree_nodes_ref.h"
 #include "ray/cone.h"
 #include "ray/cube.h"
 #include "ray/cuda_ray_utils.cuh"
 #include "ray/cylinder.h"
+#include "ray/intersect.h"
 #include "ray/kdtree.h"
 #include "ray/ray_utils.h"
 #include "ray/sphere.h"
 #include "scene/shape.h"
 #include "scene/shape_data.h"
-#include "ray/action_grid.h"
-#include "ray/block_data.h"
-#include "ray/intersect.h"
 
 namespace ray {
 namespace detail {
-__inline__ __host__ __device__ void initial_world_space_directions_impl(
-    unsigned block_index, unsigned thread_index, const BlockData &block_data,
-    const Eigen::Vector3f &world_space_eye,
-    const scene::Transform &m_film_to_world,
-    Span<Eigen::Vector3f> world_space_directions) {
-  auto [x, y, index, outside_bounds] =
-      block_data.getIndexes(block_index, thread_index);
-
-  if (outside_bounds) {
-    return;
-  }
-
-  world_space_directions[index] =
-      initial_world_space_direction(x, y, block_data.x_dim, block_data.y_dim,
-                                    world_space_eye, m_film_to_world);
-}
-
-__global__ void
-initial_world_space_directions(BlockData block_data,
-                               const Eigen::Vector3f world_space_eye,
-                               const scene::Transform m_film_to_world,
-                               Span<Eigen::Vector3f> world_space_directions) {
-  initial_world_space_directions_impl(blockIdx.x, threadIdx.x, block_data,
-                                 world_space_eye, m_film_to_world,
-                                 world_space_directions);
-}
-
-inline void initial_world_space_directions_cpu(
-    BlockData block_data, const Eigen::Vector3f &world_space_eye,
-    const scene::Transform &m_film_to_world,
-    Span<Eigen::Vector3f> world_space_directions) {
-  for (unsigned block_index = 0; block_index < block_data.generalNumBlocks();
-       block_index++) {
-    for (unsigned thread_index = 0;
-         thread_index < block_data.generalBlockSize(); thread_index++) {
-      initial_world_space_directions_impl(block_index, thread_index, block_data,
-                                          world_space_eye, m_film_to_world,
-                                          world_space_directions);
-    }
-  }
-}
-
 template <bool normal_and_uv>
 __inline__ __host__ __device__ IntersectionOp<normal_and_uv>
 solve_type(scene::Shape shape_type, const Eigen::Vector3f &point,
@@ -99,7 +57,7 @@ __inline__ __host__
 // Rename...
 template <typename F>
 __inline__ __host__ __device__ void solve_general_intersection(
-    const ByTypeDataRef &by_type_data, const Traversal &traversal,
+    const KDTreeNodesRef &kdtree_nodes, const Traversal &traversal,
     Span<const Action> actions, Span<const scene::ShapeData> shapes,
     const Eigen::Vector3f &world_space_eye,
     const Eigen::Vector3f &world_space_direction, const unsigned &ignore_v,
@@ -138,9 +96,9 @@ __inline__ __host__ __device__ void solve_general_intersection(
       __device__ __host__ StackData() {}
     };
 
-    if (by_type_data.root_node_count != 0) {
+    if (kdtree_nodes.nodes.size() != 0) {
       std::array<StackData, 64> node_stack;
-      node_stack[0] = StackData(by_type_data.root_node_count - 1, 0);
+      node_stack[0] = StackData(kdtree_nodes.nodes.size() - 1, 0);
       uint8_t node_stack_size = 1;
 
       thrust::optional<std::array<uint16_t, 2>> start_end = thrust::nullopt;
@@ -150,7 +108,7 @@ __inline__ __host__ __device__ void solve_general_intersection(
         while (!start_end.has_value() && node_stack_size != 0) {
           const auto &stack_v = node_stack[node_stack_size - 1];
 
-          const auto &current_node = by_type_data.nodes[stack_v.node_index];
+          const auto &current_node = kdtree_nodes.nodes[stack_v.node_index];
 
           auto bounding_intersection =
               current_node.get_contents().solveBoundingIntersection(
@@ -192,7 +150,7 @@ __inline__ __host__ __device__ void solve_general_intersection(
 
         if (start_end.has_value()) {
           auto local_end_shape = (*start_end)[1];
-          uint16_t shape_idx = current_shape_index + by_type_data.start_shape;
+          uint16_t shape_idx = current_shape_index;
           current_shape_index++;
           if (current_shape_index >= local_end_shape) {
             start_end = thrust::nullopt;
@@ -205,8 +163,7 @@ __inline__ __host__ __device__ void solve_general_intersection(
       }
     }
   } else {
-    for (uint16_t shape_idx = by_type_data.start_shape;
-         shape_idx < by_type_data.start_shape + by_type_data.num_shape;
+    for (uint16_t shape_idx = 0; shape_idx < 0 + kdtree_nodes.num_shape;
          shape_idx++) {
       if (solve_index(shape_idx)) {
         return;

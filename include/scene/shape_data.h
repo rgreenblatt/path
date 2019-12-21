@@ -3,9 +3,7 @@
 #include "lib/cuda_utils.h"
 #include "scene/material.h"
 #include "scene/shape.h"
-#include "ray/ray_utils.h"
 
-#include <Eigen/Core>
 #include <Eigen/Geometry>
 
 namespace scene {

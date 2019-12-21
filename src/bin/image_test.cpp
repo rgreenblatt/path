@@ -27,7 +27,7 @@ void run_test(unsigned width, unsigned height, unsigned super_sampling_rate,
 #if 1
   // realistic memory benchmark
   renderer.render(bgra_data, film_to_world, world_to_film, use_kd_tree,
-                  use_traversals, true);
+                  use_traversals, false);
 #endif
 
   std::cout << "start:" << std::endl;
@@ -36,20 +36,20 @@ void run_test(unsigned width, unsigned height, unsigned super_sampling_rate,
                   use_traversals, true);
 
 #if 0
-  unsigned x_rad = 4;
-  unsigned y_rad = 4;
+  unsigned x_rad = 0;
+  unsigned y_rad = 0;
 
   auto draw_point = [&](unsigned x, unsigned y, BGRA color) {
     for (unsigned y_draw = std::max(y, y_rad) - y_rad;
-         y_draw < std::min(y, height - y_rad); y_draw++) {
+         y_draw <= std::min(y, height - y_rad); y_draw++) {
       for (unsigned x_draw = std::max(x, x_rad) - x_rad;
-           x_draw < std::min(x, width - x_rad); x_draw++) {
+           x_draw <= std::min(x, width - x_rad); x_draw++) {
         bgra_data[x_draw + y_draw * width] = color;
       }
     }
   };
 
-  draw_point(650, 290, BGRA(100, 100, 100, 0));
+  draw_point(18, 17, BGRA(100, 100, 100, 0));
 #endif
 
   std::cout << "rendered in "

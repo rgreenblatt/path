@@ -37,12 +37,5 @@ __inline__ __device__ uint8_t block_reduce_cond(uint8_t val,
 
   return val;
 }
-
-template <typename T> __global__ void fill(T *data, unsigned size, T value) {
-  unsigned index = blockIdx.x * blockDim.x + threadIdx.x;
-  if (index < size) {
-    data[index] = value;
-  }
-}
 } // namespace detail
 } // namespace ray

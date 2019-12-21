@@ -2,9 +2,8 @@
 
 #include "lib/cuda_utils.h"
 #include "scene/shape_data.h"
-#include <Eigen/Dense>
 
-#include <dbg.h>
+#include <Eigen/Dense>
 
 namespace ray {
 namespace detail {
@@ -30,13 +29,15 @@ public:
 struct DirectionPlane {
   Eigen::Vector3f loc_or_dir;
   bool is_loc;
-  float value_to_project_to;
+  float projection_value;
   uint8_t axis;
 
   DirectionPlane(const Eigen::Vector3f &loc_or_dir, bool is_loc,
-                 float value_to_project_to, uint8_t axis)
+                 float projection_value, uint8_t axis)
       : loc_or_dir(loc_or_dir), is_loc(is_loc),
-        value_to_project_to(value_to_project_to), axis(axis) {}
+        projection_value(projection_value), axis(axis) {}
+
+  DirectionPlane() {}
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -48,15 +49,6 @@ public:
     Transform,
     DirectionPlane,
   };
-
-  TriangleProjector(const TriangleProjector &other) : type_(other.type_) {
-    switch (type_) {
-    case Type::DirectionPlane:
-      direction_plane_ = other.direction_plane_;
-    case Type::Transform:
-      transform_ = other.transform_;
-    }
-  }
 
   TriangleProjector(const Eigen::Projective3f &transform)
       : type_(Type::Transform), transform_(transform) {}
@@ -87,10 +79,8 @@ public:
 
 private:
   Type type_;
-  union {
-    Eigen::Projective3f transform_;
-    DirectionPlane direction_plane_;
-  };
+  Eigen::Projective3f transform_;
+  DirectionPlane direction_plane_;
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW

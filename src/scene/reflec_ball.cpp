@@ -1,3 +1,4 @@
+#include "lib/bgra.h"
 #include "scene/reflec_balls.h"
 
 #include <boost/iterator/counting_iterator.hpp>

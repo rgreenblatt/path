@@ -1,10 +1,10 @@
 #include "scene/pool_scene.h"
+#include "lib/bgra.h"
 #include "scene/texture_qimage.h"
 
 #include <boost/iterator/counting_iterator.hpp>
 
 #include <chrono>
-#include <dbg.h>
 #include <iostream>
 
 namespace scene {

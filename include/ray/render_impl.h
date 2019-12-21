@@ -2,9 +2,9 @@
 
 #include "lib/bgra.h"
 #include "lib/unified_memory_vector.h"
-#include "ray/action_grid.h"
+#include "ray/traversal_grid.h"
 #include "ray/best_intersection.h"
-#include "ray/by_type_data.h"
+#include "ray/kdtree_nodes_ref.h"
 #include "ray/execution_model.h"
 #include "ray/kdtree.h"
 #include "scene/scene.h"
@@ -45,17 +45,19 @@ public:
   const scene::Scene &get_scene() const { return *scene_; }
 
 private:
+  void raytrace_pass(bool is_first, bool use_kd_tree, bool use_traversals,
+                     unsigned current_num_blocks,
+                     Span<const scene::ShapeData, false> shapes,
+                     Span<const scene::Light, false> lights,
+                     Span<const scene::TextureImageRef> textures,
+                     const detail::TraversalGridsRef &traversal_grids_ref);
+  void fill(const Eigen::Affine3f &m_film_to_world);
+  detail::TraversalGridsRef
+  traversal_grids(bool show_times, const Eigen::Projective3f &world_to_film,
+                  Span<const scene::ShapeData, false> shapes,
+                  Span<const scene::Light, false> lights);
+
   template <typename T> using DataType = detail::DataType<execution_model, T>;
-
-  struct ByTypeData {
-    ManangedMemVec<detail::KDTreeNode<detail::AABB>> nodes;
-    scene::Shape shape_type;
-
-    detail::ByTypeDataRef initialize(const scene::Scene &scene,
-                                     scene::ShapeData *shapes);
-
-    ByTypeData(scene::Shape shape_type) : shape_type(shape_type) {}
-  };
 
   const detail::BlockData block_data_;
   const unsigned super_sampling_rate_;
@@ -64,7 +66,7 @@ private:
 
   std::unique_ptr<scene::Scene> scene_;
 
-  std::array<ByTypeData, 1> by_type_data_;
+  ManangedMemVec<detail::KDTreeNode<detail::AABB>> kdtree_nodes_;
 
   DataType<Eigen::Vector3f> world_space_eyes_;
   DataType<Eigen::Vector3f> world_space_directions_;
@@ -81,5 +83,6 @@ private:
   std::vector<detail::Traversal> traversals_cpu_;
   std::vector<detail::Action> actions_cpu_;
   std::vector<detail::TraversalData> traversal_data_cpu_;
+  std::vector<detail::TraversalGrid> traversal_grids_;
 };
 } // namespace ray

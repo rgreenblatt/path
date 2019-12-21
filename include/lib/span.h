@@ -18,6 +18,8 @@ public:
       size_ = size;
     }
   }
+  
+  constexpr Span() {}
 
   constexpr std::size_t size() const { return size_; }
 

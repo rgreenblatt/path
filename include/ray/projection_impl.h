@@ -115,7 +115,7 @@ project_triangles(const Eigen::Projective3f &transform,
           transformed_point.head<2>() = get_intersection_point(
               v.is_loc ? (v.loc_or_dir - transformed_point).eval()
                        : v.loc_or_dir,
-              v.value_to_project_to, transformed_point, v.axis);
+              v.projection_value, transformed_point, v.axis);
         }
       }
     });

@@ -1,8 +1,10 @@
 #pragma once
 
-#include "ray/cube.h"
+#include "lib/cuda_utils.h"
+#include "scene/shape_data.h"
 
 #include <thrust/optional.h>
+#include <Eigen/Geometry>
 
 namespace ray {
 namespace detail {
@@ -46,93 +48,16 @@ public:
     float max_of_min = t_min.maxCoeff();
     float min_of_max = t_max.minCoeff();
 
-    return make_optional(max_of_min <= min_of_max, max_of_min);
-  }
-
-  // needs to be inline
-  // negative check?????
-  HOST_DEVICE thrust::optional<float> solveBoundingFrustumIntersection(
-      const Eigen::Vector3f &point, const Eigen::Vector3f &top_right,
-      const Eigen::Vector3f &bottom_right, const Eigen::Vector3f &top_left,
-      const Eigen::Vector3f &bottom_left) const {
-    auto solve_intersect = [&](const Eigen::Vector3f &dir) {
-      return solveBoundingIntersection(point, dir);
-    };
-
-    auto intersect_sol =
-        optional_min(solve_intersect(top_right), solve_intersect(bottom_right),
-                     solve_intersect(top_left), solve_intersect(bottom_left));
-
-    if (intersect_sol.has_value()) {
-      return intersect_sol;
-    }
-
-    auto check_in_half_space = [&](const Eigen::Vector3f &first,
-                                   const Eigen::Vector3f &second) {
-      const Eigen::Vector3f normal = first.cross(second);
-      auto check_point_in_half_space =
-          [&](const Eigen::Vector3f &test_point) -> bool {
-        return (test_point - point).dot(normal) > 0.0f;
-        ;
-      };
-
-      return check_point_in_half_space(min_bound_) &&
-             check_point_in_half_space(max_bound_);
-    };
-
-    bool within = check_in_half_space(top_left, top_right) &&
-                  check_in_half_space(top_right, bottom_right) &&
-                  check_in_half_space(bottom_right, bottom_left) &&
-                  check_in_half_space(bottom_left, top_left);
-
-    if (within) {
-      float min_dist = std::numeric_limits<float>::max();
-
-      for (bool is_min_x = false; !is_min_x; is_min_x = true) {
-        for (bool is_min_y = false; !is_min_y; is_min_y = true) {
-          for (bool is_min_z = false; !is_min_z; is_min_z = true) {
-            Eigen::Vector3f aa_bb_point(
-                is_min_x ? min_bound_.x() : max_bound_.x(),
-                is_min_y ? min_bound_.y() : max_bound_.y(),
-                is_min_z ? min_bound_.z() : max_bound_.z());
-
-            min_dist = std::min(min_dist, (point - aa_bb_point).norm());
-          }
-        }
-      }
-
-      return thrust::make_optional(min_dist);
+    if (max_of_min <= min_of_max) {
+      return max_of_min;
     } else {
       return thrust::nullopt;
     }
   }
 
-#if 0
-  HOST_DEVICE thrust::optional<float>
-  solveBoundingIntersectionOld(const Eigen::Vector3f &point,
-                               const Eigen::Vector3f &direction) const {
-    Eigen::Vector3f kd_space_point = point.cwiseProduct(scale) + translate;
-
-    float half_plus_epsilon = 0.5f + epsilon;
-    if (std::abs(kd_space_point.x()) < half_plus_epsilon &&
-        std::abs(kd_space_point.y()) < half_plus_epsilon &&
-        std::abs(kd_space_point.z()) < half_plus_epsilon) {
-      // point is inside bounding box
-      return 0.0f;
-    }
-
-    return solve_cube<false>(kd_space_point, direction.cwiseProduct(scale),
-                             false);
-  }
-#endif
-
 private:
   Eigen::Vector3f min_bound_;
   Eigen::Vector3f max_bound_;
-#if 0
-  Eigen::Vector3f scale;
-  Eigen::Vector3f translate;
-#endif
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW

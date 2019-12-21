@@ -1,18 +1,12 @@
-#pragma once
-
-#include "lib/span.h"
-#include "ray/best_intersection.h"
-#include "ray/block_data.h"
-#include "ray/by_type_data.h"
-#include "ray/cuda_ray_utils.cuh"
+#include "ray/render_impl.h"
+#include "ray/render_impl_utils.h"
 #include "ray/intersect.cuh"
-#include "ray/ray_utils.h"
 
 namespace ray {
-namespace detail {
+using namespace detail;
 __host__ __device__ inline void raytrace_impl(
     unsigned block_index, unsigned thread_index, const BlockData &block_data,
-    const ByTypeDataRef &by_type_data,
+    const KDTreeNodesRef &kdtree_nodes_ref,
     const TraversalGridsRef &traversal_grids_ref,
     Span<const scene::ShapeData> shapes, Span<const scene::Light, false> lights,
     Span<const scene::TextureImageRef> textures,
@@ -46,15 +40,18 @@ __host__ __device__ inline void raytrace_impl(
         const auto &world_space_direction = world_space_directions[index];
         const auto &world_space_eye = world_space_eyes[index];
 
-        /* bool use_camera_traversals = use_traversals && is_first; */
-
-        Traversal traversal = use_traversals
-                                  ? traversal_grids_ref.getGeneralTraversal(
-                                        world_space_direction, world_space_eye)
-                                  : Traversal();
+        Traversal traversal;
+        if (use_traversals) {
+          if (is_first) {
+            traversal = traversal_grids_ref.getCameraTraversal(group_index);
+          } else {
+            traversal = traversal_grids_ref.getGeneralTraversal(
+                world_space_direction, world_space_eye);
+          }
+        }
 
         solve_general_intersection(
-            by_type_data, traversal, traversal_grids_ref.actions, shapes,
+            kdtree_nodes_ref, traversal, traversal_grids_ref.actions(), shapes,
             world_space_eye, world_space_direction, ignores[index],
             disables[index], best, is_first, use_traversals, use_kd_tree,
             [&](const thrust::optional<BestIntersection> &new_best) {
@@ -126,13 +123,14 @@ __host__ __device__ inline void raytrace_impl(
 
         thrust::optional<BestIntersection> holder = thrust::nullopt;
 
-        auto traversal = use_traversals
-                             ? traversal_grids_ref.getGeneralTraversal(
-                                   light_direction, world_space_intersection)
-                             : Traversal();
+        Traversal traversal;
+        if (use_traversals) {
+          traversal = traversal_grids_ref.getTraversalFromIdx(
+              light_idx, light_direction, world_space_intersection);
+        }
 
         solve_general_intersection(
-            by_type_data, traversal, traversal_grids_ref.actions, shapes,
+            kdtree_nodes_ref, traversal, traversal_grids_ref.actions(), shapes,
             world_space_intersection, light_direction, best.shape_idx,
             !is_first && disables[index], holder, false, use_traversals,
             use_kd_tree,
@@ -217,7 +215,7 @@ __host__ __device__ inline void raytrace_impl(
 }
 
 __global__ void raytrace(const BlockData block_data,
-                         const ByTypeDataRef by_type_data,
+                         const KDTreeNodesRef kdtree_nodes_ref,
                          const TraversalGridsRef traversal_grids_ref,
                          Span<const scene::ShapeData> shapes,
                          Span<const scene::Light, false> lights,
@@ -229,7 +227,7 @@ __global__ void raytrace(const BlockData block_data,
                          Span<uint8_t> disables, Span<uint8_t> group_disables,
                          Span<const unsigned, false> group_indexes,
                          bool is_first, bool use_kd_tree, bool use_traversals) {
-  raytrace_impl(blockIdx.x, threadIdx.x, block_data, by_type_data,
+  raytrace_impl(blockIdx.x, threadIdx.x, block_data, kdtree_nodes_ref,
                 traversal_grids_ref, shapes, lights, textures, world_space_eyes,
                 world_space_directions, color_multipliers, colors, ignores,
                 disables, group_disables, group_indexes, is_first, use_kd_tree,
@@ -237,7 +235,7 @@ __global__ void raytrace(const BlockData block_data,
 }
 
 inline void raytrace_cpu(const BlockData block_data,
-                         const ByTypeDataRef by_type_data,
+                         const KDTreeNodesRef kdtree_nodes_ref,
                          const TraversalGridsRef traversal_grids_ref,
                          Span<const scene::ShapeData> shapes,
                          Span<const scene::Light, false> lights,
@@ -254,7 +252,7 @@ inline void raytrace_cpu(const BlockData block_data,
        block_index++) {
     for (unsigned thread_index = 0;
          thread_index < block_data.generalBlockSize(); thread_index++) {
-      raytrace_impl(block_index, thread_index, block_data, by_type_data,
+      raytrace_impl(block_index, thread_index, block_data, kdtree_nodes_ref,
                     traversal_grids_ref, shapes, lights, textures,
                     world_space_eyes, world_space_directions, color_multipliers,
                     colors, ignores, disables, group_disables, group_indexes,
@@ -262,5 +260,47 @@ inline void raytrace_cpu(const BlockData block_data,
     }
   }
 }
-} // namespace detail
+
+template <ExecutionModel execution_model>
+void RendererImpl<execution_model>::raytrace_pass(
+    bool is_first, bool use_kd_tree, bool use_traversals,
+    unsigned current_num_blocks, Span<const scene::ShapeData, false> shapes,
+    Span<const scene::Light, false> lights,
+    Span<const scene::TextureImageRef> textures,
+    const TraversalGridsRef &traversal_grids_ref) {
+  KDTreeNodesRef kdtree_nodes_ref(kdtree_nodes_.data(), kdtree_nodes_.size(),
+                                  shapes.size());
+
+  unsigned general_block_size = block_data_.generalBlockSize();
+
+  auto shapes_span = Span<const scene::ShapeData>(shapes.data(), shapes.size());
+
+  if constexpr (execution_model == ExecutionModel::GPU) {
+    if (current_num_blocks != 0) {
+      raytrace<<<current_num_blocks, general_block_size>>>(
+          block_data_, kdtree_nodes_ref, traversal_grids_ref, shapes_span,
+          lights, textures, to_span(world_space_eyes_),
+          to_span(world_space_directions_), to_span(color_multipliers_),
+          to_span(colors_), to_span(ignores_), to_span(disables_),
+          to_span(group_disables_),
+          Span<const unsigned, false>(group_indexes_.data(),
+                                      group_indexes_.size()),
+          is_first, use_kd_tree, use_traversals);
+    }
+  } else {
+    raytrace_cpu(block_data_, kdtree_nodes_ref, traversal_grids_ref,
+                 shapes_span, lights, textures, to_span(world_space_eyes_),
+                 to_span(world_space_directions_), to_span(color_multipliers_),
+                 to_span(colors_), to_span(ignores_), to_span(disables_),
+                 to_span(group_disables_),
+                 Span<const unsigned, false>(group_indexes_.data(),
+                                             group_indexes_.size()),
+                 is_first, use_kd_tree, use_traversals, current_num_blocks);
+  }
+
+  CUDA_ERROR_CHK(cudaDeviceSynchronize());
+}
+
+template class RendererImpl<ExecutionModel::CPU>;
+template class RendererImpl<ExecutionModel::GPU>;
 } // namespace ray

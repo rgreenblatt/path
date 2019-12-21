@@ -1,14 +1,15 @@
-#include "ray/action_grid.h"
+#include "ray/traversal_grid.h"
 #include "ray/projection_impl.h"
+
+#include <omp.h>
 
 namespace ray {
 namespace detail {
-TraversalGrid::TraversalGrid(
-    const TriangleProjector &projector, const scene::ShapeData *shapes,
-    uint16_t num_shapes, const Eigen::Array2f &min, const Eigen::Array2f &max,
-    uint16_t num_divisions_x, uint16_t num_divisions_y, bool flip_x,
-    bool flip_y,
-    thrust::optional<std::vector<ProjectedTriangle> *> save_triangles)
+TraversalGrid::TraversalGrid(const TriangleProjector &projector,
+                             uint16_t num_shapes, const Eigen::Array2f &min,
+                             const Eigen::Array2f &max,
+                             uint16_t num_divisions_x, uint16_t num_divisions_y,
+                             bool flip_x, bool flip_y)
     : projector_(projector), min_(min), max_(max), min_indexes_(0, 0),
       max_indexes_(num_divisions_x, num_divisions_y), difference_(max - min),
       inverse_difference_(Eigen::Array2f(num_divisions_x, num_divisions_y) /
@@ -17,29 +18,24 @@ TraversalGrid::TraversalGrid(
       flip_x_(flip_x), flip_y_(flip_y),
       action_num_(num_divisions_x * num_divisions_y) {
   resize(num_shapes);
-  std::vector<ProjectedTriangle> triangles;
-  for (uint16_t shape_idx = 0; shape_idx < num_shapes; shape_idx++) {
-    updateShape(shapes, shape_idx, triangles);
-    if (save_triangles.has_value()) {
-      (*save_triangles)
-          ->insert((*save_triangles)->end(), triangles.begin(),
-                   triangles.end());
-    }
-  }
 }
 
 void TraversalGrid::resize(unsigned new_num_shapes) {
-  uint16_t old_num_shapes = shape_grids_.size() / num_divisions_y_;
+  uint16_t old_num_shapes = shape_col_grids_.size();
   if (new_num_shapes > old_num_shapes) {
     shape_grids_.insert(shape_grids_.end(),
-                        (new_num_shapes - shape_grids_.size()) *
-                            num_divisions_y_,
+                        (new_num_shapes - old_num_shapes) * num_divisions_y_,
                         ShapeRowPossibles());
+    shape_col_grids_.insert(shape_col_grids_.end(),
+                            new_num_shapes - old_num_shapes,
+                            ShapeColPossibles());
   } else {
     shape_grids_.erase(shape_grids_.end() -
-                           (shape_grids_.size() - new_num_shapes) *
-                               num_divisions_y_,
+                           (old_num_shapes - new_num_shapes) * num_divisions_y_,
                        shape_grids_.end());
+    shape_col_grids_.erase(shape_col_grids_.end() -
+                               (old_num_shapes - new_num_shapes),
+                           shape_col_grids_.end());
   }
 }
 
@@ -47,6 +43,7 @@ void TraversalGrid::wipeShape(unsigned shape_to_wipe) {
   std::fill_n(shape_grids_.begin() + shape_to_wipe * num_divisions_y_,
               num_divisions_y_,
               ShapeRowPossibles{num_divisions_x_, 0, num_divisions_x_, 0});
+  shape_col_grids_[shape_to_wipe] = ShapeColPossibles{num_divisions_y_, 0};
 }
 
 void TraversalGrid::updateShape(const scene::ShapeData *shapes,
@@ -60,6 +57,8 @@ void TraversalGrid::updateShape(const scene::ShapeData *shapes,
                 flip_y_);
 
   unsigned shape_grids_start = shape_to_update * num_divisions_y_;
+
+  auto &shape_col_possibles = shape_col_grids_[shape_to_update];
 
   for (const auto &triangle : triangles) {
     const auto &points = triangle.points();
@@ -80,6 +79,11 @@ void TraversalGrid::updateShape(const scene::ShapeData *shapes,
                                 .cwiseMax(min_indexes_)
                                 .cast<uint16_t>()
                                 .eval();
+
+    shape_col_possibles[0] =
+        std::min(shape_col_possibles[0], min_grid_indexes.y());
+    shape_col_possibles[1] =
+        std::max(shape_col_possibles[1], max_grid_indexes.y());
 
     std::array<Eigen::Array2f, 3> dirs = {
         points[1] - points[0], points[2] - points[1], points[0] - points[2]};
@@ -257,7 +261,8 @@ void TraversalGrid::copy_into(std::vector<Traversal> &traversals,
 
   for (unsigned shape_idx = 0;
        shape_idx < shape_grids_.size() / num_divisions_y_; shape_idx++) {
-    for (unsigned division_y = 0; division_y < num_divisions_y_; division_y++) {
+    for (unsigned division_y = shape_col_grids_[shape_idx][0];
+         division_y < shape_col_grids_[shape_idx][1]; division_y++) {
       auto &shape_row_possibles =
           shape_grids_[shape_idx * num_divisions_y_ + division_y];
       for (uint16_t division_x = shape_row_possibles[0];
@@ -273,6 +278,18 @@ void TraversalGrid::copy_into(std::vector<Traversal> &traversals,
 
         action_num_[traversal_index]++;
       }
+    }
+  }
+}
+
+void update_shapes(Span<TraversalGrid, false> grids,
+                   Span<const scene::ShapeData, false> shapes) {
+  std::vector<ProjectedTriangle> triangles;
+
+#pragma omp parallel for private(triangles)
+  for (unsigned i = 0; i < grids.size(); i++) {
+    for (unsigned shape = 0; shape < shapes.size(); shape++) {
+      grids[i].updateShape(shapes.data(), shape, triangles);
     }
   }
 }

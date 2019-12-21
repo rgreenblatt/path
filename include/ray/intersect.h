@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lib/cuda_utils.h"
+#include "ray/projection.h"
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -9,12 +10,6 @@ namespace ray {
 namespace detail {
 template <typename T>
 inline HOST_DEVICE Eigen::Array2<T> get_not_axis(const Eigen::Vector3<T> &v,
-                                                 uint8_t axis) {
-  return Eigen::Array2<T>(v[(axis + 1) % 3], v[(axis + 2) % 3]);
-}
-
-template <typename T>
-inline HOST_DEVICE Eigen::Array2<T> get_not_axis(const Eigen::Array3<T> &v,
                                                  uint8_t axis) {
   return Eigen::Array2<T>(v[(axis + 1) % 3], v[(axis + 2) % 3]);
 }
@@ -40,6 +35,12 @@ initial_world_space_direction(unsigned x, unsigned y, unsigned x_dim,
   const auto world_space_film_plane = m_film_to_world * camera_space_film_plane;
 
   return (world_space_film_plane - world_space_eye).normalized();
+}
+
+template <typename T>
+inline HOST_DEVICE Eigen::Array2<T> get_not_axis(const Eigen::Array3<T> &v,
+                                                 uint8_t axis) {
+  return Eigen::Array2<T>(v[(axis + 1) % 3], v[(axis + 2) % 3]);
 }
 } // namespace detail
 } // namespace ray
