@@ -9,11 +9,9 @@
 namespace ray {
 namespace detail {
 struct Action {
-  uint16_t shape_idx;
-  bool is_guaranteed;
+  unsigned shape_idx;
 
-  Action(uint16_t shape_idx, bool is_guaranteed)
-      : shape_idx(shape_idx), is_guaranteed(is_guaranteed) {}
+  Action(unsigned shape_idx) : shape_idx(shape_idx) {}
 
   HOST_DEVICE
   Action() {}
@@ -52,27 +50,26 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
-using ShapeRowPossibles = std::array<uint8_t, 2>;
-using ShapeColPossibles = std::array<uint8_t, 2>;
+using ShapePossibles = std::array<uint8_t, 4>;
 
 class TraversalGrid {
 public:
   // num_divisions_x > 0, num_divisions_y > 0
-  TraversalGrid(const TriangleProjector &projector, unsigned num_shapes,
-                const Eigen::Array2f &min, const Eigen::Array2f &max,
-                uint8_t num_divisions_x, uint8_t num_divisions_y,
+  TraversalGrid(const TriangleProjector &projector, const Eigen::Array2f &min,
+                const Eigen::Array2f &max, uint8_t num_divisions_x,
+                uint8_t num_divisions_y, unsigned start_shape_grids,
                 bool flip_x = false, bool flip_y = false);
 
   TraversalGrid() : projector_(Eigen::Projective3f::Identity()) {}
 
-  void resize(unsigned new_num_shapes);
+  void wipeShape(unsigned shape_to_wipe, Span<ShapePossibles> shape_grids);
 
-  void wipeShape(unsigned shape_to_wipe);
-
-  void updateShape(const scene::ShapeData *shapes, unsigned shape_to_update,
+  void updateShape(Span<const scene::ShapeData> shapes,
+                   Span<ShapePossibles> shape_grids, unsigned shape_to_update,
                    std::vector<ProjectedTriangle> &triangles);
 
-  void copy_into(std::vector<Traversal> &traversals,
+  void copy_into(Span<const ShapePossibles> shape_grids, unsigned num_shapes,
+                 std::vector<Traversal> &traversals,
                  std::vector<Action> &actions,
                  std::vector<unsigned> &action_num);
 
@@ -110,10 +107,9 @@ private:
   Eigen::Array2f inverse_difference_;
   uint8_t num_divisions_x_;
   uint8_t num_divisions_y_;
+  unsigned start_shape_grids_;
   bool flip_x_;
   bool flip_y_;
-  std::vector<ShapeRowPossibles> shape_grids_;
-  std::vector<ShapeColPossibles> shape_col_grids_;
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -261,6 +257,7 @@ public:
 };
 
 void update_shapes(Span<TraversalGrid, false> grids,
+                   Span<ShapePossibles> shape_grids,
                    Span<const scene::ShapeData, false> shapes);
 
 } // namespace detail

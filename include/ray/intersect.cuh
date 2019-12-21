@@ -67,7 +67,7 @@ __inline__ __host__ __device__ void solve_general_intersection(
     return;
   }
 
-  auto solve_index = [&](uint16_t shape_idx) {
+  auto solve_index = [&](unsigned shape_idx) {
     if (!is_first && ignore_v == shape_idx) {
       return false;
     }

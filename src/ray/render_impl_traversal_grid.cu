@@ -33,31 +33,22 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
 
   const unsigned total_size = total_translations.sum();
 
-  // div + 2 * \sum_{i=1}^div div + i = 2 div + 3 div^2
-  const Eigen::Array3<unsigned> total_y_per_translation =
-      2 * shifted_2_num_divisions +
-      3 * shifted_2_num_divisions * shifted_2_num_divisions;
-
-  const Eigen::Array3<unsigned> total_y =
-      total_y_per_translation * shifted_1_num_translations;
-
   unsigned num_division_light_x = 32;
   unsigned num_division_light_y = 32;
 
   traversal_data_cpu_.resize(lights.size() + total_size);
   traversal_grids_.resize(1 + lights.size() + total_size);
-  shape_col_grids_.resize(traversal_grids_.size() * shapes.size());
-  unsigned total_y_overall = block_data_.num_blocks_y +
-                             num_division_light_y * lights.size() +
-                             total_y.sum();
-  shape_row_grids_.resize(total_y_overall * shapes.size());
+  shape_grids_.resize(traversal_grids_.size() * shapes.size());
 
   unsigned traversal_grid_index = 0;
+  unsigned start_shape_grids = 0;
 
-  traversal_grids_[traversal_grid_index] = TraversalGrid(
-      TriangleProjector(world_to_film), shapes.size(), Eigen::Array2f(-1, -1),
-      Eigen::Array2f(1, 1), block_data_.num_blocks_x, block_data_.num_blocks_y,
-      false, true);
+  traversal_grids_[traversal_grid_index] =
+      TraversalGrid(TriangleProjector(world_to_film), Eigen::Array2f(-1, -1),
+                    Eigen::Array2f(1, 1), block_data_.num_blocks_x,
+                    block_data_.num_blocks_y, start_shape_grids, false, true);
+
+  start_shape_grids += shapes.size();
 
   traversals_cpu_.clear();
   actions_cpu_.clear();
@@ -138,9 +129,10 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
         }
 
         traversal_grids_[traversal_grid_index] =
-            TraversalGrid(projector, shapes.size(), projected_min,
-                          projected_max, num_divisions_x, num_divisions_y);
+            TraversalGrid(projector, projected_min, projected_max,
+                          num_divisions_x, num_divisions_y, start_shape_grids);
 
+        start_shape_grids += shapes.size();
         traversal_grid_index++;
       };
 
@@ -231,6 +223,7 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
   update_shapes(
       Span<TraversalGrid, false>(traversal_grids_.data(),
                                  traversal_grids_.size()),
+      to_span(shape_grids_),
       Span<const scene::ShapeData, false>(shapes.data(), shapes.size()));
 
   if (show_times) {
@@ -243,6 +236,9 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
 
   std::vector<unsigned> temp;
 
+  Span<const ShapePossibles> shape_grids_span(shape_grids_.data(),
+                                              shape_grids_.size());
+
   for (unsigned i = 0; i < traversal_grids_.size(); i++) {
     auto &traversal_grid = traversal_grids_[i];
 
@@ -251,7 +247,8 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
           traversal_grid.traversalData(traversals_cpu_.size());
     }
 
-    traversal_grid.copy_into(traversals_cpu_, actions_cpu_, temp);
+    traversal_grid.copy_into(shape_grids_span, shapes.size(), traversals_cpu_,
+                             actions_cpu_, temp);
 
     if (i == 0) {
       std::transform(traversals_cpu_.begin(), traversals_cpu_.end(),
