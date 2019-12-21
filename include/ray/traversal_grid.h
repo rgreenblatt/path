@@ -35,12 +35,12 @@ struct TraversalData {
   float value;
   Eigen::Array2f min;
   Eigen::Array2f convert_space_coords;
-  uint16_t num_divisions_x;
+  uint8_t num_divisions_x;
 
   HOST_DEVICE TraversalData(unsigned traversal_start, uint8_t axis, float value,
                             const Eigen::Array2f &min,
-                            const Eigen::Array2f &max, uint16_t num_divisions_x,
-                            uint16_t num_divisions_y)
+                            const Eigen::Array2f &max, uint8_t num_divisions_x,
+                            uint8_t num_divisions_y)
       : traversal_start(traversal_start), axis(axis), value(value), min(min),
         convert_space_coords(Eigen::Array2f(num_divisions_x, num_divisions_y) /
                              (1e-5f + max - min).array()),
@@ -52,12 +52,15 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
+using ShapeRowPossibles = std::array<uint8_t, 2>;
+using ShapeColPossibles = std::array<uint8_t, 2>;
+
 class TraversalGrid {
 public:
   // num_divisions_x > 0, num_divisions_y > 0
-  TraversalGrid(const TriangleProjector &projector, uint16_t num_shapes,
+  TraversalGrid(const TriangleProjector &projector, unsigned num_shapes,
                 const Eigen::Array2f &min, const Eigen::Array2f &max,
-                uint16_t num_divisions_x, uint16_t num_divisions_y,
+                uint8_t num_divisions_x, uint8_t num_divisions_y,
                 bool flip_x = false, bool flip_y = false);
 
   TraversalGrid() : projector_(Eigen::Projective3f::Identity()) {}
@@ -70,7 +73,8 @@ public:
                    std::vector<ProjectedTriangle> &triangles);
 
   void copy_into(std::vector<Traversal> &traversals,
-                 std::vector<Action> &actions);
+                 std::vector<Action> &actions,
+                 std::vector<unsigned> &action_num);
 
   TraversalData traversalData(unsigned traversal_start) const {
     uint8_t axis;
@@ -91,8 +95,8 @@ public:
                          num_divisions_x_, num_divisions_y_);
   }
 
-  uint16_t num_divisions_x() const { return num_divisions_x_; }
-  uint16_t num_divisions_y() const { return num_divisions_y_; }
+  uint8_t num_divisions_x() const { return num_divisions_x_; }
+  uint8_t num_divisions_y() const { return num_divisions_y_; }
   const Eigen::Array2f &min() const { return min_; }
   const Eigen::Array2f &max() const { return max_; }
 
@@ -104,15 +108,12 @@ private:
   Eigen::Array2f max_indexes_;
   Eigen::Array2f difference_;
   Eigen::Array2f inverse_difference_;
-  uint16_t num_divisions_x_;
-  uint16_t num_divisions_y_;
+  uint8_t num_divisions_x_;
+  uint8_t num_divisions_y_;
   bool flip_x_;
   bool flip_y_;
-  using ShapeRowPossibles = std::array<uint16_t, 4>;
   std::vector<ShapeRowPossibles> shape_grids_;
-  using ShapeColPossibles = std::array<uint16_t, 2>;
   std::vector<ShapeColPossibles> shape_col_grids_;
-  std::vector<unsigned> action_num_;
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW

@@ -9,18 +9,15 @@ namespace ray {
 namespace detail {
 class ProjectedTriangle {
 public:
-  HOST_DEVICE bool is_guaranteed() const { return is_guaranteed_; }
   HOST_DEVICE const std::array<Eigen::Array2f, 3> &points() const {
     return points_;
   }
 
-  HOST_DEVICE ProjectedTriangle(std::array<Eigen::Array2f, 3> points,
-                                bool is_guaranteed)
-      : points_(points), is_guaranteed_(is_guaranteed) {}
+  HOST_DEVICE ProjectedTriangle(std::array<Eigen::Array2f, 3> points)
+      : points_(points) {}
 
 private:
   std::array<Eigen::Array2f, 3> points_;
-  bool is_guaranteed_;
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW

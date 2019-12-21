@@ -18,14 +18,39 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
 
   const Eigen::Array3<unsigned> num_translations = 2 * num_divisions + 1;
 
-  const Eigen::Array3<unsigned> total_translations(
-      num_translations[1] * num_translations[2],
-      num_translations[0] * num_translations[2],
-      num_translations[0] * num_translations[1]);
+  const Eigen::Array3<unsigned> shifted_1_num_divisions(
+      num_divisions[1], num_divisions[2], num_divisions[0]);
+  const Eigen::Array3<unsigned> shifted_2_num_divisions(
+      num_divisions[2], num_divisions[0], num_divisions[1]);
+
+  const auto shifted_1_num_translations =
+      (2 * shifted_1_num_divisions + 1).eval();
+  const auto shifted_2_num_translations =
+      (2 * shifted_2_num_divisions + 1).eval();
+
+  const auto total_translations =
+      (shifted_1_num_translations * shifted_2_num_translations).eval();
+
   const unsigned total_size = total_translations.sum();
+
+  // div + 2 * \sum_{i=1}^div div + i = 2 div + 3 div^2
+  const Eigen::Array3<unsigned> total_y_per_translation =
+      2 * shifted_2_num_divisions +
+      3 * shifted_2_num_divisions * shifted_2_num_divisions;
+
+  const Eigen::Array3<unsigned> total_y =
+      total_y_per_translation * shifted_1_num_translations;
+
+  unsigned num_division_light_x = 32;
+  unsigned num_division_light_y = 32;
 
   traversal_data_cpu_.resize(lights.size() + total_size);
   traversal_grids_.resize(1 + lights.size() + total_size);
+  shape_col_grids_.resize(traversal_grids_.size() * shapes.size());
+  unsigned total_y_overall = block_data_.num_blocks_y +
+                             num_division_light_y * lights.size() +
+                             total_y.sum();
+  shape_row_grids_.resize(total_y_overall * shapes.size());
 
   unsigned traversal_grid_index = 0;
 
@@ -84,13 +109,6 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
           abort();
         }
 
-        std::vector<ProjectedTriangle> triangles;
-        triangles.reserve(6);
-
-        TriangleProjector projector(
-            DirectionPlane(loc_or_dir, is_loc, projection_value, axis));
-        project_shape(bounding_cube, projector, triangles);
-
         Eigen::Array2f projected_min =
             Eigen::Array2f(std::numeric_limits<float>::max(),
                            std::numeric_limits<float>::max());
@@ -98,11 +116,19 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
             Eigen::Array2f(std::numeric_limits<float>::lowest(),
                            std::numeric_limits<float>::lowest());
 
+        TriangleProjector projector(
+            DirectionPlane(loc_or_dir, is_loc, projection_value, axis));
+
         if (projection_surface_min_max.has_value()) {
           const auto &[p_min, p_max] = *projection_surface_min_max;
           projected_min = p_min;
           projected_max = p_max;
         } else {
+          std::vector<ProjectedTriangle> triangles;
+          triangles.reserve(6);
+
+          project_shape(bounding_cube, projector, triangles);
+
           for (const auto &triangle : triangles) {
             for (const auto &point : triangle.points()) {
               projected_min = projected_min.cwiseMin(point);
@@ -111,21 +137,12 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
           }
         }
 
-#if 0
-        dbg("projected min max");
-        std::cout << projected_min << std::endl;
-        std::cout << projected_max << std::endl;
-#endif
-
         traversal_grids_[traversal_grid_index] =
             TraversalGrid(projector, shapes.size(), projected_min,
                           projected_max, num_divisions_x, num_divisions_y);
 
         traversal_grid_index++;
       };
-
-  unsigned num_division_light_x = 32;
-  unsigned num_division_light_y = 32;
 
   for (const auto &light : lights) {
     light.visit([&](auto &&light_data) {
@@ -189,21 +206,16 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
         auto dir_other_axis = get_not_axis(dir, axis);
 
         Eigen::Array2f projected_min =
-            min_other_bounds.cwiseMin(dir_other_axis);
+            min_other_bounds.cwiseMin(dir_other_axis + min_other_bounds);
         Eigen::Array2f projected_max =
-            max_other_bounds.cwiseMax(dir_other_axis);
-
-#if 0
-        dbg("projected min max new");
-        std::cout << projected_min << std::endl;
-        std::cout << projected_max << std::endl;
-#endif
+            max_other_bounds.cwiseMax(dir_other_axis + max_other_bounds);
 
         add_projection(
             false, dir,
             num_divisions[first_axis] + unsigned(std::abs(translation_first)),
             num_divisions[second_axis] + unsigned(std::abs(translation_second)),
-            axis, max_bound[axis], thrust::nullopt);
+            axis, max_bound[axis],
+            std::make_tuple(projected_min, projected_max));
       }
     }
   }
@@ -229,6 +241,8 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
 
   const auto copy_into_traversal_grid = chr::high_resolution_clock::now();
 
+  std::vector<unsigned> temp;
+
   for (unsigned i = 0; i < traversal_grids_.size(); i++) {
     auto &traversal_grid = traversal_grids_[i];
 
@@ -237,7 +251,7 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
           traversal_grid.traversalData(traversals_cpu_.size());
     }
 
-    traversal_grid.copy_into(traversals_cpu_, actions_cpu_);
+    traversal_grid.copy_into(traversals_cpu_, actions_cpu_, temp);
 
     if (i == 0) {
       std::transform(traversals_cpu_.begin(), traversals_cpu_.end(),

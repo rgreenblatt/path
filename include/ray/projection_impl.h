@@ -146,27 +146,27 @@ inline void project_shape(const scene::ShapeData &shape,
                           bool flip_x = false, bool flip_y = false) {
   Eigen::Projective3f transform =
       projector.get_total_transform(shape.get_transform());
-  auto project_triangles_s = [&](const auto &triangles, bool is_guaranteed) {
+  auto project_triangles_s = [&](const auto &triangles) {
     project_triangles(transform, projector, triangles, flip_x, flip_y,
                       [&](const std::array<Eigen::Array2f, 3> &points) {
                         projected_triangles.push_back(
-                            ProjectedTriangle(points, is_guaranteed));
+                            ProjectedTriangle(points));
                       });
   };
 
   switch (shape.get_shape()) {
   case scene::Shape::Sphere:
     /* project_triangles_s(within_sphere_polys, true); */
-    project_triangles_s(bounding_sphere_polys, false);
+    project_triangles_s(bounding_sphere_polys);
     break;
   case scene::Shape::Cube:
-    project_triangles_s(cube_polys, true);
+    project_triangles_s(cube_polys);
     break;
   case scene::Shape::Cone:
-    project_triangles_s(bounding_cone_polys, false);
+    project_triangles_s(bounding_cone_polys);
     break;
   case scene::Shape::Cylinder:
-    project_triangles_s(bounding_cylinder_polys, false);
+    project_triangles_s(bounding_cylinder_polys);
     break;
   }
 }

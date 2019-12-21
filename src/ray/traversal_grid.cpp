@@ -6,22 +6,20 @@
 namespace ray {
 namespace detail {
 TraversalGrid::TraversalGrid(const TriangleProjector &projector,
-                             uint16_t num_shapes, const Eigen::Array2f &min,
-                             const Eigen::Array2f &max,
-                             uint16_t num_divisions_x, uint16_t num_divisions_y,
-                             bool flip_x, bool flip_y)
+                             unsigned num_shapes, const Eigen::Array2f &min,
+                             const Eigen::Array2f &max, uint8_t num_divisions_x,
+                             uint8_t num_divisions_y, bool flip_x, bool flip_y)
     : projector_(projector), min_(min), max_(max), min_indexes_(0, 0),
       max_indexes_(num_divisions_x, num_divisions_y), difference_(max - min),
       inverse_difference_(Eigen::Array2f(num_divisions_x, num_divisions_y) /
                           difference_),
       num_divisions_x_(num_divisions_x), num_divisions_y_(num_divisions_y),
-      flip_x_(flip_x), flip_y_(flip_y),
-      action_num_(num_divisions_x * num_divisions_y) {
+      flip_x_(flip_x), flip_y_(flip_y) {
   resize(num_shapes);
 }
 
 void TraversalGrid::resize(unsigned new_num_shapes) {
-  uint16_t old_num_shapes = shape_col_grids_.size();
+  unsigned old_num_shapes = shape_col_grids_.size();
   if (new_num_shapes > old_num_shapes) {
     shape_grids_.insert(shape_grids_.end(),
                         (new_num_shapes - old_num_shapes) * num_divisions_y_,
@@ -41,8 +39,7 @@ void TraversalGrid::resize(unsigned new_num_shapes) {
 
 void TraversalGrid::wipeShape(unsigned shape_to_wipe) {
   std::fill_n(shape_grids_.begin() + shape_to_wipe * num_divisions_y_,
-              num_divisions_y_,
-              ShapeRowPossibles{num_divisions_x_, 0, num_divisions_x_, 0});
+              num_divisions_y_, ShapeRowPossibles{num_divisions_x_, 0});
   shape_col_grids_[shape_to_wipe] = ShapeColPossibles{num_divisions_y_, 0};
 }
 
@@ -70,14 +67,14 @@ void TraversalGrid::updateShape(const scene::ShapeData *shapes,
                                 .ceil()
                                 .cwiseMin(max_indexes_)
                                 .cwiseMax(min_indexes_)
-                                .cast<uint16_t>()
+                                .cast<uint8_t>()
                                 .eval();
     auto min_grid_indexes = 
       ((min_p - min_) * inverse_difference_ + 1e-5f)
                                 .floor()
                                 .cwiseMin(max_indexes_)
                                 .cwiseMax(min_indexes_)
-                                .cast<uint16_t>()
+                                .cast<uint8_t>()
                                 .eval();
 
     shape_col_possibles[0] =
@@ -188,7 +185,7 @@ void TraversalGrid::updateShape(const scene::ShapeData *shapes,
           }
         }
 
-        auto bound_clamp = [&](float bound) -> uint16_t {
+        auto bound_clamp = [&](float bound) -> uint8_t {
           return std::clamp(bound, min_indexes_.x(), max_indexes_.x());
         };
 
@@ -202,17 +199,6 @@ void TraversalGrid::updateShape(const scene::ShapeData *shapes,
                                           bound_clamp(std::floor(min_bound)));
         shape_row_possibles[1] =
             std::max(shape_row_possibles[1], bound_clamp(std::ceil(max_bound)));
-
-        if (triangle.is_guaranteed()) {
-          auto min_bound =
-              ((larger_smaller_x - min_) * inverse_difference_).x();
-          auto max_bound =
-              ((smaller_larger_x - min_) * inverse_difference_).x();
-          shape_row_possibles[2] = std::min(shape_row_possibles[2],
-                                            bound_clamp(std::ceil(min_bound)));
-          shape_row_possibles[3] = std::max(shape_row_possibles[3],
-                                            bound_clamp(std::floor(max_bound)));
-        }
       }
 
       last_smaller_x = smaller_x;
@@ -222,7 +208,9 @@ void TraversalGrid::updateShape(const scene::ShapeData *shapes,
 }
 
 void TraversalGrid::copy_into(std::vector<Traversal> &traversals,
-                              std::vector<Action> &actions) {
+                              std::vector<Action> &actions,
+                              std::vector<unsigned> &action_num) {
+  action_num.resize(num_divisions_x_ * num_divisions_y_);
   unsigned traversal_size = num_divisions_x_ * num_divisions_y_;
   unsigned traversal_start_index = traversals.size();
   traversals.insert(traversals.end(), traversal_size, Traversal(0, 0));
@@ -233,7 +221,7 @@ void TraversalGrid::copy_into(std::vector<Traversal> &traversals,
     for (unsigned division_y = 0; division_y < num_divisions_y_; division_y++) {
       auto &shape_row_possibles =
           shape_grids_.at(shape_idx * num_divisions_y_ + division_y);
-      for (uint16_t division_x = shape_row_possibles[0];
+      for (unsigned division_x = shape_row_possibles[0];
            division_x < shape_row_possibles[1]; division_x++) {
         start_traversals[division_x + division_y * num_divisions_x_].size++;
       }
@@ -257,7 +245,7 @@ void TraversalGrid::copy_into(std::vector<Traversal> &traversals,
                      last_traversal.size,
                  Action());
 
-  std::fill(action_num_.begin(), action_num_.end(), 0);
+  std::fill(action_num.begin(), action_num.end(), 0);
 
   for (unsigned shape_idx = 0;
        shape_idx < shape_grids_.size() / num_divisions_y_; shape_idx++) {
@@ -265,18 +253,18 @@ void TraversalGrid::copy_into(std::vector<Traversal> &traversals,
          division_y < shape_col_grids_[shape_idx][1]; division_y++) {
       auto &shape_row_possibles =
           shape_grids_[shape_idx * num_divisions_y_ + division_y];
-      for (uint16_t division_x = shape_row_possibles[0];
+      for (unsigned division_x = shape_row_possibles[0];
            division_x < shape_row_possibles[1]; division_x++) {
         unsigned traversal_index = division_y * num_divisions_x_ + division_x;
         unsigned action_idx = start_traversals[traversal_index].start +
-                              action_num_[traversal_index];
+                              action_num[traversal_index];
 
         bool is_guaranteed = division_x >= shape_row_possibles[2] &&
                              division_x < shape_row_possibles[3];
 
         actions[action_idx] = Action(shape_idx, is_guaranteed);
 
-        action_num_[traversal_index]++;
+        action_num[traversal_index]++;
       }
     }
   }
