@@ -27,7 +27,7 @@ struct Traversal {
   HOST_DEVICE Traversal() {}
 };
 
-struct TraversalData {
+struct ALIGN_STRUCT(16) TraversalData {
   unsigned traversal_start;
   uint8_t axis;
   float value;
@@ -52,12 +52,15 @@ public:
 
 using ShapePossibles = std::array<uint8_t, 4>;
 
-class TraversalGrid {
+class ALIGN_STRUCT(32) TraversalGrid {
 public:
   // num_divisions_x > 0, num_divisions_y > 0
   TraversalGrid(const TriangleProjector &projector, const Eigen::Array2f &min,
                 const Eigen::Array2f &max, uint8_t num_divisions_x,
                 uint8_t num_divisions_y, unsigned start_shape_grids,
+#if 0
+                unsigned start_hash_index,
+#endif
                 bool flip_x = false, bool flip_y = false);
 
   TraversalGrid() : projector_(Eigen::Projective3f::Identity()) {}
@@ -65,8 +68,7 @@ public:
   void wipeShape(unsigned shape_to_wipe, Span<ShapePossibles> shape_grids);
 
   void updateShape(Span<const scene::ShapeData> shapes,
-                   Span<ShapePossibles> shape_grids, unsigned shape_to_update,
-                   std::vector<ProjectedTriangle> &triangles);
+                   Span<ShapePossibles> shape_grids, unsigned shape_to_update);
 
   void copy_into(Span<const ShapePossibles> shape_grids, unsigned num_shapes,
                  std::vector<Traversal> &traversals,
@@ -108,6 +110,7 @@ private:
   uint8_t num_divisions_x_;
   uint8_t num_divisions_y_;
   unsigned start_shape_grids_;
+  /* unsigned start_hash_index_; */
   bool flip_x_;
   bool flip_y_;
 
@@ -115,7 +118,7 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
-class TraversalGridsRef {
+class ALIGN_STRUCT(16) TraversalGridsRef {
 public:
   TraversalGridsRef() {}
 

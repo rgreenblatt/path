@@ -16,6 +16,8 @@ public:
   HOST_DEVICE ProjectedTriangle(std::array<Eigen::Array2f, 3> points)
       : points_(points) {}
 
+  HOST_DEVICE ProjectedTriangle() {}
+
 private:
   std::array<Eigen::Array2f, 3> points_;
 

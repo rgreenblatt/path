@@ -16,8 +16,6 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
 
   const Eigen::Array3<unsigned> num_divisions(16, 16, 16);
 
-  const Eigen::Array3<unsigned> num_translations = 2 * num_divisions + 1;
-
   const Eigen::Array3<unsigned> shifted_1_num_divisions(
       num_divisions[1], num_divisions[2], num_divisions[0]);
   const Eigen::Array3<unsigned> shifted_2_num_divisions(
@@ -115,12 +113,13 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
           projected_min = p_min;
           projected_max = p_max;
         } else {
-          std::vector<ProjectedTriangle> triangles;
-          triangles.reserve(6);
+          std::array<ProjectedTriangle, max_proj_tris> triangles;
 
-          project_shape(bounding_cube, projector, triangles);
+          unsigned num_triangles = project_shape(bounding_cube, projector, triangles);
 
-          for (const auto &triangle : triangles) {
+          for (unsigned triangle_idx = 0; triangle_idx < num_triangles;
+               triangle_idx++) {
+            const auto &triangle = triangles[triangle_idx];
             for (const auto &point : triangle.points()) {
               projected_min = projected_min.cwiseMin(point);
               projected_max = projected_max.cwiseMax(point);

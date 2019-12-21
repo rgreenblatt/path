@@ -99,12 +99,16 @@ const static auto bounding_sphere_polys = cube_polys;
 const static auto bounding_cone_polys = cube_polys;
 const static auto bounding_cylinder_polys = cube_polys;
 
-template <size_t num_triangles, typename F>
-inline void
-project_triangles(const Eigen::Projective3f &transform,
-                  const TriangleProjector &projector,
-                  const std::array<Triangle, num_triangles> &triangles,
-                  bool flip_x, bool flip_y, const F &add_tri) {
+constexpr unsigned max_proj_tris = 12;
+
+template <size_t num_triangles>
+inline unsigned project_triangles(
+    const Eigen::Projective3f &transform, const TriangleProjector &projector,
+    const std::array<Triangle, num_triangles> &triangles,
+    std::array<ProjectedTriangle, max_proj_tris> &projected_triangles,
+    bool flip_x, bool flip_y) {
+  unsigned num_out_triangles = 0;
+
   for (const auto &triangle : triangles) {
     Triangle transformed_triangle = transform_triangle(transform, triangle);
 
@@ -135,17 +139,26 @@ project_triangles(const Eigen::Projective3f &transform,
                        return new_point;
                      });
 
-      add_tri(projected_points);
+      assert(num_out_triangles < max_proj_tris);
+      projected_triangles[num_out_triangles] = projected_points;
+
+      num_out_triangles++;
     }
   }
+
+  return num_out_triangles;
 }
 
-inline void project_shape(const scene::ShapeData &shape,
-                          const TriangleProjector &projector,
-                          std::vector<ProjectedTriangle> &projected_triangles,
-                          bool flip_x = false, bool flip_y = false) {
+inline unsigned
+project_shape(const scene::ShapeData &shape, const TriangleProjector &projector,
+              std::array<ProjectedTriangle, max_proj_tris> &projected_triangles,
+              bool flip_x = false, bool flip_y = false) {
   Eigen::Projective3f transform =
       projector.get_total_transform(shape.get_transform());
+
+  return project_triangles(transform, projector, cube_polys,
+                           projected_triangles, flip_x, flip_y);
+#if 0
   auto project_triangles_s = [&](const auto &triangles) {
     project_triangles(transform, projector, triangles, flip_x, flip_y,
                       [&](const std::array<Eigen::Array2f, 3> &points) {
@@ -169,6 +182,7 @@ inline void project_shape(const scene::ShapeData &shape,
     project_triangles_s(bounding_cylinder_polys);
     break;
   }
+#endif
 }
 } // namespace detail
 } // namespace ray
