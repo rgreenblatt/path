@@ -58,10 +58,8 @@ public:
   TraversalGrid(const TriangleProjector &projector, const Eigen::Array2f &min,
                 const Eigen::Array2f &max, uint8_t num_divisions_x,
                 uint8_t num_divisions_y, unsigned start_shape_grids,
-#if 0
-                unsigned start_hash_index,
-#endif
-                bool flip_x = false, bool flip_y = false);
+                unsigned start_hash_index, bool flip_x = false,
+                bool flip_y = false);
 
   TraversalGrid() : projector_(Eigen::Projective3f::Identity()) {}
 
@@ -69,6 +67,9 @@ public:
 
   void updateShape(Span<const scene::ShapeData> shapes,
                    Span<ShapePossibles> shape_grids, unsigned shape_to_update);
+
+  void addHashes(Span<const ShapePossibles> shape_grids, unsigned shape_idx,
+                 Span<unsigned> hashes, Span<const unsigned> shape_hashs);
 
   void copy_into(Span<const ShapePossibles> shape_grids, unsigned num_shapes,
                  std::vector<Traversal> &traversals,
@@ -110,7 +111,7 @@ private:
   uint8_t num_divisions_x_;
   uint8_t num_divisions_y_;
   unsigned start_shape_grids_;
-  /* unsigned start_hash_index_; */
+  unsigned start_hash_index_;
   bool flip_x_;
   bool flip_y_;
 
@@ -263,5 +264,20 @@ void update_shapes(Span<TraversalGrid, false> grids,
                    Span<ShapePossibles> shape_grids,
                    Span<const scene::ShapeData, false> shapes);
 
+inline unsigned hash_value(unsigned value) {
+  constexpr unsigned fnv_prime = 16777619u;
+  constexpr unsigned fnv_offset_basis = 2166136261u;
+
+  static_assert(sizeof(unsigned) == 4);
+
+  return (fnv_offset_basis ^ value) * fnv_prime;
+}
+
+void get_shape_hashes(Span<unsigned, false> shape_hashes);
+
+void hash_shapes(Span<TraversalGrid, false> grids,
+                 Span<const ShapePossibles> shape_grids,
+                 Span<const unsigned> shape_hashes, Span<unsigned> hashes,
+                 unsigned num_shapes);
 } // namespace detail
 } // namespace ray

@@ -85,5 +85,13 @@ private:
   std::vector<detail::TraversalData> traversal_data_cpu_;
   std::vector<detail::TraversalGrid> traversal_grids_;
   std::vector<detail::ShapePossibles> shape_grids_;
+  std::vector<unsigned> shape_hashes_;
+  std::vector<unsigned> hashes_;
+  std::vector<unsigned> copied_hashes_;
+  std::vector<unsigned> indexes_;
+  std::vector<std::pair<unsigned, unsigned>> hash_map_base_;
+  std::vector<std::pair<unsigned, unsigned>> hash_map_into_;
+  std::vector<unsigned> shapes_per_hash_;
+  std::vector<unsigned> hash_hash_map_indexes_;
 };
 } // namespace ray

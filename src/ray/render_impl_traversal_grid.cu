@@ -2,10 +2,26 @@
 #include "ray/render_impl.h"
 #include "ray/render_impl_utils.h"
 
+#include <boost/iterator/counting_iterator.hpp>
+#include <thrust/sort.h>
+#include <thrust/unique.h>
+#include <thrust/transform.h>
+#include <thrust/functional.h>
+#include <thrust/execution_policy.h>
+
 #include <chrono>
 
 namespace ray {
 using namespace detail;
+
+struct modulo_n : public thrust::unary_function<unsigned, unsigned> {
+  unsigned n;
+
+  modulo_n(unsigned n) : n(n) {}
+
+  __host__ __device__ unsigned operator()(unsigned x) { return x % n; }
+};
+
 template <ExecutionModel execution_model>
 TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
     bool show_times, const Eigen::Projective3f &world_to_film,
@@ -40,13 +56,15 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
 
   unsigned traversal_grid_index = 0;
   unsigned start_shape_grids = 0;
+  unsigned start_hash_index = 0;
 
-  traversal_grids_[traversal_grid_index] =
-      TraversalGrid(TriangleProjector(world_to_film), Eigen::Array2f(-1, -1),
-                    Eigen::Array2f(1, 1), block_data_.num_blocks_x,
-                    block_data_.num_blocks_y, start_shape_grids, false, true);
+  traversal_grids_[traversal_grid_index] = TraversalGrid(
+      TriangleProjector(world_to_film), Eigen::Array2f(-1, -1),
+      Eigen::Array2f(1, 1), block_data_.num_blocks_x, block_data_.num_blocks_y,
+      start_shape_grids, start_hash_index, false, true);
 
   start_shape_grids += shapes.size();
+  start_hash_index += block_data_.num_blocks_x * block_data_.num_blocks_y;
 
   traversals_cpu_.clear();
   actions_cpu_.clear();
@@ -127,11 +145,12 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
           }
         }
 
-        traversal_grids_[traversal_grid_index] =
-            TraversalGrid(projector, projected_min, projected_max,
-                          num_divisions_x, num_divisions_y, start_shape_grids);
+        traversal_grids_[traversal_grid_index] = TraversalGrid(
+            projector, projected_min, projected_max, num_divisions_x,
+            num_divisions_y, start_shape_grids, start_hash_index);
 
         start_shape_grids += shapes.size();
+        start_hash_index += num_divisions_x * num_divisions_y;
         traversal_grid_index++;
       };
 
@@ -219,15 +238,79 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
 
   const auto project_traversal_grid = chr::high_resolution_clock::now();
 
-  update_shapes(
-      Span<TraversalGrid, false>(traversal_grids_.data(),
-                                 traversal_grids_.size()),
-      to_span(shape_grids_),
-      Span<const scene::ShapeData, false>(shapes.data(), shapes.size()));
+  Span<TraversalGrid, false> grids_span(traversal_grids_.data(),
+                                        traversal_grids_.size());
+
+  update_shapes(grids_span, to_span(shape_grids_), shapes);
 
   if (show_times) {
     dbg(chr::duration_cast<chr::duration<double>>(
             chr::high_resolution_clock::now() - project_traversal_grid)
+            .count());
+  }
+
+  const auto hashing_traversal_grid = chr::high_resolution_clock::now();
+
+  shape_hashes_.resize(shapes.size());
+
+  get_shape_hashes(
+      Span<unsigned, false>(shape_hashes_.data(), shape_hashes_.size()));
+
+  hashes_.resize(start_hash_index);
+  std::fill_n(hashes_.begin(), hashes_.size(), 0);
+
+  hash_shapes(grids_span, to_const_span(shape_grids_),
+              to_const_span(shape_hashes_), to_span(hashes_), shapes.size());
+
+  copied_hashes_.resize(hashes_.size());
+  std::copy(hashes_.begin(), hashes_.end(), copied_hashes_.begin());
+
+  if (show_times) {
+    dbg(chr::duration_cast<chr::duration<double>>(
+            chr::high_resolution_clock::now() - hashing_traversal_grid)
+            .count());
+  }
+
+
+  const auto sort_unique_traversal_grid = chr::high_resolution_clock::now();
+
+  indexes_.resize(hashes_.size());
+
+  thrust::sequence(indexes_.data(), indexes_.data() + indexes_.size());
+
+  thrust::sort_by_key(thrust::host, hashes_.data(),
+                      hashes_.data() + hashes_.size(), indexes_.data());
+
+  auto iter_out =
+      thrust::unique_by_key(thrust::host, hashes_.data(),
+                            hashes_.data() + hashes_.size(), indexes_.data());
+
+  unsigned num_unique_hashes =
+      std::distance(hashes_.data(), thrust::get<0>(iter_out));
+
+  if (show_times) {
+    dbg(chr::duration_cast<chr::duration<double>>(
+            chr::high_resolution_clock::now() - sort_unique_traversal_grid)
+            .count());
+  }
+  
+  const auto construct_hash_map = chr::high_resolution_clock::now();
+
+  unsigned hash_map_multiplier = 4;
+  unsigned base_size = hash_map_multiplier * num_unique_hashes;
+
+  hash_map_base_.resize(base_size);
+
+  hash_hash_map_indexes_.resize(num_unique_hashes);
+
+  thrust::transform(thrust::host, hashes_.data(),
+                    hashes_.data() + num_unique_hashes,
+                    hash_hash_map_indexes_.data(), modulo_n(base_size));
+
+
+  if (show_times) {
+    dbg(chr::duration_cast<chr::duration<double>>(
+            chr::high_resolution_clock::now() - construct_hash_map)
             .count());
   }
 

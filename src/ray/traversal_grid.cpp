@@ -10,21 +10,15 @@ TraversalGrid::TraversalGrid(const TriangleProjector &projector,
                              const Eigen::Array2f &max, uint8_t num_divisions_x,
                              uint8_t num_divisions_y,
                              unsigned start_shape_grids,
-#if 0
-                             unsigned start_hash_index,
-#endif
-                             bool flip_x, bool flip_y)
+                             unsigned start_hash_index, bool flip_x,
+                             bool flip_y)
     : projector_(projector), min_(min), max_(max), min_indexes_(0, 0),
       max_indexes_(num_divisions_x, num_divisions_y), difference_(max - min),
       inverse_difference_(Eigen::Array2f(num_divisions_x, num_divisions_y) /
                           difference_),
       num_divisions_x_(num_divisions_x), num_divisions_y_(num_divisions_y),
       start_shape_grids_(start_shape_grids),
-#if 0
-      start_hash_index_(start_hash_index), 
-#endif
-      flip_x_(flip_x), flip_y_(flip_y) {
-}
+      start_hash_index_(start_hash_index), flip_x_(flip_x), flip_y_(flip_y) {}
 
 void TraversalGrid::wipeShape(unsigned shape_to_wipe,
                               Span<ShapePossibles> shape_grids) {
@@ -71,7 +65,6 @@ void TraversalGrid::updateShape(Span<const scene::ShapeData> shapes,
   }
 }
 
-#if 0
 void TraversalGrid::addHashes(Span<const ShapePossibles> shape_grids,
                               unsigned shape_idx, Span<unsigned> hashes,
                               Span<const unsigned> shape_hashs) {
@@ -86,7 +79,6 @@ void TraversalGrid::addHashes(Span<const ShapePossibles> shape_grids,
     }
   }
 }
-#endif
 
 void TraversalGrid::copy_into(Span<const ShapePossibles> shape_grids,
                               unsigned num_shapes,
@@ -150,12 +142,31 @@ void TraversalGrid::copy_into(Span<const ShapePossibles> shape_grids,
 void update_shapes(Span<TraversalGrid, false> grids,
                    Span<ShapePossibles> shape_grids,
                    Span<const scene::ShapeData, false> shapes) {
+  Span<const scene::ShapeData> shapes_span(shapes.data(), shapes.size());
 #pragma omp parallel for
   for (unsigned i = 0; i < grids.size(); i++) {
     for (unsigned shape = 0; shape < shapes.size(); shape++) {
-      grids[i].updateShape(
-          Span<const scene::ShapeData>(shapes.data(), shapes.size()),
-          shape_grids, shape);
+      grids[i].updateShape(shapes_span, shape_grids, shape);
+    }
+  }
+}
+
+// at what point does this make sense to do on the gpu?
+void get_shape_hashes(Span<unsigned, false> shape_hashes) {
+#pragma omp parallel for if (shape_hashes.size() > 512)
+  for (unsigned shape = 0; shape < shape_hashes.size(); shape++) {
+    shape_hashes[shape] = hash_value(shape);
+  }
+}
+
+void hash_shapes(Span<TraversalGrid, false> grids,
+                 Span<const ShapePossibles> shape_grids,
+                 Span<const unsigned> shape_hashes, Span<unsigned> hashes,
+                 unsigned num_shapes) {
+#pragma omp parallel for
+  for (unsigned i = 0; i < grids.size(); i++) {
+    for (unsigned shape = 0; shape < num_shapes; shape++) {
+      grids[i].addHashes(shape_grids, shape, hashes, shape_hashes);
     }
   }
 }
