@@ -18,9 +18,9 @@ void render_frames(unsigned width, unsigned height,
                    const Eigen::Affine3f &film_to_world,
                    const Eigen::Projective3f &world_to_film,
                    const std::string &dir_name, unsigned depth,
-                   bool use_kd_tree, bool use_traversals, unsigned frames,
-                   float frame_rate, unsigned physics_super_sampling_rate,
-                   bool make_video) {
+                   bool use_kd_tree, bool use_traversals,
+                   bool use_traversal_dists, unsigned frames, float frame_rate,
+                   unsigned physics_super_sampling_rate, bool make_video) {
 #if 0
   if (!std::filesystem::exists(dir_name)) {
     std::filesystem::create_directories(dir_name);
@@ -53,7 +53,7 @@ void render_frames(unsigned width, unsigned height,
     auto bgra_data = reinterpret_cast<BGRA *>(frame.data);
 
     renderer.render(bgra_data, film_to_world, world_to_film, use_kd_tree,
-                    use_traversals, false);
+                    use_traversals, use_traversal_dists, false);
 
     for (unsigned i = 0; i < physics_super_sampling_rate; i++) {
       renderer.get_scene().step(secs_per_frame);
@@ -83,7 +83,7 @@ void render_frames(unsigned width, unsigned height,
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 12) {
+  if (argc != 13) {
     std::cout << "wrong num args" << std::endl;
 
     return 1;
@@ -95,12 +95,13 @@ int main(int argc, char *argv[]) {
   const unsigned super_sampling_rate = boost::lexical_cast<unsigned>(argv[4]);
   const bool use_kd_tree = boost::lexical_cast<bool>(argv[5]);
   const bool use_traversals = boost::lexical_cast<bool>(argv[6]);
-  const bool render_cpu = boost::lexical_cast<bool>(argv[7]);
-  const unsigned frames = boost::lexical_cast<unsigned>(argv[8]);
-  const float frame_rate = boost::lexical_cast<float>(argv[9]);
+  const bool use_traversal_dists = boost::lexical_cast<bool>(argv[7]);
+  const bool render_cpu = boost::lexical_cast<bool>(argv[8]);
+  const unsigned frames = boost::lexical_cast<unsigned>(argv[9]);
+  const float frame_rate = boost::lexical_cast<float>(argv[10]);
   const unsigned physics_super_sampling_rate =
-      boost::lexical_cast<unsigned>(argv[10]);
-  const bool make_video = boost::lexical_cast<bool>(argv[11]);
+      boost::lexical_cast<unsigned>(argv[11]);
+  const bool make_video = boost::lexical_cast<bool>(argv[12]);
 
   scene::ReflecBalls pool_scene;
 
@@ -114,7 +115,9 @@ int main(int argc, char *argv[]) {
     std::cout << "rendering cpu" << std::endl;
     render_frames<ray::ExecutionModel::CPU>(
         width, height, super_sampling_rate, pool_scene, film_to_world,
-        world_to_film, "cpu_video/", depth, use_kd_tree, use_traversals, frames,
+        world_to_film, "cpu_video/", depth, use_kd_tree, use_traversals, 
+        use_traversal_dists,
+        frames,
         frame_rate, physics_super_sampling_rate, make_video);
     std::cout << "=============" << std::endl;
   }
@@ -122,8 +125,9 @@ int main(int argc, char *argv[]) {
   std::cout << "rendering gpu" << std::endl;
   render_frames<ray::ExecutionModel::GPU>(
       width, height, super_sampling_rate, pool_scene, film_to_world,
-      world_to_film, "gpu_video/", depth, use_kd_tree, use_traversals, frames,
-      frame_rate, physics_super_sampling_rate, make_video);
+      world_to_film, "gpu_video/", depth, use_kd_tree, use_traversals,
+      use_traversal_dists, frames, frame_rate, physics_super_sampling_rate,
+      make_video);
 
   return 0;
 }

@@ -26,18 +26,58 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
-struct DirectionPlane {
-  Eigen::Vector3f loc_or_dir;
-  bool is_loc;
+struct Plane {
   float projection_value;
   uint8_t axis;
+  uint8_t first_other_axis;
+  uint8_t second_other_axis;
+
+  Plane(float projection_value, uint8_t axis)
+      : projection_value(projection_value), axis(axis),
+        first_other_axis((axis + 1) % 3), second_other_axis((axis + 2) % 3) {}
+
+  Plane() {}
+
+  template <typename T>
+  inline HOST_DEVICE Eigen::Array2<T>
+  get_not_axis(const Eigen::Vector3<T> &v) const {
+    return Eigen::Array2<T>(v[first_other_axis], v[second_other_axis]);
+  }
+
+  template <typename T>
+  inline HOST_DEVICE Eigen::Array2<T>
+  get_not_axis(const Eigen::Array3<T> &v) const {
+    return Eigen::Array2<T>(v[first_other_axis], v[second_other_axis]);
+  }
+
+  inline HOST_DEVICE auto
+  get_intersection_point(const Eigen::Vector3f &dir,
+                         const Eigen::Vector3f &pos) const {
+    float dist = (projection_value - pos[axis]) / dir[axis];
+
+    auto point = (dist * get_not_axis(dir) + get_not_axis(pos)).eval();
+
+    return std::make_tuple(point, dist);
+  }
+};
+
+struct DirectionPlane {
+  Eigen::Vector3f loc_or_dir;
+  Plane plane;
+  bool is_loc;
 
   DirectionPlane(const Eigen::Vector3f &loc_or_dir, bool is_loc,
-                 float projection_value, uint8_t axis)
-      : loc_or_dir(loc_or_dir), is_loc(is_loc),
-        projection_value(projection_value), axis(axis) {}
+                 const Plane &plane)
+      : loc_or_dir(is_loc ? loc_or_dir : loc_or_dir.normalized()), plane(plane),
+        is_loc(is_loc) {}
 
   DirectionPlane() {}
+
+  inline HOST_DEVICE auto
+  get_intersection_point(const Eigen::Vector3f &pos) const {
+    return plane.get_intersection_point(
+        is_loc ? (loc_or_dir - pos).normalized().eval() : loc_or_dir, pos);
+  }
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW

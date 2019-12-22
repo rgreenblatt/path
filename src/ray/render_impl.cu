@@ -29,12 +29,11 @@ RendererImpl<execution_model>::RendererImpl(unsigned width, unsigned height,
       disables_(block_data_.totalSize()), colors_(block_data_.totalSize()),
       bgra_(width * height) {}
 
-
 template <ExecutionModel execution_model>
 void RendererImpl<execution_model>::render(
     BGRA *pixels, const scene::Transform &m_film_to_world,
     const Eigen::Projective3f &world_to_film, bool use_kd_tree,
-    bool use_traversals, bool show_times) {
+    bool use_traversals, bool use_traversal_dists, bool show_times) {
   namespace chr = std::chrono;
 
   const auto lights = scene_->getLights();
@@ -112,7 +111,8 @@ void RendererImpl<execution_model>::render(
     const auto start_intersect = chr::high_resolution_clock::now();
 
     raytrace_pass(
-        is_first, use_kd_tree, use_traversals, current_num_blocks,
+        is_first, use_kd_tree, use_traversals, use_traversal_dists,
+        current_num_blocks,
         Span<const scene::ShapeData, false>(shapes.data(), shapes.size()),
         Span<const scene::Light, false>(lights, num_lights),
         Span(textures, num_textures), traversal_grids_ref);

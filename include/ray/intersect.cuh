@@ -8,7 +8,6 @@
 #include "ray/cube.h"
 #include "ray/cuda_ray_utils.cuh"
 #include "ray/cylinder.h"
-#include "ray/intersect.h"
 #include "ray/kdtree.h"
 #include "ray/ray_utils.h"
 #include "ray/sphere.h"
@@ -62,7 +61,9 @@ __inline__ __host__ __device__ void solve_general_intersection(
     const Eigen::Vector3f &world_space_eye,
     const Eigen::Vector3f &world_space_direction, const unsigned &ignore_v,
     const uint8_t &disable, thrust::optional<BestIntersection> &best,
-    bool is_first, bool use_traversals, bool use_kd_tree, const F &f) {
+    bool is_first, bool use_traversals, bool use_traversal_dists,
+    const float &min_dist_bound, const float &max_dist_bound, bool use_kd_tree,
+    const F &f) {
   if (!is_first && disable) {
     return;
   }
@@ -77,8 +78,17 @@ __inline__ __host__ __device__ void solve_general_intersection(
   };
 
   if (use_traversals) {
-    for (unsigned action_index = traversal.start; action_index < traversal.end;
-         action_index++) {
+    for (unsigned action_index = traversal.start;; action_index++) {
+      while (use_traversal_dists && action_index < traversal.end &&
+             (actions[action_index].min_dist > min_dist_bound ||
+              actions[action_index].max_dist < max_dist_bound)) {
+        action_index++;
+      }
+
+      if (action_index >= traversal.end) {
+        break;
+      }
+
       if (solve_index(actions[action_index].shape_idx)) {
         return;
       }

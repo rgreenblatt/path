@@ -35,7 +35,7 @@ template <ExecutionModel execution_model> class RendererImpl {
 public:
   void render(BGRA *pixels, const scene::Transform &m_film_to_world,
               const Eigen::Projective3f &world_to_film, bool use_kd_tree,
-              bool use_traversals, bool show_times);
+              bool use_traversals, bool use_traversal_dists, bool show_times);
 
   RendererImpl(unsigned width, unsigned height, unsigned super_sampling_rate,
                unsigned recursive_iterations, std::unique_ptr<scene::Scene> &s);
@@ -46,7 +46,7 @@ public:
 
 private:
   void raytrace_pass(bool is_first, bool use_kd_tree, bool use_traversals,
-                     unsigned current_num_blocks,
+                     bool use_traversal_dists, unsigned current_num_blocks,
                      Span<const scene::ShapeData, false> shapes,
                      Span<const scene::Light, false> lights,
                      Span<const scene::TextureImageRef> textures,

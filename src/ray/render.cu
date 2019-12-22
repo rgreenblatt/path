@@ -21,9 +21,10 @@ void Renderer<execution_model>::render(BGRA *pixels,
                                        const scene::Transform &m_film_to_world,
                                        const Eigen::Projective3f &world_to_film,
                                        bool use_kd_tree, bool use_traversals,
+                                       bool use_traversal_dists,
                                        bool show_times) {
   renderer_impl_->render(pixels, m_film_to_world, world_to_film, use_kd_tree,
-                         use_traversals, show_times);
+                         use_traversals, use_traversal_dists, show_times);
 }
 
 template <ExecutionModel execution_model>

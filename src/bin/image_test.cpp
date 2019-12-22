@@ -14,7 +14,7 @@ void run_test(unsigned width, unsigned height, unsigned super_sampling_rate,
               const Eigen::Affine3f &film_to_world,
               const Eigen::Projective3f &world_to_film,
               const std::string &filename, unsigned depth, bool use_kd_tree,
-              bool use_traversals) {
+              bool use_traversals, bool use_traversal_dists) {
   QImage image(width, height, QImage::Format_RGB32);
 
   auto bgra_data = reinterpret_cast<BGRA *>(image.bits());
@@ -27,17 +27,17 @@ void run_test(unsigned width, unsigned height, unsigned super_sampling_rate,
 #if 1
   // realistic memory benchmark
   renderer.render(bgra_data, film_to_world, world_to_film, use_kd_tree,
-                  use_traversals, false);
+                  use_traversals, use_traversal_dists, false);
 #endif
 
   std::cout << "start:" << std::endl;
   auto start = std::chrono::high_resolution_clock::now();
   renderer.render(bgra_data, film_to_world, world_to_film, use_kd_tree,
-                  use_traversals, true);
+                  use_traversals, use_traversal_dists, true);
 
-#if 0
-  unsigned x_rad = 0;
-  unsigned y_rad = 0;
+#if 1
+  unsigned x_rad = 3;
+  unsigned y_rad = 3;
 
   auto draw_point = [&](unsigned x, unsigned y, BGRA color) {
     for (unsigned y_draw = std::max(y, y_rad) - y_rad;
@@ -49,7 +49,7 @@ void run_test(unsigned width, unsigned height, unsigned super_sampling_rate,
     }
   };
 
-  draw_point(18, 17, BGRA(100, 100, 100, 0));
+  draw_point(570, 260, BGRA(100, 100, 255, 0));
 #endif
 
   std::cout << "rendered in "
@@ -62,7 +62,7 @@ void run_test(unsigned width, unsigned height, unsigned super_sampling_rate,
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 9) {
+  if (argc != 10) {
     std::cout << "wrong num args" << std::endl;
 
     return 1;
@@ -74,7 +74,8 @@ int main(int argc, char *argv[]) {
   const unsigned super_sampling_rate = boost::lexical_cast<unsigned>(argv[5]);
   const bool use_kd_tree = boost::lexical_cast<bool>(argv[6]);
   const bool use_traversals = boost::lexical_cast<bool>(argv[7]);
-  const bool render_cpu = boost::lexical_cast<bool>(argv[8]);
+  const bool use_traversal_dists = boost::lexical_cast<bool>(argv[8]);
+  const bool render_cpu = boost::lexical_cast<bool>(argv[9]);
 
   scene::CS123Scene scene(argv[1], width, height);
 
@@ -87,16 +88,18 @@ int main(int argc, char *argv[]) {
 
   if (render_cpu) {
     std::cout << "rendering cpu" << std::endl;
-    run_test<ray::ExecutionModel::CPU>(
-        width, height, super_sampling_rate, scene, film_to_world, world_to_film,
-        "cpu_" + file_name, depth, use_kd_tree, use_traversals);
+    run_test<ray::ExecutionModel::CPU>(width, height, super_sampling_rate,
+                                       scene, film_to_world, world_to_film,
+                                       "cpu_" + file_name, depth, use_kd_tree,
+                                       use_traversals, use_traversal_dists);
     std::cout << "=============" << std::endl;
   }
 
   std::cout << "rendering gpu" << std::endl;
-  run_test<ray::ExecutionModel::GPU>(
-      width, height, super_sampling_rate, scene, film_to_world, world_to_film,
-      "gpu_" + file_name, depth, use_kd_tree, use_traversals);
+  run_test<ray::ExecutionModel::GPU>(width, height, super_sampling_rate, scene,
+                                     film_to_world, world_to_film,
+                                     "gpu_" + file_name, depth, use_kd_tree,
+                                     use_traversals, use_traversal_dists);
 
   return 0;
 }

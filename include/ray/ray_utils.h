@@ -218,6 +218,12 @@ HOST_DEVICE constexpr size_t copy_in_n_times(Iter format_iter,
   return offset;
 }
 
+template <typename T> constexpr void swap(T &first, T &second) {
+  T temp = first;
+  first = second;
+  second = temp;
+}
+
 template <typename Iter, typename T>
 HOST_DEVICE inline auto debug_value(Iter format_iter, const T &val) {
   auto handle_vals = [&](std::string_view format, size_t times,

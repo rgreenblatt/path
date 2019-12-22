@@ -3,6 +3,20 @@
 
 namespace ray {
 using namespace detail;
+inline HOST_DEVICE Eigen::Vector3f
+initial_world_space_direction(unsigned x, unsigned y, unsigned x_dim,
+                              unsigned y_dim,
+                              const Eigen::Vector3f &world_space_eye,
+                              const Eigen::Affine3f &m_film_to_world) {
+  const Eigen::Vector3f camera_space_film_plane(
+      (2.0f * static_cast<float>(x)) / static_cast<float>(x_dim) - 1.0f,
+      (-2.0f * static_cast<float>(y)) / static_cast<float>(y_dim) + 1.0f,
+      -1.0f);
+  const auto world_space_film_plane = m_film_to_world * camera_space_film_plane;
+
+  return (world_space_film_plane - world_space_eye).normalized();
+}
+
 __inline__ __host__ __device__ void initial_world_space_directions_impl(
     unsigned block_index, unsigned thread_index, const BlockData &block_data,
     const Eigen::Vector3f &world_space_eye,
