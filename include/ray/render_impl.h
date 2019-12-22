@@ -80,12 +80,10 @@ private:
   DataType<detail::Traversal> traversals_;
   DataType<detail::Action> actions_;
   ManangedMemVec<detail::TraversalData> traversal_data_;
-  std::vector<detail::Traversal> traversals_cpu_;
-  std::vector<detail::Action> actions_cpu_;
-  std::vector<detail::TraversalData> traversal_data_cpu_;
-  std::vector<detail::TraversalGrid> traversal_grids_;
-  std::vector<detail::ShapePossibles> shape_grids_;
-  std::vector<int> action_starts_;
-  std::vector<int> action_ends_;
+  ManangedMemVec<detail::TraversalGrid> traversal_grids_;
+  ManangedMemVec<detail::BoundingPoints> shape_bounds_;
+  DataType<detail::ShapePossibles> shape_grids_;
+  DataType<int> action_starts_;
+  DataType<int> action_ends_;
 };
 } // namespace ray

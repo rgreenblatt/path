@@ -11,7 +11,7 @@ namespace detail {
 struct Action {
   unsigned shape_idx;
 
-  Action(unsigned shape_idx) : shape_idx(shape_idx) {}
+  HOST_DEVICE Action(unsigned shape_idx) : shape_idx(shape_idx) {}
 
   HOST_DEVICE
   Action() {}
@@ -26,6 +26,21 @@ struct Traversal {
 
   HOST_DEVICE Traversal() {}
 };
+
+using BoundingPoints = std::array<Eigen::Vector3f, 8>;
+
+inline BoundingPoints get_bounding(const Eigen::Affine3f &transform_v) {
+  auto trans = [&](const Eigen::Vector3f &point) {
+    return transform_v * point;
+  };
+
+  return {
+      trans({0.5f, 0.5f, 0.5f}),   trans({-0.5f, 0.5f, 0.5f}),
+      trans({0.5f, -0.5f, 0.5f}),  trans({0.5f, 0.5f, -0.5f}),
+      trans({-0.5f, -0.5f, 0.5f}), trans({0.5f, -0.5f, -0.5f}),
+      trans({-0.5f, 0.5f, -0.5f}), trans({-0.5f, -0.5f, -0.5f}),
+  };
+}
 
 struct ALIGN_STRUCT(16) TraversalData {
   unsigned traversal_start;
@@ -55,24 +70,37 @@ using ShapePossibles = std::array<uint8_t, 4>;
 class ALIGN_STRUCT(32) TraversalGrid {
 public:
   // num_divisions_x > 0, num_divisions_y > 0
-  TraversalGrid(const TriangleProjector &projector, const Eigen::Array2f &min,
-                const Eigen::Array2f &max, uint8_t num_divisions_x,
-                uint8_t num_divisions_y, unsigned start_shape_grids,
-                unsigned start_count_index,
-                bool flip_x = false, bool flip_y = false);
+  HOST_DEVICE TraversalGrid(const TriangleProjector &projector,
+                            const Eigen::Array2f &min,
+                            const Eigen::Array2f &max, uint8_t num_divisions_x,
+                            uint8_t num_divisions_y, unsigned start_shape_grids,
+                            unsigned start_count_index, bool flip_x = false,
+                            bool flip_y = false)
+      : projector_(projector), min_(min), max_(max), min_indexes_(0, 0),
+        max_indexes_(num_divisions_x, num_divisions_y), difference_(max - min),
+        inverse_difference_(Eigen::Array2f(num_divisions_x, num_divisions_y) /
+                            difference_),
+        num_divisions_x_(num_divisions_x), num_divisions_y_(num_divisions_y),
+        start_shape_grids_(start_shape_grids),
+        start_count_index_(start_count_index), flip_x_(flip_x),
+        flip_y_(flip_y) {}
 
-  TraversalGrid() : projector_(Eigen::Projective3f::Identity()) {}
+  TraversalGrid() {}
 
-  void wipeShape(unsigned shape_to_wipe, Span<ShapePossibles> shape_grids);
+  inline HOST_DEVICE void wipeShape(unsigned shape_to_wipe,
+                                    Span<ShapePossibles> shape_grids);
 
-  void updateShape(Span<const scene::ShapeData> shapes,
-                   Span<ShapePossibles> shape_grids, unsigned shape_to_update);
+  inline HOST_DEVICE void updateShape(Span<const BoundingPoints> shape_bounds,
+                                      Span<ShapePossibles> shape_grids,
+                                      unsigned shape_to_update);
 
-  void getCount(Span<const ShapePossibles> shape_grids, unsigned shape_idx,
-                Span<int> counts);
+  inline HOST_DEVICE void getCount(Span<const ShapePossibles> shape_grids,
+                                   unsigned shape_idx, Span<int> counts);
 
-  void addActions(Span<const ShapePossibles> shape_grids, unsigned shape_idx,
-                  Span<int> action_indexes, Span<Action> actions);
+  inline HOST_DEVICE void addActions(Span<const ShapePossibles> shape_grids,
+                                     unsigned shape_idx,
+                                     Span<int> action_indexes,
+                                     Span<Action> actions);
 
   TraversalData traversalData() const {
     uint8_t axis;
@@ -97,6 +125,8 @@ public:
   uint8_t num_divisions_y() const { return num_divisions_y_; }
   const Eigen::Array2f &min() const { return min_; }
   const Eigen::Array2f &max() const { return max_; }
+  unsigned start_shape_grids() const { return start_shape_grids_; }
+  unsigned start_count_index() const { return start_count_index_; }
 
 private:
   TriangleProjector projector_;
@@ -258,17 +288,37 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
+void update_shapes_cpu(Span<TraversalGrid, false> grids,
+                       Span<ShapePossibles> shape_grids,
+                       Span<const BoundingPoints> shape_bounds,
+                       unsigned num_shapes);
+
+void update_counts_cpu(Span<TraversalGrid, false> grids,
+                       Span<const ShapePossibles> shape_grids, Span<int> counts,
+                       unsigned num_shapes);
+
+void add_actions_cpu(Span<TraversalGrid, false> grids,
+                     Span<const ShapePossibles> shape_grids,
+                     Span<int> action_indexes, Span<Action> actions,
+                     unsigned num_shapes);
+
+template <bool shape_is_outer>
 void update_shapes(Span<TraversalGrid, false> grids,
                    Span<ShapePossibles> shape_grids,
-                   Span<const scene::ShapeData, false> shapes);
+                   Span<const BoundingPoints> shape_bounds, unsigned num_shapes,
+                   unsigned block_dim_grid, unsigned block_dim_shape);
 
+template <bool shape_is_outer>
 void update_counts(Span<TraversalGrid, false> grids,
                    Span<const ShapePossibles> shape_grids, Span<int> counts,
-                   unsigned num_shapes);
+                   unsigned num_shapes, unsigned block_dim_grid,
+                   unsigned block_dim_shape);
 
+template <bool shape_is_outer>
 void add_actions(Span<TraversalGrid, false> grids,
                  Span<const ShapePossibles> shape_grids,
                  Span<int> action_indexes, Span<Action> actions,
-                 unsigned num_shapes);
+                 unsigned num_shapes, unsigned block_dim_grid,
+                 unsigned block_dim_shape);
 } // namespace detail
 } // namespace ray

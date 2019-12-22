@@ -8,6 +8,7 @@
 #include <thrust/transform.h>
 
 #include <chrono>
+#include <dbg.h>
 
 namespace ray {
 using namespace detail;
@@ -17,6 +18,7 @@ struct CreateTraversal : public thrust::binary_function<int, int, Traversal> {
     return Traversal(start, end);
   }
 };
+
 template <ExecutionModel execution_model>
 TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
     bool show_times, const Eigen::Projective3f &world_to_film,
@@ -45,7 +47,7 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
   unsigned num_division_light_x = 32;
   unsigned num_division_light_y = 32;
 
-  traversal_data_cpu_.resize(lights.size() + total_size);
+  traversal_data_.resize(lights.size() + total_size);
   traversal_grids_.resize(1 + lights.size() + total_size);
   shape_grids_.resize(traversal_grids_.size() * shapes.size());
 
@@ -54,15 +56,12 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
   unsigned start_count_index = 0;
 
   traversal_grids_[traversal_grid_index] = TraversalGrid(
-      TriangleProjector(world_to_film), Eigen::Array2f(-1, -1),
+      TriangleProjector(world_to_film.matrix()), Eigen::Array2f(-1, -1),
       Eigen::Array2f(1, 1), block_data_.num_blocks_x, block_data_.num_blocks_y,
       start_shape_grids, start_count_index, false, true);
 
   start_shape_grids += shapes.size();
   start_count_index += block_data_.num_blocks_x * block_data_.num_blocks_y;
-
-  traversals_cpu_.clear();
-  actions_cpu_.clear();
 
   traversal_grid_index++;
 
@@ -96,8 +95,7 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
                                        Eigen::Scaling(dims) *
                                        Eigen::Affine3f::Identity();
 
-  scene::ShapeData bounding_cube(bounding_transform, scene::Material(),
-                                 scene::Shape::Cube);
+  BoundingPoints bounding_cube = get_bounding(bounding_transform);
 
   auto add_projection =
       [&](bool is_loc, const Eigen::Vector3f &loc_or_dir,
@@ -126,18 +124,10 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
           projected_min = p_min;
           projected_max = p_max;
         } else {
-          std::array<ProjectedTriangle, max_proj_tris> triangles;
-
-          unsigned num_triangles =
-              project_shape(bounding_cube, projector, triangles);
-
-          for (unsigned triangle_idx = 0; triangle_idx < num_triangles;
-               triangle_idx++) {
-            const auto &triangle = triangles[triangle_idx];
-            for (const auto &point : triangle.points()) {
-              projected_min = projected_min.cwiseMin(point);
-              projected_max = projected_max.cwiseMax(point);
-            }
+          for (const auto &point : bounding_cube) {
+            const auto projected = project_point(point, projector);
+            projected_min = projected_min.cwiseMin(projected);
+            projected_max = projected_max.cwiseMax(projected);
           }
         }
 
@@ -234,10 +224,28 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
 
   const auto project_traversal_grid = chr::high_resolution_clock::now();
 
+  shape_bounds_.resize(shapes.size());
+
+  std::transform(shapes.begin(), shapes.end(), shape_bounds_.begin(),
+                 [](const scene::ShapeData &shape) {
+                   return get_bounding(shape.get_transform());
+                 });
+
   Span<TraversalGrid, false> grid_span(traversal_grids_.data(),
                                        traversal_grids_.size());
 
-  update_shapes(grid_span, to_span(shape_grids_), shapes);
+  constexpr bool shape_is_outer = false;
+  unsigned block_dim_grid = 2;
+  unsigned block_dim_shape = 64;
+
+  if constexpr (execution_model == ExecutionModel::GPU) {
+    update_shapes<shape_is_outer>(grid_span, to_span(shape_grids_),
+                                  to_const_span(shape_bounds_), shapes.size(),
+                                  block_dim_grid, block_dim_shape);
+  } else {
+    update_shapes_cpu(grid_span, to_span(shape_grids_),
+                      to_const_span(shape_bounds_), shapes.size());
+  }
 
   if (show_times) {
     dbg(chr::duration_cast<chr::duration<double>>(
@@ -250,8 +258,14 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
   action_starts_.resize(start_count_index);
   thrust::fill_n(to_thrust_iter(action_starts_), action_starts_.size(), 0);
 
-  update_counts(grid_span, to_const_span(shape_grids_), to_span(action_starts_),
-                shapes.size());
+  if constexpr (execution_model == ExecutionModel::GPU) {
+    update_counts<shape_is_outer>(grid_span, to_const_span(shape_grids_),
+                  to_span(action_starts_), shapes.size(), block_dim_grid,
+                  block_dim_shape);
+  } else {
+    update_counts_cpu(grid_span, to_const_span(shape_grids_),
+                      to_span(action_starts_), shapes.size());
+  }
 
   unsigned last_size = action_starts_[action_starts_.size() - 1];
 
@@ -268,17 +282,33 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
                to_thrust_iter(action_starts_) + action_starts_.size(),
                to_thrust_iter(action_ends_));
 
-  actions_cpu_.resize(total_num_actions);
+  actions_.resize(total_num_actions);
 
-  add_actions(grid_span, to_const_span(shape_grids_), to_span(action_ends_),
-              to_span(actions_cpu_), shapes.size());
+  if constexpr (execution_model == ExecutionModel::GPU) {
+    add_actions<shape_is_outer>(grid_span, to_const_span(shape_grids_),
+                                to_span(action_ends_), to_span(actions_),
+                                shapes.size(), block_dim_grid, block_dim_shape);
+  } else {
+    add_actions_cpu(grid_span, to_const_span(shape_grids_),
+                    to_span(action_ends_), to_span(actions_), shapes.size());
+  }
 
-  traversals_cpu_.resize(action_starts_.size());
+  traversals_.resize(action_starts_.size());
 
-  thrust::transform(thrust::host, to_thrust_iter(action_starts_),
-                    to_thrust_iter(action_starts_) + action_starts_.size(),
-                    to_thrust_iter(action_ends_),
-                    to_thrust_iter(traversals_cpu_), CreateTraversal());
+  auto transform_to_traversal = [&](const auto &execution_type) {
+    thrust::transform(execution_type, to_thrust_iter(action_starts_),
+                      to_thrust_iter(action_starts_) + action_starts_.size(),
+                      to_thrust_iter(action_ends_), to_thrust_iter(traversals_),
+                      [] __host__ __device__(int start, int end) {
+                        return Traversal(start, end);
+                      });
+  };
+
+  if constexpr (execution_model == ExecutionModel::GPU) {
+    transform_to_traversal(thrust::device);
+  } else {
+    transform_to_traversal(thrust::host);
+  }
 
   if (show_times) {
     dbg(chr::duration_cast<chr::duration<double>>(
@@ -288,17 +318,26 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
 
   const auto copy_into_traversal_grid = chr::high_resolution_clock::now();
 
-  std::transform(traversals_cpu_.begin(),
-                 traversals_cpu_.begin() +
-                     block_data_.num_blocks_x * block_data_.num_blocks_y,
-                 group_disables_.begin(), [&](const Traversal &traversal) {
-                   return traversal.end - traversal.start == 0;
-                 });
+  auto transform_to_disable = [&](auto ptr_type) {
+    thrust::transform(to_thrust_iter(traversals_),
+                      to_thrust_iter(traversals_) +
+                          block_data_.num_blocks_x * block_data_.num_blocks_y,
+                      ptr_type,
+                      [] __host__ __device__(const Traversal &traversal) {
+                        return traversal.end - traversal.start == 0;
+                      });
+  };
+
+  if constexpr (execution_model == ExecutionModel::GPU) {
+    transform_to_disable(thrust::device_ptr<uint8_t>(to_ptr(group_disables_)));
+  } else {
+    transform_to_disable(to_ptr(group_disables_));
+  }
 
   for (unsigned i = 1; i < traversal_grids_.size(); i++) {
     auto &traversal_grid = traversal_grids_[i];
 
-    traversal_data_cpu_[i - 1] = traversal_grid.traversalData();
+    traversal_data_[i - 1] = traversal_grid.traversalData();
   }
 
   if (show_times) {
@@ -307,37 +346,9 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
             .count());
   }
 
-  if (traversal_data_cpu_.size() != traversal_grid_index - 1) {
+  if (traversal_data_.size() != traversal_grid_index - 1) {
     dbg("INVALID SIZE");
     abort();
-  }
-
-  auto copy = [](auto start, auto end, auto start_copy) {
-    if constexpr (execution_model == ExecutionModel::GPU) {
-      thrust::copy(start, end, start_copy);
-    } else {
-      std::copy(start, end, start_copy);
-    }
-  };
-
-  const auto copy_gpu_traversal_grid = chr::high_resolution_clock::now();
-
-  traversals_.resize(traversals_cpu_.size());
-  copy(traversals_cpu_.data(), traversals_cpu_.data() + traversals_cpu_.size(),
-       traversals_.begin());
-
-  actions_.resize(actions_cpu_.size());
-  copy(actions_cpu_.data(), actions_cpu_.data() + actions_cpu_.size(),
-       actions_.begin());
-
-  traversal_data_.resize(traversal_data_cpu_.size());
-  std::copy(traversal_data_cpu_.begin(), traversal_data_cpu_.end(),
-            traversal_data_.begin());
-
-  if (show_times) {
-    dbg(chr::duration_cast<chr::duration<double>>(
-            chr::high_resolution_clock::now() - copy_gpu_traversal_grid)
-            .count());
   }
 
   return TraversalGridsRef(

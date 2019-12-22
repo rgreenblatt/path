@@ -131,9 +131,9 @@ void RendererImpl<execution_model>::render(
     const auto start_convert = chr::high_resolution_clock::now();
     const unsigned x_block_size = 32;
     const unsigned y_block_size = 8;
-    dim3 block(x_block_size, y_block_size);
     dim3 grid(num_blocks(width, x_block_size),
               num_blocks(height, y_block_size));
+    dim3 block(x_block_size, y_block_size);
 
     floats_to_bgras<<<grid, block>>>(width, height, super_sampling_rate_,
                                      to_const_span(colors_), to_span(bgra_));

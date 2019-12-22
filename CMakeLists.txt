@@ -49,6 +49,7 @@ ADD_LIBRARY(
   "${PROJECT_SOURCE_DIR}/src/scene/reflec_ball.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/camera.cpp"
   "${PROJECT_SOURCE_DIR}/src/ray/traversal_grid.cpp"
+  "${PROJECT_SOURCE_DIR}/src/ray/traversal_grid.cu"
   )
 
 TARGET_INCLUDE_DIRECTORIES(renderer PUBLIC

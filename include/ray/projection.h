@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lib/cuda_utils.h"
+#include "ray/ray_utils.h"
 #include "scene/shape_data.h"
 
 #include <Eigen/Dense>
@@ -42,55 +43,48 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
-class TriangleProjector {
+class ALIGN_STRUCT(32) TriangleProjector {
 public:
   enum class Type {
     Transform,
     DirectionPlane,
   };
 
-  TriangleProjector(const Eigen::Projective3f &transform)
-      : type_(Type::Transform), transform_(transform) {}
+  TriangleProjector() {}
+
+  TriangleProjector(const Eigen::Matrix4f &transform)
+      : transform_(transform), type_(Type::Transform) {}
 
   TriangleProjector(const DirectionPlane &direction_plane)
       : type_(Type::DirectionPlane), direction_plane_(direction_plane) {}
 
   Type type() const { return type_; }
 
-  Eigen::Projective3f
-  get_total_transform(const Eigen::Affine3f &other_transform) const {
-    switch (type_) {
-    case Type::DirectionPlane:
-      return other_transform;
-    case Type::Transform:
-      return transform_ * other_transform;
-    }
-  }
-
-  template <typename F> auto visit(const F &f) const {
+  template <typename F> HOST_DEVICE auto visit(const F &f) const {
     switch (type_) {
     case Type::DirectionPlane:
       return f(direction_plane_);
     case Type::Transform:
-      return f(uint8_t());
+      return f(transform_);
     }
   }
 
 private:
+  Eigen::Matrix4f transform_;
   Type type_;
-  Eigen::Projective3f transform_;
   DirectionPlane direction_plane_;
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
-inline Eigen::Vector3f apply_projective(const Eigen::Vector3f &vec,
-                                        const Eigen::Projective3f &projection) {
+inline HOST_DEVICE Eigen::Vector3f
+apply_projective(const Eigen::Vector3f &vec,
+                 const Eigen::Matrix4f &projection) {
   Eigen::Vector4f homog;
   homog.template head<3>() = vec;
   homog[3] = 1.0f;
-  auto out = projection * homog;
+  auto out = (projection * homog).eval();
 
   return (out.head<3>() / out[3]).eval();
 }

@@ -17,13 +17,16 @@ template <typename T> const T *to_ptr(const thrust::device_vector<T> &vec) {
   return thrust::raw_pointer_cast(vec.data());
 }
 
-template <typename T> T *to_ptr(std::vector<T> &vec) { return vec.data(); }
+template <typename T, typename A> T *to_ptr(std::vector<T, A> &vec) {
+  return vec.data();
+}
 
-template <typename T> T *to_thrust_iter(std::vector<T> &vec) {
+template <typename T, typename A> T *to_thrust_iter(std::vector<T, A> &vec) {
   return to_ptr(vec);
 }
 
-template <typename T> const T *to_thrust_iter(const std::vector<T> &vec) {
+template <typename T, typename A>
+const T *to_thrust_iter(const std::vector<T, A> &vec) {
   return to_ptr(vec);
 }
 
