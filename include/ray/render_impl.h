@@ -81,7 +81,9 @@ private:
   ManangedMemVec<uint8_t> group_disables_;
   ManangedMemVec<unsigned> group_indexes_;
   DataType<detail::Traversal> traversals_;
-  DataType<detail::Action> actions_;
+  DataType<detail::Action> min_sorted_actions_;
+  DataType<detail::Action> max_sorted_actions_;
+  DataType<unsigned> segments_;
   ManangedMemVec<detail::TraversalData> traversal_data_;
   ManangedMemVec<detail::TraversalGrid> traversal_grids_;
   ManangedMemVec<detail::BoundingPoints> shape_bounds_;

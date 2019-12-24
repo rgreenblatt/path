@@ -1,7 +1,7 @@
 #pragma once
 
-#include <type_traits>
 #include <assert.h>
+#include <type_traits>
 
 #ifdef NDEBUG
 #define DEFAULT_IGNORE true
@@ -18,7 +18,7 @@ public:
       size_ = size;
     }
   }
-  
+
   constexpr Span() {}
 
   constexpr std::size_t size() const { return size_; }
@@ -31,23 +31,16 @@ public:
     }
   }
 
-  constexpr const T &operator[](const std::size_t index) const {
+  constexpr T &operator[](const std::size_t index) const {
     assert(checkIndex(index));
     return ptr_[index];
   }
 
-  constexpr T &operator[](const std::size_t index) {
-    assert(checkIndex(index));
-    return ptr_[index];
-  }
+  constexpr T *data() const { return ptr_; }
 
-  constexpr T *data() { return ptr_; }
+  constexpr T *begin() const { return ptr_; }
 
-  constexpr T* begin() {
-    return ptr_;
-  }
-
-  constexpr T *end() { return ptr_ + size_; }
+  constexpr T *end() const { return ptr_ + size_; }
 
 private:
   T *ptr_;

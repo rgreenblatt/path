@@ -334,15 +334,16 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
                to_thrust_iter(action_starts_) + action_starts_.size(),
                to_thrust_iter(action_ends_));
 
-  actions_.resize(total_num_actions);
+  min_sorted_actions_.resize(total_num_actions);
 
   if constexpr (execution_model == ExecutionModel::GPU) {
-    add_actions<shape_is_outer>(grid_span, to_const_span(shape_grids_),
-                                to_span(action_ends_), to_span(actions_),
-                                shapes.size(), block_dim_grid, block_dim_shape);
+    add_actions<shape_is_outer>(grid_span, to_span(shape_grids_),
+                                to_span(action_ends_),
+                                to_span(min_sorted_actions_), shapes.size(),
+                                block_dim_grid, block_dim_shape);
   } else {
-    add_actions_cpu(grid_span, to_const_span(shape_grids_),
-                    to_span(action_ends_), to_span(actions_), shapes.size());
+    add_actions_cpu(grid_span, to_span(shape_grids_), to_span(action_ends_),
+                    to_span(min_sorted_actions_), shapes.size());
   }
 
   if (show_times) {
@@ -369,6 +370,68 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
   } else {
     transform_to_traversal(thrust::host);
   }
+
+#if 0
+  segments_.resize(min_sorted_actions_.size());
+
+  auto segments_span = to_span(segments_);
+#endif
+
+  auto fill_segments_sort = [&](const auto execution_type) {
+#if 0
+    thrust::for_each(
+        execution_type,
+        thrust::make_zip_iterator(
+            thrust::make_tuple(to_thrust_iter(traversals_),
+                               thrust::counting_iterator<unsigned>(0))),
+        thrust::make_zip_iterator(thrust::make_tuple(
+            to_thrust_iter(traversals_) + traversals_.size(),
+
+            thrust::counting_iterator<unsigned>(traversals_.size()))),
+
+        [segments =
+             segments_span] __host__ __device__(const auto &traversal_index) {
+          auto traversal = thrust::get<0>(traversal_index);
+          auto index = thrust::get<1>(traversal_index);
+          for (unsigned i = traversal.start; i < traversal.end; i++) {
+            segments[i] = index;
+          }
+        });
+#endif
+
+    max_sorted_actions_.resize(min_sorted_actions_.size());
+
+    thrust::copy(to_thrust_iter(min_sorted_actions_),
+                 to_thrust_iter(min_sorted_actions_) +
+                     min_sorted_actions_.size(),
+                 to_thrust_iter(max_sorted_actions_));
+
+    auto sort_actions = [&](DataType<Action> &actions) {
+      thrust::sort(
+          execution_type, to_thrust_iter(actions),
+          to_thrust_iter(actions) + actions.size(),
+          [] __host__ __device__(const Action &first, const Action &second) {
+            if (first.sort_index == second.sort_index) {
+              return first.min_dist < second.min_dist;
+            } else {
+              return first.sort_index < second.sort_index;
+            }
+          });
+    };
+
+    sort_actions(min_sorted_actions_);
+    sort_actions(max_sorted_actions_);
+  };
+
+  if constexpr (execution_model == ExecutionModel::GPU) {
+    fill_segments_sort(thrust::device);
+  } else {
+    fill_segments_sort(thrust::host);
+  }
+
+
+  dbg(action_starts_.size());
+  dbg(min_sorted_actions_.size());
 
   if (show_times) {
     dbg(chr::duration_cast<chr::duration<double>>(
@@ -412,10 +475,10 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
   }
 
   return TraversalGridsRef(
-      to_const_span(actions_), to_const_span(traversal_data_),
-      to_const_span(traversals_), traversal_data_starts, min_bound, max_bound,
-      inverse_multipliers, min_side_bounds, max_side_bounds, min_side_diffs,
-      max_side_diffs);
+      to_const_span(min_sorted_actions_), to_const_span(max_sorted_actions_),
+      to_const_span(traversal_data_), to_const_span(traversals_),
+      traversal_data_starts, min_bound, max_bound, inverse_multipliers,
+      min_side_bounds, max_side_bounds, min_side_diffs, max_side_diffs);
 }
 
 template class RendererImpl<ExecutionModel::CPU>;

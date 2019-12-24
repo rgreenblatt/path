@@ -27,9 +27,8 @@ void update_counts_cpu(Span<TraversalGrid, false> grids,
 }
 
 void add_actions_cpu(Span<TraversalGrid, false> grids,
-                     Span<const ShapePossibles> shape_grids,
-                     Span<int> action_indexes, Span<Action> actions,
-                     unsigned num_shapes) {
+                     Span<ShapePossibles> shape_grids, Span<int> action_indexes,
+                     Span<Action> actions, unsigned num_shapes) {
 #pragma omp parallel for
   for (unsigned i = 0; i < grids.size(); i++) {
     for (unsigned shape = 0; shape < num_shapes; shape++) {

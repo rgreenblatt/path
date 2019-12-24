@@ -82,22 +82,24 @@ TraversalGrid::getCount(Span<const ShapePossibles> shape_grids,
 }
 
 inline HOST_DEVICE void
-TraversalGrid::addActions(Span<const ShapePossibles> shape_grids,
+TraversalGrid::addActions(Span<ShapePossibles> shape_grids,
                           unsigned shape_idx, Span<int> action_indexes,
                           Span<Action> actions) {
-  const auto &shape_possible = shape_grids[shape_idx + start_shape_grids_];
+  auto &shape_possible = shape_grids[shape_idx + start_shape_grids_];
   for (unsigned division_y = shape_possible.y_min;
        division_y < shape_possible.y_max; division_y++) {
     for (unsigned division_x = shape_possible.x_min;
          division_x < shape_possible.x_max; division_x++) {
       unsigned index = division_x + division_y * num_divisions_x_;
-      auto location = &action_indexes[start_count_index_ + index];
+      unsigned overall_index = index + start_count_index_;
+      auto location = &action_indexes[overall_index];
       int action_idx;
 #if defined(__CUDA_ARCH__)
       action_idx = atomicAdd(location, 1);
 #else
       action_idx = (*location)++;
 #endif
+      shape_possible.action.sort_index = overall_index;
       actions[action_idx] = shape_possible.action;
     }
   }

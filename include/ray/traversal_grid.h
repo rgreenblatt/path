@@ -9,6 +9,7 @@ namespace ray {
 namespace detail {
 struct Action {
   unsigned shape_idx;
+  unsigned sort_index;
   float min_dist;
   float max_dist;
 
@@ -114,7 +115,7 @@ public:
   inline HOST_DEVICE void getCount(Span<const ShapePossibles> shape_grids,
                                    unsigned shape_idx, Span<int> counts);
 
-  inline HOST_DEVICE void addActions(Span<const ShapePossibles> shape_grids,
+  inline HOST_DEVICE void addActions(Span<ShapePossibles> shape_grids,
                                      unsigned shape_idx,
                                      Span<int> action_indexes,
                                      Span<Action> actions);
@@ -168,7 +169,8 @@ class ALIGN_STRUCT(16) TraversalGridsRef {
 public:
   TraversalGridsRef() {}
 
-  TraversalGridsRef(Span<const Action> actions,
+  TraversalGridsRef(Span<const Action> min_sorted_actions,
+                    Span<const Action> max_sorted_actions,
                     Span<const TraversalData> traversal_data,
                     Span<const Traversal> traversals,
                     std::array<unsigned, 3> start_traversal_data,
@@ -179,14 +181,15 @@ public:
                     const std::array<Eigen::Array2f, 3> &max_side_bounds,
                     const std::array<Eigen::Array2<int>, 3> &min_side_diffs,
                     const std::array<Eigen::Array2<int>, 3> &max_side_diffs)
-      : actions_(actions), traversal_data_(traversal_data),
-        traversals_(traversals), start_traversal_data_(start_traversal_data),
-        min_bound_(min_bound), max_bound_(max_bound),
-        min_planes_({{
-            Plane(min_bound[0], 0),
-            Plane(min_bound[1], 1),
-            Plane(min_bound[2], 2),
-        }}),
+      : min_sorted_actions_(min_sorted_actions),
+        max_sorted_actions_(max_sorted_actions),
+        traversal_data_(traversal_data), traversals_(traversals),
+        start_traversal_data_(start_traversal_data), min_bound_(min_bound),
+        max_bound_(max_bound), min_planes_({{
+                                   Plane(min_bound[0], 0),
+                                   Plane(min_bound[1], 1),
+                                   Plane(min_bound[2], 2),
+                               }}),
         max_planes_({{
             Plane(max_bound[0], 0),
             Plane(max_bound[1], 1),
@@ -305,7 +308,12 @@ public:
     return std::tuple<const Traversal &, float>{empty_traversal_, 0.0f};
   }
 
-  HOST_DEVICE Span<const Action> actions() const { return actions_; }
+  HOST_DEVICE Span<const Action> min_sorted_actions() const {
+    return min_sorted_actions_;
+  }
+  HOST_DEVICE Span<const Action> max_sorted_actions() const {
+    return max_sorted_actions_;
+  }
 
 private:
   HOST_DEVICE const Traversal &
@@ -325,7 +333,8 @@ private:
     return traversals_[light_traversal_index];
   }
 
-  Span<const Action> actions_;
+  Span<const Action> min_sorted_actions_;
+  Span<const Action> max_sorted_actions_;
   Traversal empty_traversal_ = Traversal(0, 0);
   Span<const TraversalData> traversal_data_;
   Span<const Traversal> traversals_;
@@ -355,9 +364,8 @@ void update_counts_cpu(Span<TraversalGrid, false> grids,
                        unsigned num_shapes);
 
 void add_actions_cpu(Span<TraversalGrid, false> grids,
-                     Span<const ShapePossibles> shape_grids,
-                     Span<int> action_indexes, Span<Action> actions,
-                     unsigned num_shapes);
+                     Span<ShapePossibles> shape_grids, Span<int> action_indexes,
+                     Span<Action> actions, unsigned num_shapes);
 
 template <bool shape_is_outer>
 void update_shapes(Span<TraversalGrid, false> grids,
@@ -373,9 +381,8 @@ void update_counts(Span<TraversalGrid, false> grids,
 
 template <bool shape_is_outer>
 void add_actions(Span<TraversalGrid, false> grids,
-                 Span<const ShapePossibles> shape_grids,
-                 Span<int> action_indexes, Span<Action> actions,
-                 unsigned num_shapes, unsigned block_dim_grid,
-                 unsigned block_dim_shape);
+                 Span<ShapePossibles> shape_grids, Span<int> action_indexes,
+                 Span<Action> actions, unsigned num_shapes,
+                 unsigned block_dim_grid, unsigned block_dim_shape);
 } // namespace detail
 } // namespace ray

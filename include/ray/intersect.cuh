@@ -62,7 +62,9 @@ __inline__ __host__ __device__ void solve_general_intersection(
     const Eigen::Vector3f &world_space_direction, const unsigned &ignore_v,
     const uint8_t &disable, thrust::optional<BestIntersection> &best,
     bool is_first, bool use_traversals, bool use_traversal_dists,
-    const float &min_dist_bound, const float &max_dist_bound, bool use_kd_tree,
+    const float &min_dist_bound, const float &max_dist_bound, 
+    bool min_is_first_bound,
+    bool use_kd_tree,
     const F &f) {
   if (!is_first && disable) {
     return;
@@ -76,21 +78,43 @@ __inline__ __host__ __device__ void solve_general_intersection(
     return f(get_shape_intersection<false>(shapes, shape_idx, world_space_eye,
                                            world_space_direction));
   };
+    
+  unsigned action_index = traversal.start;
 
   if (use_traversals) {
-    for (unsigned action_index = traversal.start;; action_index++) {
-      while (use_traversal_dists && action_index < traversal.end &&
-             (actions[action_index].min_dist > min_dist_bound ||
-              actions[action_index].max_dist < max_dist_bound)) {
-        action_index++;
+    if (use_traversal_dists) {
+      for (; action_index < traversal.end; action_index++) {
+        if (min_is_first_bound) {
+          if (actions[action_index].min_dist < min_dist_bound) {
+            break;
+          }
+        } else {
+          if (actions[action_index].max_dist > max_dist_bound) {
+            break;
+          }
+        }
       }
 
-      if (action_index >= traversal.end) {
-        break;
-      }
+      for (; action_index < traversal.end; action_index++) {
+        if (min_is_first_bound) {
+          if (actions[action_index].max_dist < max_dist_bound) {
+            return;
+          }
+        } else {
+          if (actions[action_index].min_dist > min_dist_bound) {
+            return;
+          }
+        }
 
-      if (solve_index(actions[action_index].shape_idx)) {
-        return;
+        if (solve_index(actions[action_index].shape_idx)) {
+          return;
+        }
+      }
+    } else {
+      for (; action_index < traversal.end; action_index++) {
+        if (solve_index(actions[action_index].shape_idx)) {
+          return;
+        }
       }
     }
   } else if (use_kd_tree) {

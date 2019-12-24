@@ -46,7 +46,7 @@ __global__ void update_counts_impl(Span<TraversalGrid, false> grids,
 
 template <bool shape_is_outer>
 __global__ void add_actions_impl(Span<TraversalGrid, false> grids,
-                                 Span<const ShapePossibles> shape_grids,
+                                 Span<ShapePossibles> shape_grids,
                                  Span<int> action_indexes, Span<Action> actions,
                                  unsigned num_shapes) {
   auto [grid_idx, shape_idx] = get_grid_shape_idx<shape_is_outer>();
@@ -109,10 +109,9 @@ void update_counts(Span<TraversalGrid, false> grids,
 
 template <bool shape_is_outer>
 void add_actions(Span<TraversalGrid, false> grids,
-                 Span<const ShapePossibles> shape_grids,
-                 Span<int> action_indexes, Span<Action> actions,
-                 unsigned num_shapes, unsigned block_dim_grid,
-                 unsigned block_dim_shape) {
+                 Span<ShapePossibles> shape_grids, Span<int> action_indexes,
+                 Span<Action> actions, unsigned num_shapes,
+                 unsigned block_dim_grid, unsigned block_dim_shape) {
   auto [grid, block] = get_grid_block<shape_is_outer>(
       grids.size(), num_shapes, block_dim_grid, block_dim_shape);
 
@@ -143,12 +142,12 @@ template void update_counts<false>(Span<TraversalGrid, false> grids,
                                    unsigned block_dim_grid,
                                    unsigned block_dim_shape);
 template void add_actions<false>(Span<TraversalGrid, false> grids,
-                                 Span<const ShapePossibles> shape_grids,
+                                 Span<ShapePossibles> shape_grids,
                                  Span<int> action_indexes, Span<Action> actions,
                                  unsigned num_shapes, unsigned block_dim_grid,
                                  unsigned block_dim_shape);
 template void add_actions<true>(Span<TraversalGrid, false> grids,
-                                Span<const ShapePossibles> shape_grids,
+                                Span<ShapePossibles> shape_grids,
                                 Span<int> action_indexes, Span<Action> actions,
                                 unsigned num_shapes, unsigned block_dim_grid,
                                 unsigned block_dim_shape);

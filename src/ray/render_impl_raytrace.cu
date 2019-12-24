@@ -42,15 +42,15 @@ __host__ __device__ inline void raytrace_impl(
         const auto &world_space_eye = world_space_eyes[index];
         
         float point_dist;
-        bool is_toward_max;
+        bool is_toward_max = true;
         float min_dist_bound;
         float max_dist_bound;
 
         Traversal traversal;
         if (use_traversals) {
-          if (is_first) {
-            traversal = traversal_grids_ref.getCameraTraversal(group_index);
-          } else {
+          /* if (is_first) { */
+          /*   traversal = traversal_grids_ref.getCameraTraversal(group_index); */
+          /* } else { */
             auto [traversal_v, dist_v] =
                 traversal_grids_ref.getGeneralTraversal(world_space_direction,
                                                         world_space_eye);
@@ -66,17 +66,20 @@ __host__ __device__ inline void raytrace_impl(
                 max_dist_bound = point_dist;
               }
             }
-            }
+          /* } */
         }
 
-        bool use_traversal_dists_now = !is_first && use_traversal_dists;
+        /* bool use_traversal_dists_now = !is_first && use_traversal_dists; */
+        bool use_traversal_dists_now = use_traversal_dists;
 
         solve_general_intersection(
-            kdtree_nodes_ref, traversal, traversal_grids_ref.actions(), shapes,
-            world_space_eye, world_space_direction, ignores[index],
+            kdtree_nodes_ref, traversal,
+            is_toward_max ? traversal_grids_ref.max_sorted_actions()
+                          : traversal_grids_ref.min_sorted_actions(),
+            shapes, world_space_eye, world_space_direction, ignores[index],
             disables[index], best, is_first, use_traversals,
             use_traversal_dists_now, min_dist_bound, max_dist_bound,
-            use_kd_tree,
+            is_toward_max, use_kd_tree,
             [&](const thrust::optional<BestIntersection> &new_best) {
               best = optional_min(best, new_best);
               if (new_best.has_value() && use_traversal_dists_now) {
@@ -154,7 +157,7 @@ __host__ __device__ inline void raytrace_impl(
         thrust::optional<BestIntersection> holder = thrust::nullopt;
 
         float point_dist;
-        bool is_toward_max;
+        bool is_toward_max = true;
         float min_dist_bound;
         float max_dist_bound;
 
@@ -175,10 +178,12 @@ __host__ __device__ inline void raytrace_impl(
         }
 
         solve_general_intersection(
-            kdtree_nodes_ref, traversal, traversal_grids_ref.actions(), shapes,
-            world_space_intersection, light_direction, best.shape_idx,
+            kdtree_nodes_ref, traversal,
+            is_toward_max ? traversal_grids_ref.max_sorted_actions()
+                          : traversal_grids_ref.min_sorted_actions(),
+            shapes, world_space_intersection, light_direction, best.shape_idx,
             !is_first && disables[index], holder, false, use_traversals,
-            use_traversal_dists, min_dist_bound, max_dist_bound,
+            use_traversal_dists, min_dist_bound, max_dist_bound, is_toward_max,
             use_kd_tree,
             [&](const thrust::optional<BestIntersection>
                     &possible_intersection) {
@@ -188,7 +193,7 @@ __host__ __device__ inline void raytrace_impl(
                   &&
                   possible_intersection->intersection < light_distance
 #endif
-                  ) {
+              ) {
                 shadowed = true;
                 return true;
               }
