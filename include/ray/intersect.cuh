@@ -98,11 +98,11 @@ __inline__ __host__ __device__ void solve_general_intersection(
       for (; action_index < traversal.end; action_index++) {
         if (min_is_first_bound) {
           if (actions[action_index].max_dist < max_dist_bound) {
-            return;
+            break;
           }
         } else {
           if (actions[action_index].min_dist > min_dist_bound) {
-            return;
+            break;
           }
         }
 
@@ -110,6 +110,15 @@ __inline__ __host__ __device__ void solve_general_intersection(
           return;
         }
       }
+#ifndef NDEBUG
+      for (; action_index < traversal.end; action_index++) {
+        if (min_is_first_bound) {
+          assert(actions[action_index].max_dist > max_dist_bound);
+        } else {
+          assert(actions[action_index].min_dist < min_dist_bound);
+        }
+      }
+#endif
     } else {
       for (; action_index < traversal.end; action_index++) {
         if (solve_index(actions[action_index].shape_idx)) {
