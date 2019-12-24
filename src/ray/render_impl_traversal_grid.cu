@@ -1,6 +1,7 @@
 #include "ray/projection_impl.h"
 #include "ray/render_impl.h"
 #include "ray/render_impl_utils.h"
+#include "ray/sort_actions.h"
 
 #include <thrust/execution_policy.h>
 #include <thrust/functional.h>
@@ -27,7 +28,11 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
   namespace chr = std::chrono;
   const auto setup_traversal_grid = chr::high_resolution_clock::now();
 
-  const Eigen::Array3<unsigned> num_divisions(16, 16, 16);
+  moved_shapes_.resize(shapes.size());
+  std::copy(shapes.begin(), shapes.end(), moved_shapes_.begin());
+
+
+  const Eigen::Array3<unsigned> num_divisions(8, 8, 8);
 
   const Eigen::Array3<unsigned> shifted_1_num_divisions(
       num_divisions[1], num_divisions[2], num_divisions[0]);
@@ -35,9 +40,9 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
       num_divisions[2], num_divisions[0], num_divisions[1]);
 
   const auto shifted_1_num_translations =
-      (2 * shifted_1_num_divisions + 1).eval();
+      (2 * shifted_1_num_divisions + 3).eval();
   const auto shifted_2_num_translations =
-      (2 * shifted_2_num_divisions + 1).eval();
+      (2 * shifted_2_num_divisions + 3).eval();
 
   const auto total_translations =
       (shifted_1_num_translations * shifted_2_num_translations).eval();
@@ -165,29 +170,32 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
 
   Eigen::Array3f inverse_multipliers = 1.0f / multipliers;
 
+  auto num_divisions_p_1 = (num_divisions + 1).eval();
+
+
   for (uint8_t axis : {0, 1, 2}) {
     traversal_data_starts[axis] = traversal_grid_index - 1;
     uint8_t first_axis = (axis + 1) % 3;
     uint8_t second_axis = (axis + 2) % 3;
     float first_multip = multipliers[first_axis];
     float second_multip = multipliers[second_axis];
-    int first_divisions = num_divisions[first_axis];
-    int second_divisions = num_divisions[second_axis];
+    int first_divisions = num_divisions_p_1[first_axis];
+    int second_divisions = num_divisions_p_1[second_axis];
 
     Plane plane(max_bound[axis], axis);
 
     min_side_bounds[axis] =
         (plane.get_not_axis(min_bound) -
          plane.get_not_axis(multipliers) *
-             plane.get_not_axis(num_divisions).cast<float>()) *
+             plane.get_not_axis(num_divisions_p_1).cast<float>()) *
         plane.get_not_axis(inverse_multipliers);
     max_side_bounds[axis] =
         (plane.get_not_axis(max_bound) +
          plane.get_not_axis(multipliers) *
-             plane.get_not_axis(num_divisions).cast<float>()) *
+             plane.get_not_axis(num_divisions_p_1).cast<float>()) *
         plane.get_not_axis(inverse_multipliers);
-    min_side_diffs[axis] = -plane.get_not_axis(num_divisions).cast<int>();
-    max_side_diffs[axis] = plane.get_not_axis(num_divisions).cast<int>();
+    min_side_diffs[axis] = -plane.get_not_axis(num_divisions_p_1).cast<int>();
+    max_side_diffs[axis] = plane.get_not_axis(num_divisions_p_1).cast<int>();
 
     auto min_other_bounds = plane.get_not_axis(min_bound);
     auto max_other_bounds = plane.get_not_axis(max_bound);
@@ -337,6 +345,14 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
                     to_span(action_ends_), to_span(actions_), shapes.size());
   }
 
+  if (show_times) {
+    dbg(chr::duration_cast<chr::duration<double>>(
+            chr::high_resolution_clock::now() - count_prefix_sum)
+            .count());
+  }
+
+  const auto get_traversal_sort_actions = chr::high_resolution_clock::now();
+
   traversals_.resize(action_starts_.size());
 
   auto transform_to_traversal = [&](const auto &execution_type) {
@@ -356,7 +372,7 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
 
   if (show_times) {
     dbg(chr::duration_cast<chr::duration<double>>(
-            chr::high_resolution_clock::now() - count_prefix_sum)
+            chr::high_resolution_clock::now() - get_traversal_sort_actions)
             .count());
   }
 

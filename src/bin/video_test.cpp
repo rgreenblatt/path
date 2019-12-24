@@ -14,7 +14,7 @@
 
 template <ray::ExecutionModel execution_model>
 void render_frames(unsigned width, unsigned height,
-                   unsigned super_sampling_rate, scene::ReflecBalls &scene,
+                   unsigned super_sampling_rate, scene::PoolScene &scene,
                    const Eigen::Affine3f &film_to_world,
                    const Eigen::Projective3f &world_to_film,
                    const std::string &dir_name, unsigned depth,
@@ -26,7 +26,7 @@ void render_frames(unsigned width, unsigned height,
     std::filesystem::create_directories(dir_name);
   }
 #endif
-  std::unique_ptr<scene::Scene> s = std::make_unique<scene::ReflecBalls>(scene);
+  std::unique_ptr<scene::Scene> s = std::make_unique<scene::PoolScene>(scene);
 
   ray::Renderer<execution_model> renderer(width, height, super_sampling_rate,
                                           depth, s);
@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
       boost::lexical_cast<unsigned>(argv[11]);
   const bool make_video = boost::lexical_cast<bool>(argv[12]);
 
-  scene::ReflecBalls pool_scene;
+  scene::PoolScene pool_scene;
 
   const std::string file_name = "out.png";
 

@@ -1,7 +1,7 @@
 #include "ray/floats_to_bgras.cuh"
 #include "ray/render_impl.h"
-#include "scene/camera.h"
 #include "ray/render_impl_utils.h"
+#include "scene/camera.h"
 
 #include <boost/range/adaptor/indexed.hpp>
 #include <boost/range/combine.hpp>
@@ -60,17 +60,17 @@ void RendererImpl<execution_model>::render(
   }
 
   const unsigned num_shapes = scene_->getNumShapes();
-  ManangedMemVec<scene::ShapeData> shapes(num_shapes);
+  ManangedMemVec<scene::ShapeData> moved_shapes_(num_shapes);
 
   {
     auto start_shape = scene_->getShapes();
-    std::copy(start_shape, start_shape + num_shapes, shapes.begin());
+    std::copy(start_shape, start_shape + num_shapes, moved_shapes_.begin());
   }
 
   if (use_kd_tree && !use_traversals) {
     const auto start_kdtree = chr::high_resolution_clock::now();
 
-    auto kdtree = construct_kd_tree(shapes.data(), num_shapes);
+    auto kdtree = construct_kd_tree(moved_shapes_.data(), num_shapes, 25, 3);
     kdtree_nodes_.resize(kdtree.size());
     std::copy(kdtree.begin(), kdtree.end(), kdtree_nodes_.begin());
 
@@ -86,10 +86,11 @@ void RendererImpl<execution_model>::render(
   TraversalGridsRef traversal_grids_ref;
 
   if (use_traversals) {
-    traversal_grids_ref = traversal_grids(
-        show_times, world_to_film,
-        Span<const scene::ShapeData, false>(shapes.data(), shapes.size()),
-        lights_span);
+    traversal_grids_ref =
+        traversal_grids(show_times, world_to_film,
+                        Span<const scene::ShapeData, false>(
+                            moved_shapes_.data(), moved_shapes_.size()),
+                        lights_span);
   } else {
     for (auto &disable : group_disables_) {
       disable = false;
@@ -110,12 +111,12 @@ void RendererImpl<execution_model>::render(
 
     const auto start_intersect = chr::high_resolution_clock::now();
 
-    raytrace_pass(
-        is_first, use_kd_tree, use_traversals, use_traversal_dists,
-        current_num_blocks,
-        Span<const scene::ShapeData, false>(shapes.data(), shapes.size()),
-        Span<const scene::Light, false>(lights, num_lights),
-        Span(textures, num_textures), traversal_grids_ref);
+    raytrace_pass(is_first, use_kd_tree, use_traversals, use_traversal_dists,
+                  current_num_blocks,
+                  Span<const scene::ShapeData, false>(moved_shapes_.data(),
+                                                      moved_shapes_.size()),
+                  Span<const scene::Light, false>(lights, num_lights),
+                  Span(textures, num_textures), traversal_grids_ref);
 
     if (show_times) {
       dbg(chr::duration_cast<chr::duration<double>>(

@@ -12,19 +12,19 @@ namespace scene {
 class Scene {
 public:
   const ShapeData *getShapes() const { return shapes_.data(); }
-  uint16_t getNumShapes() const { return shapes_.size(); }
+  unsigned getNumShapes() const { return shapes_.size(); }
 
   const Light *getLights() const { return lights_.data(); }
   unsigned getNumLights() const { return lights_.size(); }
 
-  uint16_t getNumTextures() const { return textures_refs_.size(); }
+  unsigned getNumTextures() const { return textures_refs_.size(); }
   const TextureImageRef *getTextures() const { return textures_refs_.data(); }
 
   const Eigen::Vector3f &getMinBound() const { return min_bound_; }
 
   const Eigen::Vector3f &getMaxBound() const { return max_bound_; };
 
-  const std::set<uint16_t> &updatedShapes() const { return updated_shapes_; }
+  const std::set<unsigned> &updatedShapes() const { return updated_shapes_; }
 
   void clearUpdates() { updated_shapes_.clear(); }
 
@@ -50,7 +50,7 @@ protected:
     return index;
   }
 
-  void updateTransformShape(uint16_t shape_index,
+  void updateTransformShape(unsigned shape_index,
                             const Eigen::Affine3f &new_transform) {
     updated_shapes_.insert(shape_index);
     shapes_[shape_index].set_transform(new_transform);
@@ -63,7 +63,7 @@ protected:
 
 private:
   std::vector<ShapeData> shapes_;
-  std::set<uint16_t> updated_shapes_;
+  std::set<unsigned> updated_shapes_;
   ManangedMemVec<Light> lights_;
   ManangedMemVec<TextureImage> textures_;
 

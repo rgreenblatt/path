@@ -50,6 +50,8 @@ ADD_LIBRARY(
   "${PROJECT_SOURCE_DIR}/src/scene/camera.cpp"
   "${PROJECT_SOURCE_DIR}/src/ray/traversal_grid.cpp"
   "${PROJECT_SOURCE_DIR}/src/ray/traversal_grid.cu"
+  "${PROJECT_SOURCE_DIR}/src/ray/sort_actions.cpp"
+  "${PROJECT_SOURCE_DIR}/src/ray/sort_actions.cu"
   )
 
 TARGET_INCLUDE_DIRECTORIES(renderer PUBLIC

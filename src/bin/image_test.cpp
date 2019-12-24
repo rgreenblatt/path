@@ -36,8 +36,8 @@ void run_test(unsigned width, unsigned height, unsigned super_sampling_rate,
                   use_traversals, use_traversal_dists, true);
 
 #if 1
-  unsigned x_rad = 3;
-  unsigned y_rad = 3;
+  unsigned x_rad = 0;
+  unsigned y_rad = 0;
 
   auto draw_point = [&](unsigned x, unsigned y, BGRA color) {
     for (unsigned y_draw = std::max(y, y_rad) - y_rad;
@@ -49,7 +49,7 @@ void run_test(unsigned width, unsigned height, unsigned super_sampling_rate,
     }
   };
 
-  draw_point(570, 260, BGRA(100, 100, 255, 0));
+  draw_point(512, 417, BGRA(100, 100, 255, 0));
 #endif
 
   std::cout << "rendered in "

@@ -66,7 +66,10 @@ private:
 
   std::unique_ptr<scene::Scene> scene_;
 
+  ManangedMemVec<scene::ShapeData> moved_shapes_;
+
   ManangedMemVec<detail::KDTreeNode<detail::AABB>> kdtree_nodes_;
+  ManangedMemVec<detail::KDTreeNode<detail::AABB>> sort_nodes_;
 
   DataType<Eigen::Vector3f> world_space_eyes_;
   DataType<Eigen::Vector3f> world_space_directions_;

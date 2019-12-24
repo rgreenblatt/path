@@ -9,10 +9,10 @@
 namespace ray {
 namespace detail {
 struct KDTreeSplit {
-  uint16_t left_index;
-  uint16_t right_index;
+  unsigned left_index;
+  unsigned right_index;
   float division_point;
-  KDTreeSplit(uint16_t left_index, uint16_t right_index, float division_point)
+  KDTreeSplit(unsigned left_index, unsigned right_index, float division_point)
       : left_index(left_index), right_index(right_index),
         division_point(division_point) {}
   HOST_DEVICE
@@ -72,7 +72,7 @@ template <typename Contents> struct KDTreeNode {
     is_split_ = true;
   }
 
-  KDTreeNode(const std::array<uint16_t, 2> &data, const Contents &contents)
+  KDTreeNode(const std::array<unsigned, 2> &data, const Contents &contents)
       : contents_(contents), is_split_(false), data_(data) {}
 
   template <typename FSplit, typename FData>
@@ -106,7 +106,7 @@ private:
 
   bool is_split_;
   KDTreeSplit split_;
-  std::array<uint16_t, 2> data_;
+  std::array<unsigned, 2> data_;
 
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -146,6 +146,8 @@ get_shape_bounds(const scene::ShapeData &shape) {
 }
 
 std::vector<KDTreeNode<AABB>> construct_kd_tree(scene::ShapeData *shapes,
-                                                uint16_t num_shapes);
+                                                unsigned num_shapes,
+                                                unsigned target_depth,
+                                                unsigned target_shapes_per);
 } // namespace detail
 } // namespace ray

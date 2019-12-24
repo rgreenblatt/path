@@ -67,21 +67,19 @@ public:
 };
 
 struct ShapePossibles {
-  float min_dist;
-  float max_dist;
+  Action action;
   uint8_t x_min;
   uint8_t x_max;
   uint8_t y_min;
   uint8_t y_max;
 
-  HOST_DEVICE ShapePossibles(float min_dist, float max_dist, uint8_t x_min,
-                             uint8_t x_max, uint8_t y_min, uint8_t y_max)
-      : min_dist(min_dist), max_dist(max_dist), x_min(x_min), x_max(x_max),
-        y_min(y_min), y_max(y_max) {}
+  HOST_DEVICE ShapePossibles(Action action, uint8_t x_min, uint8_t x_max,
+                             uint8_t y_min, uint8_t y_max)
+      : action(action), x_min(x_min), x_max(x_max), y_min(y_min), y_max(y_max) {
+  }
 
   HOST_DEVICE ShapePossibles() {}
 };
-/* using ShapePossibles = std::array<uint8_t, 4>; */
 
 class ALIGN_STRUCT(32) TraversalGrid {
 public:

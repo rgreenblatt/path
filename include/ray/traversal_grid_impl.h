@@ -9,7 +9,7 @@ inline HOST_DEVICE void
 TraversalGrid::wipeShape(unsigned shape_to_wipe,
                          Span<ShapePossibles> shape_grids) {
   shape_grids[shape_to_wipe + start_shape_grids_] =
-      ShapePossibles(0.0f, 0.0f, num_divisions_x_, 0, num_divisions_y_, 0);
+      ShapePossibles(Action(), num_divisions_x_, 0, num_divisions_y_, 0);
 }
 
 inline HOST_DEVICE void
@@ -57,9 +57,9 @@ TraversalGrid::updateShape(Span<const BoundingPoints> shape_bounds,
                               .cast<uint8_t>()
                               .eval();
 
-  shape_possibles = ShapePossibles(min_dist, max_dist, min_grid_indexes.x(),
-                                   max_grid_indexes.x(), min_grid_indexes.y(),
-                                   max_grid_indexes.y());
+  shape_possibles = ShapePossibles(Action(shape_to_update, min_dist, max_dist),
+                                   min_grid_indexes.x(), max_grid_indexes.x(),
+                                   min_grid_indexes.y(), max_grid_indexes.y());
 }
 
 inline HOST_DEVICE void
@@ -98,8 +98,7 @@ TraversalGrid::addActions(Span<const ShapePossibles> shape_grids,
 #else
       action_idx = (*location)++;
 #endif
-      actions[action_idx] =
-          Action(shape_idx, shape_possible.min_dist, shape_possible.max_dist);
+      actions[action_idx] = shape_possible.action;
     }
   }
 }

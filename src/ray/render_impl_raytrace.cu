@@ -57,14 +57,16 @@ __host__ __device__ inline void raytrace_impl(
             traversal = traversal_v;
             point_dist = std::abs(dist_v);
             is_toward_max = dist_v > 0;
-            if (is_toward_max) {
-              min_dist_bound = point_dist;
-              max_dist_bound = std::numeric_limits<float>::lowest();
-            } else {
-              max_dist_bound = point_dist;
-              min_dist_bound = std::numeric_limits<float>::max();
+            max_dist_bound = std::numeric_limits<float>::lowest();
+            min_dist_bound = std::numeric_limits<float>::max();
+            if (!is_first) {
+              if (is_toward_max) {
+                min_dist_bound = point_dist;
+              } else {
+                max_dist_bound = point_dist;
+              }
             }
-          }
+            }
         }
 
         bool use_traversal_dists_now = !is_first && use_traversal_dists;
