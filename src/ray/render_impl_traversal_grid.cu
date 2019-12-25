@@ -31,7 +31,6 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
   moved_shapes_.resize(shapes.size());
   std::copy(shapes.begin(), shapes.end(), moved_shapes_.begin());
 
-
   const Eigen::Array3<unsigned> num_divisions(8, 8, 8);
 
   const Eigen::Array3<unsigned> shifted_1_num_divisions(
@@ -171,7 +170,6 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
   Eigen::Array3f inverse_multipliers = 1.0f / multipliers;
 
   auto num_divisions_p_1 = (num_divisions + 1).eval();
-
 
   for (uint8_t axis : {0, 1, 2}) {
     traversal_data_starts[axis] = traversal_grid_index - 1;
@@ -398,7 +396,6 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
           }
         });
 #endif
-
     max_sorted_actions_.resize(min_sorted_actions_.size());
 
     thrust::copy(to_thrust_iter(min_sorted_actions_),
@@ -406,21 +403,28 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
                      min_sorted_actions_.size(),
                  to_thrust_iter(max_sorted_actions_));
 
-    auto sort_actions = [&](DataType<Action> &actions) {
-      thrust::sort(
-          execution_type, to_thrust_iter(actions),
-          to_thrust_iter(actions) + actions.size(),
-          [] __host__ __device__(const Action &first, const Action &second) {
-            if (first.sort_index == second.sort_index) {
-              return first.min_dist < second.min_dist;
-            } else {
-              return first.sort_index < second.sort_index;
-            }
-          });
+    auto sort_actions = [&](DataType<Action> &actions, const auto &getter) {
+      thrust::sort(execution_type, to_thrust_iter(actions),
+                   to_thrust_iter(actions) + actions.size(),
+                   [getter = getter] __host__ __device__(const Action &first,
+                                                         const Action &second) {
+                     if (first.sort_index == second.sort_index) {
+                       return getter(first) < getter(second);
+                     } else {
+                       return first.sort_index < second.sort_index;
+                     }
+                   });
     };
 
-    sort_actions(min_sorted_actions_);
-    sort_actions(max_sorted_actions_);
+    sort_actions(min_sorted_actions_,
+                 [] __host__ __device__(const Action &action) {
+                   return action.min_dist;
+                 });
+
+    sort_actions(max_sorted_actions_,
+                 [] __host__ __device__(const Action &action) {
+                   return action.max_dist;
+                 });
   };
 
   if constexpr (execution_model == ExecutionModel::GPU) {
@@ -428,7 +432,6 @@ TraversalGridsRef RendererImpl<execution_model>::traversal_grids(
   } else {
     fill_segments_sort(thrust::host);
   }
-
 
   dbg(action_starts_.size());
   dbg(min_sorted_actions_.size());

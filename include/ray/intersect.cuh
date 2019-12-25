@@ -113,9 +113,9 @@ __inline__ __host__ __device__ void solve_general_intersection(
 #ifndef NDEBUG
       for (; action_index < traversal.end; action_index++) {
         if (min_is_first_bound) {
-          assert(actions[action_index].max_dist > max_dist_bound);
+          assert(actions[action_index].max_dist < max_dist_bound);
         } else {
-          assert(actions[action_index].min_dist < min_dist_bound);
+          assert(actions[action_index].min_dist > min_dist_bound);
         }
       }
 #endif
