@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ray/execution_model.h"
+#include "ray/render.h"
 #include "scene/pool_scene.h"
 
 #include <QTime>
@@ -11,16 +12,11 @@
 #include <thread>
 #include <vector>
 
-namespace ray {
-template <ray::ExecutionModel execution_model> class Renderer;
-}
-
 class Canvas : public QWidget {
   Q_OBJECT
 
 public:
   Canvas(QWidget *parent);
-  ~Canvas() override;
 
 private:
   QTime time_;
@@ -70,7 +66,7 @@ private:
 
   Eigen::Affine3f film_to_world_;
   Eigen::Projective3f world_to_film_;
-  ray::Renderer<ray::ExecutionModel::GPU> *renderer_;
+  std::unique_ptr<ray::Renderer<ray::ExecutionModel::GPU>> renderer_;
 
   static constexpr float min_physics_step_size = 0.0001;
   static constexpr float fps_alpha = 0.05;

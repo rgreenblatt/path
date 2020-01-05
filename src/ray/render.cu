@@ -1,7 +1,9 @@
 #include "ray/render.h"
-#include "ray/render_impl.h"
+#include "ray/detail/render_impl.h"
 
 namespace ray {
+using namespace detail;
+
 template <ExecutionModel execution_model>
 Renderer<execution_model>::Renderer(unsigned width, unsigned height,
                                     unsigned super_sampling_rate,
@@ -18,7 +20,7 @@ Renderer<execution_model>::~Renderer() {
 
 template <ExecutionModel execution_model>
 void Renderer<execution_model>::render(BGRA *pixels,
-                                       const scene::Transform &m_film_to_world,
+                                       const Eigen::Affine3f &m_film_to_world,
                                        const Eigen::Projective3f &world_to_film,
                                        bool use_kd_tree, bool use_traversals,
                                        bool use_traversal_dists,

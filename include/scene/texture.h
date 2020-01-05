@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lib/unified_memory_vector.h"
+#include "lib/cuda/unified_memory_vector.h"
 #include "scene/color.h"
 #include "lib/span.h"
 

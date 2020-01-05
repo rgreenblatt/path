@@ -1,9 +1,5 @@
 #include "scene/camera.h"
 
-#include "ray/kdtree.h"
-#include "ray/projection.h"
-#include <dbg.h>
-
 namespace scene {
 std::tuple<Eigen::Affine3f, Eigen::Projective3f>
 get_camera_transform(const Eigen::Vector3f &look, const Eigen::Vector3f &up,

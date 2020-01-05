@@ -3,7 +3,7 @@
 #include "scene/pool_scene.h"
 #include "scene/reflec_balls.h"
 
-#include "ProgressBar.hpp"
+#include "cli/ProgressBar.hpp"
 #include <QImage>
 #include <boost/lexical_cast.hpp>
 #include <opencv2/opencv.hpp>

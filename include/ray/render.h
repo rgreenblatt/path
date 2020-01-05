@@ -7,7 +7,9 @@
 #include <memory>
 
 namespace ray {
+namespace detail {
 template <ExecutionModel execution_model> class RendererImpl;
+}
 
 template <ExecutionModel execution_model> class Renderer {
 public:
@@ -16,7 +18,7 @@ public:
 
   ~Renderer();
 
-  void render(BGRA *pixels, const scene::Transform &m_film_to_world,
+  void render(BGRA *pixels, const Eigen::Affine3f &m_film_to_world,
               const Eigen::Projective3f &world_to_film, bool use_kd_tree,
               bool use_traversals, bool use_traversal_dists, bool show_times);
 
@@ -26,6 +28,6 @@ public:
 
 private:
   // needs to not be smart pointer (compiler error otherwise)
-  RendererImpl<execution_model> *renderer_impl_;
+  detail::RendererImpl<execution_model> *renderer_impl_;
 };
 } // namespace ray

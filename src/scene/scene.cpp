@@ -1,7 +1,7 @@
 #include "scene/scene.h"
 #include "scene/texture_qimage.h"
 
-#include "ray/kdtree.h"
+#include "ray/detail/accel/aabb.h"
 #include <iostream>
 
 namespace scene {
@@ -17,7 +17,8 @@ void Scene::finishConstructScene() {
                                std::numeric_limits<float>::lowest(),
                                std::numeric_limits<float>::lowest());
   for (const auto &shape : shapes_) {
-    auto [min_bound, max_bound] = ray::detail::get_shape_bounds(shape);
+    auto [min_bound, max_bound] =
+        ray::detail::accel::get_shape_bounds(shape.get_transform());
     min_bound_ = min_bound_.cwiseMin(min_bound);
     max_bound_ = max_bound_.cwiseMax(max_bound);
   }

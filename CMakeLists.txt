@@ -16,7 +16,7 @@ SET(CMAKE_AUTOUIC ON)
 
 FIND_PACKAGE(Qt5 COMPONENTS Widgets Xml REQUIRED)
 FIND_PACKAGE(OpenMP REQUIRED)
-FIND_PACKAGE(OpenCV REQUIRED)
+# FIND_PACKAGE(OpenCV REQUIRED)
 
 SET(CMAKE_CXX_STANDARD 17)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -38,20 +38,25 @@ ADD_DEFINITIONS(-DEIGEN_DEFAULT_DENSE_INDEX_TYPE=int)
 
 ADD_LIBRARY(
   renderer
-  "${PROJECT_SOURCE_DIR}/src/ray/render_impl.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/render_impl_traversal_grid.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/render_impl_fill.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/render_impl_raytrace.cu"
+  "${PROJECT_SOURCE_DIR}/src/ray/detail/render_impl_float_to_bgra.cpp"
+  "${PROJECT_SOURCE_DIR}/src/ray/detail/render_impl_float_to_bgra.cu"
+  "${PROJECT_SOURCE_DIR}/src/ray/detail/render_impl_fill.cu"
+  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/kdtree/kdtree.cpp"
+  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/sphere_partition.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/ray/render_impl_traversal_grid.cu"
+  "${PROJECT_SOURCE_DIR}/src/ray/detail/render_impl_raytrace.cu"
+  "${PROJECT_SOURCE_DIR}/src/ray/detail/render_impl_raytrace.cpp"
+  "${PROJECT_SOURCE_DIR}/src/ray/detail/render_impl.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/render.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/kdtree.cpp"
+  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/kdtree/kdtree.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/scene.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/pool_scene.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/reflec_ball.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/camera.cpp"
-  "${PROJECT_SOURCE_DIR}/src/ray/traversal_grid.cpp"
-  "${PROJECT_SOURCE_DIR}/src/ray/traversal_grid.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/sort_actions.cpp"
-  "${PROJECT_SOURCE_DIR}/src/ray/sort_actions.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/traversal_grid.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/ray/traversal_grid.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/sort_actions.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/ray/sort_actions.cu"
   )
 
 TARGET_INCLUDE_DIRECTORIES(renderer PUBLIC
@@ -80,10 +85,10 @@ ADD_EXECUTABLE(
   "${PROJECT_SOURCE_DIR}/src/cs123_compat/CS123XmlSceneParser.cpp"
   )
 
-ADD_EXECUTABLE(
-  video_test
-  "${PROJECT_SOURCE_DIR}/src/bin/video_test.cpp"
-  )
+# ADD_EXECUTABLE(
+#   video_test
+#   "${PROJECT_SOURCE_DIR}/src/bin/video_test.cpp"
+#   )
 
 QT5_USE_MODULES(final Widgets)
 TARGET_LINK_LIBRARIES(final Qt5::Widgets renderer)
@@ -102,10 +107,10 @@ TARGET_INCLUDE_DIRECTORIES(image_test PUBLIC
   "${QT5_INCLUDE_DIR}"
   )
 
-TARGET_LINK_LIBRARIES(video_test Qt5::Widgets Qt5::Xml renderer ${OpenCV_LIBS})
-TARGET_INCLUDE_DIRECTORIES(video_test PUBLIC
-  "${PROJECT_SOURCE_DIR}/include"
-  "${PROJECT_SOURCE_DIR}/eigen/"
-  "/usr/local/cuda/include/"
-  "${QT5_INCLUDE_DIR}"
-  )
+# TARGET_LINK_LIBRARIES(video_test Qt5::Widgets Qt5::Xml renderer ${OpenCV_LIBS})
+# TARGET_INCLUDE_DIRECTORIES(video_test PUBLIC
+#   "${PROJECT_SOURCE_DIR}/include"
+#   "${PROJECT_SOURCE_DIR}/eigen/"
+#   "/usr/local/cuda/include/"
+#   "${QT5_INCLUDE_DIR}"
+#   )

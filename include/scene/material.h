@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lib/cuda_utils.h"
+#include "lib/cuda/utils.h"
 #include "scene/color.h"
 #include "scene/texture.h"
 

@@ -1,6 +1,6 @@
 #include "ui/canvas.h"
 #include "lib/bgra.h"
-#include "linenoise.hpp"
+#include "cli/linenoise.hpp"
 #include "ray/render.h"
 #include "scene/camera.h"
 #include "scene/pool_scene.h"
@@ -249,12 +249,6 @@ Canvas::Canvas(QWidget *parent)
 
 void Canvas::resizeEvent(QResizeEvent *) { resize(width(), height()); }
 
-Canvas::~Canvas() {
-  if (renderer_) {
-    delete renderer_;
-  }
-}
-
 void Canvas::mousePressEvent(QMouseEvent *event) {
   resetRenderer();
   time_.restart();
@@ -316,7 +310,7 @@ void Canvas::resize(int width_in, int height_in) {
 
 void Canvas::resetRenderer() {
   std::unique_ptr<scene::Scene> s = std::make_unique<scene::ReflecBalls>();
-  renderer_ = new ray::Renderer<ray::ExecutionModel::GPU>(
+  renderer_ = std::make_unique<ray::Renderer<ray::ExecutionModel::GPU>>(
       width_, height_, super_sampling_rate_, recursive_iterations_, s);
 }
 
