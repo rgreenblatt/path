@@ -139,7 +139,7 @@ private:
 };
 
 template <ExecutionModel execution_model>
-void compute_aabbs(Span<Eigen::Projective3f> transforms,
+void compute_aabbs(Span<const Eigen::Projective3f> transforms,
                    unsigned num_transforms, Span<IdxAABB> aabbs,
                    Span<const BoundingPoints> bounds, unsigned num_bounds);
 } // namespace dir_tree

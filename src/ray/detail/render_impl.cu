@@ -39,6 +39,7 @@ void RendererImpl<execution_model>::render(
   const unsigned num_lights = scene_->getNumLights();
   const auto textures = scene_->getTextures();
   const unsigned num_textures = scene_->getNumTextures();
+  show_times_ = show_times;
 
   const unsigned general_num_blocks = block_data_.generalNumBlocks();
 

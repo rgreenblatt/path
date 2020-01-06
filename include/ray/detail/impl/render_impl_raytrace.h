@@ -19,6 +19,7 @@ inline void raytrace(const BlockData block_data, const Accel &accel,
                      Span<uint8_t> disables, Span<uint8_t> group_disables,
                      Span<const unsigned, false> group_indexes,
                      unsigned current_num_blocks, unsigned num_shapes) {
+#pragma omp parallel for collapse(2) schedule(dynamic, 16)
   for (unsigned block_index = 0; block_index < current_num_blocks;
        block_index++) {
     for (unsigned thread_index = 0;

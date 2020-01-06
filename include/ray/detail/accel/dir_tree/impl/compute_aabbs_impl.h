@@ -10,10 +10,10 @@ namespace detail {
 namespace accel {
 namespace dir_tree {
 inline HOST_DEVICE void
-compute_aabbs_impl(Span<Eigen::Projective3f> transforms, unsigned transform_idx,
-                   unsigned num_transforms, Span<IdxAABB> aabbs,
-                   Span<const BoundingPoints> bounds, unsigned bound_idx,
-                   unsigned num_bounds) {
+compute_aabbs_impl(Span<const Eigen::Projective3f> transforms,
+                   unsigned transform_idx, unsigned num_transforms,
+                   Span<IdxAABB> aabbs, Span<const BoundingPoints> bounds,
+                   unsigned bound_idx, unsigned num_bounds) {
   if (transform_idx >= num_transforms || bound_idx >= num_bounds) {
     return;
   }

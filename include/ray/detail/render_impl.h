@@ -2,10 +2,11 @@
 
 #include "lib/bgra.h"
 #include "lib/cuda/unified_memory_vector.h"
+#include "ray/detail/accel/dir_tree/dir_tree.h"
+#include "ray/detail/accel/dir_tree/sphere_partition.h"
+#include "ray/detail/accel/kdtree/kdtree.h"
 #include "ray/detail/block_data.h"
 #include "ray/execution_model.h"
-#include "ray/detail/accel/kdtree/kdtree.h"
-#include "ray/detail/accel/dir_tree/dir_tree.h"
 #include "scene/scene.h"
 
 #include <thrust/device_vector.h>
@@ -68,12 +69,10 @@ private:
 
   void float_to_bgra(BGRA *pixels, Span<const scene::Color> colors);
 
-#if 0
-  TraversalGridsRef
-  traversal_grids(bool show_times, const Eigen::Projective3f &world_to_film,
-                  Span<const scene::ShapeData, false> shapes,
-                  Span<const scene::Light, false> lights);
-#endif
+  accel::dir_tree::DirTreeLookup
+  dir_trees(const Eigen::Projective3f &world_to_film,
+            Span<const scene::ShapeData, false> shapes,
+            Span<const scene::Light, false> lights);
 
   template <typename T> using DataType = DataType<execution_model, T>;
 
@@ -109,11 +108,20 @@ private:
 #if 0
   ManangedMemVec<TraversalData> traversal_data_;
   ManangedMemVec<TraversalGrid> traversal_grids_;
-  ManangedMemVec<BoundingPoints> shape_bounds_;
-  DataType<ShapePossibles> shape_grids_;
 #endif
+  ManangedMemVec<accel::dir_tree::HalfSpherePartition::Region>
+      sphere_partition_regions_;
+  ManangedMemVec<Eigen::Projective3f> dir_tree_transforms_;
+  ManangedMemVec<accel::dir_tree::BoundingPoints> bounds_;
+  DataType<accel::dir_tree::IdxAABB> aabbs_;
+  DataType<accel::dir_tree::EdgeIdxAABB> sorted_by_x_edges_;
+  DataType<accel::dir_tree::EdgeIdxAABB> sorted_by_y_edges_;
+  DataType<float> z_centers_;
+  DataType<accel::dir_tree::IdxAABB> sorted_by_z_center_;
+#if 0
   DataType<int> action_starts_;
   DataType<int> action_ends_;
+#endif
 };
 } // namespace detail
 } // namespace ray

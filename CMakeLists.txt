@@ -43,12 +43,13 @@ ADD_LIBRARY(
   "${PROJECT_SOURCE_DIR}/src/ray/detail/render_impl_fill.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/kdtree/kdtree.cpp"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/sphere_partition.cpp"
-  # "${PROJECT_SOURCE_DIR}/src/ray/render_impl_traversal_grid.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/render_impl_raytrace.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/render_impl_raytrace.cpp"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/render_impl.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/render.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/kdtree/kdtree.cpp"
+  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/compute_aabb.cpp"
+  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/compute_aabb.cu"
   "${PROJECT_SOURCE_DIR}/src/scene/scene.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/pool_scene.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/reflec_ball.cpp"
@@ -114,3 +115,14 @@ TARGET_INCLUDE_DIRECTORIES(image_test PUBLIC
 #   "/usr/local/cuda/include/"
 #   "${QT5_INCLUDE_DIR}"
 #   )
+
+ADD_EXECUTABLE(
+  sort_test
+  "${PROJECT_SOURCE_DIR}/src/bin/sort_bench.cu"
+  )
+
+TARGET_INCLUDE_DIRECTORIES(sort_test PUBLIC
+  "${PROJECT_SOURCE_DIR}/include"
+  "${PROJECT_SOURCE_DIR}/eigen/"
+  "/usr/local/cuda/include/"
+  )

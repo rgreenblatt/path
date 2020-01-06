@@ -12,7 +12,8 @@ inline float area_of_cap(float s_cap) {
   return 4 * float(M_PI) * sin_v * sin_v;
 }
 
-HalfSpherePartition::HalfSpherePartition(unsigned target_num_regions) {
+HalfSpherePartition::HalfSpherePartition(unsigned target_num_regions,
+                                         ManangedMemVec<Region> &regions) {
   const float area_of_half_sphere = 2 * float(M_PI);
   const float area_of_ideal_region = area_of_half_sphere / target_num_regions;
 
@@ -42,18 +43,20 @@ HalfSpherePartition::HalfSpherePartition(unsigned target_num_regions) {
 
   colatitude_inverse_interval_ = 1.0f / fitting_angle;
 
-  regions_.resize(n_collars + 1);
+  regions.resize(n_collars + 1);
 
   unsigned total_num_regions = 0;
-  regions_[0] = Region(0.0, 0, 1);
+  regions[0] = Region(0.0, 0, 1);
   total_num_regions++;
   for (unsigned collar_num = 0; collar_num < n_collars; collar_num++) {
     unsigned this_num_regions = num_regions[collar_num];
-    regions_[collar_num] =
+    regions[collar_num] =
         Region(this_num_regions / 2.0f * float(M_PI), total_num_regions,
                total_num_regions + this_num_regions);
     total_num_regions += this_num_regions;
   }
+
+  regions_ = Span<const Region, false>(regions.data(), regions.size());
 }
 } // namespace dir_tree
 } // namespace accel
