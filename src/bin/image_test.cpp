@@ -8,7 +8,7 @@
 #include <chrono>
 #include <iostream>
 
-template <ray::ExecutionModel execution_model>
+template <ExecutionModel execution_model>
 void run_test(unsigned width, unsigned height, unsigned super_sampling_rate,
               const scene::CS123Scene &scene,
               const Eigen::Affine3f &film_to_world,
@@ -36,8 +36,8 @@ void run_test(unsigned width, unsigned height, unsigned super_sampling_rate,
                   use_traversals, use_traversal_dists, true);
 
 #if 1
-  unsigned x_rad = 0;
-  unsigned y_rad = 0;
+  unsigned x_rad = 2;
+  unsigned y_rad = 2;
 
   auto draw_point = [&](unsigned x, unsigned y, BGRA color) {
     for (unsigned y_draw = std::max(y, y_rad) - y_rad;
@@ -49,7 +49,7 @@ void run_test(unsigned width, unsigned height, unsigned super_sampling_rate,
     }
   };
 
-  draw_point(512, 417, BGRA(100, 100, 255, 0));
+  draw_point(128, 128, BGRA(255, 255, 255, 0));
 #endif
 
   std::cout << "rendered in "
@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
 
   if (render_cpu) {
     std::cout << "rendering cpu" << std::endl;
-    run_test<ray::ExecutionModel::CPU>(width, height, super_sampling_rate,
+    run_test<ExecutionModel::CPU>(width, height, super_sampling_rate,
                                        scene, film_to_world, world_to_film,
                                        "cpu_" + file_name, depth, use_kd_tree,
                                        use_traversals, use_traversal_dists);
@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
   }
 
   std::cout << "rendering gpu" << std::endl;
-  run_test<ray::ExecutionModel::GPU>(width, height, super_sampling_rate, scene,
+  run_test<ExecutionModel::GPU>(width, height, super_sampling_rate, scene,
                                      film_to_world, world_to_film,
                                      "gpu_" + file_name, depth, use_kd_tree,
                                      use_traversals, use_traversal_dists);

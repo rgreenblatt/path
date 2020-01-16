@@ -12,7 +12,7 @@
 #include <dbg.h>
 #include <iostream>
 
-template <ray::ExecutionModel execution_model>
+template <ExecutionModel execution_model>
 void render_frames(unsigned width, unsigned height,
                    unsigned super_sampling_rate, scene::PoolScene &scene,
                    const Eigen::Affine3f &film_to_world,
@@ -113,7 +113,7 @@ int main(int argc, char *argv[]) {
 
   if (render_cpu) {
     std::cout << "rendering cpu" << std::endl;
-    render_frames<ray::ExecutionModel::CPU>(
+    render_frames<ExecutionModel::CPU>(
         width, height, super_sampling_rate, pool_scene, film_to_world,
         world_to_film, "cpu_video/", depth, use_kd_tree, use_traversals, 
         use_traversal_dists,
@@ -123,7 +123,7 @@ int main(int argc, char *argv[]) {
   }
 
   std::cout << "rendering gpu" << std::endl;
-  render_frames<ray::ExecutionModel::GPU>(
+  render_frames<ExecutionModel::GPU>(
       width, height, super_sampling_rate, pool_scene, film_to_world,
       world_to_film, "gpu_video/", depth, use_kd_tree, use_traversals,
       use_traversal_dists, frames, frame_rate, physics_super_sampling_rate,

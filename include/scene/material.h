@@ -42,8 +42,5 @@ struct Material {
         ambient_blend(ambient_blend), shininess(shininess), ior(ior) {}
 
   HOST_DEVICE Material() {}
-
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 } // namespace scene

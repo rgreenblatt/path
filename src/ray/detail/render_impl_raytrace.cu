@@ -9,16 +9,16 @@ template void
 RendererImpl<ExecutionModel::GPU>::raytrace_pass<false,
                                                  accel::kdtree::KDTreeRef>(
     const accel::kdtree::KDTreeRef &accel, unsigned current_num_blocks,
-    Span<const scene::ShapeData, false> shapes,
-    Span<const scene::Light, false> lights,
+    SpanSized<const scene::ShapeData> shapes,
+    SpanSized<const scene::Light> lights,
     Span<const scene::TextureImageRef> textures);
 
 template void
 RendererImpl<ExecutionModel::GPU>::raytrace_pass<true,
                                                  accel::kdtree::KDTreeRef>(
     const accel::kdtree::KDTreeRef &accel, unsigned current_num_blocks,
-    Span<const scene::ShapeData, false> shapes,
-    Span<const scene::Light, false> lights,
+    SpanSized<const scene::ShapeData> shapes,
+    SpanSized<const scene::Light> lights,
     Span<const scene::TextureImageRef> textures);
 } // namespace detail
 } // namespace ray

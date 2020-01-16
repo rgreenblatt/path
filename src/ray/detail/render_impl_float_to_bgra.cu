@@ -2,6 +2,8 @@
 #include "ray/detail/impl/float_to_bgra.h"
 #include "ray/detail/render_impl.h"
 #include "ray/detail/render_impl_utils.h"
+#include "lib/span_convertable_vector.h"
+#include "lib/span_convertable_device_vector.h"
 
 namespace ray {
 namespace detail {
@@ -27,7 +29,7 @@ void RendererImpl<execution_model>::float_to_bgra(
   const auto start_convert = current_time();
 
   float_to_bgra_global<<<grid, block>>>(
-      real_x_dim_, real_y_dim_, super_sampling_rate_, colors, to_span(bgra_));
+      real_x_dim_, real_y_dim_, super_sampling_rate_, colors, bgra_);
 
   const auto end_convert = current_time();
   double convert_duration = to_secs(start_convert, end_convert);

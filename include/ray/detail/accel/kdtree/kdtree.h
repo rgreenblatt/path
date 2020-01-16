@@ -66,9 +66,6 @@ private:
   bool is_split_;
   KDTreeSplit split_;
   std::array<unsigned, 2> data_;
-
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 struct Bounds {

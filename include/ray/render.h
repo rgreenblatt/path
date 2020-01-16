@@ -1,7 +1,7 @@
 #pragma once
 
 #include "lib/bgra.h"
-#include "ray/execution_model.h"
+#include "lib/execution_model.h"
 #include "scene/scene.h"
 
 #include <memory>

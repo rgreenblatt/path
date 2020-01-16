@@ -18,7 +18,7 @@ void Scene::finishConstructScene() {
                                std::numeric_limits<float>::lowest());
   for (const auto &shape : shapes_) {
     auto [min_bound, max_bound] =
-        ray::detail::accel::get_shape_bounds(shape.get_transform());
+        ray::detail::accel::get_transformed_bounds(shape.get_transform());
     min_bound_ = min_bound_.cwiseMin(min_bound);
     max_bound_ = max_bound_.cwiseMax(max_bound);
   }

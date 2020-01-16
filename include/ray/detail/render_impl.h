@@ -2,11 +2,12 @@
 
 #include "lib/bgra.h"
 #include "lib/cuda/unified_memory_vector.h"
+#include "lib/execution_model.h"
+#include "lib/execution_model_datatype.h"
 #include "ray/detail/accel/dir_tree/dir_tree.h"
 #include "ray/detail/accel/dir_tree/sphere_partition.h"
 #include "ray/detail/accel/kdtree/kdtree.h"
 #include "ray/detail/block_data.h"
-#include "ray/execution_model.h"
 #include "scene/scene.h"
 
 #include <thrust/device_vector.h>
@@ -16,19 +17,6 @@
 
 namespace ray {
 namespace detail {
-template <ExecutionModel execution_model, typename T> struct get_vector_type;
-
-template <typename T> struct get_vector_type<ExecutionModel::CPU, T> {
-  using type = std::vector<T>;
-};
-
-template <typename T> struct get_vector_type<ExecutionModel::GPU, T> {
-  using type = thrust::device_vector<T>;
-};
-
-template <ExecutionModel execution_model, typename T>
-using DataType = typename get_vector_type<execution_model, T>::type;
-
 template <ExecutionModel execution_model> class RendererImpl {
 public:
   void render(BGRA *pixels, const Eigen::Affine3f &m_film_to_world,
@@ -45,8 +33,8 @@ public:
 private:
   template <bool is_first, typename Accel>
   void raytrace_pass(const Accel &accel, unsigned current_num_blocks,
-                     Span<const scene::ShapeData, false> shapes,
-                     Span<const scene::Light, false> lights,
+                     SpanSized<const scene::ShapeData> shapes,
+                     SpanSized<const scene::Light> lights,
                      Span<const scene::TextureImageRef> textures);
 
   std::chrono::high_resolution_clock::time_point current_time() {
@@ -68,11 +56,6 @@ private:
 #endif
 
   void float_to_bgra(BGRA *pixels, Span<const scene::Color> colors);
-
-  accel::dir_tree::DirTreeLookup
-  dir_trees(const Eigen::Projective3f &world_to_film,
-            Span<const scene::ShapeData, false> shapes,
-            Span<const scene::Light, false> lights);
 
   template <typename T> using DataType = DataType<execution_model, T>;
 
@@ -99,29 +82,6 @@ private:
   DataType<BGRA> bgra_;
   ManangedMemVec<uint8_t> group_disables_;
   ManangedMemVec<unsigned> group_indexes_;
-#if 0
-  DataType<Traversal> traversals_;
-  DataType<Action> min_sorted_actions_;
-  DataType<Action> max_sorted_actions_;
-#endif
-  DataType<unsigned> segments_;
-#if 0
-  ManangedMemVec<TraversalData> traversal_data_;
-  ManangedMemVec<TraversalGrid> traversal_grids_;
-#endif
-  ManangedMemVec<accel::dir_tree::HalfSpherePartition::Region>
-      sphere_partition_regions_;
-  ManangedMemVec<Eigen::Projective3f> dir_tree_transforms_;
-  ManangedMemVec<accel::dir_tree::BoundingPoints> bounds_;
-  DataType<accel::dir_tree::IdxAABB> aabbs_;
-  DataType<accel::dir_tree::EdgeIdxAABB> sorted_by_x_edges_;
-  DataType<accel::dir_tree::EdgeIdxAABB> sorted_by_y_edges_;
-  DataType<float> z_centers_;
-  DataType<accel::dir_tree::IdxAABB> sorted_by_z_center_;
-#if 0
-  DataType<int> action_starts_;
-  DataType<int> action_ends_;
-#endif
 };
 } // namespace detail
 } // namespace ray

@@ -21,9 +21,6 @@ public:
 
 private:
   std::array<Eigen::Array2f, 3> points_;
-
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 struct Plane {
@@ -78,9 +75,6 @@ struct DirectionPlane {
     return plane.get_intersection_point(
         is_loc ? (loc_or_dir - pos).normalized().eval() : loc_or_dir, pos);
   }
-
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 class ALIGN_STRUCT(32) TriangleProjector {
@@ -113,9 +107,6 @@ private:
   Eigen::Matrix4f transform_;
   Type type_;
   DirectionPlane direction_plane_;
-
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 inline HOST_DEVICE Eigen::Vector3f

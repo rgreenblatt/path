@@ -1,44 +1,132 @@
+#define CUB_USE_COOPERATIVE_GROUPS
+#include "lib/caching_thrust_allocator.h"
+#include "lib/parallel_for_loop.h"
 #include "ray/detail/accel/aabb.h"
-#include <chrono>
-#include <dbg.h>
+#include "ray/detail/render_impl_utils.h"
+
+
+#include <thrust/async/sort.h>
 #include <thrust/device_vector.h>
 #include <thrust/functional.h>
-#include <thrust/sort.h>
 
-int main(int argc, char *argv[]) {
+#include <future>
+
+#include <chrono>
+#include <dbg.h>
+
+int main(int, char *[]) {
   using ray::detail::accel::AABB;
-  unsigned size = 1000000;
+  unsigned size_per = 1000000;
+  unsigned blocks = 200;
+  /* unsigned size_per = 10000000; */
+  /* unsigned blocks = 1; */
+  unsigned size = size_per * blocks;
+  thrust::device_vector<uint16_t> values(size);
+  thrust::device_vector<unsigned> indexes(size);
   thrust::device_vector<AABB> aabbs(size);
+  thrust::device_vector<AABB> final_aabbs(size);
 
-  thrust::transform(
-      thrust::make_counting_iterator(unsigned(0)),
-      thrust::make_counting_iterator(unsigned(size)), aabbs.begin(),
-      [] __device__(unsigned v) {
-        const unsigned fnv_prime = 16777619u;
-        const unsigned fnv_offset_basis = 2166136261u;
-        v ^= fnv_offset_basis;
-        v *= fnv_prime;
-        return AABB(
-            Eigen::Vector3f(1, 2, v),
-            Eigen::Vector3f(1, 2,
-                            v + float(v * 883838) /
-                                    std::numeric_limits<unsigned>::max()));
-      });
+  std::vector<
+      std::pair<CachingThrustAllocator<ExecutionModel::GPU>, cudaStream_t>>
+      thrust_data(blocks);
 
-  auto start = std::chrono::high_resolution_clock::now();
+  for (auto &v : thrust_data) {
+    cudaStreamCreate(&v.second);
+  }
 
-  thrust::sort(aabbs.begin(), aabbs.end(),
-               [] __device__(const AABB &first, const AABB &second) {
-                 return first.get_min_bound().z() > second.get_min_bound().z();
-               });
+  auto fill = [&] {
+    thrust::transform(thrust::make_counting_iterator(unsigned(0)),
+                      thrust::make_counting_iterator(unsigned(size)),
+                      values.begin(), [] __device__(unsigned v) {
+                        const unsigned fnv_prime = 104729;
+                        const unsigned fnv_offset_basis = 2166136261u;
+                        v ^= fnv_offset_basis;
+                        v *= fnv_prime;
 
-  auto end = std::chrono::high_resolution_clock::now();
+                        return v;
+                      });
+  };
 
-  double dur =
-      std::chrono::duration_cast<std::chrono::duration<double>>(end - start)
-          .count();
+  auto sort = [&](bool show_times) {
+    thrust::copy(thrust::device, thrust::make_counting_iterator(0u),
+                 thrust::make_counting_iterator(size), indexes.begin());
 
-  dbg(dur);
+    auto sort_block = [&](unsigned block) {
+      return [&, block] {
+        unsigned start = block * size_per;
+        unsigned end = (block + 1) * size_per;
+        auto &[alloc, c_stream] = thrust_data[block];
+        thrust::sort_by_key(
+            /* thrust::device, */
+            thrust::cuda::par(alloc).on(c_stream), values.begin() + start,
+            values.begin() + end, indexes.begin() + start);
+      };
+    };
+
+    auto start_sort = std::chrono::high_resolution_clock::now();
+#if 0
+    std::vector<std::future<void>> results(blocks);
+
+    for (unsigned block = 0; block < blocks; block++) {
+      results[block] = std::async(std::launch::async, sort_block(block));
+    }
+
+    for (unsigned block = 0; block < blocks; block++) {
+      results[block].get();
+    }
+#else
+#if 0
+    parallel_for_loop(0u, blocks, [&](unsigned block) { sort_block(block)(); });
+#else
+    for (unsigned block = 0; block < blocks; block++) {
+      sort_block(block)();
+    }
+#endif
+#endif
+    auto end_sort = std::chrono::high_resolution_clock::now();
+
+    double dur_sort = std::chrono::duration_cast<std::chrono::duration<double>>(
+                          end_sort - start_sort)
+                          .count();
+
+    if (show_times) {
+      dbg(dur_sort);
+      dbg(size / dur_sort);
+    }
+
+    auto start_permute = std::chrono::high_resolution_clock::now();
+
+    thrust::copy(
+        thrust::device,
+        thrust::make_permutation_iterator(aabbs.begin(), indexes.begin()),
+        thrust::make_permutation_iterator(aabbs.end(), indexes.end()),
+        final_aabbs.begin());
+
+    auto end_permute = std::chrono::high_resolution_clock::now();
+
+    double dur_permute =
+        std::chrono::duration_cast<std::chrono::duration<double>>(end_permute -
+                                                                  start_permute)
+            .count();
+
+    if (show_times) {
+      dbg(dur_permute);
+    }
+  };
+
+  fill();
+  sort(false);
+  fill();
+  sort(false);
+  fill();
+  sort(false);
+  fill();
+  sort(false);
+  fill();
+
+  sort(true);
+
+  sort(true);
 
   return 0;
 }

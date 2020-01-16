@@ -2,7 +2,8 @@
 
 #include "lib/cuda/utils.h"
 #include "lib/span.h"
-#include "ray/detail/accel/dir_tree/dir_tree.h"
+#include "ray/detail/accel/dir_tree/bounding_points.h"
+#include "ray/detail/accel/dir_tree/idx_aabb.h"
 #include "ray/detail/projection.h"
 
 namespace ray {
@@ -10,11 +11,10 @@ namespace detail {
 namespace accel {
 namespace dir_tree {
 inline HOST_DEVICE void
-compute_aabbs_impl(Span<const Eigen::Projective3f> transforms,
-                   unsigned transform_idx, unsigned num_transforms,
-                   Span<IdxAABB> aabbs, Span<const BoundingPoints> bounds,
-                   unsigned bound_idx, unsigned num_bounds) {
-  if (transform_idx >= num_transforms || bound_idx >= num_bounds) {
+compute_aabbs_impl(SpanSized<const Eigen::Projective3f> transforms,
+                   unsigned transform_idx, Span<IdxAABB> aabbs,
+                   SpanSized<const BoundingPoints> bounds, unsigned bound_idx) {
+  if (transform_idx >= transforms.size() || bound_idx >= bounds.size()) {
     return;
   }
 
@@ -34,7 +34,7 @@ compute_aabbs_impl(Span<const Eigen::Projective3f> transforms,
     max_bound = max_bound.cwiseMax(transformed_point);
   }
 
-  aabbs[bound_idx + transform_idx * num_bounds] =
+  aabbs[bound_idx + transform_idx * bounds.size()] =
       IdxAABB(bound_idx, AABB(min_bound, max_bound));
 }
 } // namespace dir_tree

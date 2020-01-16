@@ -1,9 +1,8 @@
 #pragma once
 
 #include "lib/cuda/utils.h"
+#include "lib/execution_model.h"
 #include "lib/span.h"
-#include "ray/execution_model.h"
-#include "ray/detail/accel/aabb.h"
 #include "ray/detail/accel/dir_tree/sphere_partition.h"
 
 #include <Eigen/Geometry>
@@ -52,21 +51,6 @@ struct ALIGN_STRUCT(16) DirTreeNode {
 };
 
 // eventually this should be triangle or something...
-using BoundingPoints = std::array<Eigen::Vector3f, 8>;
-
-inline BoundingPoints get_bounding(const Eigen::Affine3f &transform_v) {
-  auto trans = [&](const Eigen::Vector3f &point) {
-    return transform_v * point;
-  };
-
-  return {
-      trans({0.5f, 0.5f, 0.5f}),   trans({-0.5f, 0.5f, 0.5f}),
-      trans({0.5f, -0.5f, 0.5f}),  trans({0.5f, 0.5f, -0.5f}),
-      trans({-0.5f, -0.5f, 0.5f}), trans({0.5f, -0.5f, -0.5f}),
-      trans({-0.5f, 0.5f, -0.5f}), trans({-0.5f, -0.5f, -0.5f}),
-  };
-}
-
 struct ALIGN_STRUCT(32) DirTree {
   // is it worth special casing affine? (union or whatever...)
   Eigen::Projective3f transform;
@@ -78,31 +62,6 @@ struct ALIGN_STRUCT(32) DirTree {
       : transform(transform), nodes(nodes), actions(actions) {}
 
   HOST_DEVICE DirTree() {}
-
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-};
-
-struct IdxAABB {
-  unsigned idx;
-  AABB aabb;
-
-  HOST_DEVICE IdxAABB(unsigned idx, const AABB &aabb) : idx(idx), aabb(aabb) {}
-
-  HOST_DEVICE IdxAABB() {}
-
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-};
-
-struct EdgeIdxAABB {
-  IdxAABB idx_aabb;
-  bool is_min;
-
-  HOST_DEVICE EdgeIdxAABB(const IdxAABB &idx_aabb, bool is_min)
-      : idx_aabb(idx_aabb), is_min(is_min) {}
-
-  HOST_DEVICE EdgeIdxAABB() {}
 };
 
 class ALIGN_STRUCT(32) DirTreeLookup {
@@ -137,11 +96,6 @@ private:
   unsigned start_partition_idx_;
   HalfSpherePartition partition_;
 };
-
-template <ExecutionModel execution_model>
-void compute_aabbs(Span<const Eigen::Projective3f> transforms,
-                   unsigned num_transforms, Span<IdxAABB> aabbs,
-                   Span<const BoundingPoints> bounds, unsigned num_bounds);
 } // namespace dir_tree
 } // namespace accel
 } // namespace detail

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ray/execution_model.h"
+#include "lib/execution_model.h"
 #include "ray/render.h"
 #include "scene/pool_scene.h"
 
@@ -66,7 +66,7 @@ private:
 
   Eigen::Affine3f film_to_world_;
   Eigen::Projective3f world_to_film_;
-  std::unique_ptr<ray::Renderer<ray::ExecutionModel::GPU>> renderer_;
+  std::unique_ptr<ray::Renderer<ExecutionModel::GPU>> renderer_;
 
   static constexpr float min_physics_step_size = 0.0001;
   static constexpr float fps_alpha = 0.05;

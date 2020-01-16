@@ -13,8 +13,8 @@ void RendererImpl<execution_model>::float_to_bgra(
 #pragma omp parallel for collapse(2) schedule(dynamic, 16)
   for (unsigned x = 0; x < real_x_dim_; x++) {
     for (unsigned y = 0; y < real_y_dim_; y++) {
-      float_to_bgra_impl(x, y, real_x_dim_, real_y_dim_, super_sampling_rate_, colors,
-                         bgra_span);
+      float_to_bgra_impl(x, y, real_x_dim_, real_y_dim_, super_sampling_rate_,
+                         colors, bgra_span);
     }
   }
 

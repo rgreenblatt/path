@@ -13,14 +13,14 @@ HOST_DEVICE inline void
 raytrace_impl(unsigned block_index, unsigned thread_index,
               const BlockData &block_data, const Accel &accel,
               Span<const scene::ShapeData> shapes,
-              Span<const scene::Light, false> lights,
+              SpanSized<const scene::Light> lights,
               Span<const scene::TextureImageRef> textures,
               Span<Eigen::Vector3f> world_space_eyes,
               Span<Eigen::Vector3f> world_space_directions,
               Span<Eigen::Array3f> color_multipliers, Span<scene::Color> colors,
               Span<unsigned> ignores, Span<uint8_t> disables,
               Span<uint8_t> group_disables,
-              Span<const unsigned, false> group_indexes, unsigned num_shapes) {
+              SpanSized<const unsigned> group_indexes, unsigned num_shapes) {
   uint8_t disable = false;
 
   auto [x, y, index, outside_bounds] =

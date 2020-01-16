@@ -28,7 +28,7 @@ struct BlockData {
   unsigned num_blocks_y;
 
   HOST_DEVICE std::tuple<unsigned, unsigned, unsigned, bool>
-  getIndexes(Span<const unsigned, false> group_indexes, unsigned block_idx,
+  getIndexes(SpanSized<const unsigned> group_indexes, unsigned block_idx,
              unsigned thread_idx) const {
     return getIndexes(group_indexes[block_idx], thread_idx);
   }

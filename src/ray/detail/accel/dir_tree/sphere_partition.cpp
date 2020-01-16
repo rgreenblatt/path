@@ -56,7 +56,7 @@ HalfSpherePartition::HalfSpherePartition(unsigned target_num_regions,
     total_num_regions += this_num_regions;
   }
 
-  regions_ = Span<const Region, false>(regions.data(), regions.size());
+  regions_ = SpanSized<const Region>(regions.data(), regions.size());
 }
 } // namespace dir_tree
 } // namespace accel

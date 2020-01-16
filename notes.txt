@@ -1,0 +1,42 @@
+Maybe z cut isn't important at all...
+x: 
+ - edge type
+ - y min max
+ - x value
+ - sorted by x value
+
+y:
+ - edge type
+ - x min max
+ - y value
+ - sorted by y value
+
+z min sort:
+ - x min max
+ - y min max
+ - sorted by z min
+
+z max sort:
+ - x min max
+ - y min max
+ - inv sorted by z max
+
+t_c: traversal cost
+c_l: count left
+c_r: count left
+p_l: prob
+p_r: count left
+
+
+x (also y) cut: 
+ - use prefix sum to know count_left and count_right
+ - cost heuristic is:
+ t_cost + i_cost (area_left count_left + area_right count_right) / total_area
+
+ area can be simplified to distance along only the dimension which is cut
+
+ - split x
+ - filter all y/z for each side
+
+
+

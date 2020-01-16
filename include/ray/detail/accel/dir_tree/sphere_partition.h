@@ -55,7 +55,7 @@ public:
     Region() {}
   };
 
-  inline Span<const Region, false> regions() const { return regions_; }
+  inline SpanSized<const Region> regions() const { return regions_; }
 
   HalfSpherePartition(unsigned target_num_regions,
                       ManangedMemVec<Region> &regions);
@@ -65,7 +65,7 @@ public:
 private:
   float colatitude_offset_;
   float colatitude_inverse_interval_;
-  Span<const Region, false> regions_;
+  SpanSized<const Region> regions_;
 };
 } // namespace dir_tree
 } // namespace accel

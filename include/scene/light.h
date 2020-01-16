@@ -14,9 +14,6 @@ struct DirectionalLight {
   DirectionalLight(const Eigen::Vector3f &direction) : direction(direction) {}
 
   DirectionalLight() {}
-
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 struct PointLight {
@@ -27,9 +24,6 @@ struct PointLight {
              const Eigen::Array3f &attenuation_function)
       : position(position), attenuation_function(attenuation_function) {}
   PointLight() {}
-
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 class Light {
@@ -55,8 +49,5 @@ public:
 private:
   DirectionalLight directional_light_;
   PointLight point_light_;
-
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 } // namespace scene

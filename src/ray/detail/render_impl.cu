@@ -1,6 +1,7 @@
-#include "ray/detail/render_impl.h"
-#include "ray/detail/render_impl_utils.h"
+#include "lib/span_convertable_device_vector.h"
+#include "lib/span_convertable_vector.h"
 #include "ray/detail/accel/kdtree/kdtree_ref.h"
+#include "ray/detail/render_impl.h"
 #include "scene/camera.h"
 
 #include <boost/range/adaptor/indexed.hpp>
@@ -71,35 +72,20 @@ void RendererImpl<execution_model>::render(
   if (use_kd_tree && !use_traversals) {
     const auto start_kdtree = current_time();
 
-    auto kdtree = accel::kdtree::construct_kd_tree(moved_shapes_.data(), num_shapes, 25, 3);
+    auto kdtree = accel::kdtree::construct_kd_tree(moved_shapes_.data(),
+                                                   num_shapes, 25, 3);
     kdtree_nodes_.resize(kdtree.size());
     std::copy(kdtree.begin(), kdtree.end(), kdtree_nodes_.begin());
 
     const auto end_kdtree = current_time();
     double kdtree_duration = to_secs(start_kdtree, end_kdtree);
 
+    std::fill(group_disables_.begin(), group_disables_.end(), false);
+
     if (show_times) {
       dbg(kdtree_duration);
     }
   }
-
-  Span<const scene::Light, false> lights_span(lights, num_lights);
-
-#if 0
-  TraversalGridsRef traversal_grids_ref;
-
-  if (use_traversals) {
-    traversal_grids_ref =
-        traversal_grids(show_times, world_to_film,
-                        Span<const scene::ShapeData, false>(
-                            moved_shapes_.data(), moved_shapes_.size()),
-                        lights_span);
-  } else {
-    for (auto &disable : group_disables_) {
-      disable = false;
-    }
-  }
-#endif
 
   for (unsigned depth = 0; depth < recursive_iterations_; depth++) {
     bool is_first = depth == 0;
@@ -115,34 +101,32 @@ void RendererImpl<execution_model>::render(
 
     const auto start_intersect = current_time();
 
-    Span<const scene::ShapeData, false> shapes_span(moved_shapes_.data(),
-                                                    moved_shapes_.size());
-
-    Span<const scene::Light, false> lights_span(lights, num_lights);
+    SpanSized<const scene::Light> lights_span(lights, num_lights);
     Span textures_span(textures, num_textures);
 
     auto raytrace = [&](const auto &data_structure) {
       if (is_first) {
-        raytrace_pass<true>(data_structure, current_num_blocks, shapes_span,
+        raytrace_pass<true>(data_structure, current_num_blocks, moved_shapes_,
                             lights_span, textures_span);
       } else {
-        raytrace_pass<false>(data_structure, current_num_blocks, shapes_span,
+        raytrace_pass<false>(data_structure, current_num_blocks, moved_shapes_,
                              lights_span, textures_span);
       }
     };
-    
+
     if (use_kd_tree) {
-      raytrace(accel::kdtree::KDTreeRef(
-          kdtree_nodes_.data(), kdtree_nodes_.size(), moved_shapes_.size()));
+      raytrace(accel::kdtree::KDTreeRef(kdtree_nodes_, moved_shapes_.size()));
     }
 
     const auto end_intersect = current_time();
     double intersect_duration = to_secs(start_intersect, end_intersect);
 
-    dbg(intersect_duration);
+    if (show_times) {
+      dbg(intersect_duration);
+    }
   }
 
-  float_to_bgra(pixels, to_const_span(colors_));
+  float_to_bgra(pixels, colors_);
 
 #if 0
   auto draw_point = [&](unsigned x, unsigned y, BGRA color) {

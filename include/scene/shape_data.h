@@ -47,8 +47,5 @@ private:
   Eigen::Matrix3f object_normal_to_world_;
   Material material_;
   scene::Shape shape_type_;
-
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 } // namespace scene

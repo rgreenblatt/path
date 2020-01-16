@@ -36,25 +36,6 @@ template <typename T> auto to_thrust_iter(thrust::device_vector<T> &vec) {
 template <typename T> auto to_thrust_iter(const thrust::device_vector<T> &vec) {
   return vec.begin();
 }
-
-template <typename T> Span<T> to_span(thrust::device_vector<T> &vec) {
-  return Span(thrust::raw_pointer_cast(vec.data()), vec.size());
-}
-
-template <typename T>
-Span<const T> to_const_span(const thrust::device_vector<T> &vec) {
-  return Span(thrust::raw_pointer_cast(vec.data()), vec.size());
-}
-
-template <typename T, typename A> Span<T> to_span(std::vector<T, A> &vec) {
-  return Span(vec.data(), vec.size());
-}
-
-template <typename T, typename A>
-Span<const T> to_const_span(const std::vector<T, A> &vec) {
-  return Span(vec.data(), vec.size());
-}
-
 template <typename T> const T *to_ptr(const std::vector<T> &vec) {
   return vec.data();
 }

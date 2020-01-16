@@ -1,3 +1,5 @@
+#include "lib/span_convertable_device_vector.h"
+#include "lib/span_convertable_vector.h"
 #include "ray/detail/impl/fill.h"
 #include "ray/detail/render_impl.h"
 #include "ray/detail/render_impl_utils.h"
@@ -32,10 +34,9 @@ inline void initial_world_space_directions_cpu(
   }
 }
 
-template <typename T>
-__global__ void fill_data(T *data, unsigned size, T value) {
+template <typename T> __global__ void fill_data(SpanSized<T> data, T value) {
   unsigned index = blockIdx.x * blockDim.x + threadIdx.x;
-  if (index < size) {
+  if (index < data.size()) {
     data[index] = value;
   }
 }
@@ -49,23 +50,22 @@ void RendererImpl<execution_model>::fill(
 
   const Eigen::Vector3f world_space_eye = m_film_to_world.translation();
 
+  // TODO switch to thrust async fill?
   if constexpr (execution_model == ExecutionModel::GPU) {
     const unsigned fill_block_size = 256;
     const unsigned fill_num_blocks =
         num_blocks(block_data_.totalSize(), fill_block_size);
 
     fill_data<<<fill_num_blocks, fill_block_size>>>(
-        to_ptr(world_space_eyes_), block_data_.totalSize(), world_space_eye);
-    fill_data<<<fill_num_blocks, fill_block_size>>>(to_ptr(color_multipliers_),
-                                                    block_data_.totalSize(),
-                                                    initial_multiplier);
+        SpanSized<Eigen::Vector3f>(world_space_eyes_), world_space_eye);
     fill_data<<<fill_num_blocks, fill_block_size>>>(
-        to_ptr(colors_), block_data_.totalSize(), initial_color);
+        SpanSized<Eigen::Array3f>(color_multipliers_), initial_multiplier);
+    fill_data<<<fill_num_blocks, fill_block_size>>>(
+        SpanSized<Eigen::Array3f>(colors_), initial_color);
 
     initial_world_space_directions_global<<<general_num_blocks,
                                             general_block_size>>>(
-        block_data_, world_space_eye, m_film_to_world,
-        to_span(world_space_directions_));
+        block_data_, world_space_eye, m_film_to_world, world_space_directions_);
 
     CUDA_ERROR_CHK(cudaDeviceSynchronize());
   } else {
@@ -75,9 +75,8 @@ void RendererImpl<execution_model>::fill(
               initial_multiplier);
     std::fill(colors_.begin(), colors_.end(), initial_color);
 
-    initial_world_space_directions_cpu(block_data_, world_space_eye,
-                                       m_film_to_world,
-                                       to_span(world_space_directions_));
+    initial_world_space_directions_cpu(
+        block_data_, world_space_eye, m_film_to_world, world_space_directions_);
   }
 }
 

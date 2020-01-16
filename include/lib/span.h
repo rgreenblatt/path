@@ -1,5 +1,7 @@
 #pragma once
 
+#include "lib/span_convertable.h"
+
 #include <assert.h>
 #include <type_traits>
 
@@ -9,13 +11,26 @@
 #define DEFAULT_IGNORE false
 #endif
 
-struct NoSize {};
-
 template <typename T, bool ignore_size = DEFAULT_IGNORE> class Span {
+#undef DEFAULT_IGNORE
 public:
   constexpr Span(T *ptr, std::size_t size) : ptr_(ptr) {
     if constexpr (!ignore_size) {
       size_ = size;
+    }
+  }
+
+  template <typename V>
+  constexpr Span(V &v) : ptr_(SpanConvertable<V>::ptr(v)) {
+    if constexpr (!ignore_size) {
+      size_ = SpanConvertable<V>::size(v);
+    }
+  }
+
+  template <typename V>
+  constexpr Span(const V &v) : ptr_(SpanConvertable<V>::ptr(v)) {
+    if constexpr (!ignore_size) {
+      size_ = SpanConvertable<V>::size(v);
     }
   }
 
@@ -44,7 +59,18 @@ public:
 
 private:
   T *ptr_;
+
+  struct NoSize {};
+
   typename std::conditional<ignore_size, NoSize, std::size_t>::type size_;
 };
 
-#undef DEFAULT_IGNORE
+template <typename T, bool ignore_size>
+class SpanConvertable<Span<T, ignore_size>> {
+public:
+  constexpr static T *ptr(Span<T, ignore_size> v) { return v.data(); }
+
+  constexpr static std::size_t size(Span<T, ignore_size> v) { return v.size(); }
+};
+
+template <typename T> using SpanSized = Span<T, false>;

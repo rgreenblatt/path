@@ -121,7 +121,7 @@ std::vector<KDTreeNode<AABB>> construct_kd_tree(scene::ShapeData *shapes,
   std::transform(shapes, shapes + num_shapes, shape_bounds.begin(),
                  [](const ShapeData &shape) {
                    auto [min_bound, max_bound] =
-                       get_shape_bounds(shape.get_transform());
+                       get_transformed_bounds(shape.get_transform());
                    Eigen::Vector3f center = shape.get_transform().translation();
                    return Bounds(min_bound, center, max_bound);
                  });

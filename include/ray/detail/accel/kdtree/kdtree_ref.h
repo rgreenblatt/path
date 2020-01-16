@@ -11,11 +11,11 @@ namespace detail {
 namespace accel {
 namespace kdtree {
 struct KDTreeRef {
-  Span<KDTreeNode<AABB>, false> nodes;
+  SpanSized<KDTreeNode<AABB>> nodes;
   unsigned num_shape;
 
-  KDTreeRef(KDTreeNode<AABB> *nodes, unsigned num_nodes, unsigned num_shape)
-      : nodes(nodes, num_nodes), num_shape(num_shape) {}
+  KDTreeRef(SpanSized<KDTreeNode<AABB>> nodes, unsigned num_shape)
+      : nodes(nodes), num_shape(num_shape) {}
 
   KDTreeRef() {}
 

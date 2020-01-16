@@ -310,7 +310,7 @@ void Canvas::resize(int width_in, int height_in) {
 
 void Canvas::resetRenderer() {
   std::unique_ptr<scene::Scene> s = std::make_unique<scene::ReflecBalls>();
-  renderer_ = std::make_unique<ray::Renderer<ray::ExecutionModel::GPU>>(
+  renderer_ = std::make_unique<ray::Renderer<ExecutionModel::GPU>>(
       width_, height_, super_sampling_rate_, recursive_iterations_, s);
 }
 
