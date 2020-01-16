@@ -37,7 +37,7 @@ qt5_wrap_cpp(UI_MAINWINDOW "${PROJECT_SOURCE_DIR}/include/ui/mainwindow.h")
 qt5_wrap_cpp(UI_VIEW "${PROJECT_SOURCE_DIR}/include/ui/canvas.h")
 
 add_definitions(-DEIGEN_DEFAULT_DENSE_INDEX_TYPE=int
-                -DEIGEN_MAX_ALIGN_BYTES=0)
+  -DEIGEN_MAX_ALIGN_BYTES=0)
 
 add_library(
   renderer
@@ -67,7 +67,6 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/scene/reflec_ball.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/camera.cpp"
   )
-
 target_include_directories(renderer PUBLIC
   "${PROJECT_SOURCE_DIR}/include"
   "${PROJECT_SOURCE_DIR}/eigen/"
@@ -85,20 +84,6 @@ add_executable(
   "${PROJECT_SOURCE_DIR}/src/ui/mainwindow.cpp"
   "${PROJECT_SOURCE_DIR}/src/ui/canvas.cpp"
   )
-
-add_executable(
-  image_test
-  "${PROJECT_SOURCE_DIR}/src/bin/image_test.cpp"
-  "${PROJECT_SOURCE_DIR}/src/scene/cs123_scene.cpp"
-  "${PROJECT_SOURCE_DIR}/src/cs123_compat/Scene.cpp"
-  "${PROJECT_SOURCE_DIR}/src/cs123_compat/CS123XmlSceneParser.cpp"
-  )
-
-# add_executable(
-#   video_test
-#   "${PROJECT_SOURCE_DIR}/src/bin/video_test.cpp"
-#   )
-
 qt5_use_modules(final Widgets)
 target_link_libraries(final Qt5::Widgets renderer)
 target_include_directories(final PUBLIC
@@ -108,6 +93,13 @@ target_include_directories(final PUBLIC
   "${QT5_INCLUDE_DIR}"
   )
 
+add_executable(
+  image_test
+  "${PROJECT_SOURCE_DIR}/src/bin/image_test.cpp"
+  "${PROJECT_SOURCE_DIR}/src/scene/cs123_scene.cpp"
+  "${PROJECT_SOURCE_DIR}/src/cs123_compat/Scene.cpp"
+  "${PROJECT_SOURCE_DIR}/src/cs123_compat/CS123XmlSceneParser.cpp"
+  )
 target_link_libraries(image_test Qt5::Widgets Qt5::Xml renderer)
 target_include_directories(image_test PUBLIC
   "${PROJECT_SOURCE_DIR}/include"
@@ -116,6 +108,10 @@ target_include_directories(image_test PUBLIC
   "${QT5_INCLUDE_DIR}"
   )
 
+# add_executable(
+#   video_test
+#   "${PROJECT_SOURCE_DIR}/src/bin/video_test.cpp"
+#   )
 # target_link_libraries(video_test Qt5::Widgets Qt5::Xml renderer ${OpenCV_LIBS})
 # target_include_directories(video_test PUBLIC
 #   "${PROJECT_SOURCE_DIR}/include"
@@ -129,7 +125,6 @@ add_executable(
   "${PROJECT_SOURCE_DIR}/src/bin/sort_bench.cu"
   "${PROJECT_SOURCE_DIR}/src/lib/parallel_for_loop.cpp"
   )
-
 target_include_directories(sort_test PUBLIC
   "${PROJECT_SOURCE_DIR}/include"
   "${PROJECT_SOURCE_DIR}/eigen/"
