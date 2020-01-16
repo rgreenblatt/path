@@ -59,13 +59,14 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/dir_tree_generator.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/fill_indexes.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/permute.cu"
+  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/setup_dir_tree.cpp"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/sort.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/sphere_partition.cpp"
 
-  "${PROJECT_SOURCE_DIR}/src/scene/scene.cpp"
+  "${PROJECT_SOURCE_DIR}/src/scene/camera.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/pool_scene.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/reflec_ball.cpp"
-  "${PROJECT_SOURCE_DIR}/src/scene/camera.cpp"
+  "${PROJECT_SOURCE_DIR}/src/scene/scene.cpp"
   )
 target_include_directories(renderer PUBLIC
   "${PROJECT_SOURCE_DIR}/include"

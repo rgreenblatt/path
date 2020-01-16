@@ -1,3 +1,5 @@
+#pragma once
+
 #include "lib/cuda/unified_memory_vector.h"
 #include "lib/execution_model.h"
 #include "lib/execution_model_datatype.h"
@@ -24,6 +26,11 @@ public:
                               const Eigen::Vector3f &max_bound);
 
 private:
+  void setup_dir_tree(const Eigen::Projective3f &world_to_film,
+                      SpanSized<const scene::Light> lights,
+                      const Eigen::Vector3f &min_bound,
+                      const Eigen::Vector3f &max_bound);
+
   void compute_aabbs();
 
   void copy_to_sortable(unsigned num_shapes);
@@ -33,6 +40,8 @@ private:
   void sort();
 
   void permute();
+
+  void construct_trees();
 
   template <typename T> using DataType = DataType<execution_model, T>;
 
