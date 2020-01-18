@@ -75,6 +75,33 @@ private:
   DataType<IdxAABB> sorted_by_z_min_;
   DataType<IdxAABB> sorted_by_z_max_;
 
+  DataType<Edge> sorted_by_x_edges_working_;
+  DataType<Edge> sorted_by_y_edges_working_;
+  DataType<IdxAABB> sorted_by_z_min_working_;
+  DataType<IdxAABB> sorted_by_z_max_working_;
+
+  struct WorkingDivision {
+    unsigned start_x_edges;
+    unsigned end_x_edges;
+    unsigned start_y_edges;
+    unsigned end_y_edges;
+    unsigned start_z_min;
+    unsigned end_z_min;
+    unsigned start_z_max;
+    unsigned end_z_max;
+  };
+
+  DataType<WorkingDivision> divisions_;
+  DataType<DirTreeNode> nodes_;
+
+#if 0
+  DataType<unsigned> x_edges_is_min;
+  DataType<unsigned> y_edges_is_min;
+  DataType<unsigned> sorted_by_y_edges_working_;
+  DataType<unsigned> sorted_by_z_min_working_;
+  DataType<unsigned> sorted_by_z_max_working_;
+#endif
+
   std::vector<ThrustData<execution_model>> thrust_data_;
 };
 } // namespace dir_tree

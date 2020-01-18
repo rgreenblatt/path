@@ -29,23 +29,24 @@ struct ALIGN_STRUCT(16) DirTreeNode {
     Split,
   };
 
-  // TODO union
-  unsigned start;
-  unsigned end;
-  // for x and y divisions, only bound_min is used
-  float bound_min;
-  float bound_max;
+  // TODO: union
+  float split_point;
+  unsigned start_min;
+  unsigned end_min;
+  unsigned start_max;
+  unsigned end_max;
+  unsigned left;
+  unsigned right;
 
   Type type;
 
-  HOST_DEVICE DirTreeNode(unsigned start, unsigned end)
-      : start(start), end(end), type(Type::Indexes) {}
+  HOST_DEVICE DirTreeNode(unsigned start_min, unsigned end_min,
+                          unsigned start_max, unsigned end_max)
+      : start_min(start_min), end_min(end_min), start_max(start_max),
+        end_max(end_max), type(Type::Indexes) {}
 
-  HOST_DEVICE DirTreeNode(float bound) : bound_min(bound), type(Type::Split) {}
-
-  // z case
-  HOST_DEVICE DirTreeNode(float bound_min, float bound_max)
-      : bound_min(bound_min), bound_max(bound_max), type(Type::Split) {}
+  HOST_DEVICE DirTreeNode(float split_point, unsigned left, unsigned right)
+      : split_point(split_point), left(left), right(right), type(Type::Split) {}
 
   HOST_DEVICE DirTreeNode() {}
 };
@@ -53,6 +54,7 @@ struct ALIGN_STRUCT(16) DirTreeNode {
 // eventually this should be triangle or something...
 struct ALIGN_STRUCT(32) DirTree {
   // is it worth special casing affine? (union or whatever...)
+  // is it worth special casing rotation?
   Eigen::Projective3f transform;
   Span<const DirTreeNode> nodes;
   Span<const Action> actions;
