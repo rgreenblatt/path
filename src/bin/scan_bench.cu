@@ -1,15 +1,15 @@
-#include "lib/cuda/utils.h"
+#include "lib/bitset.h"
 #include "lib/caching_thrust_allocator.h"
+#include "lib/cuda/utils.h"
+#include "lib/span_convertable_device_vector.h"
+#include "lib/span_convertable_vector.h"
 #include "lib/timer.h"
 #include "ray/detail/accel/dir_tree/dir_tree_generator.h"
-#include "lib/bitset.h"
-#include "lib/span_convertable_vector.h"
-#include "lib/span_convertable_device_vector.h"
 #include <array>
+#include <dbg.h>
+#include <future>
 #include <numeric>
 #include <thrust/scan.h>
-#include <future>
-#include <dbg.h>
 
 int main() {
   std::array sizes = {10000000};
