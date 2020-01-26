@@ -455,7 +455,7 @@ void Canvas::paintEvent(QPaintEvent * /* event */) {
 
   if (renderer_) {
     renderer_->render(reinterpret_cast<BGRA *>(image_.bits()), film_to_world_,
-                      world_to_film_, true, true, true, false);
+                      world_to_film_, true, true, false);
   }
 
   QPainter painter(this);

@@ -23,16 +23,18 @@ struct CreateTraversal : public thrust::binary_function<int, int, Traversal> {
 #endif
 
 template <ExecutionModel execution_model>
-DirTreeLookup DirTreeGenerator<execution_model>::get_dir_trees(
+DirTreeLookup DirTreeGenerator<execution_model>::generate(
     const Eigen::Projective3f &world_to_film,
     SpanSized<const scene::ShapeData> shapes,
     SpanSized<const scene::Light> lights, const Eigen::Vector3f &min_bound,
     const Eigen::Vector3f &max_bound) {
-  Timer setup_dir_tree_transforms_timer;
+  num_shapes_ = shapes.size();
 
-  setup_dir_tree(world_to_film, lights, min_bound, max_bound);
+  Timer setup_timer;
 
-  setup_dir_tree_transforms_timer.report("setup dir tree transforms");
+  auto partition = setup(world_to_film, lights, min_bound, max_bound);
+
+  setup_timer.report("setup");
 
   Timer project_shapes_dir_tree_timer;
 
@@ -73,7 +75,7 @@ DirTreeLookup DirTreeGenerator<execution_model>::get_dir_trees(
     thrust_data_.push_back(ThrustData<execution_model>());
   }
 
-  copy_to_sortable(shapes.size());
+  copy_to_sortable();
 
   copy_to_sortable_timer.report("copy to sortable");
 
@@ -97,9 +99,11 @@ DirTreeLookup DirTreeGenerator<execution_model>::get_dir_trees(
 
   Timer construct_trees_timer;
 
-  construct_trees();
+  construct();
 
   construct_trees_timer.report("construct trees");
+
+  return DirTreeLookup(Span<const DirTree>(0, 0), 0, 0, 0, partition);
 }
 
 template class DirTreeGenerator<ExecutionModel::CPU>;

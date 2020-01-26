@@ -1,6 +1,7 @@
 #include "lib/span_convertable_device_vector.h"
 #include "lib/span_convertable_vector.h"
 #include "ray/detail/accel/kdtree/kdtree_ref.h"
+#include "ray/detail/accel/loop_all.h"
 #include "ray/detail/render_impl.h"
 #include "scene/camera.h"
 
@@ -35,7 +36,7 @@ template <ExecutionModel execution_model>
 void RendererImpl<execution_model>::render(
     BGRA *pixels, const Eigen::Affine3f &m_film_to_world,
     const Eigen::Projective3f &world_to_film, bool use_kd_tree,
-    bool use_traversals, bool use_traversal_dists, bool show_times) {
+    bool use_dir_tree, bool show_times) {
   const auto lights = scene_->getLights();
   const unsigned num_lights = scene_->getNumLights();
   const auto textures = scene_->getTextures();
@@ -68,8 +69,11 @@ void RendererImpl<execution_model>::render(
     auto start_shape = scene_->getShapes();
     std::copy(start_shape, start_shape + num_shapes, moved_shapes_.begin());
   }
-
-  if (use_kd_tree && !use_traversals) {
+  if (use_kd_tree
+#if 0
+      && !use_dir_tree
+#endif
+  ) {
     const auto start_kdtree = current_time();
 
     auto kdtree = accel::kdtree::construct_kd_tree(moved_shapes_.data(),
@@ -87,6 +91,13 @@ void RendererImpl<execution_model>::render(
     }
   }
 
+  SpanSized<const scene::Light> lights_span(lights, num_lights);
+
+  if (use_dir_tree) {
+    dir_tree_generator_.generate(world_to_film, moved_shapes_, lights_span,
+                                 scene_->getMinBound(), scene_->getMinBound());
+  }
+
   for (unsigned depth = 0; depth < recursive_iterations_; depth++) {
     bool is_first = depth == 0;
 
@@ -101,7 +112,6 @@ void RendererImpl<execution_model>::render(
 
     const auto start_intersect = current_time();
 
-    SpanSized<const scene::Light> lights_span(lights, num_lights);
     Span textures_span(textures, num_textures);
 
     auto raytrace = [&](const auto &data_structure) {
@@ -116,6 +126,8 @@ void RendererImpl<execution_model>::render(
 
     if (use_kd_tree) {
       raytrace(accel::kdtree::KDTreeRef(kdtree_nodes_, moved_shapes_.size()));
+    } else {
+      raytrace(accel::LoopAll());
     }
 
     const auto end_intersect = current_time();

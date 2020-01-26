@@ -1,6 +1,5 @@
-#pragma once
-
 #include "ray/detail/accel/dir_tree/dir_tree_generator.h"
+#include "ray/detail/accel/dir_tree/impl/sphere_partition_impl.h"
 #include "scene/camera.h"
 
 namespace ray {
@@ -8,7 +7,7 @@ namespace detail {
 namespace accel {
 namespace dir_tree {
 template <ExecutionModel execution_model>
-void DirTreeGenerator<execution_model>::setup_dir_tree(
+HalfSpherePartition DirTreeGenerator<execution_model>::setup(
     const Eigen::Projective3f &world_to_film,
     SpanSized<const scene::Light> lights, const Eigen::Vector3f &min_bound,
     const Eigen::Vector3f &max_bound) {
@@ -20,6 +19,8 @@ void DirTreeGenerator<execution_model>::setup_dir_tree(
 
   transforms_.resize(num_dir_trees);
   sort_offsets_.resize(num_dir_trees);
+  divisions_.resize(num_dir_trees);
+  divisions_cpu_.resize(num_dir_trees);
 
   unsigned transform_idx = 0;
 
@@ -28,6 +29,14 @@ void DirTreeGenerator<execution_model>::setup_dir_tree(
 
   auto add_transform = [&](const Eigen::Projective3f &transf) {
     transforms_[transform_idx] = transf;
+
+    unsigned start_edges = transform_idx * num_shapes_ * 2;
+    unsigned end_edges = (transform_idx + 1) * num_shapes_ * 2;
+    unsigned start_z = transform_idx * num_shapes_;
+    unsigned end_z = (transform_idx + 1) * num_shapes_;
+
+    divisions_cpu_[transform_idx] =
+        WorkingDivision(start_edges, end_edges, start_z, end_z);
 
     auto [transf_min_bound, transf_max_bound] =
         get_transformed_bounds(transf, min_bound, max_bound);
@@ -80,7 +89,15 @@ void DirTreeGenerator<execution_model>::setup_dir_tree(
       add_transform_vec(false, partition.get_center_vec(collar, region));
     }
   }
+
+  thrust::copy(divisions_cpu_.begin(), divisions_cpu_.end(),
+               divisions_.begin());
+
+  return partition;
 }
+
+template class DirTreeGenerator<ExecutionModel::CPU>;
+template class DirTreeGenerator<ExecutionModel::GPU>;
 } // namespace dir_tree
 } // namespace accel
 } // namespace detail

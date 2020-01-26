@@ -11,7 +11,7 @@ namespace detail {
 namespace accel {
 namespace dir_tree {
 template <ExecutionModel execution_model>
-void DirTreeGenerator<execution_model>::copy_to_sortable(unsigned num_shapes) {
+void DirTreeGenerator<execution_model>::copy_to_sortable() {
   Span<IdxAABB> aabbs(aabbs_);
 
   Span<Eigen::Vector3f> offsets(sort_offsets_);
@@ -23,7 +23,7 @@ void DirTreeGenerator<execution_model>::copy_to_sortable(unsigned num_shapes) {
   thrust::for_each(
       thrust_data_[0].execution_policy(), thrust::make_counting_iterator(0u),
       thrust::make_counting_iterator(unsigned(aabbs_.size())),
-      [=] __host__ __device__(unsigned idx) {
+      [=, num_shapes = num_shapes_] __host__ __device__(unsigned idx) {
         Eigen::Vector3f offset = offsets[idx / num_shapes];
 
         Eigen::Vector3f min_v = aabbs[idx].aabb.get_min_bound() + offset;

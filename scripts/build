@@ -1,0 +1,167 @@
+#!/usr/bin/env python3
+
+import argparse
+import subprocess
+import multiprocessing
+import shutil
+import os
+
+
+def command_exists(cmd):
+    return shutil.which(cmd) is not None
+
+
+def get_directory(is_release):
+    return "release" if is_release else "debug"
+
+
+def get_builder(page, lolcat, threads):
+    def build(is_release,
+              directory,
+              additional_gen_args=None,
+              skip_build=False):
+        extra_cmds = []
+
+        if lolcat:
+            if command_exists("lolcat"):
+                extra_cmds.append(["lolcat", "--force"])
+
+        if page:
+            if command_exists("bat"):
+                extra_cmds.append(["bat", "-p"])
+            elif command_exists("less"):
+                extra_cmds.append(["less"])
+            elif command_exists("more"):
+                extra_cmds.append(["more"])
+
+        build_type = "Release" if is_release else "Debug"
+
+        unbuffer_cmd = [
+            "unbuffer", "cmake"
+        ] if command_exists("unbuffer") and page else ["cmake"]
+
+        if additional_gen_args is None:
+            additional_gen_args = []
+
+        gen_cmd = unbuffer_cmd + [
+            "-H.", "-B" + directory, "-DCMAKE_BUILD_TYPE=" + build_type
+        ] + additional_gen_args
+
+        build_cmd = unbuffer_cmd + ["--build", directory, "-j", str(threads)]
+
+        def runner(cmd):
+            cmds = [cmd] + extra_cmds
+
+            cmd_process = None
+            for i, c in enumerate(cmds):
+                cmd_process = subprocess.Popen(
+                    c,
+                    stdout=None if i == len(cmds) - 1 else subprocess.PIPE,
+                    stdin=None if cmd_process is None else cmd_process.stdout)
+
+            cmd_process.wait()
+
+        runner(gen_cmd)
+        if not skip_build:
+            runner(build_cmd)
+
+    return build
+
+
+def build_command(builder, remaining_args):
+    parser = argparse.ArgumentParser(description='build project')
+    parser.add_argument('--release', action='store_true')
+    args = parser.parse_args(remaining_args)
+    builder(args.release, get_directory(args.release))
+
+
+def run_command(builder, remaining_args):
+    parser = argparse.ArgumentParser(description='run executable')
+    parser.add_argument('--release', action='store_true')
+    parser.add_argument('executable', help='bin to run')
+    parser.add_argument('executable_args', nargs=argparse.REMAINDER)
+    args = parser.parse_args(remaining_args)
+    directory = get_directory(args.release)
+    builder(args.release, directory)
+    subprocess.run([os.path.join(directory, args.executable)] +
+                   args.executable_args)
+
+
+def test_command(builder, remaining_args):
+    raise NotImplementedError
+
+
+def cc_command(builder, remaining_args):
+    parser = argparse.ArgumentParser(
+        description='generate compile_commands.json')
+    args = parser.parse_args(remaining_args)
+    directory = get_directory(False)
+    builder(False,
+            directory,
+            additional_gen_args=["-DCMAKE_EXPORT_COMPILE_COMMANDS=YES"],
+            skip_build=True)
+    if os.path.exists("compile_commands.json"):
+        print("compile_commands.json exists - not overriding")
+    else:
+        os.symlink(os.path.join(directory, "compile_commands.json"),
+                   "compile_commands.json")
+
+
+def main():
+    name = "build"
+
+    main_parser = argparse.ArgumentParser(
+        description='Simple cmake wrapper',
+        usage='''{} [OPTIONS] <COMMAND> [<SUBOPTIONS>]
+
+OPTIONS:
+    -p, --paginate
+    -P, --no-pager
+    -l, --lolcat
+    -j, --threads
+
+COMMANDS:
+    build
+    run
+    test
+    compile_commands
+
+'''.format(name))
+    main_parser.add_argument('command', help='subcommand to run')
+    main_parser.add_argument('-p',
+                             '--paginate',
+                             action='store_true',
+                             help='page output')
+    main_parser.add_argument('-P',
+                             '--no-pager',
+                             action='store_true',
+                             help="don't page output")
+    main_parser.add_argument('-l',
+                             '--lolcat',
+                             action='store_true',
+                             help='lolcat output')
+    main_parser.add_argument('-j',
+                             '--threads',
+                             type=int,
+                             default=multiprocessing.cpu_count(),
+                             help='set num threads')
+
+    args, unknown = main_parser.parse_known_args()
+    commands = {
+        "build": build_command,
+        "run": run_command,
+        "test": test_command,
+        "compile_command": cc_command,
+    }
+    page = args.paginate and not args.no_pager
+    try:
+        commands[args.command](get_builder(page, args.lolcat, args.threads),
+                               unknown)
+    except KeyError:
+        print("{0}: '{1}' is not a command. See '{0} --help'.".format(
+            name, args.command))
+        exit(1)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,6 +1,9 @@
 [submodule "eigen__"]
-	path = eigen
+	path = extern/eigen
 	url = https://github.com/rgreenblatt/eigen
 [submodule "googletest"]
-	path = googletest
+	path = extern/googletest
 	url = https://github.com/google/googletest
+[submodule "benchmark"]
+	path = extern/benchmark
+	url = https://github.com/google/benchmark

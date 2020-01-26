@@ -232,7 +232,7 @@ raytrace_impl(unsigned block_index, unsigned thread_index,
     disables[index] = disable;
   }
 
-#if defined(__CUDA_ARCH__)
+#ifdef __CUDA_ARCH__
   uint8_t block_disable = block_reduce_cond(disable, threadIdx.x, blockDim.x);
 
   if (threadIdx.x == 0) {

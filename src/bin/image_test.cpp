@@ -14,7 +14,7 @@ void run_test(unsigned width, unsigned height, unsigned super_sampling_rate,
               const Eigen::Affine3f &film_to_world,
               const Eigen::Projective3f &world_to_film,
               const std::string &filename, unsigned depth, bool use_kd_tree,
-              bool use_traversals, bool use_traversal_dists) {
+              bool use_dir_tree) {
   QImage image(width, height, QImage::Format_RGB32);
 
   auto bgra_data = reinterpret_cast<BGRA *>(image.bits());
@@ -27,13 +27,13 @@ void run_test(unsigned width, unsigned height, unsigned super_sampling_rate,
 #if 1
   // realistic memory benchmark
   renderer.render(bgra_data, film_to_world, world_to_film, use_kd_tree,
-                  use_traversals, use_traversal_dists, false);
+                  use_dir_tree, false);
 #endif
 
   std::cout << "start:" << std::endl;
   auto start = std::chrono::high_resolution_clock::now();
   renderer.render(bgra_data, film_to_world, world_to_film, use_kd_tree,
-                  use_traversals, use_traversal_dists, true);
+                  use_dir_tree, true);
 
 #if 1
   unsigned x_rad = 2;
@@ -62,7 +62,7 @@ void run_test(unsigned width, unsigned height, unsigned super_sampling_rate,
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 10) {
+  if (argc != 9) {
     std::cout << "wrong num args" << std::endl;
 
     return 1;
@@ -73,9 +73,8 @@ int main(int argc, char *argv[]) {
   const unsigned height = boost::lexical_cast<unsigned>(argv[4]);
   const unsigned super_sampling_rate = boost::lexical_cast<unsigned>(argv[5]);
   const bool use_kd_tree = boost::lexical_cast<bool>(argv[6]);
-  const bool use_traversals = boost::lexical_cast<bool>(argv[7]);
-  const bool use_traversal_dists = boost::lexical_cast<bool>(argv[8]);
-  const bool render_cpu = boost::lexical_cast<bool>(argv[9]);
+  const bool use_dir_tree = boost::lexical_cast<bool>(argv[7]);
+  const bool render_cpu = boost::lexical_cast<bool>(argv[8]);
 
   scene::CS123Scene scene(argv[1], width, height);
 
@@ -88,18 +87,16 @@ int main(int argc, char *argv[]) {
 
   if (render_cpu) {
     std::cout << "rendering cpu" << std::endl;
-    run_test<ExecutionModel::CPU>(width, height, super_sampling_rate,
-                                       scene, film_to_world, world_to_film,
-                                       "cpu_" + file_name, depth, use_kd_tree,
-                                       use_traversals, use_traversal_dists);
+    run_test<ExecutionModel::CPU>(
+        width, height, super_sampling_rate, scene, film_to_world, world_to_film,
+        "cpu_" + file_name, depth, use_kd_tree, use_dir_tree);
     std::cout << "=============" << std::endl;
   }
 
   std::cout << "rendering gpu" << std::endl;
-  run_test<ExecutionModel::GPU>(width, height, super_sampling_rate, scene,
-                                     film_to_world, world_to_film,
-                                     "gpu_" + file_name, depth, use_kd_tree,
-                                     use_traversals, use_traversal_dists);
+  run_test<ExecutionModel::GPU>(
+      width, height, super_sampling_rate, scene, film_to_world, world_to_film,
+      "gpu_" + file_name, depth, use_kd_tree, use_dir_tree);
 
   return 0;
 }

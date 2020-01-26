@@ -1,4 +1,4 @@
-#define CUB_USE_COOPERATIVE_GROUPS
+#include "lib/cuda/utils.h"
 #include "lib/caching_thrust_allocator.h"
 #include "lib/parallel_for_loop.h"
 #include "ray/detail/accel/aabb.h"
@@ -14,7 +14,7 @@
 #include <chrono>
 #include <dbg.h>
 
-int main(int, char *[]) {
+int main() {
   using ray::detail::accel::AABB;
   unsigned size_per = 1000000;
   unsigned blocks = 200;
@@ -64,7 +64,7 @@ int main(int, char *[]) {
     };
 
     auto start_sort = std::chrono::high_resolution_clock::now();
-#if 0
+#if 1
     std::vector<std::future<void>> results(blocks);
 
     for (unsigned block = 0; block < blocks; block++) {

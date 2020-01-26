@@ -1,3 +1,5 @@
+#pragma once
+
 #include "lib/execution_model.h"
 
 #include <thrust/device_vector.h>

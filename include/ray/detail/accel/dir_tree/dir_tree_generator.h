@@ -15,25 +15,63 @@ namespace ray {
 namespace detail {
 namespace accel {
 namespace dir_tree {
+struct Edge {
+  float other_min;
+  float other_max;
+  float value;
+  bool is_min;
+
+  HOST_DEVICE Edge(float other_min, float other_max, float value, bool is_min)
+      : other_min(other_min), other_max(other_max), value(value),
+        is_min(is_min) {}
+
+  HOST_DEVICE Edge() {}
+};
+
+struct WorkingDivision {
+  std::array<unsigned, 3> starts;
+  std::array<unsigned, 3> ends;
+  unsigned num_outstanding;
+
+  HOST_DEVICE WorkingDivision(unsigned start_x_edges, unsigned end_x_edges,
+                              unsigned start_y_edges, unsigned end_y_edges,
+                              unsigned start_z, unsigned end_z,
+                              unsigned num_outstanding)
+      : starts({start_x_edges, start_y_edges, start_z}),
+        ends({end_z, end_x_edges, end_y_edges}),
+        num_outstanding(num_outstanding) {}
+
+  HOST_DEVICE WorkingDivision(unsigned start_edges, unsigned end_edges,
+                              unsigned start_z, unsigned end_z)
+      : WorkingDivision(start_edges, end_edges, start_edges, end_edges, start_z,
+                        end_z, 0) {}
+
+  HOST_DEVICE WorkingDivision() {}
+
+  HOST_DEVICE std::array<unsigned, 3> sizes() const {
+    return {ends[0] - starts[0], ends[1] - starts[1], ends[2] - starts[2]};
+  }
+};
+
 template <ExecutionModel execution_model> class DirTreeGenerator {
 public:
   DirTreeGenerator() {}
 
-  DirTreeLookup get_dir_trees(const Eigen::Projective3f &world_to_film,
-                              SpanSized<const scene::ShapeData> shapes,
-                              SpanSized<const scene::Light> lights,
-                              const Eigen::Vector3f &min_bound,
-                              const Eigen::Vector3f &max_bound);
+  DirTreeLookup generate(const Eigen::Projective3f &world_to_film,
+                         SpanSized<const scene::ShapeData> shapes,
+                         SpanSized<const scene::Light> lights,
+                         const Eigen::Vector3f &min_bound,
+                         const Eigen::Vector3f &max_bound);
 
 private:
-  void setup_dir_tree(const Eigen::Projective3f &world_to_film,
-                      SpanSized<const scene::Light> lights,
-                      const Eigen::Vector3f &min_bound,
-                      const Eigen::Vector3f &max_bound);
+  HalfSpherePartition setup(const Eigen::Projective3f &world_to_film,
+                            SpanSized<const scene::Light> lights,
+                            const Eigen::Vector3f &min_bound,
+                            const Eigen::Vector3f &max_bound);
 
   void compute_aabbs();
 
-  void copy_to_sortable(unsigned num_shapes);
+  void copy_to_sortable();
 
   void fill_indexes();
 
@@ -41,7 +79,9 @@ private:
 
   void permute();
 
-  void construct_trees();
+  void construct();
+
+  void fill_keys();
 
   template <typename T> using DataType = DataType<execution_model, T>;
 
@@ -57,19 +97,6 @@ private:
   std::array<DataType<float>, num_sortings> sorting_values_;
   std::array<DataType<unsigned>, num_sortings> indexes_;
 
-  struct Edge {
-    float other_min;
-    float other_max;
-    float value;
-    bool is_min;
-
-    HOST_DEVICE Edge(float other_min, float other_max, float value, bool is_min)
-        : other_min(other_min), other_max(other_max), value(value),
-          is_min(is_min) {}
-
-    HOST_DEVICE Edge() {}
-  };
-
   DataType<Edge> sorted_by_x_edges_;
   DataType<Edge> sorted_by_y_edges_;
   DataType<IdxAABB> sorted_by_z_min_;
@@ -80,19 +107,18 @@ private:
   DataType<IdxAABB> sorted_by_z_min_working_;
   DataType<IdxAABB> sorted_by_z_max_working_;
 
-  struct WorkingDivision {
-    unsigned start_x_edges;
-    unsigned end_x_edges;
-    unsigned start_y_edges;
-    unsigned end_y_edges;
-    unsigned start_z_min;
-    unsigned end_z_min;
-    unsigned start_z_max;
-    unsigned end_z_max;
-  };
+  DataType<unsigned> x_edges_keys_;
+  DataType<unsigned> y_edges_keys_;
+  DataType<unsigned> z_keys_;
+
+  DataType<uint64_t> x_edges_min_max_prefixes_;
+  DataType<uint64_t> y_edges_min_max_prefixes_;
 
   DataType<WorkingDivision> divisions_;
+  std::vector<WorkingDivision> divisions_cpu_;
   DataType<DirTreeNode> nodes_;
+
+  unsigned num_shapes_;
 
 #if 0
   DataType<unsigned> x_edges_is_min;

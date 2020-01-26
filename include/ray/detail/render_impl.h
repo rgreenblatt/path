@@ -4,8 +4,7 @@
 #include "lib/cuda/unified_memory_vector.h"
 #include "lib/execution_model.h"
 #include "lib/execution_model_datatype.h"
-#include "ray/detail/accel/dir_tree/dir_tree.h"
-#include "ray/detail/accel/dir_tree/sphere_partition.h"
+#include "ray/detail/accel/dir_tree/dir_tree_generator.h"
 #include "ray/detail/accel/kdtree/kdtree.h"
 #include "ray/detail/block_data.h"
 #include "scene/scene.h"
@@ -21,7 +20,7 @@ template <ExecutionModel execution_model> class RendererImpl {
 public:
   void render(BGRA *pixels, const Eigen::Affine3f &m_film_to_world,
               const Eigen::Projective3f &world_to_film, bool use_kd_tree,
-              bool use_traversals, bool use_traversal_dists, bool show_times);
+              bool use_dir_tree, bool show_times);
 
   RendererImpl(unsigned x_dim, unsigned y_dim, unsigned super_sampling_rate,
                unsigned recursive_iterations, std::unique_ptr<scene::Scene> &s);
@@ -82,6 +81,8 @@ private:
   DataType<BGRA> bgra_;
   ManangedMemVec<uint8_t> group_disables_;
   ManangedMemVec<unsigned> group_indexes_;
+
+  accel::dir_tree::DirTreeGenerator<execution_model> dir_tree_generator_;
 };
 } // namespace detail
 } // namespace ray
