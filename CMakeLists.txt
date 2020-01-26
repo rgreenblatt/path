@@ -46,8 +46,7 @@ set(STANDARD_INCLUDE
   "/usr/local/cuda/include/"
   "${QT5_INCLUDE_DIR}")
 
-option(PACKAGE_TESTS "Build the tests" ON)
-if(PACKAGE_TESTS)
+if(BUILD_TESTING)
   enable_testing()
 
   include(GoogleTest)
@@ -63,9 +62,13 @@ if(PACKAGE_TESTS)
       )
     set_target_properties(${TESTNAME} PROPERTIES FOLDER tests)
     target_include_directories(${TESTNAME} PUBLIC ${STANDARD_INCLUDE})
+    list(APPEND TEST_LIST ${TESTNAME})
   endmacro()
 
   package_add_test(bitset tests/src/bitset.cu)
+
+  add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND}
+    DEPENDS "${TEST_LIST}")
 endif()
 
 add_library(

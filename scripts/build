@@ -19,6 +19,7 @@ def get_builder(page, lolcat, threads):
     def build(is_release,
               directory,
               additional_gen_args=None,
+              additional_build_args=None,
               skip_build=False):
         extra_cmds = []
 
@@ -43,11 +44,15 @@ def get_builder(page, lolcat, threads):
         if additional_gen_args is None:
             additional_gen_args = []
 
+        if additional_build_args is None:
+            additional_build_args = []
+
         gen_cmd = unbuffer_cmd + [
             "-H.", "-B" + directory, "-DCMAKE_BUILD_TYPE=" + build_type
         ] + additional_gen_args
 
-        build_cmd = unbuffer_cmd + ["--build", directory, "-j", str(threads)]
+        build_cmd = unbuffer_cmd + ["--build", directory, "-j",
+                                    str(threads)] + additional_build_args
 
         def runner(cmd):
             cmds = [cmd] + extra_cmds
@@ -88,13 +93,16 @@ def run_command(builder, remaining_args):
 
 
 def test_command(builder, remaining_args):
-    raise NotImplementedError
-
-
-def cc_command(builder, remaining_args):
-    parser = argparse.ArgumentParser(
-        description='generate compile_commands.json')
+    parser = argparse.ArgumentParser(description='run all tests')
+    parser.add_argument('--release', action='store_true')
     args = parser.parse_args(remaining_args)
+    builder(args.release,
+            get_directory(args.release),
+            additional_gen_args=["-DBUILD_TESTING=ON"],
+            additional_build_args=["--target", "check"])
+
+
+def cc_command(builder, _):
     directory = get_directory(False)
     builder(False,
             directory,
