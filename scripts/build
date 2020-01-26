@@ -102,6 +102,20 @@ def test_command(builder, remaining_args):
             additional_build_args=["--target", "check"])
 
 
+def bench_command(builder, remaining_args):
+    parser = argparse.ArgumentParser(description='run benchmarks')
+    parser.add_argument('--release', action='store_true')
+    parser.add_argument('executable', help='benchmark to run')
+    parser.add_argument('executable_args', nargs=argparse.REMAINDER)
+    args = parser.parse_args(remaining_args)
+    directory = get_directory(args.release)
+    builder(args.release,
+            directory,
+            additional_gen_args=["-DBUILD_BENCHMARKS=ON"])
+    subprocess.run([os.path.join(directory, args.executable)] +
+                   args.executable_args)
+
+
 def cc_command(builder, _):
     directory = get_directory(False)
     builder(False,
@@ -159,6 +173,7 @@ COMMANDS:
         "build": build_command,
         "run": run_command,
         "test": test_command,
+        "bench": bench_command,
         "compile_command": cc_command,
     }
     page = args.paginate and not args.no_pager

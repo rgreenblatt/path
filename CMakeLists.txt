@@ -46,31 +46,6 @@ set(STANDARD_INCLUDE
   "/usr/local/cuda/include/"
   "${QT5_INCLUDE_DIR}")
 
-if(BUILD_TESTING)
-  enable_testing()
-
-  include(GoogleTest)
-
-  add_subdirectory("${PROJECT_SOURCE_DIR}/extern/googletest")
-
-  macro(package_add_test TESTNAME)
-    add_executable(${TESTNAME} ${ARGN})
-    target_link_libraries(${TESTNAME} gtest gmock gtest_main)
-    gtest_discover_tests(${TESTNAME}
-      WORKING_DIRECTORY ${PROJECT_DIR}
-      PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_DIR}"
-      )
-    set_target_properties(${TESTNAME} PROPERTIES FOLDER tests)
-    target_include_directories(${TESTNAME} PUBLIC ${STANDARD_INCLUDE})
-    list(APPEND TEST_LIST ${TESTNAME})
-  endmacro()
-
-  package_add_test(bitset tests/src/bitset.cu)
-
-  add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND}
-    DEPENDS "${TEST_LIST}")
-endif()
-
 add_library(
   renderer
 
@@ -109,6 +84,51 @@ add_library(
   )
 target_include_directories(renderer PUBLIC ${STANDARD_INCLUDE})
 target_link_libraries(renderer OpenMP::OpenMP_CXX Qt5::Widgets)
+
+if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
+  enable_testing()
+
+  include(GoogleTest)
+
+  add_subdirectory("${PROJECT_SOURCE_DIR}/extern/googletest")
+
+  macro(package_add_test TEST_NAME)
+    add_executable(${TEST_NAME} ${ARGN})
+    target_link_libraries(${TEST_NAME} gtest gmock gtest_main)
+    gtest_discover_tests(${TEST_NAME}
+      WORKING_DIRECTORY ${PROJECT_DIR}
+      PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_DIR}"
+      )
+    set_target_properties(${TEST_NAME} PROPERTIES FOLDER tests)
+    target_include_directories(${TEST_NAME} PUBLIC ${STANDARD_INCLUDE})
+    list(APPEND TEST_LIST ${TEST_NAME})
+  endmacro()
+
+  package_add_test(bitset "${PROJECT_SOURCE_DIR}/tests/src/bitset.cu")
+
+  add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND}
+    DEPENDS "${TEST_LIST}")
+endif()
+
+option(BUILD_BENCHMARKS "build benchmarks" OFF)
+if(BUILD_BENCHMARKS OR CMAKE_EXPORT_COMPILE_COMMANDS)
+  set(BENCHMARK_ENABLE_TESTING OFF)
+  add_subdirectory("${PROJECT_SOURCE_DIR}/extern/benchmark")
+
+  macro(package_add_bench BENCH_NAME)
+    add_executable(${BENCH_NAME} ${ARGN})
+    target_link_libraries(${BENCH_NAME} benchmark::benchmark
+      benchmark::benchmark_main)
+    set_target_properties(${BENCH_NAME} PROPERTIES FOLDER benchmarks)
+    target_include_directories(${BENCH_NAME} PUBLIC ${STANDARD_INCLUDE})
+    list(APPEND BENCH_LIST ${BENCH_NAME})
+  endmacro()
+
+  package_add_bench(scan "${PROJECT_SOURCE_DIR}/benchmarks/src/scan.cu")
+
+  add_custom_target(bench COMMAND ${CMAKE_CTEST_COMMAND}
+    DEPENDS "${BENCH_LIST}")
+endif()
 
 add_executable(
   final

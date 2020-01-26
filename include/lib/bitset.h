@@ -10,7 +10,8 @@ using type = uint32_t;
 
 };
 
-inline HOST_DEVICE unsigned popcount(unsigned v) {
+inline HOST_DEVICE uint32_t popcount(uint32_t v) {
+  static_assert(sizeof(uint32_t) == sizeof(unsigned));
 #ifdef __CUDA_ARCH__
   return __popc(v);
 #else
@@ -18,7 +19,17 @@ inline HOST_DEVICE unsigned popcount(unsigned v) {
 #endif
 }
 
-inline HOST_DEVICE unsigned count_leading_zeros(unsigned v) {
+inline HOST_DEVICE uint64_t popcount(uint64_t v) {
+  static_assert(sizeof(uint64_t) == sizeof(unsigned long));
+  static_assert(sizeof(uint64_t) == sizeof(unsigned long long));
+#ifdef __CUDA_ARCH__
+  return __popcll(v);
+#else
+  return __builtin_popcountl(v);
+#endif
+}
+
+inline HOST_DEVICE uint32_t count_leading_zeros(uint32_t v) {
 #ifdef __CUDA_ARCH__
   return __clz(v);
 #else
@@ -42,7 +53,7 @@ public:
   HOST_DEVICE bool operator[](unsigned pos) const {
     return test(pos);
   }
-
+  
   HOST_DEVICE bool test(unsigned block_idx, unsigned bit_idx) const {
     return (data_[block_idx] & bit_mask(bit_idx)) != 0;
   }

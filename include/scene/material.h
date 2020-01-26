@@ -27,19 +27,20 @@ struct Material {
 
   float ior; // index of refraction
 
-  HOST_DEVICE Material(const Color &diffuse, const Color &ambient,
-                       const Color &reflective, const Color &specular,
-                       const Color &transparent, const Color &emissive,
-                       thrust::optional<TextureData> texture_map_index,
-                       float diffuse_blend, float ambient_blend,
-                       float shininess, float ior)
+  HOST_DEVICE
+  Material(const Color &diffuse, const Color &ambient, const Color &reflective,
+           const Color &specular, const Color & /*transparent*/,
+           const Color & /*emissive*/,
+           thrust::optional<TextureData> texture_map_index, float diffuse_blend,
+           float ambient_blend, float shininess, float ior)
       : diffuse(diffuse), ambient(ambient), reflective(reflective),
-        specular(specular), 
+        specular(specular),
 #if 0
         transparent(transparent), emissive(emissive),
 #endif
         texture_data(texture_map_index), diffuse_blend(diffuse_blend),
-        ambient_blend(ambient_blend), shininess(shininess), ior(ior) {}
+        ambient_blend(ambient_blend), shininess(shininess), ior(ior) {
+  }
 
   HOST_DEVICE Material() {}
 };
