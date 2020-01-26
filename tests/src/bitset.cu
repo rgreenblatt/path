@@ -8,22 +8,61 @@
 
 #include <random>
 
+template <typename T> static void popcount_test(std::mt19937 &gen) {
+  const unsigned size = 1000;
+  ManangedMemVec<T> values(size);
+  std::uniform_int_distribution<T> dis(0, std::numeric_limits<T>::max());
+  std::generate(values.begin(), values.end(), [&] { return dis(gen); });
+
+  values[0] = 0b100001111100001111001111u;
+  values[1] = std::numeric_limits<T>::max();
+
+  ManangedMemVec<T> gpu_out(size);
+  ManangedMemVec<T> cpu_out(size);
+
+  auto transform_values = [&](const auto type, ManangedMemVec<T> &out) {
+    thrust::transform(type, values.data(), values.data() + values.size(),
+                      out.data(),
+                      [] __host__ __device__(T v) { return popcount(v); });
+  };
+
+  transform_values(thrust::host, cpu_out);
+  transform_values(thrust::device, gpu_out);
+
+  for (unsigned i = 0; i < size; i++) {
+    ASSERT_EQ(gpu_out[i], cpu_out[i]);
+  }
+    
+  ASSERT_EQ(gpu_out[0], T(14));
+  ASSERT_EQ(cpu_out[0], T(14));
+  T max_value_bits = sizeof(T) * CHAR_BIT;
+  ASSERT_EQ(gpu_out[1], max_value_bits);
+  ASSERT_EQ(cpu_out[1], max_value_bits);
+}
+
 TEST(BitSet, popcount) {
   std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
 
+  popcount_test<uint32_t>(gen);
+  popcount_test<uint64_t>(gen);
+}
+
+template <typename T> static void count_leading_zeros_test(std::mt19937 &gen) {
   const unsigned size = 1000;
-  ManangedMemVec<unsigned> values(size);
-  std::uniform_int_distribution<unsigned> dis(
-      0, std::numeric_limits<unsigned>::max());
-  std::generate(values.begin(), values.end(), [&] { return dis(gen); });
+  ManangedMemVec<T> values(size);
+  std::uniform_int_distribution<T> dis(
+      0u, std::numeric_limits<T>::max());
+  std::uniform_int_distribution<T> dis_mask(0u, 31);
+  std::generate(values.begin(), values.end(),
+                [&] { return (dis(gen) & ((1u << dis_mask(gen)) - 1)) | 1u; });
 
-  ManangedMemVec<unsigned> gpu_out(size);
-  ManangedMemVec<unsigned> cpu_out(size);
+  ManangedMemVec<T> gpu_out(size);
+  ManangedMemVec<T> cpu_out(size);
 
-  auto transform_values = [&](const auto type, ManangedMemVec<unsigned> &out) {
+  auto transform_values = [&](const auto type, ManangedMemVec<T> &out) {
     thrust::transform(
         type, values.data(), values.data() + values.size(), out.data(),
-        [] __host__ __device__(unsigned v) { return popcount(v); });
+        [] __host__ __device__(T v) { return count_leading_zeros(v); });
   };
 
   transform_values(thrust::host, cpu_out);
@@ -37,29 +76,8 @@ TEST(BitSet, popcount) {
 TEST(BitSet, count_leading_zeros) {
   std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
 
-  const unsigned size = 1000;
-  ManangedMemVec<unsigned> values(size);
-  std::uniform_int_distribution<unsigned> dis(
-      0u, std::numeric_limits<unsigned>::max());
-  std::uniform_int_distribution<unsigned> dis_mask(0u, 31);
-  std::generate(values.begin(), values.end(),
-                [&] { return (dis(gen) & ((1u << dis_mask(gen)) - 1)) | 1u; });
-
-  ManangedMemVec<unsigned> gpu_out(size);
-  ManangedMemVec<unsigned> cpu_out(size);
-
-  auto transform_values = [&](const auto type, ManangedMemVec<unsigned> &out) {
-    thrust::transform(
-        type, values.data(), values.data() + values.size(), out.data(),
-        [] __host__ __device__(unsigned v) { return count_leading_zeros(v); });
-  };
-
-  transform_values(thrust::host, cpu_out);
-  transform_values(thrust::device, gpu_out);
-
-  for (unsigned i = 0; i < size; i++) {
-    ASSERT_EQ(gpu_out[i], cpu_out[i]);
-  }
+  count_leading_zeros_test<uint32_t>(gen);
+  count_leading_zeros_test<uint64_t>(gen);
 }
 
 TEST(BitSet, up_to_mask) {

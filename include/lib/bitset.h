@@ -1,13 +1,9 @@
 #include "lib/cuda/utils.h"
-#include "lib/span.h"
 #include "lib/execution_model_datatype.h"
+#include "lib/span.h"
 
-template <ExecutionModel execution_model>
-class BitSet {
-using type = uint32_t;
-
-
-
+template <ExecutionModel execution_model> class BitSet {
+  using type = uint32_t;
 };
 
 inline HOST_DEVICE uint32_t popcount(uint32_t v) {
@@ -30,10 +26,21 @@ inline HOST_DEVICE uint64_t popcount(uint64_t v) {
 }
 
 inline HOST_DEVICE uint32_t count_leading_zeros(uint32_t v) {
+  static_assert(sizeof(uint32_t) == sizeof(unsigned));
 #ifdef __CUDA_ARCH__
   return __clz(v);
 #else
   return __builtin_clz(v);
+#endif
+}
+
+inline HOST_DEVICE uint64_t count_leading_zeros(uint64_t v) {
+  static_assert(sizeof(uint64_t) == sizeof(unsigned long));
+  static_assert(sizeof(uint64_t) == sizeof(unsigned long long));
+#ifdef __CUDA_ARCH__
+  return __clzll(v);
+#else
+  return __builtin_clzl(v);
 #endif
 }
 
@@ -50,10 +57,8 @@ public:
     data_[block_idx] = new_value;
   }
 
-  HOST_DEVICE bool operator[](unsigned pos) const {
-    return test(pos);
-  }
-  
+  HOST_DEVICE bool operator[](unsigned pos) const { return test(pos); }
+
   HOST_DEVICE bool test(unsigned block_idx, unsigned bit_idx) const {
     return (data_[block_idx] & bit_mask(bit_idx)) != 0;
   }
@@ -68,7 +73,6 @@ public:
 
   HOST_DEVICE unsigned masked_count(unsigned block_idx, unsigned mask) const {
     return popcount(data_[block_idx] & mask);
-
   }
 
   HOST_DEVICE unsigned num_bits_set_inclusive_up_to(unsigned block_idx,
@@ -77,8 +81,7 @@ public:
   }
 
   HOST_DEVICE unsigned num_bits_set_inclusive_up_to(unsigned pos) {
-    return num_bits_set_inclusive_up_to(block_index(pos),
-                                        bit_index(pos));
+    return num_bits_set_inclusive_up_to(block_index(pos), bit_index(pos));
   }
 
   HOST_DEVICE unsigned find_mask_same(unsigned block_idx, unsigned bit_idx) {
@@ -88,7 +91,7 @@ public:
     if (test(block_idx, bit_idx)) {
       value = ~value;
     }
-    
+
     unsigned up_to = up_to_mask(bit_idx);
 
     unsigned masked_value = value & up_to;
