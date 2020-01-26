@@ -16,12 +16,11 @@ inline HOST_DEVICE uint32_t popcount(uint32_t v) {
 }
 
 inline HOST_DEVICE uint64_t popcount(uint64_t v) {
-  static_assert(sizeof(uint64_t) == sizeof(unsigned long));
   static_assert(sizeof(uint64_t) == sizeof(unsigned long long));
 #ifdef __CUDA_ARCH__
   return __popcll(v);
 #else
-  return __builtin_popcountl(v);
+  return __builtin_popcountll(v);
 #endif
 }
 
@@ -35,12 +34,11 @@ inline HOST_DEVICE uint32_t count_leading_zeros(uint32_t v) {
 }
 
 inline HOST_DEVICE uint64_t count_leading_zeros(uint64_t v) {
-  static_assert(sizeof(uint64_t) == sizeof(unsigned long));
   static_assert(sizeof(uint64_t) == sizeof(unsigned long long));
 #ifdef __CUDA_ARCH__
   return __clzll(v);
 #else
-  return __builtin_clzl(v);
+  return __builtin_clzll(v);
 #endif
 }
 
