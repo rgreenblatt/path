@@ -68,9 +68,9 @@ private:
 template <typename T, bool ignore_size>
 class SpanConvertable<Span<T, ignore_size>> {
 public:
-  constexpr static T *ptr(Span<T, ignore_size> v) { return v.data(); }
+  constexpr static T *ptr(const Span<T, ignore_size> &v) { return v.data(); }
 
-  constexpr static std::size_t size(Span<T, ignore_size> v) { return v.size(); }
+  constexpr static std::size_t size(const Span<T, ignore_size> &v) { return v.size(); }
 };
 
 template <typename T> using SpanSized = Span<T, false>;
