@@ -1,9 +1,11 @@
+#include "lib/bgra.h"
+#include "lib/span_convertable_device_vector.h"
+#include "lib/span_convertable_vector.h"
+#include "lib/timer.h"
 #include "ray/detail/block_data.h"
 #include "ray/detail/impl/float_to_bgra.h"
 #include "ray/detail/render_impl.h"
 #include "ray/detail/render_impl_utils.h"
-#include "lib/span_convertable_vector.h"
-#include "lib/span_convertable_device_vector.h"
 
 namespace ray {
 namespace detail {
@@ -26,29 +28,23 @@ void RendererImpl<execution_model>::float_to_bgra(
             num_blocks(real_y_dim_, y_block_size));
   dim3 block(x_block_size, y_block_size);
 
-  const auto start_convert = current_time();
+  Timer convert_to_bgra_timer;
 
-  float_to_bgra_global<<<grid, block>>>(
-      real_x_dim_, real_y_dim_, super_sampling_rate_, colors, bgra_);
-
-  const auto end_convert = current_time();
-  double convert_duration = to_secs(start_convert, end_convert);
+  float_to_bgra_global<<<grid, block>>>(real_x_dim_, real_y_dim_,
+                                        super_sampling_rate_, colors, bgra_);
 
   if (show_times_) {
-    dbg(convert_duration);
+    convert_to_bgra_timer.report("convert to bgra");
   }
 
   CUDA_ERROR_CHK(cudaDeviceSynchronize());
 
-  const auto start_copy = current_time();
+  Timer copy_bgra_timer;
 
   thrust::copy(bgra_.begin(), bgra_.end(), pixels);
 
-  const auto end_copy = current_time();
-  double copy_duration = to_secs(start_copy, end_copy);
-
   if (show_times_) {
-    dbg(copy_duration);
+    copy_bgra_timer.report("copy bgra");
   }
 }
 

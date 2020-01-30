@@ -1,11 +1,10 @@
 #include "lib/cuda/utils.h"
 #include "lib/caching_thrust_allocator.h"
-#include "lib/parallel_for_loop.h"
 #include "ray/detail/accel/aabb.h"
 #include "ray/detail/render_impl_utils.h"
 
 
-#include <thrust/async/sort.h>
+#include <thrust/sort.h>
 #include <thrust/device_vector.h>
 #include <thrust/functional.h>
 
@@ -75,13 +74,9 @@ int main() {
       results[block].get();
     }
 #else
-#if 0
-    parallel_for_loop(0u, blocks, [&](unsigned block) { sort_block(block)(); });
-#else
     for (unsigned block = 0; block < blocks; block++) {
       sort_block(block)();
     }
-#endif
 #endif
     auto end_sort = std::chrono::high_resolution_clock::now();
 

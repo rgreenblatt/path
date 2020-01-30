@@ -3,7 +3,6 @@
 #include "lib/span_convertable_device_vector.h"
 #include "lib/span_convertable_vector.h"
 
-#include <dbg.h>
 #include <gtest/gtest.h>
 
 #include <random>
@@ -113,6 +112,11 @@ TEST(BitSet, find_mask_same) {
   ASSERT_EQ(bit_set.find_mask_same(0, 20), 0b110000000000000000000u);
   ASSERT_EQ(bit_set.find_mask_same(1, 8), 0b111111111u);
   ASSERT_EQ(bit_set.find_mask_same(1, 31), 0b11111111111111111111111111111111u);
+  ASSERT_EQ(bit_set.find_mask_same(1, 31), 0b11111111111111111111111111111111u);
+  ASSERT_EQ(bit_set.find_mask_block_end(1),
+            0b11111111111111111111111111111111u);
   ASSERT_EQ(bit_set.find_mask_same(4, 16), 0b11111111111111111u);
   ASSERT_EQ(bit_set.find_mask_same(4, 31), 0b11111111111111111111111111111111u);
+  ASSERT_EQ(bit_set.find_mask_block_end(4),
+            0b11111111111111111111111111111111u);
 }

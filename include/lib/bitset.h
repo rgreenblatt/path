@@ -24,7 +24,7 @@ inline HOST_DEVICE uint64_t popcount(uint64_t v) {
 #endif
 }
 
-inline HOST_DEVICE uint32_t count_leading_zeros(uint32_t v) {
+inline HOST_DEVICE unsigned count_leading_zeros(uint32_t v) {
   static_assert(sizeof(uint32_t) == sizeof(unsigned));
 #ifdef __CUDA_ARCH__
   return __clz(v);
@@ -33,7 +33,7 @@ inline HOST_DEVICE uint32_t count_leading_zeros(uint32_t v) {
 #endif
 }
 
-inline HOST_DEVICE uint64_t count_leading_zeros(uint64_t v) {
+inline HOST_DEVICE unsigned count_leading_zeros(uint64_t v) {
   static_assert(sizeof(uint64_t) == sizeof(unsigned long long));
 #ifdef __CUDA_ARCH__
   return __clzll(v);
@@ -69,7 +69,7 @@ public:
     return popcount(data_[block_idx]);
   }
 
-  HOST_DEVICE unsigned masked_count(unsigned block_idx, unsigned mask) const {
+  HOST_DEVICE unsigned masked_count(unsigned block_idx, Block mask) const {
     return popcount(data_[block_idx] & mask);
   }
 
@@ -82,17 +82,17 @@ public:
     return num_bits_set_inclusive_up_to(block_index(pos), bit_index(pos));
   }
 
-  HOST_DEVICE unsigned find_mask_same(unsigned block_idx, unsigned bit_idx) {
-    unsigned value = data_[block_idx];
+  HOST_DEVICE Block find_mask_same(unsigned block_idx, unsigned bit_idx) const {
+    Block value = data_[block_idx];
 
     // make most significant set bit the first difference
     if (test(block_idx, bit_idx)) {
       value = ~value;
     }
 
-    unsigned up_to = up_to_mask(bit_idx);
+    Block up_to = up_to_mask(bit_idx);
 
-    unsigned masked_value = value & up_to;
+    Block masked_value = value & up_to;
 
     // if masked_value is zero, all bits are the same
     // also avoids undefined or implementation defined behavior
@@ -102,15 +102,20 @@ public:
 
     // if clz is just a loop, it might be faster to just
     // loop over bits and report first difference...
-    unsigned start_same = 31 - count_leading_zeros(masked_value);
+    unsigned start_same =
+        (bits_per_block - 1) - count_leading_zeros(masked_value);
 
-    unsigned eliminate_start = ~up_to_mask(start_same);
+    Block eliminate_start = ~up_to_mask(start_same);
 
     return up_to & eliminate_start;
   }
 
-  HOST_DEVICE unsigned find_mask_same(unsigned pos) {
+  HOST_DEVICE Block find_mask_same(unsigned pos) const {
     return find_mask_same(block_index(pos), bit_index(pos));
+  }
+
+  HOST_DEVICE Block find_mask_block_end(unsigned block_idx) const {
+    return find_mask_same(block_idx, bits_per_block - 1);
   }
 
   HOST_DEVICE static unsigned block_index(unsigned pos) {
@@ -121,17 +126,19 @@ public:
     return pos % bits_per_block;
   }
 
-  HOST_DEVICE static unsigned bit_mask(unsigned bit_idx) {
+  HOST_DEVICE static Block bit_mask(unsigned bit_idx) {
     return Block(1) << bit_idx;
   }
 
-  HOST_DEVICE static unsigned up_to_mask(unsigned n) {
+  HOST_DEVICE static Block up_to_mask(unsigned n) {
     // in binary, 1 (n + 1) times
     // 0: 1
     // 1: 11
     // ...
-    return n >= 31 ? std::numeric_limits<unsigned>::max()
-                   : bit_mask(n + 1u) - 1u;
+
+    // ternary statement required to avoid undefined behavior
+    return n >= bits_per_block - 1 ? std::numeric_limits<Block>::max()
+                                   : bit_mask(n + Block(1)) - Block(1);
   }
 
 private:

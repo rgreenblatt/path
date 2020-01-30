@@ -26,9 +26,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 set(GENERAL_FLAGS "-std=c++17 -Wall -Wextra -fsized-deallocation")
+# disable all ptxas warnings
+set(GENERAL_CUDA_FLAGS "${GENERAL_FLAGS} -Xcuda-ptxas '-w'")
 set(CMAKE_QT_FLAGS "${CMAKE_CXX_FLAGS} ${GENERAL_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GENERAL_FLAGS}")
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${GENERAL_FLAGS}")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${GENERAL_CUDA_FLAGS}")
 set(RELEASE_FlAGS "-Ofast -march=native -g -DNDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${RELEASE_FlAGS}")
 set(CMAKE_CUDA_FLAGS_RELEASE "${CMAKE_CUDA_FLAGS_RELEASE} ${RELEASE_FlAGS}")
@@ -40,11 +42,14 @@ qt5_wrap_cpp(UI_VIEW "${PROJECT_SOURCE_DIR}/include/ui/canvas.h")
 add_definitions(-DEIGEN_DEFAULT_DENSE_INDEX_TYPE=int
   -DEIGEN_MAX_ALIGN_BYTES=0)
 
-set(STANDARD_INCLUDE 
-  "${PROJECT_SOURCE_DIR}/include"
-  "${PROJECT_SOURCE_DIR}/extern/eigen/"
-  "/usr/local/cuda/include/"
-  "${QT5_INCLUDE_DIR}")
+macro(target_add_standard_include TARGET_NAME)
+  target_include_directories(${TARGET_NAME} PUBLIC
+    "${PROJECT_SOURCE_DIR}/include")
+  target_include_directories(${TARGET_NAME} SYSTEM PUBLIC
+    "${PROJECT_SOURCE_DIR}/extern/eigen/"
+    "/usr/local/cuda/include/"
+    "${QT5_INCLUDE_DIR}")
+endmacro()
 
 add_library(
   renderer
@@ -82,7 +87,7 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/scene/reflec_ball.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/scene.cpp"
   )
-target_include_directories(renderer PUBLIC ${STANDARD_INCLUDE})
+target_add_standard_include(renderer)
 target_link_libraries(renderer OpenMP::OpenMP_CXX Qt5::Widgets)
 
 if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
@@ -100,7 +105,7 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
       PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_DIR}"
       )
     set_target_properties(${TEST_NAME} PROPERTIES FOLDER tests)
-    target_include_directories(${TEST_NAME} PUBLIC ${STANDARD_INCLUDE})
+    target_add_standard_include(${TEST_NAME})
     list(APPEND TEST_LIST ${TEST_NAME})
   endmacro()
 
@@ -120,7 +125,7 @@ if(BUILD_BENCHMARKS OR CMAKE_EXPORT_COMPILE_COMMANDS)
     target_link_libraries(${BENCH_NAME} benchmark::benchmark
       benchmark::benchmark_main)
     set_target_properties(${BENCH_NAME} PROPERTIES FOLDER benchmarks)
-    target_include_directories(${BENCH_NAME} PUBLIC ${STANDARD_INCLUDE})
+    target_add_standard_include(${BENCH_NAME})
     list(APPEND BENCH_LIST ${BENCH_NAME})
   endmacro()
 
@@ -141,7 +146,7 @@ add_executable(
   )
 qt5_use_modules(final Widgets)
 target_link_libraries(final Qt5::Widgets renderer)
-target_include_directories(final PUBLIC ${STANDARD_INCLUDE})
+target_add_standard_include(final)
 
 add_executable(
   image_test
@@ -151,27 +156,20 @@ add_executable(
   "${PROJECT_SOURCE_DIR}/src/cs123_compat/CS123XmlSceneParser.cpp"
   )
 target_link_libraries(image_test Qt5::Widgets Qt5::Xml renderer)
-target_include_directories(image_test PUBLIC ${STANDARD_INCLUDE})
+target_add_standard_include(image_test)
 
 # add_executable(
 #   video_test
 #   "${PROJECT_SOURCE_DIR}/src/bin/video_test.cpp"
 #   )
 # target_link_libraries(video_test Qt5::Widgets Qt5::Xml renderer ${OpenCV_LIBS})
-# target_include_directories(video_test PUBLIC ${STANDARD_INCLUDE})
+# target_add_standard_include(video_test)
 
-add_executable(
-  sort_bench
-  "${PROJECT_SOURCE_DIR}/src/bin/sort_bench.cu"
-  "${PROJECT_SOURCE_DIR}/src/lib/parallel_for_loop.cpp"
-  )
-target_include_directories(sort_bench PUBLIC ${STANDARD_INCLUDE})
-target_link_libraries(sort_bench Threads::Threads)
-
-add_executable(
-  scan_bench
-  "${PROJECT_SOURCE_DIR}/src/bin/scan_bench.cu"
-  )
-target_include_directories(scan_bench PUBLIC ${STANDARD_INCLUDE})
-target_link_libraries(scan_bench Threads::Threads)
-
+# TODO: remove and refactor into package_add_bench
+# add_executable(
+#   sort_bench
+#   "${PROJECT_SOURCE_DIR}/src/bin/sort_bench.cu"
+#   "${PROJECT_SOURCE_DIR}/src/lib/parallel_for_loop.cpp"
+#   )
+# target_add_standard_include(sort_bench)
+# target_link_libraries(sort_bench Threads::Threads)

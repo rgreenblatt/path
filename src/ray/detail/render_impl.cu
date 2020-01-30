@@ -5,13 +5,13 @@
 #include "ray/detail/render_impl.h"
 #include "scene/camera.h"
 
+#include "lib/timer.h"
 #include <boost/range/adaptor/indexed.hpp>
 #include <boost/range/combine.hpp>
 #include <thrust/copy.h>
 #include <thrust/fill.h>
 
 #include <chrono>
-#include <dbg.h>
 
 namespace ray {
 namespace detail {
@@ -50,16 +50,13 @@ void RendererImpl<execution_model>::render(
 
   unsigned current_num_blocks = general_num_blocks;
 
-  const auto start_fill = current_time();
+  Timer fill_timer;
 
   // could be made async until...
   fill(scene::Color::Ones(), scene::Color::Zero(), m_film_to_world);
 
-  const auto end_fill = current_time();
-  double fill_duration = to_secs(start_fill, end_fill);
-
   if (show_times_) {
-    dbg(fill_duration);
+    fill_timer.report("fill");
   }
 
   const unsigned num_shapes = scene_->getNumShapes();
@@ -74,20 +71,17 @@ void RendererImpl<execution_model>::render(
       && !use_dir_tree
 #endif
   ) {
-    const auto start_kdtree = current_time();
+    Timer kdtree_timer;
 
     auto kdtree = accel::kdtree::construct_kd_tree(moved_shapes_.data(),
                                                    num_shapes, 25, 3);
     kdtree_nodes_.resize(kdtree.size());
     std::copy(kdtree.begin(), kdtree.end(), kdtree_nodes_.begin());
 
-    const auto end_kdtree = current_time();
-    double kdtree_duration = to_secs(start_kdtree, end_kdtree);
-
     std::fill(group_disables_.begin(), group_disables_.end(), false);
 
-    if (show_times) {
-      dbg(kdtree_duration);
+    if (show_times_) {
+      kdtree_timer.report("kdtree");
     }
   }
 
@@ -110,7 +104,7 @@ void RendererImpl<execution_model>::render(
       }
     }
 
-    const auto start_intersect = current_time();
+    Timer intersect_timer;
 
     Span textures_span(textures, num_textures);
 
@@ -130,11 +124,8 @@ void RendererImpl<execution_model>::render(
       raytrace(accel::LoopAll());
     }
 
-    const auto end_intersect = current_time();
-    double intersect_duration = to_secs(start_intersect, end_intersect);
-
     if (show_times) {
-      dbg(intersect_duration);
+      intersect_timer.report("intersect");
     }
   }
 

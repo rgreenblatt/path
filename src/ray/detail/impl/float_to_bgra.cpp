@@ -1,4 +1,5 @@
 #include "ray/detail/impl/float_to_bgra.h"
+#include "lib/timer.h"
 #include "ray/detail/render_impl.h"
 
 namespace ray {
@@ -8,7 +9,7 @@ void RendererImpl<execution_model>::float_to_bgra(
     BGRA *pixels, Span<const scene::Color> colors) {
   auto bgra_span = Span(pixels, real_x_dim_ * real_y_dim_);
 
-  const auto start_convert = current_time();
+  Timer convert_to_bgra_timer;
 
 #pragma omp parallel for collapse(2) schedule(dynamic, 16)
   for (unsigned x = 0; x < real_x_dim_; x++) {
@@ -18,11 +19,8 @@ void RendererImpl<execution_model>::float_to_bgra(
     }
   }
 
-  const auto end_convert = current_time();
-  double convert_duration = to_secs(start_convert, end_convert);
-
   if (show_times_) {
-    dbg(convert_duration);
+    convert_to_bgra_timer.report("convert to bgra");
   }
 }
 

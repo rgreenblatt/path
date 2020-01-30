@@ -11,7 +11,6 @@
 #include <QPainter>
 #include <boost/lexical_cast.hpp>
 
-#include <dbg.h>
 #include <iostream>
 
 Canvas::Canvas(QWidget *parent)

@@ -9,7 +9,6 @@
 #include <opencv2/opencv.hpp>
 
 #include <chrono>
-#include <dbg.h>
 #include <iostream>
 
 template <ExecutionModel execution_model>

@@ -6,8 +6,6 @@
 
 #include <iostream>
 
-#include <dbg.h>
-
 namespace scene {
 
 CS123Scene::CS123Scene(const std::string &file_path, unsigned width,

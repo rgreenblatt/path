@@ -15,19 +15,6 @@ namespace ray {
 namespace detail {
 namespace accel {
 namespace dir_tree {
-struct Edge {
-  float other_min;
-  float other_max;
-  float value;
-  bool is_min;
-
-  HOST_DEVICE Edge(float other_min, float other_max, float value, bool is_min)
-      : other_min(other_min), other_max(other_max), value(value),
-        is_min(is_min) {}
-
-  HOST_DEVICE Edge() {}
-};
-
 struct WorkingDivision {
   std::array<unsigned, 3> starts;
   std::array<unsigned, 3> ends;
@@ -97,13 +84,27 @@ private:
   std::array<DataType<float>, num_sortings> sorting_values_;
   std::array<DataType<unsigned>, num_sortings> indexes_;
 
-  DataType<Edge> sorted_by_x_edges_;
-  DataType<Edge> sorted_by_y_edges_;
+  struct AllEdges {
+    DataType<float> other_min;
+    DataType<float> other_max;
+    DataType<float> value;
+    DataType<uint8_t> is_min;
+
+    void resize_all(unsigned size) {
+      other_min.resize(size);
+      other_max.resize(size);
+      value.resize(size);
+      is_min.resize(size);
+    }
+  };
+
+  AllEdges x_edges_;
+  AllEdges y_edges_;
   DataType<IdxAABB> sorted_by_z_min_;
   DataType<IdxAABB> sorted_by_z_max_;
 
-  DataType<Edge> sorted_by_x_edges_working_;
-  DataType<Edge> sorted_by_y_edges_working_;
+  AllEdges x_edges_working_;
+  AllEdges y_edges_working_;
   DataType<IdxAABB> sorted_by_z_min_working_;
   DataType<IdxAABB> sorted_by_z_max_working_;
 

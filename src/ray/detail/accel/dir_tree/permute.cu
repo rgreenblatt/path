@@ -27,8 +27,9 @@ void DirTreeGenerator<execution_model>::permute() {
 
   Span<const IdxAABB> aabbs(aabbs_);
 
-  auto edge_axis = [&](Span<Edge> sorted_aabbs, uint8_t axis,
-                       uint8_t other_axis) {
+  auto edge_axis = [&](Span<float> other_mins, Span<float> other_maxs,
+                       Span<float> values, 
+                       Span<uint8_t> is_mins, uint8_t axis, uint8_t other_axis) {
     return [=] __host__ __device__(unsigned k, unsigned index) {
       bool is_min = !bool(index % 2);
 
@@ -36,13 +37,17 @@ void DirTreeGenerator<execution_model>::permute() {
       const auto &min_b = aabb.get_min_bound();
       const auto &max_b = aabb.get_max_bound();
 
-      sorted_aabbs[k] = Edge(min_b[other_axis], max_b[other_axis],
-                             is_min ? min_b[axis] : max_b[axis], is_min);
+      other_mins[k] = min_b[other_axis];
+      other_maxs[k] = max_b[other_axis];
+      values[k] = is_min ? min_b[axis] : max_b[axis];
+      is_mins[k] = is_min;
     };
   };
 
-  permute_arr(0, edge_axis(sorted_by_x_edges_, 0, 1));
-  permute_arr(1, edge_axis(sorted_by_y_edges_, 1, 0));
+  permute_arr(0, edge_axis(x_edges_.other_min, x_edges_.other_max,
+                           x_edges_.value, x_edges_.is_min, 0, 1));
+  permute_arr(1, edge_axis(y_edges_.other_min, y_edges_.other_max,
+                           y_edges_.value, y_edges_.is_min, 1, 0));
 
   auto z_min_max = [&](bool is_min) {
     Span<IdxAABB> sorted_by_z(is_min ? sorted_by_z_min_ : sorted_by_z_max_);

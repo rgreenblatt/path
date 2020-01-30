@@ -12,7 +12,6 @@
 #include <thrust/device_vector.h>
 
 #include <chrono>
-#include <dbg.h>
 
 namespace ray {
 namespace detail {

@@ -4,7 +4,6 @@
 #include "lib/cuda/utils.h"
 #include "lib/span.h"
 #include "scene/color.h"
-#include "lib/printf_dbg.h"
 
 namespace ray {
 namespace detail {

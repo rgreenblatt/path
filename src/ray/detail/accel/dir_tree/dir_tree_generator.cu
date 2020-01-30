@@ -56,8 +56,8 @@ DirTreeLookup DirTreeGenerator<execution_model>::generate(
 
   unsigned double_aabb_size = aabbs_.size() * 2;
 
-  sorted_by_x_edges_.resize(double_aabb_size);
-  sorted_by_y_edges_.resize(double_aabb_size);
+  x_edges_.resize_all(double_aabb_size);
+  y_edges_.resize_all(double_aabb_size);
   sorted_by_z_min_.resize(aabbs_.size());
   sorted_by_z_max_.resize(aabbs_.size());
 

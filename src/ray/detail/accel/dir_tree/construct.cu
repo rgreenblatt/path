@@ -2,7 +2,6 @@
 #include "lib/span_convertable_device_vector.h"
 #include "lib/span_convertable_vector.h"
 #include "ray/detail/accel/dir_tree/dir_tree_generator.h"
-#include "lib/printf_dbg.h"
 
 namespace ray {
 namespace detail {
@@ -11,9 +10,6 @@ namespace dir_tree {
 template <ExecutionModel execution_model>
 void DirTreeGenerator<execution_model>::construct() {
   fill_keys();
-
-  Span<Edge> x_edges(sorted_by_x_edges_);
-  Span<Edge> y_edges(sorted_by_y_edges_);
 
   /* auto */ 
 

@@ -9,8 +9,8 @@
 
 template <typename T> static void standard(benchmark::State &state) {
   ThrustData<ExecutionModel::GPU> thrust_data;
-  thrust::device_vector<T> in(state.range(0));
-  thrust::device_vector<uint32_t> out(state.range(0));
+  thrust::device_vector<T> in(unsigned(state.range(0)));
+  thrust::device_vector<uint32_t> out(unsigned(state.range(0)));
 
   for (auto _ : state) {
     thrust::exclusive_scan(thrust_data.execution_policy(), in.begin(), in.end(),
@@ -21,9 +21,9 @@ template <typename T> static void standard(benchmark::State &state) {
 template <typename TVals, typename TKeys>
 static void standard_keys(benchmark::State &state) {
   ThrustData<ExecutionModel::GPU> thrust_data;
-  thrust::device_vector<TVals> in(state.range(0));
-  thrust::device_vector<TKeys> keys(state.range(0));
-  thrust::device_vector<uint32_t> out(state.range(0));
+  thrust::device_vector<TVals> in(unsigned(state.range(0)));
+  thrust::device_vector<TKeys> keys(unsigned(state.range(0)));
+  thrust::device_vector<uint32_t> out(unsigned(state.range(0)));
 
   for (auto _ : state) {
     thrust::exclusive_scan_by_key(thrust_data.execution_policy(), keys.begin(),
@@ -34,15 +34,15 @@ static void standard_keys(benchmark::State &state) {
 template <typename Block> static void bitset_direct(benchmark::State &state) {
   ThrustData<ExecutionModel::GPU> thrust_data;
   uint32_t size_per = BitSetRef<Block>::bits_per_block;
-  thrust::device_vector<Block> in(state.range(0) / size_per);
-  thrust::device_vector<uint32_t> out(state.range(0));
+  thrust::device_vector<Block> in(unsigned(state.range(0)) / size_per);
+  thrust::device_vector<uint32_t> out(unsigned(state.range(0)));
 
-  BitSetRef<Block> bit_set(in, state.range(0));
+  BitSetRef<Block> bit_set(in, unsigned(state.range(0)));
 
   auto start_bit_iter = thrust::make_transform_iterator(
       thrust::make_counting_iterator(0u),
       [bit_set] __host__ __device__(unsigned pos) { return bit_set[pos]; });
-  auto end_bit_iter = start_bit_iter + state.range(0);
+  auto end_bit_iter = start_bit_iter + unsigned(state.range(0));
 
   for (auto _ : state) {
     thrust::exclusive_scan(thrust_data.execution_policy(), start_bit_iter,
@@ -53,11 +53,11 @@ template <typename Block> static void bitset_direct(benchmark::State &state) {
 template <typename Block> static void bitset_popcount(benchmark::State &state) {
   ThrustData<ExecutionModel::GPU> thrust_data;
   unsigned size_per = BitSetRef<Block>::bits_per_block;
-  unsigned num_blocks = state.range(0) / size_per;
+  unsigned num_blocks = unsigned(state.range(0)) / size_per;
   thrust::device_vector<Block> in(num_blocks);
   thrust::device_vector<uint32_t> out(num_blocks);
 
-  BitSetRef<Block> bit_set(in, state.range(0));
+  BitSetRef<Block> bit_set(in, unsigned(state.range(0)));
 
   auto start_block_iter = thrust::make_transform_iterator(
       thrust::make_counting_iterator(0u),
@@ -76,19 +76,19 @@ template <typename Block>
 static void bitset_direct_keys(benchmark::State &state) {
   ThrustData<ExecutionModel::GPU> thrust_data;
   unsigned size_per = BitSetRef<Block>::bits_per_block;
-  thrust::device_vector<Block> in(state.range(0) / size_per);
-  thrust::device_vector<Block> keys(state.range(0) / size_per);
-  thrust::device_vector<uint32_t> out(state.range(0));
+  thrust::device_vector<Block> in(unsigned(state.range(0)) / size_per);
+  thrust::device_vector<Block> keys(unsigned(state.range(0)) / size_per);
+  thrust::device_vector<uint32_t> out(unsigned(state.range(0)));
 
-  BitSetRef<Block> bit_set_in(in, state.range(0));
-  BitSetRef<Block> bit_set_keys(keys, state.range(0));
+  BitSetRef<Block> bit_set_in(in, unsigned(state.range(0)));
+  BitSetRef<Block> bit_set_keys(keys, unsigned(state.range(0)));
 
   auto start_key_iter = thrust::make_transform_iterator(
       thrust::make_counting_iterator(0u),
       [bit_set_keys] __host__ __device__(unsigned pos) {
         return bit_set_keys[pos];
       });
-  auto end_key_iter = start_key_iter + state.range(0);
+  auto end_key_iter = start_key_iter + unsigned(state.range(0));
 
   auto start_in_iter = thrust::make_transform_iterator(
       thrust::make_counting_iterator(0u),
@@ -100,6 +100,32 @@ static void bitset_direct_keys(benchmark::State &state) {
     thrust::exclusive_scan_by_key(thrust_data.execution_policy(),
                                   start_key_iter, end_key_iter, start_in_iter,
                                   out.begin());
+  }
+}
+
+template <typename Block>
+static void bitset_popcount_keys(benchmark::State &state) {
+  ThrustData<ExecutionModel::GPU> thrust_data;
+  unsigned size_per = BitSetRef<Block>::bits_per_block;
+  thrust::device_vector<Block> in(unsigned(state.range(0)) / size_per);
+  thrust::device_vector<Block> keys(unsigned(state.range(0)) / size_per);
+  thrust::device_vector<uint32_t> keys_periodic(unsigned(state.range(0)) / size_per);
+  thrust::device_vector<uint32_t> out(unsigned(state.range(0)));
+  
+  BitSetRef<Block> bit_set_in(in, unsigned(state.range(0)));
+  BitSetRef<Block> bit_set_keys(keys, unsigned(state.range(0)));
+
+  auto start_block_in_iter = thrust::make_transform_iterator(
+      thrust::make_counting_iterator(0u),
+      [bit_set_in, bit_set_keys] __host__ __device__(unsigned block) {
+        return bit_set_in.masked_count(block,
+                                       bit_set_keys.find_mask_block_end(block));
+      });
+
+  for (auto _ : state) {
+    thrust::exclusive_scan_by_key(thrust_data.execution_policy(),
+                                  keys_periodic.begin(), keys_periodic.end(),
+                                  start_block_in_iter, out.begin());
   }
 }
 
@@ -132,4 +158,13 @@ BENCHMARK_TEMPLATE(bitset_direct_keys, uint32_t)->Range(s_range, e_range);
 #if 0
 BENCHMARK_TEMPLATE(bitset_direct_keys, uint16_t)->Range(s_range, e_range);
 BENCHMARK_TEMPLATE(bitset_direct_keys, uint8_t)->Range(s_range, e_range);
+#endif
+
+BENCHMARK_TEMPLATE(bitset_popcount_keys, uint64_t)->Range(s_range, e_range);
+BENCHMARK_TEMPLATE(bitset_popcount_keys, uint32_t)->Range(s_range, e_range);
+#if 0
+// some changes are required to count_leading_zeros to get these to compile
+// and be correct
+BENCHMARK_TEMPLATE(bitset_popcount_keys, uint16_t)->Range(s_range, e_range);
+BENCHMARK_TEMPLATE(bitset_popcount_keys, uint8_t)->Range(s_range, e_range);
 #endif
