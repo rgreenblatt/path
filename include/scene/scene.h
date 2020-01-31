@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lib/cuda/unified_memory_vector.h"
+#include "lib/cuda/managed_mem_vec.h"
 #include "scene/light.h"
 #include "scene/shape.h"
 #include "scene/shape_data.h"

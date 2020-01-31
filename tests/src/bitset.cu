@@ -1,5 +1,5 @@
 #include "lib/bitset.h"
-#include "lib/cuda/unified_memory_vector.h"
+#include "lib/cuda/managed_mem_vec.h"
 #include "lib/span_convertable_device_vector.h"
 #include "lib/span_convertable_vector.h"
 

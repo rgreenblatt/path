@@ -1,8 +1,12 @@
 #pragma once
 
-#include "lib/cuda/unified_memory_vector.h"
+#include "lib/cuda/managed_mem_vec.h"
 #include "lib/execution_model.h"
-#include "lib/execution_model_datatype.h"
+#include "lib/execution_model_vector_type.h"
+#include "lib/span.h"
+#include "lib/span_convertable_device_vector.h"
+#include "lib/span_convertable_vector.h"
+#include "lib/vector_group.h"
 #include "lib/thrust_data.h"
 #include "ray/detail/accel/dir_tree/bounding_points.h"
 #include "ray/detail/accel/dir_tree/dir_tree.h"
@@ -15,31 +19,6 @@ namespace ray {
 namespace detail {
 namespace accel {
 namespace dir_tree {
-struct WorkingDivision {
-  std::array<unsigned, 3> starts;
-  std::array<unsigned, 3> ends;
-  unsigned num_outstanding;
-
-  HOST_DEVICE WorkingDivision(unsigned start_x_edges, unsigned end_x_edges,
-                              unsigned start_y_edges, unsigned end_y_edges,
-                              unsigned start_z, unsigned end_z,
-                              unsigned num_outstanding)
-      : starts({start_x_edges, start_y_edges, start_z}),
-        ends({end_z, end_x_edges, end_y_edges}),
-        num_outstanding(num_outstanding) {}
-
-  HOST_DEVICE WorkingDivision(unsigned start_edges, unsigned end_edges,
-                              unsigned start_z, unsigned end_z)
-      : WorkingDivision(start_edges, end_edges, start_edges, end_edges, start_z,
-                        end_z, 0) {}
-
-  HOST_DEVICE WorkingDivision() {}
-
-  HOST_DEVICE std::array<unsigned, 3> sizes() const {
-    return {ends[0] - starts[0], ends[1] - starts[1], ends[2] - starts[2]};
-  }
-};
-
 template <ExecutionModel execution_model> class DirTreeGenerator {
 public:
   DirTreeGenerator() {}
@@ -70,63 +49,53 @@ private:
 
   void fill_keys();
 
-  template <typename T> using DataType = DataType<execution_model, T>;
+  template <typename T> using ExecVecT = ExecVectorType<execution_model, T>;
 
   ManangedMemVec<HalfSpherePartition::Region> sphere_partition_regions_;
 
   ManangedMemVec<Eigen::Projective3f> transforms_;
   ManangedMemVec<BoundingPoints> bounds_;
-  DataType<IdxAABB> aabbs_;
+  ExecVecT<IdxAABB> aabbs_;
 
   // x edges, y edges, z min, z max
   static constexpr unsigned num_sortings = 4;
   ManangedMemVec<Eigen::Vector3f> sort_offsets_;
-  std::array<DataType<float>, num_sortings> sorting_values_;
-  std::array<DataType<unsigned>, num_sortings> indexes_;
+  std::array<ExecVecT<float>, num_sortings> sorting_values_;
+  std::array<ExecVecT<unsigned>, num_sortings> indexes_;
 
-  struct AllEdges {
-    DataType<float> other_min;
-    DataType<float> other_max;
-    DataType<float> value;
-    DataType<uint8_t> is_min;
-
-    void resize_all(unsigned size) {
-      other_min.resize(size);
-      other_max.resize(size);
-      value.resize(size);
-      is_min.resize(size);
-    }
-  };
+  using AllEdges = VectorGroup<ExecVecT, float, float, float, uint8_t>;
 
   AllEdges x_edges_;
   AllEdges y_edges_;
-  DataType<IdxAABB> sorted_by_z_min_;
-  DataType<IdxAABB> sorted_by_z_max_;
+  ExecVecT<IdxAABB> sorted_by_z_min_;
+  ExecVecT<IdxAABB> sorted_by_z_max_;
 
   AllEdges x_edges_working_;
   AllEdges y_edges_working_;
-  DataType<IdxAABB> sorted_by_z_min_working_;
-  DataType<IdxAABB> sorted_by_z_max_working_;
+  ExecVecT<IdxAABB> sorted_by_z_min_working_;
+  ExecVecT<IdxAABB> sorted_by_z_max_working_;
 
-  DataType<unsigned> x_edges_keys_;
-  DataType<unsigned> y_edges_keys_;
-  DataType<unsigned> z_keys_;
+  ExecVecT<unsigned> x_edges_keys_;
+  ExecVecT<unsigned> y_edges_keys_;
+  ExecVecT<unsigned> z_keys_;
 
-  DataType<uint64_t> x_edges_min_max_prefixes_;
-  DataType<uint64_t> y_edges_min_max_prefixes_;
+  template <template <typename> class VecT>
+  using Groups = VectorGroup<VecT, unsigned, unsigned, unsigned>;
+  // inclusive scan...
+  Groups<ExecVecT> groups_;
+  template <typename T> using CPUOnly = std::vector<T>;
+  Groups<CPUOnly> groups_cpu_;
 
-  DataType<WorkingDivision> divisions_;
-  std::vector<WorkingDivision> divisions_cpu_;
-  DataType<DirTreeNode> nodes_;
+  ExecVecT<DirTreeNode> nodes_;
 
   unsigned num_shapes_;
 
 #if 0
-  DataType<unsigned> x_edges_is_min;
-  DataType<unsigned> y_edges_is_min;
-  DataType<unsigned> sorted_by_y_edges_working_;
-  DataType<unsigned> sorted_by_z_min_working_;
-  DataType<unsigned> sorted_by_z_max_working_;
+  ExecVecT<unsigned> x_edges_is_min;
+  ExecVecT<unsigned> y_edges_is_min;
+  ExecVecT<unsigned> sorted_by_y_edges_working_;
+  ExecVecT<unsigned> sorted_by_z_min_working_;
+  ExecVecT<unsigned> sorted_by_z_max_working_;
 #endif
 
   std::vector<ThrustData<execution_model>> thrust_data_;

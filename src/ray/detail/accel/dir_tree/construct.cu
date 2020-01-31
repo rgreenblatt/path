@@ -9,6 +9,10 @@ namespace accel {
 namespace dir_tree {
 template <ExecutionModel execution_model>
 void DirTreeGenerator<execution_model>::construct() {
+  x_edges_keys_.resize(x_edges_.size());
+  y_edges_keys_.resize(y_edges_.size());
+  z_keys_.resize(sorted_by_z_min_.size());
+
   fill_keys();
 
   /* auto */ 

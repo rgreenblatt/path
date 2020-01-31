@@ -1,5 +1,6 @@
 #include "lib/span_convertable_vector.h"
 #include "ray/detail/accel/dir_tree/dir_tree_generator.h"
+#include "ray/detail/accel/dir_tree/group.h"
 
 namespace ray {
 namespace detail {
@@ -11,9 +12,9 @@ template <> void DirTreeGenerator<ExecutionModel::CPU>::fill_keys() {
 
 #pragma omp parallel for collapse(2) schedule(dynamic, 16)
   for (unsigned axis = 0; axis < 3; axis++) {
-    for (unsigned i = 0; i < divisions_.size(); i++) {
-      std::fill(keys[axis].begin() + divisions_[i].starts[axis],
-                keys[axis].begin() + divisions_[i].ends[axis], i);
+    for (unsigned i = 0; i < groups_.size(); i++) {
+      auto [start, end] = group_start_end(i, groups_[axis]);
+      std::fill(keys[axis].begin() + start, keys[axis].begin() + end, i);
     }
   }
 }

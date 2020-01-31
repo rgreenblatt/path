@@ -44,10 +44,14 @@ void DirTreeGenerator<execution_model>::permute() {
     };
   };
 
-  permute_arr(0, edge_axis(x_edges_.other_min, x_edges_.other_max,
-                           x_edges_.value, x_edges_.is_min, 0, 1));
-  permute_arr(1, edge_axis(y_edges_.other_min, y_edges_.other_max,
-                           y_edges_.value, y_edges_.is_min, 1, 0));
+  permute_arr(0,
+              edge_axis(x_edges_.template get<0>(), x_edges_.template get<1>(),
+                        x_edges_.template get<2>(), x_edges_.template get<3>(),
+                        0, 1));
+  permute_arr(1,
+              edge_axis(y_edges_.template get<0>(), y_edges_.template get<1>(),
+                        y_edges_.template get<2>(), y_edges_.template get<3>(),
+                        1, 0));
 
   auto z_min_max = [&](bool is_min) {
     Span<IdxAABB> sorted_by_z(is_min ? sorted_by_z_min_ : sorted_by_z_max_);

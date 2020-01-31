@@ -1,6 +1,7 @@
 #include "ray/detail/accel/dir_tree/dir_tree_generator.h"
 #include "ray/detail/accel/dir_tree/impl/sphere_partition_impl.h"
 #include "scene/camera.h"
+#include "lib/async_for.h"
 
 namespace ray {
 namespace detail {
@@ -19,8 +20,8 @@ HalfSpherePartition DirTreeGenerator<execution_model>::setup(
 
   transforms_.resize(num_dir_trees);
   sort_offsets_.resize(num_dir_trees);
-  divisions_.resize(num_dir_trees);
-  divisions_cpu_.resize(num_dir_trees);
+  groups_.resize_all(num_dir_trees);
+  groups_cpu_.resize_all(num_dir_trees);
 
   unsigned transform_idx = 0;
 
@@ -30,13 +31,12 @@ HalfSpherePartition DirTreeGenerator<execution_model>::setup(
   auto add_transform = [&](const Eigen::Projective3f &transf) {
     transforms_[transform_idx] = transf;
 
-    unsigned start_edges = transform_idx * num_shapes_ * 2;
     unsigned end_edges = (transform_idx + 1) * num_shapes_ * 2;
-    unsigned start_z = transform_idx * num_shapes_;
     unsigned end_z = (transform_idx + 1) * num_shapes_;
 
-    divisions_cpu_[transform_idx] =
-        WorkingDivision(start_edges, end_edges, start_z, end_z);
+    groups_cpu_[0][transform_idx] = end_edges;
+    groups_cpu_[1][transform_idx] = end_edges;
+    groups_cpu_[2][transform_idx] = end_z;
 
     auto [transf_min_bound, transf_max_bound] =
         get_transformed_bounds(transf, min_bound, max_bound);
@@ -90,8 +90,11 @@ HalfSpherePartition DirTreeGenerator<execution_model>::setup(
     }
   }
 
-  thrust::copy(divisions_cpu_.begin(), divisions_cpu_.end(),
-               divisions_.begin());
+  async_for<true>(0, 3, [&](unsigned axis) {
+    thrust::copy(thrust_data_[axis].execution_policy(),
+                 groups_cpu_[axis].begin(), groups_cpu_[axis].end(),
+                 groups_[axis].begin());
+  });
 
   return partition;
 }

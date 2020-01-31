@@ -1,9 +1,9 @@
 #pragma once
 
 #include "lib/bgra.h"
-#include "lib/cuda/unified_memory_vector.h"
+#include "lib/cuda/managed_mem_vec.h"
 #include "lib/execution_model.h"
-#include "lib/execution_model_datatype.h"
+#include "lib/execution_model_vector_type.h"
 #include "ray/detail/accel/dir_tree/dir_tree_generator.h"
 #include "ray/detail/accel/kdtree/kdtree.h"
 #include "ray/detail/block_data.h"
@@ -55,7 +55,7 @@ private:
 
   void float_to_bgra(BGRA *pixels, Span<const scene::Color> colors);
 
-  template <typename T> using DataType = DataType<execution_model, T>;
+  template <typename T> using ExecVecT = ExecVectorType<execution_model, T>;
 
   const BlockData block_data_;
   unsigned real_x_dim_;
@@ -71,15 +71,15 @@ private:
   ManangedMemVec<accel::kdtree::KDTreeNode<accel::AABB>> kdtree_nodes_;
   ManangedMemVec<accel::kdtree::KDTreeNode<accel::AABB>> sort_nodes_;
 
-  DataType<Eigen::Vector3f> world_space_eyes_;
-  DataType<Eigen::Vector3f> world_space_directions_;
-  DataType<unsigned> ignores_;
-  DataType<scene::Color> color_multipliers_;
-  DataType<uint8_t> disables_;
-  DataType<scene::Color> colors_;
-  DataType<BGRA> bgra_;
-  ManangedMemVec<uint8_t> group_disables_;
-  ManangedMemVec<unsigned> group_indexes_;
+  ExecVecT<Eigen::Vector3f> world_space_eyes_;
+  ExecVecT<Eigen::Vector3f> world_space_directions_;
+  ExecVecT<unsigned> ignores_;
+  ExecVecT<scene::Color> color_multipliers_;
+  ExecVecT<uint8_t> disables_;
+  ExecVecT<scene::Color> colors_;
+  ExecVecT<BGRA> bgra_;
+  HostDeviceVectorType<uint8_t> group_disables_;
+  HostDeviceVectorType<unsigned> group_indexes_;
 
   accel::dir_tree::DirTreeGenerator<execution_model> dir_tree_generator_;
 };

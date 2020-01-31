@@ -1,10 +1,8 @@
 #include "lib/cuda/utils.h"
-#include "lib/execution_model_datatype.h"
 #include "lib/span.h"
 
-template <ExecutionModel execution_model> class BitSet {
-  using type = uint32_t;
-};
+#include <cstdint>
+#include <limits>
 
 inline HOST_DEVICE uint32_t popcount(uint32_t v) {
   static_assert(sizeof(uint32_t) == sizeof(unsigned));
