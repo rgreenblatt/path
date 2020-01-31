@@ -68,8 +68,8 @@ private:
 
   std::unique_ptr<scene::Scene> scene_;
 
-  ManangedMemVec<accel::kdtree::KDTreeNode<accel::AABB>> kdtree_nodes_;
-  ManangedMemVec<accel::kdtree::KDTreeNode<accel::AABB>> sort_nodes_;
+  HostDeviceVectorType<accel::kdtree::KDTreeNode<accel::AABB>> kdtree_nodes_;
+  HostDeviceVectorType<accel::kdtree::KDTreeNode<accel::AABB>> sort_nodes_;
 
   ExecVecT<Eigen::Vector3f> world_space_eyes_;
   ExecVecT<Eigen::Vector3f> world_space_directions_;

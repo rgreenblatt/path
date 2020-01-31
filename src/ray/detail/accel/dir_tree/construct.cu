@@ -9,13 +9,17 @@ namespace accel {
 namespace dir_tree {
 template <ExecutionModel execution_model>
 void DirTreeGenerator<execution_model>::construct() {
+  bool is_x = true;
   x_edges_keys_.resize(x_edges_.size());
   y_edges_keys_.resize(y_edges_.size());
   z_keys_.resize(sorted_by_z_min_.size());
 
   fill_keys();
 
-  /* auto */ 
+  scan_edges(is_x);
+
+  find_best_edges(is_x);
+
 
   /* auto tranform_start = thrust::make_transform_iterator(sorted_by_x_edges_.begin(), ) */
   /* thrust::inclusive_scan(InputIterator first, InputIterator last,

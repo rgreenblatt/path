@@ -81,6 +81,8 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/sphere_partition.cpp"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/fill_keys.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/fill_keys.cpp"
+  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/scan_edges.cu"
+  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/find_best_edges.cu"
 
   "${PROJECT_SOURCE_DIR}/src/scene/camera.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/pool_scene.cpp"

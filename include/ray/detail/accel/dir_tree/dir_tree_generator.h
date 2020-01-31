@@ -12,6 +12,7 @@
 #include "ray/detail/accel/dir_tree/dir_tree.h"
 #include "ray/detail/accel/dir_tree/idx_aabb.h"
 #include "ray/detail/accel/dir_tree/sphere_partition.h"
+#include "ray/detail/accel/dir_tree/best_edge.h"
 #include "scene/light.h"
 #include "scene/shape_data.h"
 
@@ -48,6 +49,10 @@ private:
   void construct();
 
   void fill_keys();
+  
+  void scan_edges(bool is_x);
+
+  void find_best_edges(bool is_x);
 
   template <typename T> using ExecVecT = ExecVectorType<execution_model, T>;
 
@@ -81,10 +86,16 @@ private:
 
   template <template <typename> class VecT>
   using Groups = VectorGroup<VecT, unsigned, unsigned, unsigned>;
+
   // inclusive scan...
   Groups<ExecVecT> groups_;
-  template <typename T> using CPUOnly = std::vector<T>;
-  Groups<CPUOnly> groups_cpu_;
+  Groups<HostVectorType> groups_cpu_;
+  
+  VectorGroup<ExecVecT, unsigned, unsigned> diffs_before_group_;
+
+  ExecVecT<unsigned> num_per_group_;
+  ExecVecT<unsigned> starts_inclusive_;
+  ExecVecT<BestEdge> best_edges_;
 
   ExecVecT<DirTreeNode> nodes_;
 
