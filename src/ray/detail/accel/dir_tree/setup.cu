@@ -1,4 +1,4 @@
-#include "ray/detail/accel/dir_tree/dir_tree_generator.h"
+#include "ray/detail/accel/dir_tree/dir_tree_generator_impl.h"
 #include "ray/detail/accel/dir_tree/impl/sphere_partition_impl.h"
 #include "scene/camera.h"
 #include "lib/async_for.h"
@@ -8,7 +8,7 @@ namespace detail {
 namespace accel {
 namespace dir_tree {
 template <ExecutionModel execution_model>
-HalfSpherePartition DirTreeGenerator<execution_model>::setup(
+HalfSpherePartition DirTreeGeneratorImpl<execution_model>::setup(
     const Eigen::Projective3f &world_to_film,
     SpanSized<const scene::Light> lights, const Eigen::Vector3f &min_bound,
     const Eigen::Vector3f &max_bound) {
@@ -20,15 +20,13 @@ HalfSpherePartition DirTreeGenerator<execution_model>::setup(
 
   transforms_.resize(num_dir_trees);
   sort_offsets_.resize(num_dir_trees);
-  groups_.resize_all(num_dir_trees);
-  groups_cpu_.resize_all(num_dir_trees);
-  diffs_before_group_.resize_all(num_dir_trees);
+  axis_groups_.first->resize_all(num_dir_trees);
+  axis_groups_cpu_.resize_all(num_dir_trees);
+  open_mins_before_group_.resize(num_dir_trees);
 
-  for (uint8_t axis = 0; axis < 2; axis++) {
-    thrust::fill(diffs_before_group_[axis].begin(),
-                 diffs_before_group_[axis].end(), 0);
-    thrust::fill(num_per_group_.begin(), num_per_group_.end(), num_shapes_);
-  }
+  thrust::fill(open_mins_before_group_.begin(), open_mins_before_group_.end(),
+               0);
+  thrust::fill(num_per_group_.begin(), num_per_group_.end(), num_shapes_);
 
   unsigned transform_idx = 0;
 
@@ -41,9 +39,9 @@ HalfSpherePartition DirTreeGenerator<execution_model>::setup(
     unsigned end_edges = (transform_idx + 1) * num_shapes_ * 2;
     unsigned end_z = (transform_idx + 1) * num_shapes_;
 
-    groups_cpu_[0][transform_idx] = end_edges;
-    groups_cpu_[1][transform_idx] = end_edges;
-    groups_cpu_[2][transform_idx] = end_z;
+    axis_groups_cpu_[0][transform_idx] = end_edges;
+    axis_groups_cpu_[1][transform_idx] = end_edges;
+    axis_groups_cpu_[2][transform_idx] = end_z;
 
     auto [transf_min_bound, transf_max_bound] =
         get_transformed_bounds(transf, min_bound, max_bound);
@@ -99,15 +97,15 @@ HalfSpherePartition DirTreeGenerator<execution_model>::setup(
 
   async_for<true>(0, 3, [&](unsigned axis) {
     thrust::copy(thrust_data_[axis].execution_policy(),
-                 groups_cpu_[axis].begin(), groups_cpu_[axis].end(),
-                 groups_[axis].begin());
+                 axis_groups_cpu_[axis].begin(), axis_groups_cpu_[axis].end(),
+                 axis_groups_.first.get()[axis].begin());
   });
 
   return partition;
 }
 
-template class DirTreeGenerator<ExecutionModel::CPU>;
-template class DirTreeGenerator<ExecutionModel::GPU>;
+template class DirTreeGeneratorImpl<ExecutionModel::CPU>;
+template class DirTreeGeneratorImpl<ExecutionModel::GPU>;
 } // namespace dir_tree
 } // namespace accel
 } // namespace detail

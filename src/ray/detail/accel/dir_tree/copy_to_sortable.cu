@@ -1,6 +1,6 @@
 #include "lib/span_convertable_device_vector.h"
 #include "lib/span_convertable_vector.h"
-#include "ray/detail/accel/dir_tree/dir_tree_generator.h"
+#include "ray/detail/accel/dir_tree/dir_tree_generator_impl.h"
 #include "ray/detail/block_data.h"
 #include "ray/detail/render_impl_utils.h"
 
@@ -11,7 +11,7 @@ namespace detail {
 namespace accel {
 namespace dir_tree {
 template <ExecutionModel execution_model>
-void DirTreeGenerator<execution_model>::copy_to_sortable() {
+void DirTreeGeneratorImpl<execution_model>::copy_to_sortable() {
   Span<IdxAABB> aabbs(aabbs_);
 
   Span<Eigen::Vector3f> offsets(sort_offsets_);
@@ -41,8 +41,8 @@ void DirTreeGenerator<execution_model>::copy_to_sortable() {
       });
 }
 
-template class DirTreeGenerator<ExecutionModel::CPU>;
-template class DirTreeGenerator<ExecutionModel::GPU>;
+template class DirTreeGeneratorImpl<ExecutionModel::CPU>;
+template class DirTreeGeneratorImpl<ExecutionModel::GPU>;
 } // namespace dir_tree
 } // namespace accel
 } // namespace detail

@@ -1,6 +1,6 @@
 #include "lib/span_convertable_device_vector.h"
 #include "lib/span_convertable_vector.h"
-#include "ray/detail/accel/dir_tree/dir_tree_generator.h"
+#include "ray/detail/accel/dir_tree/dir_tree_generator_impl.h"
 #include "ray/detail/accel/dir_tree/impl/compute_aabbs_impl.h"
 #include "ray/detail/block_data.h"
 
@@ -17,7 +17,7 @@ compute_aabbs_global(SpanSized<const Eigen::Projective3f> transforms,
 }
 
 template <ExecutionModel execution_model>
-void DirTreeGenerator<execution_model>::compute_aabbs() {
+void DirTreeGeneratorImpl<execution_model>::compute_aabbs() {
   unsigned bounds_block_size = 64;
   unsigned transform_block_size = 4;
 
@@ -28,7 +28,7 @@ void DirTreeGenerator<execution_model>::compute_aabbs() {
   compute_aabbs_global<<<grid, block>>>(transforms_, aabbs_, bounds_);
 }
 
-template class DirTreeGenerator<ExecutionModel::GPU>;
+template class DirTreeGeneratorImpl<ExecutionModel::GPU>;
 } // namespace dir_tree
 } // namespace accel
 } // namespace detail

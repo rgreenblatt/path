@@ -1,25 +1,30 @@
 #include "lib/cuda/utils.h"
 #include "lib/span_convertable_device_vector.h"
 #include "lib/span_convertable_vector.h"
-#include "ray/detail/accel/dir_tree/dir_tree_generator.h"
+#include "ray/detail/accel/dir_tree/dir_tree_generator_impl.h"
 
 namespace ray {
 namespace detail {
 namespace accel {
 namespace dir_tree {
 template <ExecutionModel execution_model>
-void DirTreeGenerator<execution_model>::construct() {
-  bool is_x = true;
-  x_edges_keys_.resize(x_edges_.size());
-  y_edges_keys_.resize(y_edges_.size());
-  z_keys_.resize(sorted_by_z_min_.size());
+void DirTreeGeneratorImpl<execution_model>::construct() {
+  better_than_no_split_.first->resize(num_groups());
+  better_than_no_split_.second->resize(num_groups(), 1);
+
+  x_edges_keys_.resize(x_edges_.first->size());
+  y_edges_keys_.resize(y_edges_.first->size());
+  z_keys_.resize(sorted_by_z_min_.first->size());
 
   fill_keys();
 
-  scan_edges(is_x);
+  scan_edges();
 
-  find_best_edges(is_x);
+  find_best_edges();
 
+  test_splits();
+
+  filter_others();
 
   /* auto tranform_start = thrust::make_transform_iterator(sorted_by_x_edges_.begin(), ) */
   /* thrust::inclusive_scan(InputIterator first, InputIterator last,
@@ -57,8 +62,8 @@ void DirTreeGenerator<execution_model>::construct() {
   //  - either entire warp or start of data per index
 }
 
-template class DirTreeGenerator<ExecutionModel::CPU>;
-template class DirTreeGenerator<ExecutionModel::GPU>;
+template class DirTreeGeneratorImpl<ExecutionModel::CPU>;
+template class DirTreeGeneratorImpl<ExecutionModel::GPU>;
 } // namespace dir_tree
 } // namespace accel
 } // namespace detail

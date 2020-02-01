@@ -1,5 +1,5 @@
 #include "lib/async_for.h"
-#include "ray/detail/accel/dir_tree/dir_tree_generator.h"
+#include "ray/detail/accel/dir_tree/dir_tree_generator_impl.h"
 
 #include <thrust/sort.h>
 
@@ -8,7 +8,7 @@ namespace detail {
 namespace accel {
 namespace dir_tree {
 template <ExecutionModel execution_model>
-void DirTreeGenerator<execution_model>::sort() {
+void DirTreeGeneratorImpl<execution_model>::sort() {
   async_for<true>(0, num_sortings, [&](unsigned i) {
     thrust::sort_by_key(thrust_data_[i].execution_policy(),
                         sorting_values_[i].data(),
@@ -17,8 +17,8 @@ void DirTreeGenerator<execution_model>::sort() {
   });
 }
 
-template class DirTreeGenerator<ExecutionModel::CPU>;
-template class DirTreeGenerator<ExecutionModel::GPU>;
+template class DirTreeGeneratorImpl<ExecutionModel::CPU>;
+template class DirTreeGeneratorImpl<ExecutionModel::GPU>;
 } // namespace dir_tree
 } // namespace accel
 } // namespace detail

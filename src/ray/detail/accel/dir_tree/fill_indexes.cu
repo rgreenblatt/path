@@ -1,12 +1,12 @@
 #include "lib/async_for.h"
-#include "ray/detail/accel/dir_tree/dir_tree_generator.h"
+#include "ray/detail/accel/dir_tree/dir_tree_generator_impl.h"
 
 namespace ray {
 namespace detail {
 namespace accel {
 namespace dir_tree {
 template <ExecutionModel execution_model>
-void DirTreeGenerator<execution_model>::fill_indexes() {
+void DirTreeGeneratorImpl<execution_model>::fill_indexes() {
   async_for<true>(0, num_sortings, [&](unsigned i) {
     thrust::copy(thrust_data_[i].execution_policy(),
                  thrust::make_counting_iterator(0u),
@@ -15,8 +15,8 @@ void DirTreeGenerator<execution_model>::fill_indexes() {
   });
 }
 
-template class DirTreeGenerator<ExecutionModel::GPU>;
-template class DirTreeGenerator<ExecutionModel::CPU>;
+template class DirTreeGeneratorImpl<ExecutionModel::GPU>;
+template class DirTreeGeneratorImpl<ExecutionModel::CPU>;
 } // namespace dir_tree
 } // namespace accel
 } // namespace detail

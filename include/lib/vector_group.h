@@ -3,8 +3,10 @@
 #include <boost/hana/ext/std/array.hpp>
 #include <boost/hana/ext/std/tuple.hpp>
 #include <boost/hana/for_each.hpp>
+#include <boost/core/noncopyable.hpp>
 
-template <template <typename> class VecT, typename... T> class VectorGroup {
+template <template <typename> class VecT, typename... T>
+class VectorGroup : private boost::noncopyable {
 public:
   static_assert(sizeof...(T) > 0);
   using FirstType = __type_pack_element<0, T...>;

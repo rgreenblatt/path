@@ -2,7 +2,7 @@
 #include "lib/cuda/utils.h"
 #include "lib/span_convertable_device_vector.h"
 #include "lib/span_convertable_vector.h"
-#include "ray/detail/accel/dir_tree/dir_tree_generator.h"
+#include "ray/detail/accel/dir_tree/dir_tree_generator_impl.h"
 #include "ray/detail/accel/dir_tree/group.h"
 #include "ray/detail/block_data.h"
 #include "lib/timer.h"
@@ -34,12 +34,12 @@ __global__ void fill_keys_global(SpanSized<unsigned> keys,
   }
 }
 
-template <> void DirTreeGenerator<ExecutionModel::GPU>::fill_keys() {
+template <> void DirTreeGeneratorImpl<ExecutionModel::GPU>::fill_keys() {
   Timer max_size_timer;
 
   std::array<unsigned, 3> max_sizes;
   async_for<true>(0, 3, [&](unsigned axis) {
-    auto groups = groups_[axis];
+    auto groups = axis_groups_.first.get()[axis];
 
     max_sizes[axis] = thrust::transform_reduce(
         thrust_data_[0].execution_policy(), thrust::make_counting_iterator(0u),
@@ -73,11 +73,11 @@ template <> void DirTreeGenerator<ExecutionModel::GPU>::fill_keys() {
     unsigned block_size_groups = block_total_size / block_size_elements;
 
     dim3 grid(num_blocks(max_sizes[axis], block_size_elements),
-              num_blocks(groups_.size(), block_size_groups));
+              num_blocks(num_groups(), block_size_groups));
     dim3 block(block_size_elements, block_size_groups);
 
     fill_keys_global<<<grid, block>>>(keys[axis], num_elements_per_thread,
-                                      groups_[axis]);
+                                      axis_groups_.first.get()[axis]);
   });
 
   fill_keys_timer.report("fill keys");

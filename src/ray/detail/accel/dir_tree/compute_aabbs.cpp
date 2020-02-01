@@ -1,5 +1,5 @@
 #include "lib/span_convertable_vector.h"
-#include "ray/detail/accel/dir_tree/dir_tree_generator.h"
+#include "ray/detail/accel/dir_tree/dir_tree_generator_impl.h"
 #include "ray/detail/accel/dir_tree/impl/compute_aabbs_impl.h"
 
 namespace ray {
@@ -7,7 +7,7 @@ namespace detail {
 namespace accel {
 namespace dir_tree {
 template <ExecutionModel execution_model>
-void DirTreeGenerator<execution_model>::compute_aabbs() {
+void DirTreeGeneratorImpl<execution_model>::compute_aabbs() {
 #pragma omp parallel for collapse(2) schedule(dynamic, 16)
   for (unsigned transform_idx = 0; transform_idx < transforms_.size();
        transform_idx++) {
@@ -17,7 +17,7 @@ void DirTreeGenerator<execution_model>::compute_aabbs() {
     }
   }
 }
-template class DirTreeGenerator<ExecutionModel::CPU>;
+template class DirTreeGeneratorImpl<ExecutionModel::CPU>;
 } // namespace dir_tree
 } // namespace accel
 } // namespace detail
