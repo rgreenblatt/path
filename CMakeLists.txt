@@ -47,6 +47,7 @@ macro(target_add_standard_include TARGET_NAME)
     "${PROJECT_SOURCE_DIR}/include")
   target_include_directories(${TARGET_NAME} SYSTEM PUBLIC
     "${PROJECT_SOURCE_DIR}/extern/eigen/"
+    "${PROJECT_SOURCE_DIR}/extern/include/"
     "/usr/local/cuda/include/"
     "${QT5_INCLUDE_DIR}")
 endmacro()
