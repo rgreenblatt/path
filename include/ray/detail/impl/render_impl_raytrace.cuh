@@ -40,9 +40,9 @@ void RendererImpl<execution_model>::raytrace_pass(
 
   if (current_num_blocks != 0) {
     raytrace_global<is_first><<<current_num_blocks, general_block_size>>>(
-        block_data_, accel, shapes, lights, textures,
-        world_space_eyes_, world_space_directions_, color_multipliers_, colors_,
-        ignores_, disables_, group_disables_, group_indexes_, shapes.size());
+        block_data_, accel, shapes, lights, textures, world_space_eyes_,
+        world_space_directions_, color_multipliers_, colors_, ignores_,
+        disables_, group_disables_, group_indexes_, shapes.size());
   }
 
   CUDA_ERROR_CHK(cudaDeviceSynchronize());

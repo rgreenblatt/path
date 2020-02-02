@@ -31,7 +31,7 @@ template <typename T> static void popcount_test(std::mt19937 &gen) {
   for (unsigned i = 0; i < size; i++) {
     ASSERT_EQ(gpu_out[i], cpu_out[i]);
   }
-    
+
   ASSERT_EQ(gpu_out[0], T(14));
   ASSERT_EQ(cpu_out[0], T(14));
   T max_value_bits = sizeof(T) * CHAR_BIT;
@@ -49,8 +49,7 @@ TEST(BitSet, popcount) {
 template <typename T> static void count_leading_zeros_test(std::mt19937 &gen) {
   const unsigned size = 1000;
   ManangedMemVec<T> values(size);
-  std::uniform_int_distribution<T> dis(
-      0u, std::numeric_limits<T>::max());
+  std::uniform_int_distribution<T> dis(0u, std::numeric_limits<T>::max());
   std::uniform_int_distribution<T> dis_mask(0u, 31);
   std::generate(values.begin(), values.end(),
                 [&] { return (dis(gen) & ((1u << dis_mask(gen)) - 1)) | 1u; });

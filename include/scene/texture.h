@@ -1,8 +1,8 @@
 #pragma once
 
 #include "lib/cuda/managed_mem_vec.h"
-#include "scene/color.h"
 #include "lib/span.h"
+#include "scene/color.h"
 
 namespace scene {
 struct TextureImageRef {

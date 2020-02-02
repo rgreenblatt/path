@@ -37,45 +37,29 @@ glm::mat4x4 CamtransCamera::getViewMatrix() const {
   return rotation_matrix_ * translation_matrix_;
 }
 
-glm::mat4x4 CamtransCamera::getScaleMatrix() const {
-  return scale_matrix_;
-}
+glm::mat4x4 CamtransCamera::getScaleMatrix() const { return scale_matrix_; }
 
 glm::mat4x4 CamtransCamera::getPerspectiveMatrix() const {
   return perspective_transformation_;
 }
 
-glm::vec4 CamtransCamera::getPosition() const {
-  return eye_;
-}
+glm::vec4 CamtransCamera::getPosition() const { return eye_; }
 
-glm::vec4 CamtransCamera::getLook() const {
-  return -w_;
-}
+glm::vec4 CamtransCamera::getLook() const { return -w_; }
 
-glm::vec4 CamtransCamera::getUp() const {
-  return up_;
-}
+glm::vec4 CamtransCamera::getUp() const { return up_; }
 
-glm::vec4 CamtransCamera::getU() const {
-  return u_;
-}
+glm::vec4 CamtransCamera::getU() const { return u_; }
 
-glm::vec4 CamtransCamera::getV() const {
-  return v_;
-}
+glm::vec4 CamtransCamera::getV() const { return v_; }
 
-glm::vec4 CamtransCamera::getW() const {
-  return w_;
-}
+glm::vec4 CamtransCamera::getW() const { return w_; }
 
 float CamtransCamera::getAspectRatio() const {
   return std::tan(theta_w_ / 2) / std::tan(theta_h_ / 2);
 }
 
-float CamtransCamera::getHeightAngle() const {
-  return theta_h_;
-}
+float CamtransCamera::getHeightAngle() const { return theta_h_; }
 
 void CamtransCamera::updateTranslationMatrix() {
   auto &col = translation_matrix_[3];
@@ -84,7 +68,7 @@ void CamtransCamera::updateTranslationMatrix() {
 }
 
 void CamtransCamera::updateRotationMatrix() {
-  auto set_row = [&](const auto& vec, const int i) {
+  auto set_row = [&](const auto &vec, const int i) {
     rotation_matrix_[0][i] = vec[0];
     rotation_matrix_[1][i] = vec[1];
     rotation_matrix_[2][i] = vec[2];
@@ -123,7 +107,7 @@ void CamtransCamera::orientLook(const glm::vec4 &eye, const glm::vec4 &look,
   eye_ = eye;
   look_ = look;
   up_ = up;
-  
+
   w_ = glm::normalize(-look_);
   v_ = glm::normalize(up_ - glm::dot(up_, w_) * w_);
   u_ = glm::vec4(glm::cross(glm::vec3(v_), glm::vec3(w_)), 0);
@@ -165,7 +149,7 @@ void CamtransCamera::rotateU(float degrees) {
 
 void CamtransCamera::rotateV(float degrees) {
   const float theta = glm::radians(degrees);
-  
+
   w_ = rotate_vec_by_angle_around_axis(w_, v_, theta);
   u_ = rotate_vec_by_angle_around_axis(u_, v_, theta);
 

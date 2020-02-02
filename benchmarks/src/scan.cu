@@ -109,9 +109,10 @@ static void bitset_popcount_keys(benchmark::State &state) {
   unsigned size_per = BitSetRef<Block>::bits_per_block;
   thrust::device_vector<Block> in(unsigned(state.range(0)) / size_per);
   thrust::device_vector<Block> keys(unsigned(state.range(0)) / size_per);
-  thrust::device_vector<uint32_t> keys_periodic(unsigned(state.range(0)) / size_per);
+  thrust::device_vector<uint32_t> keys_periodic(unsigned(state.range(0)) /
+                                                size_per);
   thrust::device_vector<uint32_t> out(unsigned(state.range(0)));
-  
+
   BitSetRef<Block> bit_set_in(in, unsigned(state.range(0)));
   BitSetRef<Block> bit_set_keys(keys, unsigned(state.range(0)));
 

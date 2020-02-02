@@ -27,8 +27,8 @@ inline void cuda_assert(cudaError_t code, const char *file, int line) {
 
 #if 1
 #ifdef __CUDACC__
-# define ALIGN_STRUCT(x) __align__(x)
+#define ALIGN_STRUCT(x) __align__(x)
 #else
-# define ALIGN_STRUCT(x) alignas(x)
+#define ALIGN_STRUCT(x) alignas(x)
 #endif
 #endif

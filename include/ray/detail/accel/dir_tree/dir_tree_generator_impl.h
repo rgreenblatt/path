@@ -111,8 +111,7 @@ private:
     Span<unsigned> idxs() { return this->template get<6>(); }
   };
 
-  template <typename T>
-  using Pair = std::pair<T, T>;
+  template <typename T> using Pair = std::pair<T, T>;
 
   std::array<AllEdges, 3> edges_underlying_;
   Pair<ZValues> sorted_by_z_min_underlying_;
@@ -152,18 +151,14 @@ private:
 
   inline unsigned num_groups() const { return axis_groups_.first->size(); }
 
-  inline unsigned get_current_edge_idx() {
-    return is_x_ ? 0 : 1;
-  }
+  inline unsigned get_current_edge_idx() { return is_x_ ? 0 : 1; }
 
-  inline unsigned get_other_edge_idx() {
-    return is_x_ ? 1 : 0;
-  }
+  inline unsigned get_other_edge_idx() { return is_x_ ? 1 : 0; }
 
   inline Span<unsigned> current_edges_groups() {
     return axis_groups_.first.get()[get_current_edge_idx()];
   }
-  
+
   inline Span<unsigned> other_edges_groups() {
     return axis_groups_.first.get()[get_other_edge_idx()];
   }
@@ -171,7 +166,7 @@ private:
   inline Span<unsigned> current_edges_new_groups() {
     return axis_groups_.second.get()[get_current_edge_idx()];
   }
-  
+
   inline Span<unsigned> other_edges_new_groups() {
     return axis_groups_.second.get()[get_other_edge_idx()];
   }
@@ -180,15 +175,14 @@ private:
 
   Pair<ExecVecT<unsigned>> open_mins_before_group_underlying_;
   Pair<ExecVecT<unsigned>> num_per_group_underlying_;
-  
+
   Pair<RefT<ExecVecT<unsigned>>> open_mins_before_group_;
   Pair<RefT<ExecVecT<unsigned>>> num_per_group_;
-
 
   ExecVecT<BestEdge> best_edges_;
 
   Pair<ExecVecT<uint8_t>> better_than_no_split_underlying_;
-  
+
   Pair<RefT<ExecVecT<uint8_t>>> better_than_no_split_;
 
   ExecVecT<unsigned> new_edge_indexes_;

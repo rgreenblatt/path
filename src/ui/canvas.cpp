@@ -1,6 +1,6 @@
 #include "ui/canvas.h"
-#include "lib/bgra.h"
 #include "cli/linenoise.hpp"
+#include "lib/bgra.h"
 #include "ray/render.h"
 #include "scene/camera.h"
 #include "scene/pool_scene.h"

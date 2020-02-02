@@ -1,9 +1,9 @@
 #include "lib/span.h"
 
+#include <boost/core/noncopyable.hpp>
 #include <boost/hana/ext/std/array.hpp>
 #include <boost/hana/ext/std/tuple.hpp>
 #include <boost/hana/for_each.hpp>
-#include <boost/core/noncopyable.hpp>
 
 template <template <typename> class VecT, typename... T>
 class VectorGroup : private boost::noncopyable {

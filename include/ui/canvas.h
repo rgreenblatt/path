@@ -32,7 +32,6 @@ private:
   Eigen::Vector3f up_;
   Eigen::Vector3f pos_;
 
-
   enum class Event {
     Shutdown,
     SetSampling,

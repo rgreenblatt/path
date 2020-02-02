@@ -26,11 +26,12 @@ void DirTreeGeneratorImpl<execution_model>::construct() {
 
   filter_others();
 
-  /* auto tranform_start = thrust::make_transform_iterator(sorted_by_x_edges_.begin(), ) */
+  /* auto tranform_start =
+   * thrust::make_transform_iterator(sorted_by_x_edges_.begin(), ) */
   /* thrust::inclusive_scan(InputIterator first, InputIterator last,
    * OutputIterator result) */
   /* sorted_by_x_edges_ */
-  
+
   // TODO consider breaking up data to reduce memory access....
 
   // approach:

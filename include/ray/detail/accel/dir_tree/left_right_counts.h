@@ -8,8 +8,7 @@ namespace accel {
 namespace dir_tree {
 HOST_DEVICE inline std::tuple<unsigned, unsigned, unsigned>
 left_right_counts(unsigned index_in_group, unsigned start_inclusive,
-                      unsigned open_mins, uint8_t is_min,
-                      unsigned total_count) {
+                  unsigned open_mins, uint8_t is_min, unsigned total_count) {
   unsigned ends_inclusive = (index_in_group + 1) - start_inclusive;
   unsigned starts_exclusive = start_inclusive - is_min;
   unsigned num_left = open_mins + starts_exclusive;

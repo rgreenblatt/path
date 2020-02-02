@@ -1,7 +1,7 @@
 #pragma once
 
-#include "lib/printf_dbg.h"
 #include "lib/cuda/reduce.h"
+#include "lib/printf_dbg.h"
 #include "ray/detail/block_data.h"
 #include "ray/detail/intersection/solve.h"
 #include "scene/light.h"

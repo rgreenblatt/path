@@ -1,12 +1,11 @@
-#include "lib/cuda/utils.h"
 #include "lib/caching_thrust_allocator.h"
+#include "lib/cuda/utils.h"
 #include "ray/detail/accel/aabb.h"
 #include "ray/detail/render_impl_utils.h"
 
-
-#include <thrust/sort.h>
 #include <thrust/device_vector.h>
 #include <thrust/functional.h>
+#include <thrust/sort.h>
 
 #include <future>
 

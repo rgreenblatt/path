@@ -9,7 +9,7 @@ namespace detail {
 constexpr uint32_t full_mask = 0xffffffff;
 
 template <typename T, typename F>
-inline __device__ T warp_reduce(T val, const F& f) {
+inline __device__ T warp_reduce(T val, const F &f) {
   for (unsigned offset = warpSize / 2; offset > 0; offset /= 2) {
     val = f(__shfl_down_sync(full_mask, val, offset), val);
   }

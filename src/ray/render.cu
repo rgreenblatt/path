@@ -1,5 +1,5 @@
-#include "ray/render.h"
 #include "ray/detail/render_impl.h"
+#include "ray/render.h"
 
 namespace ray {
 using namespace detail;

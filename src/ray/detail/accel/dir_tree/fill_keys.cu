@@ -2,10 +2,10 @@
 #include "lib/cuda/utils.h"
 #include "lib/span_convertable_device_vector.h"
 #include "lib/span_convertable_vector.h"
+#include "lib/timer.h"
 #include "ray/detail/accel/dir_tree/dir_tree_generator_impl.h"
 #include "ray/detail/accel/dir_tree/group.h"
 #include "ray/detail/block_data.h"
-#include "lib/timer.h"
 
 #include <cmath>
 
@@ -52,7 +52,7 @@ template <> void DirTreeGeneratorImpl<ExecutionModel::GPU>::fill_keys() {
           return std::max(first, second);
         });
   });
-  
+
   max_size_timer.report("max size for fill keys");
 
   // perhaps check elements per thread is bigger than size and
