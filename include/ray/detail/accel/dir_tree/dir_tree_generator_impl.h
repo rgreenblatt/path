@@ -76,15 +76,15 @@ private:
 
   template <typename T> using ExecVecT = ExecVectorType<execution_model, T>;
 
-  ManangedMemVec<HalfSpherePartition::Region> sphere_partition_regions_;
+  HostDeviceVectorType<HalfSpherePartition::Region> sphere_partition_regions_;
 
-  ManangedMemVec<Eigen::Projective3f> transforms_;
-  ManangedMemVec<BoundingPoints> bounds_;
+  HostDeviceVectorType<Eigen::Projective3f> transforms_;
+  HostDeviceVectorType<BoundingPoints> bounds_;
   ExecVecT<IdxAABB> aabbs_;
 
   // x edges, y edges, z min, z max
   static constexpr unsigned num_sortings = 4;
-  ManangedMemVec<Eigen::Vector3f> sort_offsets_;
+  HostDeviceVectorType<Eigen::Vector3f> sort_offsets_;
   std::array<ExecVecT<float>, num_sortings> sorting_values_;
   std::array<ExecVecT<unsigned>, num_sortings> indexes_;
 
