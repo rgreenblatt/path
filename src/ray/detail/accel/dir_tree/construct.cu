@@ -12,8 +12,8 @@ void DirTreeGeneratorImpl<execution_model>::construct() {
   better_than_no_split_.first->resize(num_groups());
   better_than_no_split_.second->resize(num_groups(), 1);
 
-  x_edges_keys_.resize(x_edges_.first->size());
-  y_edges_keys_.resize(y_edges_.first->size());
+  x_edges_keys_.resize(current_edges_->size());
+  y_edges_keys_.resize(other_edges_->size());
   z_keys_.resize(sorted_by_z_min_.first->size());
 
   fill_keys();

@@ -10,6 +10,9 @@ template <ExecutionModel execution_model>
 void DirTreeGeneratorImpl<execution_model>::scan_edges() {
   Span<const uint8_t> to_scan = current_edges_->is_mins();
   Span<const unsigned> keys = current_edges_keys_.get();
+
+  starts_inclusive_.resize(current_edges_->size());
+
   thrust::inclusive_scan_by_key(thrust_data_[0].execution_policy(),
                                 keys.begin(), keys.end(), to_scan.begin(),
                                 starts_inclusive_.begin());

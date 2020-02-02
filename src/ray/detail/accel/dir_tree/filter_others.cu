@@ -10,14 +10,13 @@ namespace detail {
 namespace accel {
 namespace dir_tree {
 template <typename FResize, typename FCopyTo, typename ExecPolicy>
-void filter_values(Span<const float> edge_values,
-                   Span<const BestEdge> best_edges,
-                   Span<const float> compare_data_mins,
-                   Span<const float> compare_data_maxs,
-                   Span<const unsigned> keys, Span<const unsigned> groups,
-                   Span<unsigned> new_indexes, unsigned size,
-                   const FResize &resize, const FCopyTo &copy_to_new,
-                   const ExecPolicy &execution_policy) {
+void filter_values(
+    Span<const float> edge_values, Span<const BestEdge> best_edges,
+    Span<const float> compare_data_mins, Span<const float> compare_data_maxs,
+    Span<const unsigned> keys, Span<const unsigned> groups,
+    Span<const uint8_t> use_split_first, Span<const uint8_t> use_split_second,
+    Span<unsigned> new_indexes, unsigned size, const FResize &resize,
+    const FCopyTo &copy_to_new, const ExecPolicy &execution_policy) {
   auto get_key_idx_is_left = [=] __host__ __device__(unsigned i) {
     unsigned key = keys[i / 2];
     auto [start, end] = group_start_end(key, groups);
@@ -35,6 +34,10 @@ void filter_values(Span<const float> edge_values,
   auto start_it = thrust::make_transform_iterator(
       thrust::make_counting_iterator(0u), [=] __host__ __device__(unsigned i) {
         auto [key, idx, is_left] = get_key_idx_is_left(i);
+
+        if (!(use_split_first[idx] || use_split_second[idx])) {
+          return false;
+        }
 
         float edge_value = edge_values[best_edges[key].idx];
 
@@ -87,7 +90,8 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
 
       filter_values(
           edge_values, best_edges, compare_data_mins, compare_data_maxs, keys,
-          groups, new_edge_indexes_, size,
+          groups, better_than_no_split_.first.get(),
+          better_than_no_split_.second.get(), new_edge_indexes_, size,
           [&] {
             unsigned new_size = new_edge_indexes_[size - 1];
             other_edges_new_->resize_all(new_size);
@@ -146,7 +150,8 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
 
       filter_values(
           edge_values, best_edges, compare_data_mins, compare_data_maxs, keys,
-          groups, new_edge_indexes_, size,
+          groups, better_than_no_split_.first.get(),
+          better_than_no_split_.second.get(), new_edge_indexes_, size,
           [&] {
             unsigned new_size = indexes[size - 1];
             new_z_vals.resize_all(new_size);
@@ -171,6 +176,12 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
           thrust_data_[i].execution_policy());
     }
   });
+
+  std::swap(current_edges_, other_edges_new_);
+  std::swap(other_edges_new_, other_edges_);
+  std::swap(current_edges_keys_, other_edges_keys_);
+  std::swap(sorted_by_z_min_.first, sorted_by_z_min_.second);
+  std::swap(sorted_by_z_max_.first, sorted_by_z_max_.second);
 }
 template class DirTreeGeneratorImpl<ExecutionModel::CPU>;
 template class DirTreeGeneratorImpl<ExecutionModel::GPU>;

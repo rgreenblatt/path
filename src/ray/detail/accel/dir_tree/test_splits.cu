@@ -21,7 +21,7 @@ HOST_DEVICE inline bool use_division(const BestEdge &best_edge,
 template <ExecutionModel execution_model>
 void DirTreeGeneratorImpl<execution_model>::test_splits() {
   Span<const BestEdge> best_edges = best_edges_;
-  Span<const unsigned> num_per_group = num_per_group_;
+  Span<const unsigned> num_per_group = num_per_group_.first.get();
   auto start_counting_it = thrust::make_counting_iterator(0u);
   auto end_counting_it = start_counting_it + num_groups();
   thrust::transform(start_counting_it, end_counting_it,
@@ -30,6 +30,7 @@ void DirTreeGeneratorImpl<execution_model>::test_splits() {
                       return use_division(best_edges[i], num_per_group[i]);
                     });
 }
+
 template class DirTreeGeneratorImpl<ExecutionModel::CPU>;
 template class DirTreeGeneratorImpl<ExecutionModel::GPU>;
 } // namespace dir_tree

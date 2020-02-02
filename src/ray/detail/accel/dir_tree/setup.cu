@@ -1,7 +1,7 @@
+#include "lib/async_for.h"
 #include "ray/detail/accel/dir_tree/dir_tree_generator_impl.h"
 #include "ray/detail/accel/dir_tree/impl/sphere_partition_impl.h"
 #include "scene/camera.h"
-#include "lib/async_for.h"
 
 namespace ray {
 namespace detail {
@@ -22,11 +22,8 @@ HalfSpherePartition DirTreeGeneratorImpl<execution_model>::setup(
   sort_offsets_.resize(num_dir_trees);
   axis_groups_.first->resize_all(num_dir_trees);
   axis_groups_cpu_.resize_all(num_dir_trees);
-  open_mins_before_group_.resize(num_dir_trees);
-
-  thrust::fill(open_mins_before_group_.begin(), open_mins_before_group_.end(),
-               0);
-  thrust::fill(num_per_group_.begin(), num_per_group_.end(), num_shapes_);
+  open_mins_before_group_.first->resize(num_dir_trees, 0);
+  num_per_group_.first->resize(num_dir_trees, num_shapes_);
 
   unsigned transform_idx = 0;
 

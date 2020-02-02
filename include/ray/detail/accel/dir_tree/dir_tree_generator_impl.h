@@ -23,20 +23,20 @@ namespace dir_tree {
 template <ExecutionModel execution_model> class DirTreeGeneratorImpl {
 public:
   DirTreeGeneratorImpl()
-      : is_x_(true),
-        x_edges_(x_edges_underlying_.first, x_edges_underlying_.second),
-        y_edges_(y_edges_underlying_.first, y_edges_underlying_.second),
+      : is_x_(true), current_edges_(edges_underlying_[0]),
+        other_edges_(edges_underlying_[1]),
+        other_edges_new_(edges_underlying_[2]),
         sorted_by_z_min_(sorted_by_z_min_underlying_.first,
                          sorted_by_z_min_underlying_.second),
         sorted_by_z_max_(sorted_by_z_max_underlying_.first,
                          sorted_by_z_max_underlying_.second),
-        current_edges_(x_edges_underlying_.first),
-        other_edges_(y_edges_underlying_.first),
-        other_edges_new_(y_edges_underlying_.second),
-        current_edges_keys_(x_edges_keys_),
-        other_edges_keys_(y_edges_keys_),
+        current_edges_keys_(x_edges_keys_), other_edges_keys_(y_edges_keys_),
         axis_groups_(axis_groups_underlying_.first,
                      axis_groups_underlying_.second),
+        open_mins_before_group_(open_mins_before_group_underlying_.first,
+                                open_mins_before_group_underlying_.second),
+        num_per_group_(num_per_group_underlying_.first,
+                       num_per_group_underlying_.second),
         better_than_no_split_(better_than_no_split_underlying_.first,
                               better_than_no_split_underlying_.second) {}
 
@@ -73,6 +73,8 @@ private:
   void test_splits();
 
   void filter_others();
+
+  void setup_groups();
 
   template <typename T> using ExecVecT = ExecVectorType<execution_model, T>;
 
@@ -112,8 +114,7 @@ private:
   template <typename T>
   using Pair = std::pair<T, T>;
 
-  Pair<AllEdges> x_edges_underlying_;
-  Pair<AllEdges> y_edges_underlying_;
+  std::array<AllEdges, 3> edges_underlying_;
   Pair<ZValues> sorted_by_z_min_underlying_;
   Pair<ZValues> sorted_by_z_max_underlying_;
 
@@ -126,14 +127,11 @@ private:
 
   bool is_x_;
 
-  Pair<RefT<AllEdges>> x_edges_;
-  Pair<RefT<AllEdges>> y_edges_;
-  Pair<RefT<ZValues>> sorted_by_z_min_;
-  Pair<RefT<ZValues>> sorted_by_z_max_;
-
   RefT<AllEdges> current_edges_;
   RefT<AllEdges> other_edges_;
   RefT<AllEdges> other_edges_new_;
+  Pair<RefT<ZValues>> sorted_by_z_min_;
+  Pair<RefT<ZValues>> sorted_by_z_max_;
 
   ExecVecT<unsigned> x_edges_keys_;
   ExecVecT<unsigned> y_edges_keys_;
@@ -170,10 +168,23 @@ private:
     return axis_groups_.first.get()[get_other_edge_idx()];
   }
 
-  // some subset of these may need to be made into pairs...
-  ExecVecT<unsigned> open_mins_before_group_;
-  ExecVecT<unsigned> num_per_group_;
+  inline Span<unsigned> current_edges_new_groups() {
+    return axis_groups_.second.get()[get_current_edge_idx()];
+  }
+  
+  inline Span<unsigned> other_edges_new_groups() {
+    return axis_groups_.second.get()[get_other_edge_idx()];
+  }
+
   ExecVecT<unsigned> starts_inclusive_;
+
+  Pair<ExecVecT<unsigned>> open_mins_before_group_underlying_;
+  Pair<ExecVecT<unsigned>> num_per_group_underlying_;
+  
+  Pair<RefT<ExecVecT<unsigned>>> open_mins_before_group_;
+  Pair<RefT<ExecVecT<unsigned>>> num_per_group_;
+
+
   ExecVecT<BestEdge> best_edges_;
 
   Pair<ExecVecT<uint8_t>> better_than_no_split_underlying_;
@@ -183,6 +194,8 @@ private:
   ExecVecT<unsigned> new_edge_indexes_;
   ExecVecT<unsigned> new_z_min_indexes_;
   ExecVecT<unsigned> new_z_max_indexes_;
+
+  ExecVecT<unsigned> num_groups_before_;
 
   ExecVecT<DirTreeNode> nodes_;
 

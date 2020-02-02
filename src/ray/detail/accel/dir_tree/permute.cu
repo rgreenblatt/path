@@ -67,9 +67,9 @@ void DirTreeGeneratorImpl<execution_model>::permute() {
     };
 
     if (i == 0) {
-      permute_arr(0, edge_axis(x_edges_.first, 0, 1));
+      permute_arr(0, edge_axis(current_edges_, 0, 1));
     } else if (i == 1) {
-      permute_arr(1, edge_axis(y_edges_.first, 1, 0));
+      permute_arr(1, edge_axis(other_edges_, 1, 0));
     } else if (i == 2) {
       permute_arr(2, z_min_max(true));
     } else {
