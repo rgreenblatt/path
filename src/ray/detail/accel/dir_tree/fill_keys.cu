@@ -43,7 +43,7 @@ template <> void DirTreeGeneratorImpl<ExecutionModel::GPU>::fill_keys() {
 
     max_sizes[axis] = thrust::transform_reduce(
         thrust_data_[0].execution_policy(), thrust::make_counting_iterator(0u),
-        thrust::make_counting_iterator(unsigned(groups.size())),
+        thrust::make_counting_iterator(unsigned(axis_groups_.first->size())),
         [groups] __host__ __device__(const unsigned j) {
           return group_size(j, groups);
         },

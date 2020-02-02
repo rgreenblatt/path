@@ -35,7 +35,8 @@ void DirTreeGeneratorImpl<execution_model>::find_best_edges() {
       open_mins_before_group_.first.get();
   Span<const unsigned> num_per_group = num_per_group_.first.get();
   thrust::reduce_by_key(
-      thrust_data_[0].execution_policy(), keys.begin(), keys.end(),
+      thrust_data_[0].execution_policy(), keys.begin(),
+      keys.begin() + current_edges_keys_->size(),
       thrust::make_transform_iterator(
           thrust::make_counting_iterator(0u),
           [=] __host__ __device__(const unsigned i) {

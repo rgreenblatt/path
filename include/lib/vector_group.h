@@ -17,11 +17,11 @@ public:
 
   unsigned size() const { return std::get<0>(data_).size(); }
 
-  template <unsigned i> Span<__type_pack_element<i, T...>> get() {
+  template <unsigned i> SpanSized<__type_pack_element<i, T...>> get() {
     return std::get<i>(data_);
   }
 
-  Span<FirstType> operator[](unsigned i) { return data_[i]; }
+  SpanSized<FirstType> operator[](unsigned i) { return data_[i]; }
 
 private:
   using DataType =

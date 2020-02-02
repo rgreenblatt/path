@@ -14,8 +14,9 @@ void DirTreeGeneratorImpl<execution_model>::scan_edges() {
   starts_inclusive_.resize(current_edges_->size());
 
   thrust::inclusive_scan_by_key(thrust_data_[0].execution_policy(),
-                                keys.begin(), keys.end(), to_scan.begin(),
-                                starts_inclusive_.begin());
+                                keys.begin(),
+                                keys.begin() + current_edges_keys_->size(),
+                                to_scan.begin(), starts_inclusive_.begin());
 }
 
 template class DirTreeGeneratorImpl<ExecutionModel::GPU>;

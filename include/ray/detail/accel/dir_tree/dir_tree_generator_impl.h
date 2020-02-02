@@ -92,23 +92,23 @@ private:
 
   class AllEdges : public VectorGroup<ExecVecT, float, float, float, uint8_t> {
   public:
-    Span<float> other_mins() { return this->template get<0>(); }
-    Span<float> other_maxs() { return this->template get<1>(); }
-    Span<float> values() { return this->template get<2>(); }
-    Span<uint8_t> is_mins() { return this->template get<3>(); }
+    SpanSized<float> other_mins() { return this->template get<0>(); }
+    SpanSized<float> other_maxs() { return this->template get<1>(); }
+    SpanSized<float> values() { return this->template get<2>(); }
+    SpanSized<uint8_t> is_mins() { return this->template get<3>(); }
   };
 
   // maybe one of z_min/z_max could be eliminated
   class ZValues : public VectorGroup<ExecVecT, float, float, float, float,
                                      float, float, unsigned> {
   public:
-    Span<float> x_mins() { return this->template get<0>(); }
-    Span<float> x_maxs() { return this->template get<1>(); }
-    Span<float> y_mins() { return this->template get<2>(); }
-    Span<float> y_maxs() { return this->template get<3>(); }
-    Span<float> z_mins() { return this->template get<4>(); }
-    Span<float> z_maxs() { return this->template get<5>(); }
-    Span<unsigned> idxs() { return this->template get<6>(); }
+    SpanSized<float> x_mins() { return this->template get<0>(); }
+    SpanSized<float> x_maxs() { return this->template get<1>(); }
+    SpanSized<float> y_mins() { return this->template get<2>(); }
+    SpanSized<float> y_maxs() { return this->template get<3>(); }
+    SpanSized<float> z_mins() { return this->template get<4>(); }
+    SpanSized<float> z_maxs() { return this->template get<5>(); }
+    SpanSized<unsigned> idxs() { return this->template get<6>(); }
   };
 
   template <typename T> using Pair = std::pair<T, T>;
@@ -155,19 +155,23 @@ private:
 
   inline unsigned get_other_edge_idx() { return is_x_ ? 1 : 0; }
 
-  inline Span<unsigned> current_edges_groups() {
+  inline SpanSized<unsigned> current_edges_groups() {
+
     return axis_groups_.first.get()[get_current_edge_idx()];
   }
 
-  inline Span<unsigned> other_edges_groups() {
+  inline SpanSized<unsigned> other_edges_groups() {
+
     return axis_groups_.first.get()[get_other_edge_idx()];
   }
 
-  inline Span<unsigned> current_edges_new_groups() {
+  inline SpanSized<unsigned> current_edges_new_groups() {
+
     return axis_groups_.second.get()[get_current_edge_idx()];
   }
 
-  inline Span<unsigned> other_edges_new_groups() {
+  inline SpanSized<unsigned> other_edges_new_groups() {
+
     return axis_groups_.second.get()[get_other_edge_idx()];
   }
 
