@@ -118,6 +118,7 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
 
   package_add_test(bitset "${PROJECT_SOURCE_DIR}/tests/src/bitset.cu")
   package_add_test(group "${PROJECT_SOURCE_DIR}/tests/src/group.cpp")
+  package_add_test(transform_scan "${PROJECT_SOURCE_DIR}/tests/src/transform_scan.cu")
 
   add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND}
     DEPENDS "${TEST_LIST}")
