@@ -92,11 +92,11 @@ HalfSpherePartition DirTreeGeneratorImpl<execution_model>::setup(
     }
   }
 
-  async_for<true>(0, 3, [&](unsigned axis) {
+  for (uint8_t axis = 0; axis < 3; axis++) {
     thrust::copy(thrust_data_[axis].execution_policy(),
                  axis_groups_cpu_[axis].begin(), axis_groups_cpu_[axis].end(),
                  axis_groups_.first.get()[axis].begin());
-  });
+  }
 
   return partition;
 }

@@ -35,7 +35,7 @@ void filter_values(
       thrust::make_counting_iterator(0u), [=] __host__ __device__(unsigned i) {
         auto [key, idx, is_left] = get_key_idx_is_left(i);
 
-        if (!(use_split_first[idx] || use_split_second[idx])) {
+        if (!(use_split_first[key] || use_split_second[key])) {
           return false;
         }
 
@@ -178,7 +178,7 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
   });
 
   std::swap(current_edges_, other_edges_new_);
-  std::swap(other_edges_new_, other_edges_);
+  std::swap(other_edges_, other_edges_new_);
   std::swap(current_edges_keys_, other_edges_keys_);
   std::swap(sorted_by_z_min_.first, sorted_by_z_min_.second);
   std::swap(sorted_by_z_max_.first, sorted_by_z_max_.second);

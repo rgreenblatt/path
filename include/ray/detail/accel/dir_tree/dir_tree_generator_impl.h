@@ -38,7 +38,8 @@ public:
         num_per_group_(num_per_group_underlying_.first,
                        num_per_group_underlying_.second),
         better_than_no_split_(better_than_no_split_underlying_.first,
-                              better_than_no_split_underlying_.second) {}
+                              better_than_no_split_underlying_.second),
+        node_offset_(0) {}
 
   DirTreeLookup generate(const Eigen::Projective3f &world_to_film,
                          SpanSized<const scene::ShapeData> shapes,
@@ -64,16 +65,121 @@ private:
 
   void construct();
 
+  /*
+   * Fills keys using groups.
+   *
+   * The gpu version computes a max group size per dimension and then fills in
+   * keys using a grid.
+   *
+   * Kernel launches: 2 (first gets launched async for each dim)
+   * Uses:
+   *  - axis_groups_
+   * Fills in:
+   *  - x_edges_keys_
+   *  - y_edges_keys_
+   *  - z_keys_
+   */
   void fill_keys();
 
+  /*
+   * Computes inclusive sum of is mins of the current edges. (inclusive scan by
+   * key)
+   *
+   * Kernel launches: 1
+   * Uses:
+   *  - current_edges_->is_mins()
+   *  - current_edges_keys_ (either x_edges_keys_ or y_edges_keys_)
+   * Fills in:
+   *  - starts_inclusive_
+   */
   void scan_edges();
 
+  /*
+   * Finds edges with lowest surface area heuristic cost in each group.
+   *
+   * Kernel launches: 1
+   * Uses:
+   *  - current_edges_keys_ (either x_edges_keys_ or y_edges_keys_)
+   *  - current_edges_groups() (axis_groups_)
+   *  - starts_inclusive_
+   *  - current_edges->values()
+   *  - current_edges->is_mins()
+   *  - open_mins_before_group_
+   *  - num_per_group_
+   * Fills in:
+   *  - best_edges_
+   */
   void find_best_edges();
 
+  /*
+   * Checks if each split is better than no split
+   *
+   * Kernel launches: 1
+   * Uses:
+   *  - best_edges_
+   *  - num_per_group_
+   * Fills in:
+   *  - better_than_no_split_
+   */
   void test_splits();
 
+  /*
+   * Filters other edge and z values into new vectors
+   *
+   * Kernel launchs: 2
+   * Uses:
+   *  - best_edges_
+   *  - current_edges_->values()
+   *  - other_edges_
+   *  - other_edges_keys_
+   *  - other_edges_groups()
+   *  - better_than_no_split_
+   *  - z_keys_
+   *  - sorted_by_z_min_
+   *  - sorted_by_z_max_
+   *  - axis_groups_.first.get()[2]
+   * Fills:
+   *  - new_edge_indexes_
+   *  - other_edges_new_
+   *  - new_z_min_indexes_
+   *  - new_z_max_indexes_
+   * Swaps:
+   *  - current_edges_ <- other_edges_new_
+   *  - other_edges_ <- current_edges_
+   *  - current_edges_keys_ <-> other_edges_keys_ (not strictly needed I think)
+   *  - sorted_by_z_min_.first <-> sorted_by_z_min_.second
+   *  - sorted_by_z_max_.first <-> sorted_by_z_max_.second
+   */
   void filter_others();
 
+  /*
+   * Sets up groups for the next iteration
+   *
+   * Kernel launchs: 2
+   * Uses:
+   *  - better_than_no_split_
+   *  - axis_groups_
+   *  - open_mins_before_group_
+   *  - num_per_group_
+   *  - new_edge_indexes_
+   *  - new_z_min_indexes_
+   *  - current_edges_->is_mins()
+   *  - best_edges_
+   *  - starts_inclusive_
+   * Fills:
+   *  - num_groups_before_
+   *  - axis_groups_
+   *  - open_mins_before_group_
+   *  - num_per_group_
+   *  - better_than_no_split_
+   *  - nodes_
+   * Swaps:
+   *  - node_offset_ <- new_node_offset
+   *  - axis_groups_.first <-> axis_groups_.second
+   *  - open_mins_before_group_.first <-> open_mins_before_group_.second
+   *  - num_per_group_.first <-> num_per_group_.second
+   *  - better_than_no_split_.first <-> better_than_no_split_.second
+   */
   void setup_groups();
 
   template <typename T> using ExecVecT = ExecVectorType<execution_model, T>;
@@ -193,9 +299,14 @@ private:
   ExecVecT<unsigned> new_z_min_indexes_;
   ExecVecT<unsigned> new_z_max_indexes_;
 
-  ExecVecT<unsigned> num_groups_before_;
+  ExecVecT<uint64_t> num_groups_num_z_done_before_;
+
+  unsigned node_offset_;
 
   ExecVecT<DirTreeNode> nodes_;
+  ExecVecT<Action> actions_;
+
+  HostDeviceVectorType<DirTree> dir_trees_;
 
   unsigned num_shapes_;
 

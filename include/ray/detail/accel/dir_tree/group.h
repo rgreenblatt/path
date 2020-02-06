@@ -9,9 +9,14 @@ namespace ray {
 namespace detail {
 namespace accel {
 namespace dir_tree {
+template <typename T>
+HOST_DEVICE inline T get_previous(unsigned i, Span<const T> vals) {
+  return i == 0 ? T() : vals[i - 1];
+}
+
 HOST_DEVICE inline unsigned get_previous(unsigned i,
                                          Span<const unsigned> vals) {
-  return i == 0 ? 0 : vals[i - 1];
+  return get_previous<unsigned>(i, vals);
 }
 
 HOST_DEVICE inline unsigned group_size(unsigned i,

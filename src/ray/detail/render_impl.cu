@@ -66,8 +66,16 @@ void RendererImpl<execution_model>::render(
     auto start_shape = scene_->getShapes();
     std::copy(start_shape, start_shape + num_shapes, moved_shapes_.begin());
   }
+
+  SpanSized<const scene::Light> lights_span(lights, num_lights);
+
+  if (use_dir_tree) {
+    dir_tree_generator_.generate(world_to_film, moved_shapes_, lights_span,
+                                 scene_->getMinBound(), scene_->getMinBound());
+  }
+
   if (use_kd_tree
-#if 0
+#if 1
       && !use_dir_tree
 #endif
   ) {
@@ -83,13 +91,6 @@ void RendererImpl<execution_model>::render(
     if (show_times_) {
       kdtree_timer.report("kdtree");
     }
-  }
-
-  SpanSized<const scene::Light> lights_span(lights, num_lights);
-
-  if (use_dir_tree) {
-    dir_tree_generator_.generate(world_to_film, moved_shapes_, lights_span,
-                                 scene_->getMinBound(), scene_->getMinBound());
   }
 
   for (unsigned depth = 0; depth < recursive_iterations_; depth++) {
@@ -130,25 +131,6 @@ void RendererImpl<execution_model>::render(
   }
 
   float_to_bgra(pixels, colors_);
-
-#if 0
-  auto draw_point = [&](unsigned x, unsigned y, BGRA color) {
-    for (unsigned y_draw = std::max(y, 6u) - 6; y_draw < std::min(y, height - 6);
-         y_draw++) {
-      for (unsigned x_draw = std::max(x, 6u) - 6;
-           x_draw < std::min(x, width - 6); x_draw++) {
-        pixels[x_draw + y_draw * width] = color;
-      }
-    }
-  };
-
-  for (const auto &triangle : output_triangles) {
-    for (const auto &point : triangle.points()) {
-      draw_point(((point[0] + 1) / 2) * width, ((point[1] + 1) / 2) * height,
-                 BGRA(200, 200, 200, 0));
-    }
-  }
-#endif
 }
 
 template class RendererImpl<ExecutionModel::CPU>;

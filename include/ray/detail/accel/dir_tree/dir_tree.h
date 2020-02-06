@@ -31,19 +31,15 @@ struct ALIGN_STRUCT(16) DirTreeNode {
 
   // TODO: union
   float split_point;
-  unsigned start_min;
-  unsigned end_min;
-  unsigned start_max;
-  unsigned end_max;
+  unsigned start;
+  unsigned end;
   unsigned left;
   unsigned right;
 
   Type type;
 
-  HOST_DEVICE DirTreeNode(unsigned start_min, unsigned end_min,
-                          unsigned start_max, unsigned end_max)
-      : start_min(start_min), end_min(end_min), start_max(start_max),
-        end_max(end_max), type(Type::Indexes) {}
+  HOST_DEVICE DirTreeNode(unsigned start, unsigned end)
+      : start(start), end(end), type(Type::Indexes) {}
 
   HOST_DEVICE DirTreeNode(float split_point, unsigned left, unsigned right)
       : split_point(split_point), left(left), right(right), type(Type::Split) {}
@@ -57,6 +53,7 @@ struct ALIGN_STRUCT(32) DirTree {
   // is it worth special casing rotation?
   Eigen::Projective3f transform;
   Span<const DirTreeNode> nodes;
+  // TODO
   Span<const Action> actions;
 
   HOST_DEVICE DirTree(Eigen::Projective3f transform,

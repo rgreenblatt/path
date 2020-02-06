@@ -84,6 +84,7 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/permute.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/scan_edges.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/setup.cu"
+  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/setup_groups.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/sort.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/sphere_partition.cpp"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/test_splits.cu"
@@ -116,6 +117,7 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
   endmacro()
 
   package_add_test(bitset "${PROJECT_SOURCE_DIR}/tests/src/bitset.cu")
+  package_add_test(group "${PROJECT_SOURCE_DIR}/tests/src/group.cpp")
 
   add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND}
     DEPENDS "${TEST_LIST}")

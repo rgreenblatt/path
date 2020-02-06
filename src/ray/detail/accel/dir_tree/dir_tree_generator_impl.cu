@@ -12,6 +12,8 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
     SpanSized<const scene::ShapeData> shapes,
     SpanSized<const scene::Light> lights, const Eigen::Vector3f &min_bound,
     const Eigen::Vector3f &max_bound) {
+  is_x_ = true;
+
   num_shapes_ = shapes.size();
 
   Timer setup_timer;
@@ -87,7 +89,15 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
 
   construct_trees_timer.report("construct trees");
 
-  return DirTreeLookup(Span<const DirTree>(0, 0), 0, 0, 0, partition);
+  dir_trees_.resize(transforms_.size());
+
+  for (unsigned i = 0; i < transforms_.size(); i++) {
+    Span<const DirTreeNode> nodes = nodes_;
+    Span<const DirTreeNode> nodes_shifted(nodes.data() + i, nodes_.size() - i);
+    dir_trees_[i] = DirTree(transforms_[i], nodes_shifted, actions_);
+  }
+
+  return DirTreeLookup(dir_trees_, 0, 1, lights.size() + 1, partition);
 }
 
 template class DirTreeGeneratorImpl<ExecutionModel::CPU>;

@@ -6,7 +6,10 @@
 
 inline HOST_DEVICE uint32_t popcount(uint32_t v) {
   static_assert(sizeof(uint32_t) == sizeof(unsigned));
+  static_assert(sizeof(uint32_t) == sizeof(int));
 #ifdef __CUDA_ARCH__
+  // this type is technically int (signed), but this works on all uint32_t (see
+  // tests)
   return __popc(v);
 #else
   return __builtin_popcount(v);
@@ -15,7 +18,10 @@ inline HOST_DEVICE uint32_t popcount(uint32_t v) {
 
 inline HOST_DEVICE uint64_t popcount(uint64_t v) {
   static_assert(sizeof(uint64_t) == sizeof(unsigned long long));
+  static_assert(sizeof(uint64_t) == sizeof(long long int));
 #ifdef __CUDA_ARCH__
+  // this type is technically long long int (signed), but this works on all
+  // uint64_t (see tests)
   return __popcll(v);
 #else
   return __builtin_popcountll(v);

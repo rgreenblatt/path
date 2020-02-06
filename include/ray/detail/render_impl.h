@@ -11,8 +11,6 @@
 
 #include <thrust/device_vector.h>
 
-#include <chrono>
-
 namespace ray {
 namespace detail {
 template <ExecutionModel execution_model> class RendererImpl {
@@ -35,16 +33,6 @@ private:
                      SpanSized<const scene::Light> lights,
                      Span<const scene::TextureImageRef> textures);
 
-  std::chrono::high_resolution_clock::time_point current_time() {
-    return std::chrono::high_resolution_clock::now();
-  }
-
-  double to_secs(std::chrono::high_resolution_clock::time_point start,
-                 std::chrono::high_resolution_clock::time_point end) {
-    return std::chrono::duration_cast<std::chrono::duration<double>>(end -
-                                                                     start)
-        .count();
-  }
   void fill(const scene::Color &initial_multiplier,
             const scene::Color &initial_color,
             const Eigen::Affine3f &m_film_to_world);
