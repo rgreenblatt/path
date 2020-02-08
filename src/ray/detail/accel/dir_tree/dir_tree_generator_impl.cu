@@ -94,7 +94,7 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
   for (unsigned i = 0; i < transforms_.size(); i++) {
     Span<const DirTreeNode> nodes = nodes_;
     Span<const DirTreeNode> nodes_shifted(nodes.data() + i, nodes_.size() - i);
-    dir_trees_[i] = DirTree(transforms_[i], nodes_shifted, actions_);
+    /* dir_trees_[i] = DirTree(transforms_[i], nodes_shifted, actions_); */
   }
 
   return DirTreeLookup(dir_trees_, 0, 1, lights.size() + 1, partition);

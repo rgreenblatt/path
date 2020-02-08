@@ -304,7 +304,6 @@ private:
   unsigned node_offset_;
 
   ExecVecT<DirTreeNode> nodes_;
-  ExecVecT<Action> actions_;
 
   HostDeviceVectorType<DirTree> dir_trees_;
 

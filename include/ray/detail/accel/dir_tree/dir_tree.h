@@ -11,18 +11,6 @@ namespace ray {
 namespace detail {
 namespace accel {
 namespace dir_tree {
-struct Action {
-  unsigned shape_idx;
-  float min_dist;
-  float max_dist;
-
-  HOST_DEVICE Action(unsigned shape_idx, float min_dist, float max_dist)
-      : shape_idx(shape_idx), min_dist(min_dist), max_dist(max_dist) {}
-
-  HOST_DEVICE
-  Action() {}
-};
-
 struct ALIGN_STRUCT(16) DirTreeNode {
   enum class Type {
     Indexes,
@@ -53,12 +41,32 @@ struct ALIGN_STRUCT(32) DirTree {
   // is it worth special casing rotation?
   Eigen::Projective3f transform;
   Span<const DirTreeNode> nodes;
-  // TODO
-  Span<const Action> actions;
+
+  Span<const float> min_sorted_values;
+  Span<const float> min_sorted_inclusive_maxes;
+  Span<const unsigned> min_sorted_indexes;
+
+  Span<const float> max_sorted_values;
+  Span<const float> max_sorted_inclusive_mins;
+  Span<const unsigned> max_sorted_indexes;
+
+  // TODO: indexes should become triangles/shapes?
 
   HOST_DEVICE DirTree(Eigen::Projective3f transform,
-                      Span<const DirTreeNode> nodes, Span<const Action> actions)
-      : transform(transform), nodes(nodes), actions(actions) {}
+                      Span<const DirTreeNode> nodes,
+                      Span<const float> min_sorted_values,
+                      Span<const float> min_sorted_inclusive_maxes,
+                      Span<const unsigned> min_sorted_indexes,
+                      Span<const float> max_sorted_values,
+                      Span<const float> max_sorted_inclusive_mins,
+                      Span<const unsigned> max_sorted_indexes)
+      : transform(transform), nodes(nodes),
+        min_sorted_values(min_sorted_values),
+        min_sorted_inclusive_maxes(min_sorted_inclusive_maxes),
+        min_sorted_indexes(min_sorted_indexes),
+        max_sorted_values(max_sorted_values),
+        max_sorted_inclusive_mins(max_sorted_inclusive_mins),
+        max_sorted_indexes(max_sorted_indexes) {}
 
   HOST_DEVICE DirTree() {}
 };
