@@ -68,12 +68,12 @@ struct ALIGN_STRUCT(32) DirTree {
         max_sorted_inclusive_mins(max_sorted_inclusive_mins),
         max_sorted_indexes(max_sorted_indexes) {}
 
-  HOST_DEVICE DirTree() {}
+  HOST_DEVICE DirTree() = default;
 };
 
 class ALIGN_STRUCT(32) DirTreeLookup {
 public:
-  DirTreeLookup() {}
+  HOST_DEVICE DirTreeLookup() = default;
 
   DirTreeLookup(Span<const DirTree> dir_trees, unsigned camera_idx,
                 unsigned start_lights_idx, unsigned start_partition_idx,
