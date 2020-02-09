@@ -47,10 +47,7 @@ void DirTreeGeneratorImpl<execution_model>::find_best_edges() {
             float last_value_in_region = edge_values[end - 1];
             float this_value = edge_values[i];
 
-            if (last_value_in_region <= first_value_in_region) {
-              printf_dbg(first_value_in_region);
-              printf_dbg(last_value_in_region);
-            }
+            assert(last_value_in_region >= first_value_in_region);
 
             float prop_left = get_prop_left(this_value, first_value_in_region,
                                             last_value_in_region);
