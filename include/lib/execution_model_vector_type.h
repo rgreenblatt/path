@@ -1,40 +1,36 @@
 #pragma once
 
-#include "lib/cuda/managed_mem_vec.h"
 #include "lib/execution_model.h"
+#include "lib/vector_type.h"
 
-#include <thrust/device_vector.h>
-#include <vector>
+namespace execution_model {
+namespace detail {
+template <ExecutionModel execution_model, typename T> struct exec_vector;
 
-template <typename T> using HostVectorType = std::vector<T>;
-template <typename T> using DeviceVectorType = thrust::device_vector<T>;
-template <typename T> using HostDeviceVectorType = ManangedMemVec<T>;
-
-template <ExecutionModel execution_model, typename T>
-struct get_exec_vector_type;
-
-template <typename T> struct get_exec_vector_type<ExecutionModel::CPU, T> {
-  using type = HostVectorType<T>;
+template <typename T> struct exec_vector<ExecutionModel::CPU, T> {
+  using type = HostVector<T>;
 };
 
-template <typename T> struct get_exec_vector_type<ExecutionModel::GPU, T> {
-  using type = DeviceVectorType<T>;
+template <typename T> struct exec_vector<ExecutionModel::GPU, T> {
+  using type = DeviceVector<T>;
 };
 
-template <ExecutionModel execution_model, typename T>
-using ExecVectorType = typename get_exec_vector_type<execution_model, T>::type;
+template <ExecutionModel execution_model, typename T> struct shared_vector;
 
-template <ExecutionModel execution_model, typename T>
-struct get_shared_vector_type;
-
-template <typename T> struct get_shared_vector_type<ExecutionModel::CPU, T> {
-  using type = HostVectorType<T>;
+template <typename T> struct shared_vector<ExecutionModel::CPU, T> {
+  using type = HostVector<T>;
 };
 
-template <typename T> struct get_shared_vector_type<ExecutionModel::GPU, T> {
-  using type = HostDeviceVectorType<T>;
+template <typename T> struct shared_vector<ExecutionModel::GPU, T> {
+  using type = HostDeviceVector<T>;
 };
+} // namespace detail
+} // namespace execution_model
 
 template <ExecutionModel execution_model, typename T>
-using SharedVectorType =
-    typename get_shared_vector_type<execution_model, T>::type;
+using ExecVector =
+    typename execution_model::detail::exec_vector<execution_model, T>::type;
+
+template <ExecutionModel execution_model, typename T>
+using SharedVector =
+    typename execution_model::detail::shared_vector<execution_model, T>::type;

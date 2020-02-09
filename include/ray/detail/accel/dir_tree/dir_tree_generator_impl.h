@@ -39,7 +39,7 @@ public:
                        num_per_group_underlying_.second),
         better_than_no_split_(better_than_no_split_underlying_.first,
                               better_than_no_split_underlying_.second),
-        node_offset_(0) {}
+        node_offset_(0), output_values_offset_(0) {}
 
   DirTreeLookup generate(const Eigen::Projective3f &world_to_film,
                          SpanSized<const scene::ShapeData> shapes,
@@ -182,17 +182,17 @@ private:
    */
   void setup_groups();
 
-  template <typename T> using ExecVecT = ExecVectorType<execution_model, T>;
+  template <typename T> using ExecVecT = ExecVector<execution_model, T>;
 
-  HostDeviceVectorType<HalfSpherePartition::Region> sphere_partition_regions_;
+  HostDeviceVector<HalfSpherePartition::Region> sphere_partition_regions_;
 
-  HostDeviceVectorType<Eigen::Projective3f> transforms_;
-  HostDeviceVectorType<BoundingPoints> bounds_;
+  HostDeviceVector<Eigen::Projective3f> transforms_;
+  HostDeviceVector<BoundingPoints> bounds_;
   ExecVecT<IdxAABB> aabbs_;
 
   // x edges, y edges, z min, z max
   static constexpr unsigned num_sortings = 4;
-  HostDeviceVectorType<Eigen::Vector3f> sort_offsets_;
+  HostDeviceVector<Eigen::Vector3f> sort_offsets_;
   std::array<ExecVecT<float>, num_sortings> sorting_values_;
   std::array<ExecVecT<unsigned>, num_sortings> indexes_;
 
@@ -249,7 +249,7 @@ private:
   using AxisGroups = VectorGroup<VecT, unsigned, unsigned, unsigned>;
 
   // inclusive scan...
-  AxisGroups<HostVectorType> axis_groups_cpu_;
+  AxisGroups<HostVector> axis_groups_cpu_;
 
   Pair<AxisGroups<ExecVecT>> axis_groups_underlying_;
 
@@ -299,13 +299,25 @@ private:
   ExecVecT<unsigned> new_z_min_indexes_;
   ExecVecT<unsigned> new_z_max_indexes_;
 
-  ExecVecT<uint64_t> num_groups_num_z_done_before_;
+  ExecVecT<unsigned> num_groups_inclusive_;
+  ExecVecT<unsigned> z_outputs_inclusive_;
 
   unsigned node_offset_;
+  unsigned output_values_offset_;
 
   ExecVecT<DirTreeNode> nodes_;
 
-  HostDeviceVectorType<DirTree> dir_trees_;
+  ExecVecT<unsigned> output_keys_;
+
+  ExecVecT<float> min_sorted_values_;
+  ExecVecT<float> min_sorted_inclusive_maxes_;
+  ExecVecT<unsigned> min_sorted_indexes_;
+
+  ExecVecT<float> max_sorted_values_;
+  ExecVecT<float> max_sorted_inclusive_mins_;
+  ExecVecT<unsigned> max_sorted_indexes_;
+
+  HostDeviceVector<DirTree> dir_trees_;
 
   unsigned num_shapes_;
 

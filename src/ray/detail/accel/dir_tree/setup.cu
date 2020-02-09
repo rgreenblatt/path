@@ -23,7 +23,11 @@ HalfSpherePartition DirTreeGeneratorImpl<execution_model>::setup(
   axis_groups_.first->resize_all(num_dir_trees);
   axis_groups_cpu_.resize_all(num_dir_trees);
   open_mins_before_group_.first->resize(num_dir_trees, 0);
-  num_per_group_.first->resize(num_dir_trees, num_shapes_);
+  thrust::fill(open_mins_before_group_.first->begin(),
+               open_mins_before_group_.first->end(), 0);
+  num_per_group_.first->resize(num_dir_trees);
+  thrust::fill(num_per_group_.first->begin(), num_per_group_.first->end(),
+               num_shapes_);
 
   unsigned transform_idx = 0;
 

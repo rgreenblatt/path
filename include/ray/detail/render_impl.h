@@ -43,7 +43,7 @@ private:
 
   void float_to_bgra(BGRA *pixels, Span<const scene::Color> colors);
 
-  template <typename T> using ExecVecT = ExecVectorType<execution_model, T>;
+  template <typename T> using ExecVecT = ExecVector<execution_model, T>;
 
   const BlockData block_data_;
   unsigned real_x_dim_;
@@ -56,8 +56,8 @@ private:
 
   std::unique_ptr<scene::Scene> scene_;
 
-  HostDeviceVectorType<accel::kdtree::KDTreeNode<accel::AABB>> kdtree_nodes_;
-  HostDeviceVectorType<accel::kdtree::KDTreeNode<accel::AABB>> sort_nodes_;
+  HostDeviceVector<accel::kdtree::KDTreeNode<accel::AABB>> kdtree_nodes_;
+  HostDeviceVector<accel::kdtree::KDTreeNode<accel::AABB>> sort_nodes_;
 
   ExecVecT<Eigen::Vector3f> world_space_eyes_;
   ExecVecT<Eigen::Vector3f> world_space_directions_;
@@ -66,8 +66,8 @@ private:
   ExecVecT<uint8_t> disables_;
   ExecVecT<scene::Color> colors_;
   ExecVecT<BGRA> bgra_;
-  HostDeviceVectorType<uint8_t> group_disables_;
-  HostDeviceVectorType<unsigned> group_indexes_;
+  HostDeviceVector<uint8_t> group_disables_;
+  HostDeviceVector<unsigned> group_indexes_;
 
   accel::dir_tree::DirTreeGenerator<execution_model> dir_tree_generator_;
 };

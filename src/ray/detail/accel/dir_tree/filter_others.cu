@@ -9,14 +9,16 @@ namespace ray {
 namespace detail {
 namespace accel {
 namespace dir_tree {
-template <typename FResize, typename FCopyTo, typename ExecPolicy>
+template <typename FResize, typename FCopyTo, typename FCopyToOutputs,
+          typename ExecPolicy>
 void filter_values(
     Span<const float> edge_values, Span<const BestEdge> best_edges,
     Span<const float> compare_data_mins, Span<const float> compare_data_maxs,
     Span<const unsigned> keys, Span<const unsigned> groups,
     Span<const uint8_t> use_split_first, Span<const uint8_t> use_split_second,
     Span<unsigned> new_indexes, unsigned size, const FResize &resize,
-    const FCopyTo &copy_to_new, const ExecPolicy &execution_policy) {
+    const FCopyTo &copy_to_new, const FCopyToOutputs &copy_to_outputs,
+    const ExecPolicy &execution_policy) {
   auto get_key_idx_is_left = [=] __host__ __device__(unsigned i) {
     unsigned key = keys[i / 2];
     auto [start, end] = group_start_end(key, groups);
@@ -55,9 +57,11 @@ void filter_values(
                    start_counting_it + size,
                    [=] __host__ __device__(unsigned i) {
                      unsigned previous_value = get_previous(i, new_indexes);
+                     auto [key, idx, is_left] = get_key_idx_is_left(i);
                      if (new_indexes[i] != previous_value) {
-                       auto [key, idx, is_left] = get_key_idx_is_left(i);
                        copy_to_new(idx, previous_value);
+                     } else {
+                       copy_to_outputs(idx, key);
                      }
                    });
 }
@@ -66,6 +70,17 @@ template <ExecutionModel execution_model>
 void DirTreeGeneratorImpl<execution_model>::filter_others() {
   Span<const BestEdge> best_edges = best_edges_;
   Span<const float> edge_values = current_edges_->values();
+
+  unsigned new_size = output_values_offset_ +
+                      z_outputs_inclusive_[z_outputs_inclusive_.size() - 1];
+
+  output_keys_.resize(new_size);
+  min_sorted_values_.resize(new_size);
+  min_sorted_inclusive_maxes_.resize(new_size);
+  min_sorted_indexes_.resize(new_size);
+  max_sorted_values_.resize(new_size);
+  max_sorted_inclusive_mins_.resize(new_size);
+  max_sorted_indexes_.resize(new_size);
 
   async_for<true>(0, 3, [&](unsigned i) {
     if (i == 0) {
@@ -91,7 +106,9 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
       filter_values(
           edge_values, best_edges, compare_data_mins, compare_data_maxs, keys,
           groups, better_than_no_split_.first.get(),
-          better_than_no_split_.second.get(), new_edge_indexes_, size,
+          better_than_no_split_.second.get(),
+
+          new_edge_indexes_, size,
           [&] {
             unsigned new_size = new_edge_indexes_[size - 1];
             other_edges_new_->resize_all(new_size);
@@ -109,15 +126,18 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
             new_other_edges_values[new_index] = other_edges_values[old_index];
             new_other_edges_is_mins[new_index] = other_edges_is_mins[old_index];
           },
+          [] __host__ __device__(unsigned, unsigned) {},
           thrust_data_[i].execution_policy());
 
     } else {
       Span<const unsigned> keys = z_keys_;
 
+      bool is_x_min = i == 1;
+
       ZValues &old_z_vals =
-          (i == 1 ? sorted_by_z_min_ : sorted_by_z_max_).first;
+          (is_x_min ? sorted_by_z_min_ : sorted_by_z_max_).first;
       ZValues &new_z_vals =
-          (i == 1 ? sorted_by_z_min_ : sorted_by_z_max_).second;
+          (is_x_min ? sorted_by_z_min_ : sorted_by_z_max_).second;
 
       // kinda extra...
       Span<const float> old_z_vals_x_min = old_z_vals.x_mins();
@@ -141,6 +161,23 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
       Span<const float> compare_data_maxs =
           is_x_ ? old_z_vals.x_maxs() : old_z_vals.y_maxs();
       Span<const unsigned> groups = axis_groups_.first.get()[2];
+      Span<const unsigned> outputs_inclusive = z_outputs_inclusive_;
+
+      auto values = old_z_vals_z_max;
+      auto other_values = old_z_vals_z_min;
+      if (is_x_min) {
+        std::swap(values, other_values);
+      }
+
+      Span<float> output_values =
+          is_x_min ? min_sorted_values_ : max_sorted_values_;
+      Span<float> output_other_values =
+          is_x_min ? min_sorted_inclusive_maxes_ : max_sorted_inclusive_mins_;
+      Span<unsigned> output_indexes =
+          is_x_min ? min_sorted_indexes_ : max_sorted_indexes_;
+      Span<unsigned> output_keys = output_keys_;
+
+      unsigned output_offset = output_values_offset_;
 
       unsigned size = old_z_vals.size() * 2;
 
@@ -151,7 +188,7 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
       filter_values(
           edge_values, best_edges, compare_data_mins, compare_data_maxs, keys,
           groups, better_than_no_split_.first.get(),
-          better_than_no_split_.second.get(), new_edge_indexes_, size,
+          better_than_no_split_.second.get(), indexes, size,
           [&] {
             unsigned new_size = indexes[size - 1];
             new_z_vals.resize_all(new_size);
@@ -173,15 +210,23 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
             new_z_vals_z_max[new_index] = old_z_vals_z_max[old_index];
             new_z_vals_idx[new_index] = old_z_vals_idx[old_index];
           },
+          [=] __host__ __device__(unsigned idx, unsigned key) {
+            unsigned start_idx_for_group =
+                get_previous(key, outputs_inclusive) + output_offset;
+            auto [start, end] = group_start_end(key, groups);
+            unsigned general_idx = start_idx_for_group + (idx - start);
+
+            output_values[general_idx] = values[idx];
+            output_other_values[general_idx] = other_values[idx];
+            output_indexes[general_idx] = old_z_vals_idx[idx];
+            if (is_x_min) {
+              // output offset is larger than needed, but should work
+              output_keys[general_idx] = key + output_offset;
+            }
+          },
           thrust_data_[i].execution_policy());
     }
   });
-
-  std::swap(current_edges_, other_edges_new_);
-  std::swap(other_edges_, other_edges_new_);
-  std::swap(current_edges_keys_, other_edges_keys_);
-  std::swap(sorted_by_z_min_.first, sorted_by_z_min_.second);
-  std::swap(sorted_by_z_max_.first, sorted_by_z_max_.second);
 }
 template class DirTreeGeneratorImpl<ExecutionModel::CPU>;
 template class DirTreeGeneratorImpl<ExecutionModel::GPU>;

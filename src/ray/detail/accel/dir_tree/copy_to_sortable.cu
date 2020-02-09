@@ -2,7 +2,6 @@
 #include "lib/span_convertable_vector.h"
 #include "ray/detail/accel/dir_tree/dir_tree_generator_impl.h"
 #include "ray/detail/block_data.h"
-#include "ray/detail/render_impl_utils.h"
 
 #include <future>
 

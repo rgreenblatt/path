@@ -1,16 +1,18 @@
 #include "lib/bitset.h"
 #include "lib/caching_thrust_allocator.h"
 #include "lib/cuda/utils.h"
+#include "lib/device_vector.h"
 #include "lib/span_convertable_device_vector.h"
 #include "lib/thrust_data.h"
+
 #include <benchmark/benchmark.h>
 #include <thrust/device_vector.h>
 #include <thrust/scan.h>
 
 template <typename T> static void standard(benchmark::State &state) {
   ThrustData<ExecutionModel::GPU> thrust_data;
-  thrust::device_vector<T> in(unsigned(state.range(0)));
-  thrust::device_vector<uint32_t> out(unsigned(state.range(0)));
+  DeviceVector<T> in(unsigned(state.range(0)));
+  DeviceVector<uint32_t> out(unsigned(state.range(0)));
 
   for (auto _ : state) {
     thrust::exclusive_scan(thrust_data.execution_policy(), in.begin(), in.end(),
@@ -21,9 +23,9 @@ template <typename T> static void standard(benchmark::State &state) {
 template <typename TVals, typename TKeys>
 static void standard_keys(benchmark::State &state) {
   ThrustData<ExecutionModel::GPU> thrust_data;
-  thrust::device_vector<TVals> in(unsigned(state.range(0)));
-  thrust::device_vector<TKeys> keys(unsigned(state.range(0)));
-  thrust::device_vector<uint32_t> out(unsigned(state.range(0)));
+  DeviceVector<TVals> in(unsigned(state.range(0)));
+  DeviceVector<TKeys> keys(unsigned(state.range(0)));
+  DeviceVector<uint32_t> out(unsigned(state.range(0)));
 
   for (auto _ : state) {
     thrust::exclusive_scan_by_key(thrust_data.execution_policy(), keys.begin(),
@@ -34,8 +36,8 @@ static void standard_keys(benchmark::State &state) {
 template <typename Block> static void bitset_direct(benchmark::State &state) {
   ThrustData<ExecutionModel::GPU> thrust_data;
   uint32_t size_per = BitSetRef<Block>::bits_per_block;
-  thrust::device_vector<Block> in(unsigned(state.range(0)) / size_per);
-  thrust::device_vector<uint32_t> out(unsigned(state.range(0)));
+  DeviceVector<Block> in(unsigned(state.range(0)) / size_per);
+  DeviceVector<uint32_t> out(unsigned(state.range(0)));
 
   BitSetRef<Block> bit_set(in, unsigned(state.range(0)));
 
@@ -54,8 +56,8 @@ template <typename Block> static void bitset_popcount(benchmark::State &state) {
   ThrustData<ExecutionModel::GPU> thrust_data;
   unsigned size_per = BitSetRef<Block>::bits_per_block;
   unsigned num_blocks = unsigned(state.range(0)) / size_per;
-  thrust::device_vector<Block> in(num_blocks);
-  thrust::device_vector<uint32_t> out(num_blocks);
+  DeviceVector<Block> in(num_blocks);
+  DeviceVector<uint32_t> out(num_blocks);
 
   BitSetRef<Block> bit_set(in, unsigned(state.range(0)));
 
@@ -76,9 +78,9 @@ template <typename Block>
 static void bitset_direct_keys(benchmark::State &state) {
   ThrustData<ExecutionModel::GPU> thrust_data;
   unsigned size_per = BitSetRef<Block>::bits_per_block;
-  thrust::device_vector<Block> in(unsigned(state.range(0)) / size_per);
-  thrust::device_vector<Block> keys(unsigned(state.range(0)) / size_per);
-  thrust::device_vector<uint32_t> out(unsigned(state.range(0)));
+  DeviceVector<Block> in(unsigned(state.range(0)) / size_per);
+  DeviceVector<Block> keys(unsigned(state.range(0)) / size_per);
+  DeviceVector<uint32_t> out(unsigned(state.range(0)));
 
   BitSetRef<Block> bit_set_in(in, unsigned(state.range(0)));
   BitSetRef<Block> bit_set_keys(keys, unsigned(state.range(0)));
@@ -107,11 +109,10 @@ template <typename Block>
 static void bitset_popcount_keys(benchmark::State &state) {
   ThrustData<ExecutionModel::GPU> thrust_data;
   unsigned size_per = BitSetRef<Block>::bits_per_block;
-  thrust::device_vector<Block> in(unsigned(state.range(0)) / size_per);
-  thrust::device_vector<Block> keys(unsigned(state.range(0)) / size_per);
-  thrust::device_vector<uint32_t> keys_periodic(unsigned(state.range(0)) /
-                                                size_per);
-  thrust::device_vector<uint32_t> out(unsigned(state.range(0)));
+  DeviceVector<Block> in(unsigned(state.range(0)) / size_per);
+  DeviceVector<Block> keys(unsigned(state.range(0)) / size_per);
+  DeviceVector<uint32_t> keys_periodic(unsigned(state.range(0)) / size_per);
+  DeviceVector<uint32_t> out(unsigned(state.range(0)));
 
   BitSetRef<Block> bit_set_in(in, unsigned(state.range(0)));
   BitSetRef<Block> bit_set_keys(keys, unsigned(state.range(0)));

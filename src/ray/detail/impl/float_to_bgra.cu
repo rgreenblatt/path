@@ -5,7 +5,6 @@
 #include "ray/detail/block_data.h"
 #include "ray/detail/impl/float_to_bgra.h"
 #include "ray/detail/render_impl.h"
-#include "ray/detail/render_impl_utils.h"
 
 namespace ray {
 namespace detail {

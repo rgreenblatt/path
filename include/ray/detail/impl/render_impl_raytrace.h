@@ -5,7 +5,6 @@
 #include "ray/detail/impl/raytrace.h"
 #include "ray/detail/intersection/solve.h"
 #include "ray/detail/render_impl.h"
-#include "ray/detail/render_impl_utils.h"
 
 namespace ray {
 namespace detail {

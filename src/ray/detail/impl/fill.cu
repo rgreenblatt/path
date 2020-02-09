@@ -2,7 +2,6 @@
 #include "lib/span_convertable_vector.h"
 #include "ray/detail/impl/fill.h"
 #include "ray/detail/render_impl.h"
-#include "ray/detail/render_impl_utils.h"
 
 #include <thrust/fill.h>
 

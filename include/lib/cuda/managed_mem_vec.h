@@ -4,6 +4,7 @@
 
 #include <vector>
 
+// consider using construct method to override default initalization
 template <class T> struct UMAllocator {
   typedef T value_type;
   UMAllocator() {}

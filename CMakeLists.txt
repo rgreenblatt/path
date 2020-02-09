@@ -118,7 +118,10 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
 
   package_add_test(bitset "${PROJECT_SOURCE_DIR}/tests/src/bitset.cu")
   package_add_test(group "${PROJECT_SOURCE_DIR}/tests/src/group.cpp")
-  package_add_test(transform_scan "${PROJECT_SOURCE_DIR}/tests/src/transform_scan.cu")
+  package_add_test(device_vector
+    "${PROJECT_SOURCE_DIR}/tests/src/device_vector.cu")
+  package_add_test(lambda_check
+    "${PROJECT_SOURCE_DIR}/tests/src/lambda_check.cu")
 
   add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND}
     DEPENDS "${TEST_LIST}")
@@ -173,12 +176,3 @@ target_add_standard_include(image_test)
 #   )
 # target_link_libraries(video_test Qt5::Widgets Qt5::Xml renderer ${OpenCV_LIBS})
 # target_add_standard_include(video_test)
-
-# TODO: remove and refactor into package_add_bench
-# add_executable(
-#   sort_bench
-#   "${PROJECT_SOURCE_DIR}/src/bin/sort_bench.cu"
-#   "${PROJECT_SOURCE_DIR}/src/lib/parallel_for_loop.cpp"
-#   )
-# target_add_standard_include(sort_bench)
-# target_link_libraries(sort_bench Threads::Threads)
