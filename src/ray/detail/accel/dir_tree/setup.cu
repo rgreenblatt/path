@@ -88,11 +88,15 @@ HalfSpherePartition DirTreeGeneratorImpl<execution_model>::setup(
     });
   }
 
-  for (unsigned collar = 0; collar < partition.regions().size(); collar++) {
-    unsigned start = partition.regions()[collar].start_index;
-    unsigned end = partition.regions()[collar].end_index;
+  for (unsigned colatitude_div_idx = 0;
+       colatitude_div_idx < partition.colatitude_divs().size();
+       colatitude_div_idx++) {
+    unsigned start =
+        partition.colatitude_divs()[colatitude_div_idx].start_index;
+    unsigned end = partition.colatitude_divs()[colatitude_div_idx].end_index;
     for (unsigned region = 0; region < end - start; region++) {
-      add_transform_vec(false, partition.get_center_vec(collar, region));
+      add_transform_vec(false,
+                        partition.get_center_vec(colatitude_div_idx, region));
     }
   }
 

@@ -29,14 +29,14 @@ template <typename T> static void popcount_test(std::mt19937 &gen) {
   transform_values(thrust::device, gpu_out);
 
   for (unsigned i = 0; i < size; i++) {
-    ASSERT_EQ(gpu_out[i], cpu_out[i]);
+    EXPECT_EQ(gpu_out[i], cpu_out[i]);
   }
 
-  ASSERT_EQ(gpu_out[0], T(14));
-  ASSERT_EQ(cpu_out[0], T(14));
+  EXPECT_EQ(gpu_out[0], T(14));
+  EXPECT_EQ(cpu_out[0], T(14));
   T max_value_bits = sizeof(T) * CHAR_BIT;
-  ASSERT_EQ(gpu_out[1], max_value_bits);
-  ASSERT_EQ(cpu_out[1], max_value_bits);
+  EXPECT_EQ(gpu_out[1], max_value_bits);
+  EXPECT_EQ(cpu_out[1], max_value_bits);
 }
 
 TEST(BitSet, popcount) {
@@ -67,7 +67,7 @@ template <typename T> static void count_leading_zeros_test(std::mt19937 &gen) {
   transform_values(thrust::device, gpu_out);
 
   for (unsigned i = 0; i < size; i++) {
-    ASSERT_EQ(gpu_out[i], cpu_out[i]);
+    EXPECT_EQ(gpu_out[i], cpu_out[i]);
   }
 }
 
@@ -79,9 +79,9 @@ TEST(BitSet, count_leading_zeros) {
 }
 
 TEST(BitSet, up_to_mask) {
-  ASSERT_EQ(BitSetRef<unsigned>::up_to_mask(0), 0b1u);
-  ASSERT_EQ(BitSetRef<unsigned>::up_to_mask(3), 0b1111u);
-  ASSERT_EQ(BitSetRef<unsigned>::up_to_mask(31),
+  EXPECT_EQ(BitSetRef<unsigned>::up_to_mask(0), 0b1u);
+  EXPECT_EQ(BitSetRef<unsigned>::up_to_mask(3), 0b1111u);
+  EXPECT_EQ(BitSetRef<unsigned>::up_to_mask(31),
             0b11111111111111111111111111111111u);
 }
 
@@ -91,13 +91,13 @@ TEST(BitSet, num_bits_set_inclusive_up_to) {
                                   0b11111111111111111111111111111111u};
   BitSetRef<unsigned> bit_set(values, 5 * 32);
 
-  ASSERT_EQ(bit_set.num_bits_set_inclusive_up_to(0, 0), 1u);
-  ASSERT_EQ(bit_set.num_bits_set_inclusive_up_to(0, 8), 7u);
-  ASSERT_EQ(bit_set.num_bits_set_inclusive_up_to(0, 20), 13u);
-  ASSERT_EQ(bit_set.num_bits_set_inclusive_up_to(1, 8), 0u);
-  ASSERT_EQ(bit_set.num_bits_set_inclusive_up_to(1, 31), 0u);
-  ASSERT_EQ(bit_set.num_bits_set_inclusive_up_to(4, 16), 17u);
-  ASSERT_EQ(bit_set.num_bits_set_inclusive_up_to(4, 31), 32u);
+  EXPECT_EQ(bit_set.num_bits_set_inclusive_up_to(0, 0), 1u);
+  EXPECT_EQ(bit_set.num_bits_set_inclusive_up_to(0, 8), 7u);
+  EXPECT_EQ(bit_set.num_bits_set_inclusive_up_to(0, 20), 13u);
+  EXPECT_EQ(bit_set.num_bits_set_inclusive_up_to(1, 8), 0u);
+  EXPECT_EQ(bit_set.num_bits_set_inclusive_up_to(1, 31), 0u);
+  EXPECT_EQ(bit_set.num_bits_set_inclusive_up_to(4, 16), 17u);
+  EXPECT_EQ(bit_set.num_bits_set_inclusive_up_to(4, 31), 32u);
 }
 
 TEST(BitSet, find_mask_same) {
@@ -106,16 +106,16 @@ TEST(BitSet, find_mask_same) {
                                   0b11111111111111111111111111111111u};
   BitSetRef<unsigned> bit_set(values, 5 * 32);
 
-  ASSERT_EQ(bit_set.find_mask_same(0, 0), 1u);
-  ASSERT_EQ(bit_set.find_mask_same(0, 8), 0b111000000u);
-  ASSERT_EQ(bit_set.find_mask_same(0, 20), 0b110000000000000000000u);
-  ASSERT_EQ(bit_set.find_mask_same(1, 8), 0b111111111u);
-  ASSERT_EQ(bit_set.find_mask_same(1, 31), 0b11111111111111111111111111111111u);
-  ASSERT_EQ(bit_set.find_mask_same(1, 31), 0b11111111111111111111111111111111u);
-  ASSERT_EQ(bit_set.find_mask_block_end(1),
+  EXPECT_EQ(bit_set.find_mask_same(0, 0), 1u);
+  EXPECT_EQ(bit_set.find_mask_same(0, 8), 0b111000000u);
+  EXPECT_EQ(bit_set.find_mask_same(0, 20), 0b110000000000000000000u);
+  EXPECT_EQ(bit_set.find_mask_same(1, 8), 0b111111111u);
+  EXPECT_EQ(bit_set.find_mask_same(1, 31), 0b11111111111111111111111111111111u);
+  EXPECT_EQ(bit_set.find_mask_same(1, 31), 0b11111111111111111111111111111111u);
+  EXPECT_EQ(bit_set.find_mask_block_end(1),
             0b11111111111111111111111111111111u);
-  ASSERT_EQ(bit_set.find_mask_same(4, 16), 0b11111111111111111u);
-  ASSERT_EQ(bit_set.find_mask_same(4, 31), 0b11111111111111111111111111111111u);
-  ASSERT_EQ(bit_set.find_mask_block_end(4),
+  EXPECT_EQ(bit_set.find_mask_same(4, 16), 0b11111111111111111u);
+  EXPECT_EQ(bit_set.find_mask_same(4, 31), 0b11111111111111111111111111111111u);
+  EXPECT_EQ(bit_set.find_mask_block_end(4),
             0b11111111111111111111111111111111u);
 }

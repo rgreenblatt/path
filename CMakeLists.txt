@@ -122,6 +122,9 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
     "${PROJECT_SOURCE_DIR}/tests/src/device_vector.cu")
   package_add_test(lambda_check
     "${PROJECT_SOURCE_DIR}/tests/src/lambda_check.cu")
+  package_add_test(sphere_partition
+    "${PROJECT_SOURCE_DIR}/tests/src/sphere_partition.cpp")
+  target_link_libraries(sphere_partition renderer)
 
   add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND}
     DEPENDS "${TEST_LIST}")

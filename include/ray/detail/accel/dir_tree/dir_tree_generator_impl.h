@@ -184,7 +184,7 @@ private:
 
   template <typename T> using ExecVecT = ExecVector<execution_model, T>;
 
-  HostDeviceVector<HalfSpherePartition::Region> sphere_partition_regions_;
+  HostDeviceVector<HalfSpherePartition::ColatitudeDiv> sphere_partition_regions_;
 
   HostDeviceVector<Eigen::Projective3f> transforms_;
   HostDeviceVector<BoundingPoints> bounds_;

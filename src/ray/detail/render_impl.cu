@@ -75,7 +75,7 @@ void RendererImpl<execution_model>::render(
   }
 
   if (use_kd_tree
-#if 1
+#if 0
       && !use_dir_tree
 #endif
   ) {

@@ -1,4 +1,5 @@
 #include "ray/detail/accel/dir_tree/sphere_partition.h"
+#include "lib/span_convertable_vector.h"
 
 #include <cmath>
 
@@ -12,8 +13,9 @@ inline float area_of_cap(float s_cap) {
   return 4 * float(M_PI) * sin_v * sin_v;
 }
 
-HalfSpherePartition::HalfSpherePartition(unsigned target_num_regions,
-                                         ManangedMemVec<Region> &regions) {
+HalfSpherePartition::HalfSpherePartition(
+    unsigned target_num_regions,
+    HostDeviceVector<ColatitudeDiv> &colatitude_divs) {
   const float area_of_half_sphere = 2 * float(M_PI);
   const float area_of_ideal_region = area_of_half_sphere / target_num_regions;
 
@@ -30,12 +32,12 @@ HalfSpherePartition::HalfSpherePartition(unsigned target_num_regions,
 
   std::vector<unsigned> num_regions(n_collars);
 
-  for (unsigned collar_num = 0; collar_num < n_collars; collar_num++) {
+  for (unsigned collar_idx = 0; collar_idx < n_collars; collar_idx++) {
     // difference between above and below is area of collar
     float ideal_collar_area =
-        area_of_cap(polar_colatitude + (collar_num + 1) * fitting_angle) -
-        area_of_cap(polar_colatitude + collar_num * fitting_angle);
-    num_regions[collar_num] =
+        area_of_cap(polar_colatitude + (collar_idx + 1) * fitting_angle) -
+        area_of_cap(polar_colatitude + collar_idx * fitting_angle);
+    num_regions[collar_idx] =
         std::round(ideal_collar_area / area_of_ideal_region);
   }
 
@@ -43,20 +45,20 @@ HalfSpherePartition::HalfSpherePartition(unsigned target_num_regions,
 
   colatitude_inverse_interval_ = 1.0f / fitting_angle;
 
-  regions.resize(n_collars + 1);
+  colatitude_divs.resize(n_collars + 1);
 
   unsigned total_num_regions = 0;
-  regions[0] = Region(0.0, 0, 1);
+  colatitude_divs[0] = ColatitudeDiv(0.0, 0, 1);
   total_num_regions++;
-  for (unsigned collar_num = 0; collar_num < n_collars; collar_num++) {
-    unsigned this_num_regions = num_regions[collar_num];
-    regions[collar_num] =
-        Region(this_num_regions / 2.0f * float(M_PI), total_num_regions,
-               total_num_regions + this_num_regions);
+  for (unsigned collar_idx = 0; collar_idx < n_collars; collar_idx++) {
+    unsigned this_num_regions = num_regions[collar_idx];
+    colatitude_divs[collar_idx + 1] =
+        ColatitudeDiv(this_num_regions / (2.0f * float(M_PI)),
+                      total_num_regions, total_num_regions + this_num_regions);
     total_num_regions += this_num_regions;
   }
 
-  regions_ = SpanSized<const Region>(regions.data(), regions.size());
+  colatitude_divs_ = colatitude_divs;
 }
 } // namespace dir_tree
 } // namespace accel

@@ -10,9 +10,9 @@ TEST(Group, get_previous) {
     std::vector arr = {1u, 2u, 3u, 4u, 5u};
 
     for (unsigned i = 1; i < arr.size(); i++) {
-      ASSERT_EQ(arr[i - 1], get_previous(i, arr));
+      EXPECT_EQ(arr[i - 1], get_previous(i, arr));
     }
-    ASSERT_EQ(0, get_previous(0, arr));
+    EXPECT_EQ(0, get_previous(0, arr));
   }
 
   {
@@ -21,15 +21,15 @@ TEST(Group, get_previous) {
     Span<const std::array<unsigned, 2>> arr_span = arr;
 
     for (unsigned i = 1; i < arr.size(); i++) {
-      ASSERT_EQ(arr[i - 1], get_previous(i, arr_span));
+      EXPECT_EQ(arr[i - 1], get_previous(i, arr_span));
     }
-    ASSERT_EQ(0, get_previous(0, arr_span)[0]);
-    ASSERT_EQ(0, get_previous(0, arr_span)[1]);
+    EXPECT_EQ(0, get_previous(0, arr_span)[0]);
+    EXPECT_EQ(0, get_previous(0, arr_span)[1]);
   }
-  
+
   int a = int();
-  ASSERT_EQ(a, 0);
+  EXPECT_EQ(a, 0);
   std::array<unsigned, 2> arr = std::array<unsigned, 2>();
-  ASSERT_EQ(arr[0], 0);
-  ASSERT_EQ(arr[1], 0);
+  EXPECT_EQ(arr[0], 0);
+  EXPECT_EQ(arr[1], 0);
 }
