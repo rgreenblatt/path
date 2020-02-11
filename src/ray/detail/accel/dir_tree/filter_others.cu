@@ -9,16 +9,14 @@ namespace ray {
 namespace detail {
 namespace accel {
 namespace dir_tree {
-template <typename FResize, typename FCopyTo, typename FCopyToOutputs,
-          typename ExecPolicy>
+template <typename FResize, typename FCopyToOutputs, typename ExecPolicy>
 void filter_values(
-    Span<const float> edge_values, Span<const BestEdge> best_edges,
+    Span<const float> edge_values, Span<const unsigned> best_edges_idxs,
     Span<const float> compare_data_mins, Span<const float> compare_data_maxs,
     Span<const unsigned> keys, Span<const unsigned> groups,
     Span<const uint8_t> use_split_first, Span<const uint8_t> use_split_second,
     Span<unsigned> new_indexes, unsigned size, const FResize &resize,
-    const FCopyTo &copy_to_new, const FCopyToOutputs &copy_to_outputs,
-    const ExecPolicy &execution_policy) {
+    const FCopyToOutputs &copy_to_outputs, const ExecPolicy &execution_policy) {
   auto get_key_idx_is_left = [=] __host__ __device__(unsigned i) {
     unsigned key = keys[i / 2];
     auto [start, end] = group_start_end(key, groups);
@@ -33,15 +31,19 @@ void filter_values(
     return std::make_tuple(key, idx, is_left);
   };
 
+  auto not_using_split = [=] __host__ __device__(unsigned key) {
+    return !(use_split_first[key] || use_split_second[key]);
+  };
+
   auto start_it = thrust::make_transform_iterator(
       thrust::make_counting_iterator(0u), [=] __host__ __device__(unsigned i) {
         auto [key, idx, is_left] = get_key_idx_is_left(i);
 
-        if (!(use_split_first[key] || use_split_second[key])) {
+        if (not_using_split(key)) {
           return false;
         }
 
-        float edge_value = edge_values[best_edges[key].idx];
+        float edge_value = edge_values[best_edges_idxs[key]];
 
         return is_left ? compare_data_mins[idx] < edge_value
                        : compare_data_maxs[idx] > edge_value;
@@ -50,7 +52,7 @@ void filter_values(
   thrust::inclusive_scan(execution_policy, start_it, start_it + size,
                          new_indexes.begin());
 
-  resize();
+  auto copy_to_new = resize();
 
   auto start_counting_it = thrust::make_counting_iterator(0u);
   thrust::for_each(execution_policy, start_counting_it,
@@ -60,7 +62,8 @@ void filter_values(
                      auto [key, idx, is_left] = get_key_idx_is_left(i);
                      if (new_indexes[i] != previous_value) {
                        copy_to_new(idx, previous_value);
-                     } else {
+                     }
+                     if (not_using_split(key)) {
                        copy_to_outputs(idx, key);
                      }
                    });
@@ -68,7 +71,6 @@ void filter_values(
 
 template <ExecutionModel execution_model>
 void DirTreeGeneratorImpl<execution_model>::filter_others() {
-  Span<const BestEdge> best_edges = best_edges_;
   Span<const float> edge_values = current_edges_->values();
 
   unsigned new_size = output_values_offset_ +
@@ -82,7 +84,9 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
   max_sorted_inclusive_mins_.resize(new_size);
   max_sorted_indexes_.resize(new_size);
 
-  async_for<true>(0, 3, [&](unsigned i) {
+  auto best_edges_idxs = best_edges_.idxs();
+
+  async_for(use_async_, 0, 3, [&](unsigned i) {
     if (i == 0) {
       unsigned size = other_edges_->size() * 2;
 
@@ -98,14 +102,9 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
       Span<const float> other_edges_values = other_edges_->values();
       Span<const uint8_t> other_edges_is_mins = other_edges_->is_mins();
 
-      Span<float> new_other_edges_other_mins;
-      Span<float> new_other_edges_other_maxs;
-      Span<float> new_other_edges_values;
-      Span<uint8_t> new_other_edges_is_mins;
-
       filter_values(
-          edge_values, best_edges, compare_data_mins, compare_data_maxs, keys,
-          groups, better_than_no_split_.first.get(),
+          edge_values, best_edges_idxs, compare_data_mins, compare_data_maxs,
+          keys, groups, better_than_no_split_.first.get(),
           better_than_no_split_.second.get(),
 
           new_edge_indexes_, size,
@@ -113,18 +112,21 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
             unsigned new_size = new_edge_indexes_[size - 1];
             other_edges_new_->resize_all(new_size);
 
-            new_other_edges_other_mins = other_edges_new_->other_mins();
-            new_other_edges_other_maxs = other_edges_new_->other_maxs();
-            new_other_edges_values = other_edges_new_->values();
-            new_other_edges_is_mins = other_edges_new_->is_mins();
-          },
-          [=] __host__ __device__(unsigned old_index, unsigned new_index) {
-            new_other_edges_other_mins[new_index] =
-                other_edges_other_mins[old_index];
-            new_other_edges_other_maxs[new_index] =
-                other_edges_other_maxs[old_index];
-            new_other_edges_values[new_index] = other_edges_values[old_index];
-            new_other_edges_is_mins[new_index] = other_edges_is_mins[old_index];
+            auto new_other_edges_other_mins = other_edges_new_->other_mins();
+            auto new_other_edges_other_maxs = other_edges_new_->other_maxs();
+            auto new_other_edges_values = other_edges_new_->values();
+            auto new_other_edges_is_mins = other_edges_new_->is_mins();
+
+            return [=] __host__ __device__(unsigned old_index,
+                                           unsigned new_index) {
+              new_other_edges_other_mins[new_index] =
+                  other_edges_other_mins[old_index];
+              new_other_edges_other_maxs[new_index] =
+                  other_edges_other_maxs[old_index];
+              new_other_edges_values[new_index] = other_edges_values[old_index];
+              new_other_edges_is_mins[new_index] =
+                  other_edges_is_mins[old_index];
+            };
           },
           [] __host__ __device__(unsigned, unsigned) {},
           thrust_data_[i].execution_policy());
@@ -147,14 +149,6 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
       Span<const float> old_z_vals_z_min = old_z_vals.z_mins();
       Span<const float> old_z_vals_z_max = old_z_vals.z_maxs();
       Span<const unsigned> old_z_vals_idx = old_z_vals.idxs();
-
-      Span<float> new_z_vals_x_min;
-      Span<float> new_z_vals_x_max;
-      Span<float> new_z_vals_y_min;
-      Span<float> new_z_vals_y_max;
-      Span<float> new_z_vals_z_min;
-      Span<float> new_z_vals_z_max;
-      Span<unsigned> new_z_vals_idx;
 
       Span<const float> compare_data_mins =
           is_x_ ? old_z_vals.x_mins() : old_z_vals.y_mins();
@@ -186,29 +180,31 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
       indexes.resize(size);
 
       filter_values(
-          edge_values, best_edges, compare_data_mins, compare_data_maxs, keys,
-          groups, better_than_no_split_.first.get(),
+          edge_values, best_edges_idxs, compare_data_mins, compare_data_maxs,
+          keys, groups, better_than_no_split_.first.get(),
           better_than_no_split_.second.get(), indexes, size,
           [&] {
             unsigned new_size = indexes[size - 1];
             new_z_vals.resize_all(new_size);
 
-            new_z_vals_x_min = new_z_vals.x_mins();
-            new_z_vals_x_max = new_z_vals.x_maxs();
-            new_z_vals_y_min = new_z_vals.y_mins();
-            new_z_vals_y_max = new_z_vals.y_maxs();
-            new_z_vals_z_min = new_z_vals.z_mins();
-            new_z_vals_z_max = new_z_vals.z_maxs();
-            new_z_vals_idx = new_z_vals.idxs();
-          },
-          [=] __host__ __device__(unsigned old_index, unsigned new_index) {
-            new_z_vals_x_min[new_index] = old_z_vals_x_min[old_index];
-            new_z_vals_x_max[new_index] = old_z_vals_x_max[old_index];
-            new_z_vals_y_min[new_index] = old_z_vals_y_min[old_index];
-            new_z_vals_y_max[new_index] = old_z_vals_y_max[old_index];
-            new_z_vals_z_min[new_index] = old_z_vals_z_min[old_index];
-            new_z_vals_z_max[new_index] = old_z_vals_z_max[old_index];
-            new_z_vals_idx[new_index] = old_z_vals_idx[old_index];
+            auto new_z_vals_x_min = new_z_vals.x_mins();
+            auto new_z_vals_x_max = new_z_vals.x_maxs();
+            auto new_z_vals_y_min = new_z_vals.y_mins();
+            auto new_z_vals_y_max = new_z_vals.y_maxs();
+            auto new_z_vals_z_min = new_z_vals.z_mins();
+            auto new_z_vals_z_max = new_z_vals.z_maxs();
+            auto new_z_vals_idx = new_z_vals.idxs();
+
+            return [=] __host__ __device__(unsigned old_index,
+                                           unsigned new_index) {
+              new_z_vals_x_min[new_index] = old_z_vals_x_min[old_index];
+              new_z_vals_x_max[new_index] = old_z_vals_x_max[old_index];
+              new_z_vals_y_min[new_index] = old_z_vals_y_min[old_index];
+              new_z_vals_y_max[new_index] = old_z_vals_y_max[old_index];
+              new_z_vals_z_min[new_index] = old_z_vals_z_min[old_index];
+              new_z_vals_z_max[new_index] = old_z_vals_z_max[old_index];
+              new_z_vals_idx[new_index] = old_z_vals_idx[old_index];
+            };
           },
           [=] __host__ __device__(unsigned idx, unsigned key) {
             unsigned start_idx_for_group =

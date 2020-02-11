@@ -9,7 +9,7 @@ namespace accel {
 namespace dir_tree {
 template <ExecutionModel execution_model>
 void DirTreeGeneratorImpl<execution_model>::sort() {
-  async_for<true>(0, num_sortings, [&](unsigned i) {
+  async_for(use_async_, 0, num_sortings, [&](unsigned i) {
     thrust::sort_by_key(thrust_data_[i].execution_policy(),
                         sorting_values_[i].data(),
                         sorting_values_[i].data() + sorting_values_[i].size(),

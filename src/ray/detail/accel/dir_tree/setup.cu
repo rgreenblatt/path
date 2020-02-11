@@ -12,7 +12,8 @@ HalfSpherePartition DirTreeGeneratorImpl<execution_model>::setup(
     const Eigen::Projective3f &world_to_film,
     SpanSized<const scene::Light> lights, const Eigen::Vector3f &min_bound,
     const Eigen::Vector3f &max_bound) {
-  unsigned region_target = 32;
+  /* unsigned region_target = 32; */
+  unsigned region_target = 1;
 
   HalfSpherePartition partition(region_target, sphere_partition_regions_);
 
@@ -22,16 +23,16 @@ HalfSpherePartition DirTreeGeneratorImpl<execution_model>::setup(
   sort_offsets_.resize(num_dir_trees);
   axis_groups_.first->resize_all(num_dir_trees);
   axis_groups_cpu_.resize_all(num_dir_trees);
-  open_mins_before_group_.first->resize(num_dir_trees, 0);
-  thrust::fill(open_mins_before_group_.first->begin(),
-               open_mins_before_group_.first->end(), 0);
+  open_mins_before_group_.first->resize(num_dir_trees);
+  thrust::fill(thrust_data_[0].execution_policy(),
+               open_mins_before_group_.first->data(),
+               open_mins_before_group_.first->data() + num_dir_trees, 0);
   num_per_group_.first->resize(num_dir_trees);
-  thrust::fill(num_per_group_.first->begin(), num_per_group_.first->end(),
-               num_shapes_);
+  thrust::fill(thrust_data_[0].execution_policy(), num_per_group_.first->data(),
+               num_per_group_.first->data() + num_dir_trees, num_shapes_);
 
   unsigned transform_idx = 0;
 
-  Eigen::Vector3f overall_min = Eigen::Vector3f::Zero();
   Eigen::Vector3f overall_max = Eigen::Vector3f::Zero();
 
   auto add_transform = [&](const Eigen::Projective3f &transf) {
@@ -44,22 +45,27 @@ HalfSpherePartition DirTreeGeneratorImpl<execution_model>::setup(
     axis_groups_cpu_[1][transform_idx] = end_edges;
     axis_groups_cpu_[2][transform_idx] = end_z;
 
+    // line up ranges end to end
     auto [transf_min_bound, transf_max_bound] =
         get_transformed_bounds(transf, min_bound, max_bound);
 
     for (auto axis : {0, 1, 2}) {
-      if (std::abs(overall_min[axis]) < std::abs(overall_max[axis])) {
-        sort_offsets_[transform_idx][axis] =
-            overall_min[axis] - transf_max_bound[axis];
-        overall_min[axis] =
-            transf_min_bound[axis] + sort_offsets_[transform_idx][axis];
+      if (transform_idx == 0) {
+        sort_offsets_[transform_idx][axis] = 0;
       } else {
         sort_offsets_[transform_idx][axis] =
             overall_max[axis] - transf_min_bound[axis];
-        overall_max[axis] =
-            transf_max_bound[axis] + sort_offsets_[transform_idx][axis];
       }
+      overall_max[axis] =
+          transf_max_bound[axis] + sort_offsets_[transform_idx][axis] + 1e-5;
     }
+
+#ifdef DEBUG_PRINT
+    std::cout << "transform:\n" << transf << std::endl;
+    std::cout << "transformed min bound:\n" << transf_min_bound << std::endl;
+    std::cout << "transformed max bound:\n" << transf_max_bound << std::endl;
+    std::cout << "offset:\n" << sort_offsets_[transform_idx] << std::endl;
+#endif
 
     transform_idx++;
   };
@@ -72,8 +78,14 @@ HalfSpherePartition DirTreeGeneratorImpl<execution_model>::setup(
       add_transform(scene::get_unhinging(30.0f) *
                     Eigen::Translation3f(-loc_or_dir));
     } else {
-      add_transform(Eigen::Projective3f(
-          scene::look_at(loc_or_dir, Eigen::Vector3f(0, 1, 0))));
+#pragma message("This can fail if direction is too close to look")
+      const auto t = Eigen::Projective3f(
+          scene::look_at(loc_or_dir, Eigen::Vector3f(1, 1, 0)));
+#ifdef DEBUG_PRINT
+      std::cout << "loc or dir: " << loc_or_dir << std::endl;
+      std::cout << "transform: " << t << std::endl;
+#endif
+      add_transform(t);
     }
   };
 

@@ -7,7 +7,7 @@ namespace accel {
 namespace dir_tree {
 template <ExecutionModel execution_model>
 void DirTreeGeneratorImpl<execution_model>::fill_indexes() {
-  async_for<true>(0, num_sortings, [&](unsigned i) {
+  async_for(use_async_, 0, num_sortings, [&](unsigned i) {
     thrust::copy(thrust_data_[i].execution_policy(),
                  thrust::make_counting_iterator(0u),
                  thrust::make_counting_iterator(unsigned(indexes_[i].size())),

@@ -3,12 +3,12 @@
 #include "lib/cuda/managed_mem_vec.h"
 #include "lib/execution_model.h"
 #include "lib/execution_model_vector_type.h"
+#include "lib/reference_type.h"
 #include "lib/span.h"
 #include "lib/span_convertable_device_vector.h"
 #include "lib/span_convertable_vector.h"
 #include "lib/thrust_data.h"
 #include "lib/vector_group.h"
-#include "ray/detail/accel/dir_tree/best_edge.h"
 #include "ray/detail/accel/dir_tree/bounding_points.h"
 #include "ray/detail/accel/dir_tree/dir_tree.h"
 #include "ray/detail/accel/dir_tree/idx_aabb.h"
@@ -22,24 +22,7 @@ namespace accel {
 namespace dir_tree {
 template <ExecutionModel execution_model> class DirTreeGeneratorImpl {
 public:
-  DirTreeGeneratorImpl()
-      : is_x_(true), current_edges_(edges_underlying_[0]),
-        other_edges_(edges_underlying_[1]),
-        other_edges_new_(edges_underlying_[2]),
-        sorted_by_z_min_(sorted_by_z_min_underlying_.first,
-                         sorted_by_z_min_underlying_.second),
-        sorted_by_z_max_(sorted_by_z_max_underlying_.first,
-                         sorted_by_z_max_underlying_.second),
-        current_edges_keys_(x_edges_keys_), other_edges_keys_(y_edges_keys_),
-        axis_groups_(axis_groups_underlying_.first,
-                     axis_groups_underlying_.second),
-        open_mins_before_group_(open_mins_before_group_underlying_.first,
-                                open_mins_before_group_underlying_.second),
-        num_per_group_(num_per_group_underlying_.first,
-                       num_per_group_underlying_.second),
-        better_than_no_split_(better_than_no_split_underlying_.first,
-                              better_than_no_split_underlying_.second),
-        node_offset_(0), output_values_offset_(0) {}
+  DirTreeGeneratorImpl();
 
   DirTreeLookup generate(const Eigen::Projective3f &world_to_film,
                          SpanSized<const scene::ShapeData> shapes,
@@ -184,7 +167,8 @@ private:
 
   template <typename T> using ExecVecT = ExecVector<execution_model, T>;
 
-  HostDeviceVector<HalfSpherePartition::ColatitudeDiv> sphere_partition_regions_;
+  HostDeviceVector<HalfSpherePartition::ColatitudeDiv>
+      sphere_partition_regions_;
 
   HostDeviceVector<Eigen::Projective3f> transforms_;
   HostDeviceVector<BoundingPoints> bounds_;
@@ -223,12 +207,7 @@ private:
   Pair<ZValues> sorted_by_z_min_underlying_;
   Pair<ZValues> sorted_by_z_max_underlying_;
 
-  template <typename T> class RefT : public std::reference_wrapper<T> {
-  public:
-    RefT(T &v) : std::reference_wrapper<T>(v) {}
-    T *operator->() { return &this->get(); }
-    const T *operator->() const { return &this->get(); }
-  };
+  bool use_async_;
 
   bool is_x_;
 
@@ -237,6 +216,13 @@ private:
   RefT<AllEdges> other_edges_new_;
   Pair<RefT<ZValues>> sorted_by_z_min_;
   Pair<RefT<ZValues>> sorted_by_z_max_;
+
+  std::array<ExecVecT<std::array<float, 2>>, 4> group_min_max_underlying_;
+
+  RefT<ExecVecT<std::array<float, 2>>> current_edges_min_max_;
+  RefT<ExecVecT<std::array<float, 2>>> other_edges_min_max_;
+  RefT<ExecVecT<std::array<float, 2>>> current_edges_min_max_new_;
+  RefT<ExecVecT<std::array<float, 2>>> other_edges_min_max_new_;
 
   ExecVecT<unsigned> x_edges_keys_;
   ExecVecT<unsigned> y_edges_keys_;
@@ -289,7 +275,14 @@ private:
   Pair<RefT<ExecVecT<unsigned>>> open_mins_before_group_;
   Pair<RefT<ExecVecT<unsigned>>> num_per_group_;
 
-  ExecVecT<BestEdge> best_edges_;
+  class BestEdges : public VectorGroup<ExecVecT, float, unsigned, uint8_t> {
+  public:
+    SpanSized<float> costs() { return this->template get<0>(); }
+    SpanSized<unsigned> idxs() { return this->template get<1>(); }
+    SpanSized<uint8_t> side_of_size_zero() { return this->template get<2>(); }
+  };
+
+  BestEdges best_edges_;
 
   Pair<ExecVecT<uint8_t>> better_than_no_split_underlying_;
 

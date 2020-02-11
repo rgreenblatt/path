@@ -6,6 +6,8 @@
 #include <Eigen/Geometry>
 #include <thrust/optional.h>
 
+#include <iostream>
+
 namespace ray {
 namespace detail {
 namespace accel {
@@ -45,6 +47,17 @@ public:
     }
   }
 
+  friend std::ostream &operator<<(std::ostream &s, const AABB &v) {
+    s << "min bound: "
+      << "\n"
+      << v.min_bound_ << "\n"
+      << "max bound: "
+      << "\n"
+      << v.max_bound_ << "\n";
+
+    return s;
+  }
+
 private:
   Eigen::Vector3f min_bound_;
   Eigen::Vector3f max_bound_;
@@ -78,7 +91,7 @@ inline std::tuple<Eigen::Vector3f, Eigen::Vector3f> get_transformed_bounds(
     }
   }
 
-  return std::make_tuple(min_transformed_bound, max_transformed_bound);
+  return {min_transformed_bound, max_transformed_bound};
 }
 } // namespace accel
 } // namespace detail

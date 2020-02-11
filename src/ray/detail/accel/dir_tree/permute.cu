@@ -11,7 +11,19 @@ namespace accel {
 namespace dir_tree {
 template <ExecutionModel execution_model>
 void DirTreeGeneratorImpl<execution_model>::permute() {
-  async_for<true>(0, num_sortings, [&](unsigned i) {
+  unsigned num_dir_trees = num_groups();
+  current_edges_min_max_->resize(num_dir_trees);
+  other_edges_min_max_->resize(num_dir_trees);
+
+  nodes_.resize(2 * num_dir_trees + 1);
+  node_offset_ = nodes_.size();
+
+  // set void node as node at zero
+  nodes_[0] = DirTreeNode(0, 0);
+
+  Span<DirTreeNode> nodes = nodes_;
+
+  async_for(use_async_, 0, num_sortings, [&](unsigned i) {
     auto permute_arr = [&](unsigned i, const auto f) {
       Span<unsigned> indexes(indexes_[i]);
       thrust::for_each(
@@ -23,11 +35,14 @@ void DirTreeGeneratorImpl<execution_model>::permute() {
 
     Span<const IdxAABB> aabbs(aabbs_);
 
-    auto edge_axis = [&](AllEdges &edges, uint8_t axis, uint8_t other_axis) {
+    auto edge_axis = [&](AllEdges &edges,
+                         Span<std::array<float, 2>> group_min_maxs,
+                         uint8_t axis, uint8_t other_axis) {
       Span<float> other_mins = edges.other_mins();
       Span<float> other_maxs = edges.other_maxs();
       Span<float> values = edges.values();
       Span<uint8_t> is_mins = edges.is_mins();
+      unsigned num_edges_per = 2 * num_shapes_;
 
       return [=] __host__ __device__(unsigned k, unsigned index) {
         bool is_min = !bool(index % 2);
@@ -38,8 +53,26 @@ void DirTreeGeneratorImpl<execution_model>::permute() {
 
         other_mins[k] = min_b[other_axis];
         other_maxs[k] = max_b[other_axis];
-        values[k] = is_min ? min_b[axis] : max_b[axis];
+        float value = is_min ? min_b[axis] : max_b[axis];
+        values[k] = value;
         is_mins[k] = is_min;
+
+
+        if (k % num_edges_per == 0) {
+        unsigned group_idx = k / num_edges_per;
+          // first in group
+          assert(is_min);
+          group_min_maxs[group_idx][0] = value;
+          nodes[group_idx + 1] =
+              DirTreeNode(min_b[axis], 0, group_idx + 1 + num_dir_trees);
+        } else if ((k + num_edges_per - 1) % num_edges_per == 0) {
+        unsigned group_idx = k / num_edges_per;
+          // last in group
+          assert(!is_min);
+          group_min_maxs[group_idx][1] = value;
+          nodes[group_idx + 1 + num_dir_trees] =
+              DirTreeNode(value, group_idx + 1 + (num_dir_trees * 2), 0);
+        }
       };
     };
 
@@ -67,9 +100,10 @@ void DirTreeGeneratorImpl<execution_model>::permute() {
     };
 
     if (i == 0) {
-      permute_arr(0, edge_axis(current_edges_, 0, 1));
+      permute_arr(
+          0, edge_axis(current_edges_, current_edges_min_max_.get(), 0, 1));
     } else if (i == 1) {
-      permute_arr(1, edge_axis(other_edges_, 1, 0));
+      permute_arr(1, edge_axis(other_edges_, other_edges_min_max_.get(), 1, 0));
     } else if (i == 2) {
       permute_arr(2, z_min_max(true));
     } else {

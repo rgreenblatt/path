@@ -29,6 +29,8 @@ public:
 
   constexpr Span() = default;
 
+  constexpr bool empty() const { return size() == 0; }
+
   constexpr std::size_t size() const {
     static_assert(is_sized, "size method can't be used if span isn't sized");
     return size_;

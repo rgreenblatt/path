@@ -62,7 +62,7 @@ void run_test(unsigned width, unsigned height, unsigned super_sampling_rate,
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 9) {
+  if (argc != 10) {
     std::cout << "wrong num args" << std::endl;
 
     return 1;
@@ -75,6 +75,7 @@ int main(int argc, char *argv[]) {
   const bool use_kd_tree = boost::lexical_cast<bool>(argv[6]);
   const bool use_dir_tree = boost::lexical_cast<bool>(argv[7]);
   const bool render_cpu = boost::lexical_cast<bool>(argv[8]);
+  const bool render_gpu = boost::lexical_cast<bool>(argv[9]);
 
   scene::CS123Scene scene(argv[1], width, height);
 
@@ -93,10 +94,12 @@ int main(int argc, char *argv[]) {
     std::cout << "=============" << std::endl;
   }
 
-  std::cout << "rendering gpu" << std::endl;
-  run_test<ExecutionModel::GPU>(
-      width, height, super_sampling_rate, scene, film_to_world, world_to_film,
-      "gpu_" + file_name, depth, use_kd_tree, use_dir_tree);
+  if (render_gpu) {
+    std::cout << "rendering gpu" << std::endl;
+    run_test<ExecutionModel::GPU>(
+        width, height, super_sampling_rate, scene, film_to_world, world_to_film,
+        "gpu_" + file_name, depth, use_kd_tree, use_dir_tree);
+  }
 
   return 0;
 }

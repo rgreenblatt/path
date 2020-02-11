@@ -2,6 +2,8 @@
 
 #include "ray/detail/accel/aabb.h"
 
+#include <iostream>
+
 namespace ray {
 namespace detail {
 namespace accel {
@@ -15,6 +17,13 @@ struct IdxAABB {
   HOST_DEVICE IdxAABB() {}
 
 public:
+  friend std::ostream &operator<<(std::ostream &s, const IdxAABB &v) {
+    s << "idx: " << v.idx << "\n"
+      << "AABB: " << "\n" << v.aabb << "\n";
+
+    return s;
+  }
+
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 } // namespace dir_tree

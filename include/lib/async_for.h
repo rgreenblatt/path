@@ -1,10 +1,10 @@
 #include <functional>
 #include <future>
 
-template <bool is_async, typename F>
-void async_for(unsigned start, unsigned end, const F &f) {
+template <typename F>
+void async_for(bool is_async, unsigned start, unsigned end, const F &f) {
   // alternative async strategy may be better...
-  if constexpr (is_async) {
+  if (is_async) {
     std::vector<std::future<void>> results(end - start);
 
     for (unsigned i = start; i < end; i++) {

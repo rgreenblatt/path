@@ -38,7 +38,7 @@ template <> void DirTreeGeneratorImpl<ExecutionModel::GPU>::fill_keys() {
   Timer max_size_timer;
 
   std::array<unsigned, 3> max_sizes;
-  async_for<true>(0, 3, [&](unsigned axis) {
+  async_for(use_async_, 0, 3, [&](unsigned axis) {
     auto groups = axis_groups_.first.get()[axis];
 
     max_sizes[axis] = thrust::transform_reduce(
@@ -65,7 +65,7 @@ template <> void DirTreeGeneratorImpl<ExecutionModel::GPU>::fill_keys() {
 
   Timer fill_keys_timer;
 
-  async_for<true>(0, 3, [&](unsigned axis) {
+  async_for(use_async_, 0, 3, [&](unsigned axis) {
     unsigned block_size_elements =
         (std::min(block_total_size, max_sizes[axis] / num_elements_per_thread) /
          32) *
