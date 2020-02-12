@@ -62,9 +62,15 @@ TEST(SpherePartition, construct) {
     }
   };
 
-  for (unsigned size : {1, 2, 3, 4, 6, 11, 37}) {
+  for (unsigned size : {1, 2, 3, 4, 6, 11, 37, 60}) {
     HostDeviceVector<HalfSpherePartition::ColatitudeDiv> regions;
     HalfSpherePartition partition(size, regions);
+    dbg(size);
+    auto divs = partition.colatitude_divs();
+    unsigned num_divs = divs.size();
+    dbg(num_divs);
+    auto last_div = divs[num_divs - 1];
+    dbg(last_div.end_index - last_div.start_index);
     check_properties(partition);
   }
 }
@@ -82,11 +88,11 @@ TEST(SpherePartition, get_closest) {
               (std::tuple{0u, true}));
     EXPECT_EQ(partition.get_closest({-0.5, 0.5, -0.03}),
               (std::tuple{1u, false}));
-    EXPECT_EQ(partition.get_closest({-0.5, -0.5, 0.03}),
+    EXPECT_EQ(partition.get_closest({0.5, -0.5, 0.03}),
               (std::tuple{1u, true}));
     EXPECT_EQ(partition.get_closest({-0.5, 0.5, 0.03}),
               (std::tuple{4u, false}));
-    EXPECT_EQ(partition.get_closest({-0.5, 0.5, -0.03}),
+    EXPECT_EQ(partition.get_closest({0.5, -0.5, -0.03}),
               (std::tuple{4u, true}));
 }
 

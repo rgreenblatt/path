@@ -75,6 +75,9 @@ HalfSpherePartition::get_closest(float colatitude, float longitude) const {
     // flip to side of half
     colatitude = M_PI - colatitude;
     longitude = M_PI + longitude;
+    if (longitude > M_PI) {
+      longitude = -M_PI + (longitude - M_PI);
+    }
   }
 
   const auto &region = colatitude_divs_[std::floor(
