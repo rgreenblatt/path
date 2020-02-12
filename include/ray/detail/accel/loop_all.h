@@ -11,8 +11,6 @@ class LoopAll {
 public:
   LoopAll(unsigned num_shapes) : num_shapes_(num_shapes) {}
 
-  LoopAll() {}
-
   template <typename SolveIndex>
   HOST_DEVICE void operator()(const Eigen::Vector3f &, const Eigen::Vector3f &,
                               const thrust::optional<BestIntersection> &,

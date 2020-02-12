@@ -15,7 +15,7 @@ void DirTreeGeneratorImpl<execution_model>::permute() {
   current_edges_min_max_->resize(num_dir_trees);
   other_edges_min_max_->resize(num_dir_trees);
 
-  nodes_.resize(2 * num_dir_trees + 1);
+  nodes_.resize(4 * num_dir_trees + 1);
   node_offset_ = nodes_.size();
 
   // set void node as node at zero
@@ -57,21 +57,22 @@ void DirTreeGeneratorImpl<execution_model>::permute() {
         values[k] = value;
         is_mins[k] = is_min;
 
-
         if (k % num_edges_per == 0) {
-        unsigned group_idx = k / num_edges_per;
+          unsigned group_idx = k / num_edges_per;
           // first in group
           assert(is_min);
           group_min_maxs[group_idx][0] = value;
-          nodes[group_idx + 1] =
-              DirTreeNode(min_b[axis], 0, group_idx + 1 + num_dir_trees);
+          unsigned node_idx = group_idx + (axis == 0 ? 0 : num_dir_trees) + 1;
+          nodes[node_idx] =
+              DirTreeNode(min_b[axis], 0, node_idx + num_dir_trees);
         } else if ((k + num_edges_per - 1) % num_edges_per == 0) {
-        unsigned group_idx = k / num_edges_per;
+          unsigned group_idx = k / num_edges_per;
           // last in group
           assert(!is_min);
           group_min_maxs[group_idx][1] = value;
-          nodes[group_idx + 1 + num_dir_trees] =
-              DirTreeNode(value, group_idx + 1 + (num_dir_trees * 2), 0);
+          unsigned node_idx = group_idx + (axis == 0 ? 0 : num_dir_trees) + 1 +
+                              2 * num_dir_trees;
+          nodes[node_idx] = DirTreeNode(value, node_idx + num_dir_trees, 0);
         }
       };
     };

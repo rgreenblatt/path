@@ -8,19 +8,33 @@ namespace detail {
 namespace accel {
 namespace dir_tree {
 template <ExecutionModel execution_model>
-HalfSpherePartition DirTreeGeneratorImpl<execution_model>::setup(
-    const Eigen::Projective3f &world_to_film,
-    SpanSized<const scene::Light> lights, const Eigen::Vector3f &min_bound,
-    const Eigen::Vector3f &max_bound) {
+HalfSpherePartition
+DirTreeGeneratorImpl<execution_model>::setup(const Eigen::Projective3f &
+#if 0
+                                                 world_to_film
+#endif
+                                             ,
+                                             SpanSized<const scene::Light>
+#if 0
+                                                 lights
+#endif
+                                             ,
+                                             const Eigen::Vector3f &min_bound,
+                                             const Eigen::Vector3f &max_bound) {
   /* unsigned region_target = 32; */
   unsigned region_target = 1;
 
   HalfSpherePartition partition(region_target, sphere_partition_regions_);
 
-  unsigned num_dir_trees = 1 + lights.size() + partition.size();
+  unsigned num_dir_trees =
+#if 0
+    1 + lights.size() +
+#endif
+      partition.size();
 
   transforms_.resize(num_dir_trees);
   sort_offsets_.resize(num_dir_trees);
+  z_max_sort_offsets_.resize(num_dir_trees);
   axis_groups_.first->resize_all(num_dir_trees);
   axis_groups_cpu_.resize_all(num_dir_trees);
   open_mins_before_group_.first->resize(num_dir_trees);
@@ -34,6 +48,7 @@ HalfSpherePartition DirTreeGeneratorImpl<execution_model>::setup(
   unsigned transform_idx = 0;
 
   Eigen::Vector3f overall_max = Eigen::Vector3f::Zero();
+  float z_max_overall_neg_min = 0;
 
   auto add_transform = [&](const Eigen::Projective3f &transf) {
     transforms_[transform_idx] = transf;
@@ -52,12 +67,17 @@ HalfSpherePartition DirTreeGeneratorImpl<execution_model>::setup(
     for (auto axis : {0, 1, 2}) {
       if (transform_idx == 0) {
         sort_offsets_[transform_idx][axis] = 0;
+        z_max_sort_offsets_[transform_idx] = 0;
       } else {
         sort_offsets_[transform_idx][axis] =
             overall_max[axis] - transf_min_bound[axis];
+        z_max_sort_offsets_[transform_idx] =
+            transf_max_bound[axis] + z_max_overall_neg_min;
       }
       overall_max[axis] =
           transf_max_bound[axis] + sort_offsets_[transform_idx][axis] + 1e-5;
+      z_max_overall_neg_min =
+          z_max_sort_offsets_[transform_idx] - transf_min_bound[axis];
     }
 
 #ifdef DEBUG_PRINT
@@ -71,7 +91,9 @@ HalfSpherePartition DirTreeGeneratorImpl<execution_model>::setup(
   };
 
   // camera transform...
+#if 0
   add_transform(world_to_film);
+#endif
 
   auto add_transform_vec = [&](bool is_loc, const Eigen::Vector3f &loc_or_dir) {
     if (is_loc) {
@@ -89,6 +111,7 @@ HalfSpherePartition DirTreeGeneratorImpl<execution_model>::setup(
     }
   };
 
+#if 0
   for (const auto &light : lights) {
     light.visit([&](auto &&light_data) {
       using T = std::decay_t<decltype(light_data)>;
@@ -99,6 +122,7 @@ HalfSpherePartition DirTreeGeneratorImpl<execution_model>::setup(
       }
     });
   }
+#endif
 
   for (unsigned colatitude_div_idx = 0;
        colatitude_div_idx < partition.colatitude_divs().size();

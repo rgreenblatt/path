@@ -39,12 +39,14 @@ void DirTreeGeneratorImpl<execution_model>::test_splits() {
       thrust::make_counting_iterator(0u),
 
       [=] __host__ __device__(unsigned i) {
-        unsigned using_split = use_split_first[i] || use_split_second[i];
+        bool using_split = use_split_first[i] || use_split_second[i];
         unsigned z_output_size = using_split ? 0 : group_size(i, z_groups);
 
+        unsigned output_split_groups =
+            using_split ? 2 - best_edge_one_split[i] : 0;
+
         // if one side will have size zero, don't include that side
-        return thrust::make_tuple(using_split * 2 - best_edge_one_split[i],
-                                  z_output_size);
+        return thrust::make_tuple(output_split_groups, z_output_size);
       });
 
   unsigned size = better_than_no_split_.first->size();

@@ -75,7 +75,8 @@ void DirTreeGeneratorImpl<execution_model>::find_best_edges() {
       [] __host__ __device__(const unsigned first, const unsigned second) {
         return first == second;
       },
-      [] __host__ __device__(const BestEdge &first, const BestEdge &second) {
+      [] __host__ __device__(const BestEdge &first,
+                             const BestEdge &second) -> const BestEdge & {
         if (thrust::get<0>(first) < thrust::get<0>(second)) {
           return first;
         } else {

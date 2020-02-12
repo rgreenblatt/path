@@ -203,24 +203,32 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
   }
 #endif
 
-  // set void node as node at zero
-  nodes_[0] = DirTreeNode(0, 0);
-
   Timer construct_trees_timer;
 
   construct();
 
   construct_trees_timer.report("construct trees");
 
+  scan_mins_maxs();
+
   dir_trees_.resize(transforms_.size());
 
   for (unsigned i = 0; i < transforms_.size(); i++) {
     Span<const DirTreeNode> nodes = nodes_;
-    Span<const DirTreeNode> nodes_shifted(nodes.data() + i, nodes_.size() - i);
-    /* dir_trees_[i] = DirTree(transforms_[i], nodes_shifted, actions_); */
+    unsigned offset = i + 1;
+    Span<const DirTreeNode> nodes_shifted(nodes.data() + offset,
+                                          nodes_.size() - offset);
+    dir_trees_[i] = DirTree(transforms_[i], nodes_shifted, min_sorted_values_,
+                            min_sorted_inclusive_maxes_, min_sorted_indexes_,
+                            max_sorted_values_, max_sorted_inclusive_mins_,
+                            max_sorted_indexes_);
   }
 
-  return DirTreeLookup(dir_trees_, 0, 1, lights.size() + 1, partition);
+  return DirTreeLookup(dir_trees_,
+#if 0
+                       0, 1, lights.size() + 1,
+#endif
+                       partition);
 }
 
 template class DirTreeGeneratorImpl<ExecutionModel::CPU>;

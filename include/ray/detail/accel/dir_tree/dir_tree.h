@@ -75,32 +75,51 @@ class ALIGN_STRUCT(32) DirTreeLookup {
 public:
   HOST_DEVICE DirTreeLookup() = default;
 
-  DirTreeLookup(Span<const DirTree> dir_trees, unsigned camera_idx,
-                unsigned start_lights_idx, unsigned start_partition_idx,
+  DirTreeLookup(Span<const DirTree> dir_trees,
+#if 0
+                unsigned camera_idx, unsigned start_lights_idx,
+                unsigned start_partition_idx,
+#endif
                 const HalfSpherePartition &partition)
-      : dir_trees_(dir_trees), camera_idx_(camera_idx),
-        start_lights_idx_(start_lights_idx),
-        start_partition_idx_(start_partition_idx), partition_(partition) {}
+      : dir_trees_(dir_trees),
+#if 0
+        camera_idx_(camera_idx), start_lights_idx_(start_lights_idx),
+        start_partition_idx_(start_partition_idx),
+#endif
+        partition_(partition) {
+  }
 
-  inline HOST_DEVICE const DirTree &getCameraTraversalData() const {
+#if 0
+  inline HOST_DEVICE const DirTree &getCameraDirTree() const {
     return dir_trees_[camera_idx_];
   }
 
   inline HOST_DEVICE const DirTree &
-  getLightTraversalData(unsigned light_idx) const {
+  getLightDirTree(unsigned light_idx) const {
     return dir_trees_[start_lights_idx_ + light_idx];
   }
+#endif
 
-  inline HOST_DEVICE const DirTree &
-  getGeneralTraversalData(const Eigen::Vector3f &direction) const {
-    return dir_trees_[start_partition_idx_ + partition_.get_closest(direction)];
+  inline HOST_DEVICE std::tuple<const DirTree &, bool>
+  getDirTree(const Eigen::Vector3f &direction) const {
+    auto [idx, is_flipped] = partition_.get_closest(direction);
+    return {
+      dir_trees_[
+#if 0
+      start_partition_idx_ +
+#endif
+          idx],
+          is_flipped
+    };
   }
 
 private:
   Span<const DirTree> dir_trees_;
+#if 0
   unsigned camera_idx_;
   unsigned start_lights_idx_;
   unsigned start_partition_idx_;
+#endif
   HalfSpherePartition partition_;
 };
 } // namespace dir_tree

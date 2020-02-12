@@ -74,6 +74,7 @@ void DirTreeGeneratorImpl<execution_model>::setup_groups() {
           bool is_best_edge_min = is_mins[best_edge_idx];
           unsigned start_inclusive = starts_inclusive[best_edge_idx];
           auto [start, end] = group_start_end(group_idx, edges_groups);
+          assert(end > start);
           unsigned index_in_group = best_edge_idx - start;
 
           auto [num_left, num_right, open_mins_before_right] =
@@ -115,7 +116,7 @@ void DirTreeGeneratorImpl<execution_model>::setup_groups() {
           nodes[node_offset + group_idx] =
               DirTreeNode(edge_value, left_idx, right_idx);
 
-          if (using_right) {
+          if (using_left) {
             edges_new_groups[left_output_idx] =
                 best_edge_idx + (is_best_edge_min ? 0 : 1);
             new_num_per_group[left_output_idx] = num_left;

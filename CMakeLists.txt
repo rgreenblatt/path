@@ -83,6 +83,7 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/find_best_edges.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/permute.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/scan_edges.cu"
+  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/scan_mins_maxs.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/setup.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/setup_groups.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/sort.cu"
@@ -145,6 +146,7 @@ if(BUILD_BENCHMARKS OR CMAKE_EXPORT_COMPILE_COMMANDS)
   endmacro()
 
   package_add_bench(scan "${PROJECT_SOURCE_DIR}/benchmarks/src/scan.cu")
+  package_add_bench(sort "${PROJECT_SOURCE_DIR}/benchmarks/src/sort.cu")
 
   add_custom_target(bench COMMAND ${CMAKE_CTEST_COMMAND}
     DEPENDS "${BENCH_LIST}")

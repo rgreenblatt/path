@@ -42,11 +42,13 @@ public:
 
   // colatitude should be 0 - pi
   // longitude should be 0 - 2 * pi
-  HOST_DEVICE unsigned get_closest(float colatitude, float longitude) const;
+  HOST_DEVICE std::tuple<unsigned, bool> get_closest(float colatitude,
+                                                     float longitude) const;
 
   // colatitude should be 0 - pi
   // longitude should be 0 - 2 * pi
-  HOST_DEVICE unsigned get_closest(const Eigen::Vector3f &vec) const;
+  HOST_DEVICE std::tuple<unsigned, bool>
+  get_closest(const Eigen::Vector3f &vec) const;
 
   HOST_DEVICE inline unsigned size() const {
     return colatitude_divs_[colatitude_divs_.size() - 1].end_index;

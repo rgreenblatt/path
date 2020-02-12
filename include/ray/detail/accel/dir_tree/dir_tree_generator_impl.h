@@ -165,6 +165,8 @@ private:
    */
   void setup_groups();
 
+  void scan_mins_maxs();
+
   template <typename T> using ExecVecT = ExecVector<execution_model, T>;
 
   HostDeviceVector<HalfSpherePartition::ColatitudeDiv>
@@ -177,6 +179,7 @@ private:
   // x edges, y edges, z min, z max
   static constexpr unsigned num_sortings = 4;
   HostDeviceVector<Eigen::Vector3f> sort_offsets_;
+  HostDeviceVector<float> z_max_sort_offsets_;
   std::array<ExecVecT<float>, num_sortings> sorting_values_;
   std::array<ExecVecT<unsigned>, num_sortings> indexes_;
 

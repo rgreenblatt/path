@@ -74,10 +74,20 @@ TEST(SpherePartition, get_closest) {
     HalfSpherePartition partition(5, regions); // 1 collar (and cap)
 
     EXPECT_EQ(partition.size(), 5); // tests below assume exactly 5 regions
-    EXPECT_EQ(partition.get_closest({0, 1, 0}), 0);
-    EXPECT_EQ(partition.get_closest({0.001, 0.983, -0.03}), 0);
-    EXPECT_EQ(partition.get_closest({-0.5, 0.5, -0.03}), 1);
-    EXPECT_EQ(partition.get_closest({-0.5, 0.5, 0.03}), 4);
+    EXPECT_EQ(partition.get_closest({0, 1, 0}), (std::tuple{0u, false}));
+    EXPECT_EQ(partition.get_closest({0, -1, 0}), (std::tuple{0u, true}));
+    EXPECT_EQ(partition.get_closest({0.001, 0.983, -0.03}),
+              (std::tuple{0u, false}));
+    EXPECT_EQ(partition.get_closest({0.001, -0.983, -0.03}),
+              (std::tuple{0u, true}));
+    EXPECT_EQ(partition.get_closest({-0.5, 0.5, -0.03}),
+              (std::tuple{1u, false}));
+    EXPECT_EQ(partition.get_closest({-0.5, -0.5, 0.03}),
+              (std::tuple{1u, true}));
+    EXPECT_EQ(partition.get_closest({-0.5, 0.5, 0.03}),
+              (std::tuple{4u, false}));
+    EXPECT_EQ(partition.get_closest({-0.5, 0.5, -0.03}),
+              (std::tuple{4u, true}));
 }
 
 // TODO: consider adding more tests to verify regions are spread correctly...

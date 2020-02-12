@@ -67,9 +67,10 @@ HalfSpherePartition::get_center_vec(unsigned collar, unsigned region) const {
 
 // colatitude should be 0 - pi
 // longitude should be (-pi) - pi
-HOST_DEVICE inline unsigned
+HOST_DEVICE inline std::tuple<unsigned, bool>
 HalfSpherePartition::get_closest(float colatitude, float longitude) const {
   const float half_pi = float(M_PI) / 2;
+  bool is_flipped = colatitude > half_pi;
   if (colatitude > half_pi) {
     // flip to side of half
     colatitude = M_PI - colatitude;
@@ -84,12 +85,12 @@ HalfSpherePartition::get_closest(float colatitude, float longitude) const {
 
   assert(closest_idx < region.end_index);
 
-  return closest_idx;
+  return {closest_idx, is_flipped};
 }
 
 // colatitude should be 0 - pi
 // longitude should be (-pi) - pi
-HOST_DEVICE inline unsigned
+HOST_DEVICE inline std::tuple<unsigned, bool>
 HalfSpherePartition::get_closest(const Eigen::Vector3f &vec) const {
   auto [colatitude, longitude] = vec_to_colatitude_longitude(vec);
 

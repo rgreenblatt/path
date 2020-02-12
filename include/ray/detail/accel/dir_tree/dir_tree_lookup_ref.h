@@ -1,7 +1,6 @@
 #pragma once
 
-#include "lib/span.h"
-#include "ray/detail/accel/kdtree/kdtree.h"
+#include "ray/detail/accel/dir_tree/dir_tree.h"
 #include "ray/detail/intersection/intersection.h"
 
 #include <thrust/optional.h>
@@ -9,28 +8,22 @@
 namespace ray {
 namespace detail {
 namespace accel {
-namespace kdtree {
-class KDTreeRef {
+namespace dir_tree {
+class DirTreeLookupRef {
 public:
-  KDTreeRef(SpanSized<KDTreeNode<AABB>> nodes, unsigned /* num_shapes */)
-      : nodes_(nodes) /* , num_shapes_(num_shapes) */
-  {}
-
-  KDTreeRef() {}
+  DirTreeLookupRef(const DirTreeLookup &lookup) : lookup_(lookup) {}
 
   template <typename SolveIndex>
   inline HOST_DEVICE void
   operator()(const Eigen::Vector3f &world_space_direction,
              const Eigen::Vector3f &world_space_eye,
              const thrust::optional<BestIntersection> &best,
-             const SolveIndex &solve_index) const;
+             const SolveIndex &solve_index);
 
 private:
-  SpanSized<KDTreeNode<AABB>> nodes_;
-  // unsigned num_shapes_; // could be useful for debugging, otherwise not
-  // needed
+  DirTreeLookup lookup_;
 };
-} // namespace kdtree
+} // namespace dir_tree
 } // namespace accel
 } // namespace detail
 } // namespace ray

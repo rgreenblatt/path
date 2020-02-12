@@ -69,16 +69,13 @@ void RendererImpl<execution_model>::render(
 
   SpanSized<const scene::Light> lights_span(lights, num_lights);
 
-  if (use_dir_tree) {
-    dir_tree_generator_.generate(world_to_film, moved_shapes_, lights_span,
-                                 scene_->getMinBound(), scene_->getMaxBound());
-  }
+  accel::dir_tree::DirTreeLookup dir_tree_lookup;
 
-  if (use_kd_tree
-#if 0
-      && !use_dir_tree
-#endif
-  ) {
+  if (use_dir_tree) {
+    dir_tree_lookup = dir_tree_generator_.generate(
+        world_to_film, moved_shapes_, lights_span, scene_->getMinBound(),
+        scene_->getMaxBound());
+  } else if (use_kd_tree) {
     Timer kdtree_timer;
 
     auto kdtree = accel::kdtree::construct_kd_tree(moved_shapes_.data(),
@@ -119,10 +116,13 @@ void RendererImpl<execution_model>::render(
       }
     };
 
-    if (use_kd_tree) {
+    if (use_dir_tree) {
+      /* raytrace(dir_tree_lookup); */
+      raytrace(accel::LoopAll(num_shapes));
+    } else if (use_kd_tree) {
       raytrace(accel::kdtree::KDTreeRef(kdtree_nodes_, moved_shapes_.size()));
     } else {
-      raytrace(accel::LoopAll());
+      raytrace(accel::LoopAll(num_shapes));
     }
 
     if (show_times) {

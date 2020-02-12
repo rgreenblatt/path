@@ -5,7 +5,7 @@ namespace detail {
 namespace accel {
 namespace kdtree {
 template <typename SolveIndex>
-HOST_DEVICE void
+inline HOST_DEVICE void
 KDTreeRef::operator()(const Eigen::Vector3f &world_space_direction,
                       const Eigen::Vector3f &world_space_eye,
                       const thrust::optional<BestIntersection> &best,
