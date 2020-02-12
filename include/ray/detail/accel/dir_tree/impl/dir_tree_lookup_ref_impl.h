@@ -25,8 +25,12 @@ DirTreeLookupRef::operator()(const Eigen::Vector3f &world_space_direction,
   unsigned node_idx = 0;
   // approach:
   // - perform initial descent on eye point
-  // - compute z at which we leave region
-  // - traverse to find z
+  // - loop:
+  //   - compute z at which we leave region
+  //   - traverse/binary search to find z at which we enter region
+  //   - keep intersecting for min < best intersection / min < leave region
+  //   (appropriately transformed etc)
+  //   - retraverse to new region
   while (!start_end.has_value()) {
   }
 }

@@ -224,11 +224,7 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
                             max_sorted_indexes_);
   }
 
-  return DirTreeLookup(dir_trees_,
-#if 0
-                       0, 1, lights.size() + 1,
-#endif
-                       partition);
+  return DirTreeLookup(dir_trees_, partition);
 }
 
 template class DirTreeGeneratorImpl<ExecutionModel::CPU>;
