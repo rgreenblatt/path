@@ -32,9 +32,7 @@ DirTreeGeneratorImpl<execution_model>::DirTreeGeneratorImpl()
 
 template <ExecutionModel execution_model>
 DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
-    const Eigen::Projective3f &world_to_film,
-    SpanSized<const scene::ShapeData> shapes,
-    SpanSized<const scene::Light> lights, const Eigen::Vector3f &min_bound,
+    SpanSized<const scene::ShapeData> shapes, const Eigen::Vector3f &min_bound,
     const Eigen::Vector3f &max_bound) {
   is_x_ = true;
 
@@ -42,7 +40,7 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
 
   Timer setup_timer;
 
-  auto partition = setup(world_to_film, lights, min_bound, max_bound);
+  auto partition = setup(min_bound, max_bound);
 
   setup_timer.report("setup");
 
@@ -109,8 +107,8 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
 
   fill_indexes();
 
-  auto debug_print_sorting = [&](const std::string &s) {
 #ifdef DEBUG_PRINT
+  auto debug_print_sorting = [&](const std::string &s) {
     if constexpr (execution_model == ExecutionModel::CPU) {
       std::cout << s << ": " << std::endl;
       std::cout << "sorting values x: " << sorting_values_[0] << std::endl;
@@ -122,10 +120,10 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
       std::cout << "idxs z max: " << indexes_[2] << std::endl;
       std::cout << "idxs z max: " << indexes_[3] << std::endl;
     }
-#endif
   };
 
   debug_print_sorting("before sort");
+#endif
 
   fill_indexes_timer.report("fill indexes");
 
@@ -135,7 +133,9 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
 
   sort_timer.report("sort");
 
+#ifdef DEBUG_PRINT
   debug_print_sorting("after sort");
+#endif
 
   Timer permute_timer;
 

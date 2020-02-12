@@ -19,9 +19,7 @@ public:
 
   ~DirTreeGenerator();
 
-  DirTreeLookup generate(const Eigen::Projective3f &world_to_film,
-                         SpanSized<const scene::ShapeData> shapes,
-                         SpanSized<const scene::Light> lights,
+  DirTreeLookup generate(SpanSized<const scene::ShapeData> shapes,
                          const Eigen::Vector3f &min_bound,
                          const Eigen::Vector3f &max_bound);
 

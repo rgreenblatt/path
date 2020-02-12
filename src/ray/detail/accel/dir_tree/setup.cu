@@ -9,28 +9,14 @@ namespace accel {
 namespace dir_tree {
 template <ExecutionModel execution_model>
 HalfSpherePartition
-DirTreeGeneratorImpl<execution_model>::setup(const Eigen::Projective3f &
-#if 0
-                                                 world_to_film
-#endif
-                                             ,
-                                             SpanSized<const scene::Light>
-#if 0
-                                                 lights
-#endif
-                                             ,
-                                             const Eigen::Vector3f &min_bound,
+DirTreeGeneratorImpl<execution_model>::setup(const Eigen::Vector3f &min_bound,
                                              const Eigen::Vector3f &max_bound) {
   /* unsigned region_target = 32; */
   unsigned region_target = 1;
 
   HalfSpherePartition partition(region_target, sphere_partition_regions_);
 
-  unsigned num_dir_trees =
-#if 0
-    1 + lights.size() +
-#endif
-      partition.size();
+  unsigned num_dir_trees = partition.size();
 
   transforms_.resize(num_dir_trees);
   sort_offsets_.resize(num_dir_trees);
@@ -90,11 +76,6 @@ DirTreeGeneratorImpl<execution_model>::setup(const Eigen::Projective3f &
     transform_idx++;
   };
 
-  // camera transform...
-#if 0
-  add_transform(world_to_film);
-#endif
-
   auto add_transform_vec = [&](bool is_loc, const Eigen::Vector3f &loc_or_dir) {
     if (is_loc) {
       add_transform(scene::get_unhinging(30.0f) *
@@ -110,19 +91,6 @@ DirTreeGeneratorImpl<execution_model>::setup(const Eigen::Projective3f &
       add_transform(t);
     }
   };
-
-#if 0
-  for (const auto &light : lights) {
-    light.visit([&](auto &&light_data) {
-      using T = std::decay_t<decltype(light_data)>;
-      if constexpr (std::is_same<T, scene::DirectionalLight>::value) {
-        add_transform_vec(false, light_data.direction);
-      } else {
-        add_transform_vec(true, light_data.position);
-      }
-    });
-  }
-#endif
 
   for (unsigned colatitude_div_idx = 0;
        colatitude_div_idx < partition.colatitude_divs().size();

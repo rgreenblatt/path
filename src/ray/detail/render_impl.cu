@@ -73,8 +73,7 @@ void RendererImpl<execution_model>::render(
 
   if (use_dir_tree) {
     dir_tree_lookup = dir_tree_generator_.generate(
-        world_to_film, moved_shapes_, lights_span, scene_->getMinBound(),
-        scene_->getMaxBound());
+        moved_shapes_, scene_->getMinBound(), scene_->getMaxBound());
   } else if (use_kd_tree) {
     Timer kdtree_timer;
 

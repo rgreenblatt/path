@@ -24,16 +24,12 @@ template <ExecutionModel execution_model> class DirTreeGeneratorImpl {
 public:
   DirTreeGeneratorImpl();
 
-  DirTreeLookup generate(const Eigen::Projective3f &world_to_film,
-                         SpanSized<const scene::ShapeData> shapes,
-                         SpanSized<const scene::Light> lights,
+  DirTreeLookup generate(SpanSized<const scene::ShapeData> shapes,
                          const Eigen::Vector3f &min_bound,
                          const Eigen::Vector3f &max_bound);
 
 private:
-  HalfSpherePartition setup(const Eigen::Projective3f &world_to_film,
-                            SpanSized<const scene::Light> lights,
-                            const Eigen::Vector3f &min_bound,
+  HalfSpherePartition setup(const Eigen::Vector3f &min_bound,
                             const Eigen::Vector3f &max_bound);
 
   void compute_aabbs();
