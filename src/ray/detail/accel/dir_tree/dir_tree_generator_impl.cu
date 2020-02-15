@@ -32,15 +32,15 @@ DirTreeGeneratorImpl<execution_model>::DirTreeGeneratorImpl()
 
 template <ExecutionModel execution_model>
 DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
-    SpanSized<const scene::ShapeData> shapes, const Eigen::Vector3f &min_bound,
-    const Eigen::Vector3f &max_bound) {
+    SpanSized<const scene::ShapeData> shapes, unsigned target_num_dir_trees,
+    const Eigen::Vector3f &min_bound, const Eigen::Vector3f &max_bound) {
   is_x_ = true;
 
   num_shapes_ = shapes.size();
 
   Timer setup_timer;
 
-  auto partition = setup(min_bound, max_bound);
+  auto partition = setup(target_num_dir_trees, min_bound, max_bound);
 
   setup_timer.report("setup");
 

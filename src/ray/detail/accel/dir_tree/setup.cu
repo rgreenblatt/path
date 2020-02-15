@@ -9,12 +9,11 @@ namespace accel {
 namespace dir_tree {
 template <ExecutionModel execution_model>
 HalfSpherePartition
-DirTreeGeneratorImpl<execution_model>::setup(const Eigen::Vector3f &min_bound,
+DirTreeGeneratorImpl<execution_model>::setup(unsigned target_num_dir_trees,
+                                             const Eigen::Vector3f &min_bound,
                                              const Eigen::Vector3f &max_bound) {
-  /* unsigned region_target = 32; */
-  unsigned region_target = 1;
-
-  HalfSpherePartition partition(region_target, sphere_partition_regions_);
+  HalfSpherePartition partition(target_num_dir_trees,
+                                sphere_partition_regions_);
 
   unsigned num_dir_trees = partition.size();
 

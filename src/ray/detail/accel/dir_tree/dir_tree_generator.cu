@@ -16,9 +16,9 @@ DirTreeGenerator<execution_model>::~DirTreeGenerator() {
 
 template <ExecutionModel execution_model>
 DirTreeLookup DirTreeGenerator<execution_model>::generate(
-    SpanSized<const scene::ShapeData> shapes, const Eigen::Vector3f &min_bound,
-    const Eigen::Vector3f &max_bound) {
-  return ptr_->generate(shapes, min_bound, max_bound);
+    SpanSized<const scene::ShapeData> shapes, unsigned target_num_dir_trees,
+    const Eigen::Vector3f &min_bound, const Eigen::Vector3f &max_bound) {
+  return ptr_->generate(shapes, target_num_dir_trees, min_bound, max_bound);
 }
 
 template class DirTreeGenerator<ExecutionModel::GPU>;

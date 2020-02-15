@@ -72,8 +72,10 @@ void RendererImpl<execution_model>::render(
   accel::dir_tree::DirTreeLookup dir_tree_lookup;
 
   if (use_dir_tree) {
+    unsigned target_num_dir_trees = 16;
     dir_tree_lookup = dir_tree_generator_.generate(
-        moved_shapes_, scene_->getMinBound(), scene_->getMaxBound());
+        moved_shapes_, target_num_dir_trees, scene_->getMinBound(),
+        scene_->getMaxBound());
   } else if (use_kd_tree) {
     Timer kdtree_timer;
 

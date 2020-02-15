@@ -25,11 +25,13 @@ public:
   DirTreeGeneratorImpl();
 
   DirTreeLookup generate(SpanSized<const scene::ShapeData> shapes,
+                         unsigned target_num_dir_trees,
                          const Eigen::Vector3f &min_bound,
                          const Eigen::Vector3f &max_bound);
 
 private:
-  HalfSpherePartition setup(const Eigen::Vector3f &min_bound,
+  HalfSpherePartition setup(unsigned target_num_dir_trees,
+                            const Eigen::Vector3f &min_bound,
                             const Eigen::Vector3f &max_bound);
 
   void compute_aabbs();
@@ -43,6 +45,8 @@ private:
   void permute();
 
   void construct();
+
+  // TODO: descriptions now somewhat out of date
 
   /*
    * Fills keys using groups.
@@ -315,7 +319,6 @@ private:
   ExecVecT<float> max_x_tree_;
   ExecVecT<float> max_y_tree_;
   ExecVecT<float> max_z_tree_;
-
 
   HostDeviceVector<DirTree> dir_trees_;
 
