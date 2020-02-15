@@ -35,8 +35,8 @@ RendererImpl<execution_model>::RendererImpl(unsigned x_dim, unsigned y_dim,
 template <ExecutionModel execution_model>
 void RendererImpl<execution_model>::render(
     BGRA *pixels, const Eigen::Affine3f &m_film_to_world,
-    const Eigen::Projective3f &world_to_film, bool use_kd_tree,
-    bool use_dir_tree, bool show_times) {
+    const Eigen::Projective3f &, bool use_kd_tree, bool use_dir_tree,
+    bool show_times) {
   const auto lights = scene_->getLights();
   const unsigned num_lights = scene_->getNumLights();
   const auto textures = scene_->getTextures();

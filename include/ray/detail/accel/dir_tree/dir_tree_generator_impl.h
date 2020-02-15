@@ -309,6 +309,14 @@ private:
   ExecVecT<float> max_sorted_inclusive_mins_;
   ExecVecT<unsigned> max_sorted_indexes_;
 
+  ExecVecT<float> min_x_tree_;
+  ExecVecT<float> min_y_tree_;
+  ExecVecT<float> min_z_tree_;
+  ExecVecT<float> max_x_tree_;
+  ExecVecT<float> max_y_tree_;
+  ExecVecT<float> max_z_tree_;
+
+
   HostDeviceVector<DirTree> dir_trees_;
 
   unsigned num_shapes_;

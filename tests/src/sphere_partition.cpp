@@ -1,7 +1,6 @@
 #include "ray/detail/accel/dir_tree/sphere_partition.h"
 #include "ray/detail/accel/dir_tree/impl/sphere_partition_impl.h"
 
-#include <dbg.h>
 #include <gtest/gtest.h>
 
 using namespace ray::detail::accel::dir_tree;
@@ -65,12 +64,6 @@ TEST(SpherePartition, construct) {
   for (unsigned size : {1, 2, 3, 4, 6, 11, 37, 60}) {
     HostDeviceVector<HalfSpherePartition::ColatitudeDiv> regions;
     HalfSpherePartition partition(size, regions);
-    dbg(size);
-    auto divs = partition.colatitude_divs();
-    unsigned num_divs = divs.size();
-    dbg(num_divs);
-    auto last_div = divs[num_divs - 1];
-    dbg(last_div.end_index - last_div.start_index);
     check_properties(partition);
   }
 }

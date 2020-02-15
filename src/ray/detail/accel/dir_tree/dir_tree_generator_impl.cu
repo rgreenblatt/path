@@ -214,17 +214,14 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
   dir_trees_.resize(transforms_.size());
 
   for (unsigned i = 0; i < transforms_.size(); i++) {
-    Span<const DirTreeNode> nodes = nodes_;
-    unsigned offset = i + 1;
-    Span<const DirTreeNode> nodes_shifted(nodes.data() + offset,
-                                          nodes_.size() - offset);
-    dir_trees_[i] = DirTree(transforms_[i], nodes_shifted, min_sorted_values_,
-                            min_sorted_inclusive_maxes_, min_sorted_indexes_,
-                            max_sorted_values_, max_sorted_inclusive_mins_,
-                            max_sorted_indexes_);
+    dir_trees_[i] = DirTree(transforms_[i], i);
   }
 
-  return DirTreeLookup(dir_trees_, partition);
+  return DirTreeLookup(dir_trees_, partition, nodes_, min_sorted_values_,
+                       min_sorted_inclusive_maxes_, min_sorted_indexes_,
+                       max_sorted_values_, max_sorted_inclusive_mins_,
+                       max_sorted_indexes_, min_x_tree_, min_y_tree_,
+                       min_z_tree_, max_x_tree_, max_y_tree_, max_z_tree_);
 }
 
 template class DirTreeGeneratorImpl<ExecutionModel::CPU>;

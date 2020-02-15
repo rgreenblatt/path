@@ -126,6 +126,8 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
   package_add_test(sphere_partition
     "${PROJECT_SOURCE_DIR}/tests/src/sphere_partition.cpp")
   target_link_libraries(sphere_partition renderer)
+  package_add_test(binary_search
+    "${PROJECT_SOURCE_DIR}/tests/src/binary_search.cpp")
 
   add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND}
     DEPENDS "${TEST_LIST}")

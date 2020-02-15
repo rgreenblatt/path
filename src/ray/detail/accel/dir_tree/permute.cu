@@ -43,6 +43,8 @@ void DirTreeGeneratorImpl<execution_model>::permute() {
       Span<float> values = edges.values();
       Span<uint8_t> is_mins = edges.is_mins();
       unsigned num_edges_per = 2 * num_shapes_;
+      Span<float> tree_min = axis == 0 ? min_x_tree_ : min_y_tree_;
+      Span<float> tree_max = axis == 0 ? max_x_tree_ : max_y_tree_;
 
       return [=] __host__ __device__(unsigned k, unsigned index) {
         bool is_min = !bool(index % 2);
@@ -64,7 +66,8 @@ void DirTreeGeneratorImpl<execution_model>::permute() {
           group_min_maxs[group_idx][0] = value;
           unsigned node_idx = group_idx + (axis == 0 ? 0 : num_dir_trees) + 1;
           nodes[node_idx] =
-              DirTreeNode(min_b[axis], 0, node_idx + num_dir_trees);
+              DirTreeNode(value, 0, node_idx + num_dir_trees);
+          tree_min[group_idx] = value;
         } else if ((k + num_edges_per - 1) % num_edges_per == 0) {
           unsigned group_idx = k / num_edges_per;
           // last in group
@@ -73,6 +76,7 @@ void DirTreeGeneratorImpl<execution_model>::permute() {
           unsigned node_idx = group_idx + (axis == 0 ? 0 : num_dir_trees) + 1 +
                               2 * num_dir_trees;
           nodes[node_idx] = DirTreeNode(value, node_idx + num_dir_trees, 0);
+          tree_max[group_idx] = value;
         }
       };
     };
@@ -86,6 +90,9 @@ void DirTreeGeneratorImpl<execution_model>::permute() {
       auto z_mins = z_vals.z_mins();
       auto z_maxs = z_vals.z_maxs();
       auto idxs = z_vals.idxs();
+      Span<float> min_z_tree = min_z_tree_;
+      Span<float> max_z_tree = max_z_tree_;
+      unsigned num_shapes = num_shapes_;
       return [=] __host__ __device__(unsigned k, unsigned index) {
         const auto &aabb = aabbs[index];
         const auto &mins = aabb.aabb.get_min_bound();
@@ -97,6 +104,11 @@ void DirTreeGeneratorImpl<execution_model>::permute() {
         y_maxs[k] = maxs.y();
         z_maxs[k] = maxs.z();
         idxs[k] = aabb.idx;
+        if (k % num_shapes == 0) {
+          unsigned group_idx = k / num_shapes;
+          min_z_tree[group_idx] = mins.z();
+          max_z_tree[group_idx] = maxs.z();
+        }
       };
     };
 
