@@ -23,6 +23,13 @@ void DirTreeGeneratorImpl<execution_model>::permute() {
 
   Span<DirTreeNode> nodes = nodes_;
 
+  min_x_tree_.resize(num_dir_trees);
+  min_y_tree_.resize(num_dir_trees);
+  min_z_tree_.resize(num_dir_trees);
+  max_x_tree_.resize(num_dir_trees);
+  max_y_tree_.resize(num_dir_trees);
+  max_z_tree_.resize(num_dir_trees);
+
   async_for(use_async_, 0, num_sortings, [&](unsigned i) {
     auto permute_arr = [&](unsigned i, const auto f) {
       Span<unsigned> indexes(indexes_[i]);
@@ -68,7 +75,7 @@ void DirTreeGeneratorImpl<execution_model>::permute() {
           nodes[node_idx] =
               DirTreeNode(value, 0, node_idx + num_dir_trees);
           tree_min[group_idx] = value;
-        } else if ((k + num_edges_per - 1) % num_edges_per == 0) {
+        } else if ((k + 1) % num_edges_per == 0) {
           unsigned group_idx = k / num_edges_per;
           // last in group
           assert(!is_min);
@@ -106,8 +113,11 @@ void DirTreeGeneratorImpl<execution_model>::permute() {
         idxs[k] = aabb.idx;
         if (k % num_shapes == 0) {
           unsigned group_idx = k / num_shapes;
-          min_z_tree[group_idx] = mins.z();
-          max_z_tree[group_idx] = maxs.z();
+          if (is_min) {
+            min_z_tree[group_idx] = mins.z();
+          } else {
+            max_z_tree[group_idx] = maxs.z();
+          }
         }
       };
     };

@@ -30,8 +30,6 @@ void DirTreeGeneratorImpl<execution_model>::find_best_edges() {
   Span<const unsigned> starts_inclusive(starts_inclusive_);
   Span<const float> edge_values = current_edges_->values();
   Span<const uint8_t> edge_is_min = current_edges_->is_mins();
-  Span<const unsigned> open_mins_before_group =
-      open_mins_before_group_.first.get();
   Span<const unsigned> num_per_group = num_per_group_.first.get();
   Span<const std::array<float, 2>> group_min_max = current_edges_min_max_.get();
 
@@ -51,17 +49,19 @@ void DirTreeGeneratorImpl<execution_model>::find_best_edges() {
             std::array<float, 2> min_max_region = group_min_max[key];
             float this_value = edge_values[i];
 
+            assert(i >= start);
+            assert(i < end);
             assert(min_max_region[0] <= min_max_region[1]);
-            assert(min_max_region[0] <= this_value);
-            assert(this_value <= min_max_region[1]);
+            assert(min_max_region[0] <= this_value + 1e-5);
+            assert(this_value <= min_max_region[1] + 1e-5);
 
             float prop_left =
                 get_prop_left(this_value, min_max_region[0], min_max_region[1]);
 
             unsigned start_inclusive = starts_inclusive[i];
             unsigned index_in_group = i - start;
-            auto [num_left, num_right, unused] = left_right_counts(
-                index_in_group, start_inclusive, open_mins_before_group[key],
+            auto [num_left, num_right] = left_right_counts(
+                index_in_group, start_inclusive, starts_inclusive[end - 1],
                 edge_is_min[i], num_per_group[key]);
 
             float cost = cost_heuristic(num_left, num_right, prop_left);

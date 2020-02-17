@@ -1,6 +1,7 @@
 #include "lib/async_for.h"
 #include "ray/detail/accel/dir_tree/dir_tree_generator_impl.h"
 #include "ray/detail/accel/dir_tree/impl/sphere_partition_impl.h"
+#include "ray/detail/projection.h"
 #include "scene/camera.h"
 
 namespace ray {
@@ -22,10 +23,6 @@ DirTreeGeneratorImpl<execution_model>::setup(unsigned target_num_dir_trees,
   z_max_sort_offsets_.resize(num_dir_trees);
   axis_groups_.first->resize_all(num_dir_trees);
   axis_groups_cpu_.resize_all(num_dir_trees);
-  open_mins_before_group_.first->resize(num_dir_trees);
-  thrust::fill(thrust_data_[0].execution_policy(),
-               open_mins_before_group_.first->data(),
-               open_mins_before_group_.first->data() + num_dir_trees, 0);
   num_per_group_.first->resize(num_dir_trees);
   thrust::fill(thrust_data_[0].execution_policy(), num_per_group_.first->data(),
                num_per_group_.first->data() + num_dir_trees, num_shapes_);
@@ -80,9 +77,8 @@ DirTreeGeneratorImpl<execution_model>::setup(unsigned target_num_dir_trees,
       add_transform(scene::get_unhinging(30.0f) *
                     Eigen::Translation3f(-loc_or_dir));
     } else {
-#pragma message("This can fail if direction is too close to look")
       const auto t = Eigen::Projective3f(
-          scene::look_at(loc_or_dir, Eigen::Vector3f(1, 1, 0)));
+          find_rotate_vector_to_vector(loc_or_dir, {0, 0, 1}));
 #ifdef DEBUG_PRINT
       std::cout << "loc or dir: " << loc_or_dir << std::endl;
       std::cout << "transform: " << t << std::endl;

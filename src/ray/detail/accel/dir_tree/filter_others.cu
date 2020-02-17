@@ -63,7 +63,7 @@ void filter_values(
                      if (new_indexes[i] != previous_value) {
                        copy_to_new(idx, previous_value);
                      }
-                     if (not_using_split(key)) {
+                     if (not_using_split(key) && is_left) {
                        copy_to_outputs(idx, key);
                      }
                    });
@@ -105,9 +105,7 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
       filter_values(
           edge_values, best_edges_idxs, compare_data_mins, compare_data_maxs,
           keys, groups, better_than_no_split_.first.get(),
-          better_than_no_split_.second.get(),
-
-          new_edge_indexes_, size,
+          better_than_no_split_.second.get(), new_edge_indexes_, size,
           [&] {
             unsigned new_size = new_edge_indexes_[size - 1];
             other_edges_new_->resize_all(new_size);
@@ -134,12 +132,12 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
     } else {
       Span<const unsigned> keys = z_keys_;
 
-      bool is_x_min = i == 1;
+      bool is_z_min = i == 1;
 
       ZValues &old_z_vals =
-          (is_x_min ? sorted_by_z_min_ : sorted_by_z_max_).first;
+          (is_z_min ? sorted_by_z_min_ : sorted_by_z_max_).first;
       ZValues &new_z_vals =
-          (is_x_min ? sorted_by_z_min_ : sorted_by_z_max_).second;
+          (is_z_min ? sorted_by_z_min_ : sorted_by_z_max_).second;
 
       // kinda extra...
       Span<const float> old_z_vals_x_min = old_z_vals.x_mins();
@@ -159,16 +157,16 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
 
       auto values = old_z_vals_z_max;
       auto other_values = old_z_vals_z_min;
-      if (is_x_min) {
+      if (is_z_min) {
         std::swap(values, other_values);
       }
 
       Span<float> output_values =
-          is_x_min ? min_sorted_values_ : max_sorted_values_;
+          is_z_min ? min_sorted_values_ : max_sorted_values_;
       Span<float> output_other_values =
-          is_x_min ? min_sorted_inclusive_maxes_ : max_sorted_inclusive_mins_;
+          is_z_min ? min_sorted_inclusive_maxes_ : max_sorted_inclusive_mins_;
       Span<unsigned> output_indexes =
-          is_x_min ? min_sorted_indexes_ : max_sorted_indexes_;
+          is_z_min ? min_sorted_indexes_ : max_sorted_indexes_;
       Span<unsigned> output_keys = output_keys_;
 
       unsigned output_offset = output_values_offset_;
@@ -215,7 +213,7 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
             output_values[general_idx] = values[idx];
             output_other_values[general_idx] = other_values[idx];
             output_indexes[general_idx] = old_z_vals_idx[idx];
-            if (is_x_min) {
+            if (is_z_min) {
               // output offset is larger than needed, but should work
               output_keys[general_idx] = key + output_offset;
             }

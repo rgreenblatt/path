@@ -18,35 +18,32 @@ namespace dir_tree {
 class HalfSpherePartition {
 public:
   // colatitude is from 0 - pi
-  // 0 when vector is straight up (x = 0, y = 1, z = 0)
-  // pi when vector is straight down
+  // 0 when vector is straight forward (x = 0, y = 0, z = 1)
+  // pi when vector is straight back
 
   // longitude is from 0 - 2 pi
   // 0 when vector is straight in x direction (x = 1, y = 0, z = 0)
   // +/- pi when vector is away in x direction (x = -1, y = 0, z = 0)
-  // pi / 2 when vector is toward z (x = 0, y = 0, z = 1)
-  // -pi / 2 when vector is away in z (x = 0, y = 0, z = -1)
-  static std::tuple<float, float>
+  // pi / 2 when vector is toward y (x = 0, y = 1, z = 0)
+  // -pi / 2 when vector is away in y (x = 0, y = -1, z = 0)
+  HOST_DEVICE static std::tuple<float, float>
   vec_to_colatitude_longitude(const Eigen::Vector3f &vec);
 
   // inverse of above
-  static Eigen::Vector3f colatitude_longitude_to_vec(float colatitude,
-                                                     float longitude);
+  HOST_DEVICE static Eigen::Vector3f
+  colatitude_longitude_to_vec(float colatitude, float longitude);
 
-  std::tuple<float, float>
+  HOST_DEVICE std::tuple<float, float>
   get_center_colatitude_longitude(unsigned collar, unsigned region) const;
 
-  Eigen::Vector3f get_center_vec(unsigned collar, unsigned region) const;
-
-  std::tuple<unsigned, unsigned> index_to_collar_region(unsigned index) const;
+  HOST_DEVICE Eigen::Vector3f get_center_vec(unsigned collar,
+                                             unsigned region) const;
 
   // colatitude should be 0 - pi
   // longitude should be 0 - 2 * pi
   HOST_DEVICE std::tuple<unsigned, bool> get_closest(float colatitude,
                                                      float longitude) const;
 
-  // colatitude should be 0 - pi
-  // longitude should be 0 - 2 * pi
   HOST_DEVICE std::tuple<unsigned, bool>
   get_closest(const Eigen::Vector3f &vec) const;
 
@@ -71,9 +68,8 @@ public:
     return colatitude_divs_;
   }
 
-  // TODO fix vector...
-  HalfSpherePartition(unsigned target_num_regions,
-                      HostDeviceVector<ColatitudeDiv> &regions);
+  template <typename T>
+  HalfSpherePartition(unsigned target_num_regions, T &regions);
 
   HalfSpherePartition() {}
 

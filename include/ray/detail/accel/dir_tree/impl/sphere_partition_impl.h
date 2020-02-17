@@ -4,41 +4,41 @@ namespace ray {
 namespace detail {
 namespace accel {
 namespace dir_tree {
-inline std::tuple<float, float>
+HOST_DEVICE inline std::tuple<float, float>
 HalfSpherePartition::vec_to_colatitude_longitude(const Eigen::Vector3f &vec) {
   // maybe input should always be normalized (so normalizing here isn't
   // required)
   const auto normalized = vec.normalized().eval();
-  float colatitude = M_PI / 2 - std::asin(normalized.y());
-  float longitude = std::atan2(normalized.z(), normalized.x());
+  float colatitude = M_PI / 2 - std::asin(normalized.z());
+  float longitude = std::atan2(normalized.y(), normalized.x());
 
   return std::make_tuple(colatitude, longitude);
 }
 
 // inverse of above
-inline Eigen::Vector3f
+HOST_DEVICE inline Eigen::Vector3f
 HalfSpherePartition::colatitude_longitude_to_vec(float colatitude,
                                                  float longitude) {
-  float y = std::sin(M_PI / 2 - colatitude);
-  float z_x_ratio = std::tan(longitude);
-  // z / x = z_x_ratio
+  float z = std::sin(M_PI / 2 - colatitude);
+  float y_x_ratio = std::tan(longitude);
+  // y / x = y_x_ratio
   // sqrt(z**2 + x**2 + y**2) = 1
-  // z**2 + x**2 = 1 - y**2
-  // z = z_x_ratio x
-  // (z_x_ratio x)**2 + x**2 = 1 - y**2
-  // (z_x_ratio x)**2 + x**2 = 1 - y**2
-  // x = sqrt((1 - y**2) / (1 + z_x_ratio**2))
-  // z = z_x_ratio x
-  float x = std::sqrt((1 - y * y) / (1 + z_x_ratio * z_x_ratio));
+  // y**2 + x**2 = 1 - z**2
+  // y = y_x_ratio x
+  // (y_x_ratio x)**2 + x**2 = 1 - z**2
+  // (y_x_ratio x)**2 + x**2 = 1 - z**2
+  // x = sqrt((1 - z**2) / (1 + y_x_ratio**2))
+  // y = y_x_ratio x
+  float x = std::sqrt((1 - z * z) / (1 + y_x_ratio * y_x_ratio));
   if (std::abs(longitude) > M_PI / 2) {
     x *= -1;
   }
-  float z = x * z_x_ratio;
+  float y = x * y_x_ratio;
 
   return Eigen::Vector3f(x, y, z);
 }
 
-inline std::tuple<float, float>
+HOST_DEVICE inline std::tuple<float, float>
 HalfSpherePartition::get_center_colatitude_longitude(unsigned collar,
                                                      unsigned region) const {
   // if collar is 0, we are in cap
@@ -57,7 +57,7 @@ HalfSpherePartition::get_center_colatitude_longitude(unsigned collar,
   }
 }
 
-inline Eigen::Vector3f
+HOST_DEVICE inline Eigen::Vector3f
 HalfSpherePartition::get_center_vec(unsigned collar, unsigned region) const {
   auto [colatitude, longitude] =
       get_center_colatitude_longitude(collar, region);
@@ -79,6 +79,18 @@ HalfSpherePartition::get_closest(float colatitude, float longitude) const {
       longitude = -M_PI + (longitude - M_PI);
     }
   }
+
+  // what epsilon?
+  float epsilon = 1e-5;
+  assert(colatitude < half_pi + epsilon);
+  assert(-epsilon < colatitude);
+
+  colatitude = std::clamp(colatitude, epsilon, half_pi - epsilon);
+
+  assert(std::abs(longitude) < float(M_PI) + epsilon);
+
+  longitude =
+      std::clamp(longitude, float(-M_PI) + epsilon, float(M_PI) - epsilon);
 
   const auto &region = colatitude_divs_[std::floor(
       (colatitude + colatitude_offset_) * colatitude_inverse_interval_)];

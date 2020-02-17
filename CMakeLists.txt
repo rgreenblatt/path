@@ -57,15 +57,16 @@ add_library(
 
   "${PROJECT_SOURCE_DIR}/src/ray/render.cu"
 
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/render_impl.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/fill.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/float_to_bgra.cpp"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/float_to_bgra.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/all.cpp"
+  "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/dir_tree.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/kdtree_false.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/kdtree_true.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/loop_all_false.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/loop_all_true.cu"
+  "${PROJECT_SOURCE_DIR}/src/ray/detail/render_impl.cu"
 
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/kdtree/kdtree.cpp"
 
@@ -80,6 +81,7 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/fill_keys.cpp"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/fill_keys.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/filter_others.cu"
+  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/filter_current_edges.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/find_best_edges.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/permute.cu"
   "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/scan_edges.cu"
@@ -128,6 +130,10 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
   target_link_libraries(sphere_partition renderer)
   package_add_test(binary_search
     "${PROJECT_SOURCE_DIR}/tests/src/binary_search.cpp")
+  package_add_test(projection "${PROJECT_SOURCE_DIR}/tests/src/projection.cpp")
+  package_add_test(intersection
+    "${PROJECT_SOURCE_DIR}/tests/src/intersection.cu")
+  target_link_libraries(intersection renderer)
 
   add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND}
     DEPENDS "${TEST_LIST}")

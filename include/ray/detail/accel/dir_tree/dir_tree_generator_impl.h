@@ -134,6 +134,8 @@ private:
    *  - sorted_by_z_max_.first <-> sorted_by_z_max_.second
    */
   void filter_others();
+  
+  void filter_current_edges();
 
   /*
    * Sets up groups for the next iteration
@@ -168,18 +170,19 @@ private:
   void scan_mins_maxs();
 
   template <typename T> using ExecVecT = ExecVector<execution_model, T>;
+  template <typename T> using SharedVecT = SharedVector<execution_model, T>;
 
-  HostDeviceVector<HalfSpherePartition::ColatitudeDiv>
+  SharedVecT<HalfSpherePartition::ColatitudeDiv>
       sphere_partition_regions_;
 
-  HostDeviceVector<Eigen::Projective3f> transforms_;
-  HostDeviceVector<BoundingPoints> bounds_;
+  SharedVecT<Eigen::Projective3f> transforms_;
+  SharedVecT<BoundingPoints> bounds_;
   ExecVecT<IdxAABB> aabbs_;
 
   // x edges, y edges, z min, z max
   static constexpr unsigned num_sortings = 4;
-  HostDeviceVector<Eigen::Vector3f> sort_offsets_;
-  HostDeviceVector<float> z_max_sort_offsets_;
+  SharedVecT<Eigen::Vector3f> sort_offsets_;
+  SharedVecT<float> z_max_sort_offsets_;
   std::array<ExecVecT<float>, num_sortings> sorting_values_;
   std::array<ExecVecT<unsigned>, num_sortings> indexes_;
 
@@ -206,7 +209,7 @@ private:
 
   template <typename T> using Pair = std::pair<T, T>;
 
-  std::array<AllEdges, 3> edges_underlying_;
+  std::array<AllEdges, 4> edges_underlying_;
   Pair<ZValues> sorted_by_z_min_underlying_;
   Pair<ZValues> sorted_by_z_max_underlying_;
 
@@ -215,6 +218,7 @@ private:
   bool is_x_;
 
   RefT<AllEdges> current_edges_;
+  RefT<AllEdges> current_edges_new_;
   RefT<AllEdges> other_edges_;
   RefT<AllEdges> other_edges_new_;
   Pair<RefT<ZValues>> sorted_by_z_min_;
@@ -251,31 +255,25 @@ private:
   inline unsigned get_other_edge_idx() { return is_x_ ? 1 : 0; }
 
   inline SpanSized<unsigned> current_edges_groups() {
-
     return axis_groups_.first.get()[get_current_edge_idx()];
   }
 
   inline SpanSized<unsigned> other_edges_groups() {
-
     return axis_groups_.first.get()[get_other_edge_idx()];
   }
 
   inline SpanSized<unsigned> current_edges_new_groups() {
-
     return axis_groups_.second.get()[get_current_edge_idx()];
   }
 
   inline SpanSized<unsigned> other_edges_new_groups() {
-
     return axis_groups_.second.get()[get_other_edge_idx()];
   }
 
   ExecVecT<unsigned> starts_inclusive_;
 
-  Pair<ExecVecT<unsigned>> open_mins_before_group_underlying_;
   Pair<ExecVecT<unsigned>> num_per_group_underlying_;
 
-  Pair<RefT<ExecVecT<unsigned>>> open_mins_before_group_;
   Pair<RefT<ExecVecT<unsigned>>> num_per_group_;
 
   class BestEdges : public VectorGroup<ExecVecT, float, unsigned, uint8_t> {
@@ -297,6 +295,7 @@ private:
 
   ExecVecT<unsigned> num_groups_inclusive_;
   ExecVecT<unsigned> z_outputs_inclusive_;
+  ExecVecT<unsigned> current_edge_outputs_inclusive_;
 
   unsigned node_offset_;
   unsigned output_values_offset_;
@@ -320,7 +319,7 @@ private:
   ExecVecT<float> max_y_tree_;
   ExecVecT<float> max_z_tree_;
 
-  HostDeviceVector<DirTree> dir_trees_;
+  SharedVecT<DirTree> dir_trees_;
 
   unsigned num_shapes_;
 

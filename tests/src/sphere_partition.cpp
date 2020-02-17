@@ -26,12 +26,12 @@ TEST(SpherePartition, conversions) {
     }
   };
 
-  check({0, 1, 0}, float(0), 0);
-  check({0, -1, 0}, float(M_PI), 0);
+  check({0, 0, 1}, float(0), 0);
+  check({0, 0, -1}, float(M_PI), 0);
   check({1, 0, 0}, float(M_PI) / 2.0f, 0);
-  check({0, 0, 1}, float(M_PI) / 2.0f, float(M_PI) / 2);
-  check({0, 0, -1}, float(M_PI) / 2.0f, -float(M_PI) / 2);
-  check({0.5, 0, 0.5}, float(M_PI) / 2.0f, float(M_PI) / 4.0f);
+  check({0, 1, 0}, float(M_PI) / 2.0f, float(M_PI) / 2);
+  check({0, -1, 0}, float(M_PI) / 2.0f, -float(M_PI) / 2);
+  check({0.5, 0.5, 0}, float(M_PI) / 2.0f, float(M_PI) / 4.0f);
 }
 
 TEST(SpherePartition, construct) {
@@ -46,8 +46,8 @@ TEST(SpherePartition, construct) {
     {
       auto vec = partition.get_center_vec(0, 0);
       EXPECT_NEAR(vec.x(), 0, epsilon);
-      EXPECT_NEAR(vec.y(), 1, epsilon);
-      EXPECT_NEAR(vec.z(), 0, epsilon);
+      EXPECT_NEAR(vec.y(), 0, epsilon);
+      EXPECT_NEAR(vec.z(), 1, epsilon);
     }
 
     {
@@ -69,24 +69,39 @@ TEST(SpherePartition, construct) {
 }
 
 TEST(SpherePartition, get_closest) {
+  {
     HostDeviceVector<HalfSpherePartition::ColatitudeDiv> regions;
     HalfSpherePartition partition(5, regions); // 1 collar (and cap)
 
     EXPECT_EQ(partition.size(), 5); // tests below assume exactly 5 regions
-    EXPECT_EQ(partition.get_closest({0, 1, 0}), (std::tuple{0u, false}));
-    EXPECT_EQ(partition.get_closest({0, -1, 0}), (std::tuple{0u, true}));
-    EXPECT_EQ(partition.get_closest({0.001, 0.983, -0.03}),
+    EXPECT_EQ(partition.get_closest({0, 0, 1}), (std::tuple{0u, false}));
+    EXPECT_EQ(partition.get_closest({0, 0, -1}), (std::tuple{0u, true}));
+    EXPECT_EQ(partition.get_closest({0.001, -0.03, 0.983}),
               (std::tuple{0u, false}));
-    EXPECT_EQ(partition.get_closest({0.001, -0.983, -0.03}),
+    EXPECT_EQ(partition.get_closest({0.001, -0.03, -0.983}),
               (std::tuple{0u, true}));
-    EXPECT_EQ(partition.get_closest({-0.5, 0.5, -0.03}),
+    EXPECT_EQ(partition.get_closest({-0.5, -0.03, 0.5}),
               (std::tuple{1u, false}));
-    EXPECT_EQ(partition.get_closest({0.5, -0.5, 0.03}),
-              (std::tuple{1u, true}));
-    EXPECT_EQ(partition.get_closest({-0.5, 0.5, 0.03}),
+    EXPECT_EQ(partition.get_closest({0.5, 0.03, -0.5}), (std::tuple{1u, true}));
+    EXPECT_EQ(partition.get_closest({-0.5, 0.03, 0.5}),
               (std::tuple{4u, false}));
-    EXPECT_EQ(partition.get_closest({0.5, -0.5, -0.03}),
+    EXPECT_EQ(partition.get_closest({0.5, -0.03, -0.5}),
               (std::tuple{4u, true}));
+  }
+#if 0
+  {
+    // verifying internal assertions pass
+    HostDeviceVector<HalfSpherePartition::ColatitudeDiv> regions;
+    HalfSpherePartition partition(37, regions); // 1 collar (and cap)
+    partition.get_closest({0.5, -0.03, -0.5});
+    partition.get_closest({0.5, -0.8, 0.21});
+    partition.get_closest({0.2, -0.8, 0.21});
+    partition.get_closest({0.4, -0.2, 0.21});
+    partition.get_closest({0.4, -0.2, 0.8});
+    partition.get_closest({-0.4, -0.2, 0.8});
+    partition.get_closest({-0.4, 0.2, 0.8});
+  }
+#endif
 }
 
 // TODO: consider adding more tests to verify regions are spread correctly...

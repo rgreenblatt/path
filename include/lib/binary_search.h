@@ -10,6 +10,10 @@ constexpr unsigned binary_search(unsigned start, unsigned end, T target,
                                  unsigned guess,
                                  unsigned start_search_increment,
                                  Span<const T> values, bool is_increasing) {
+  if (start == end) {
+    return start;
+  }
+
   assert(guess >= start && guess < end);
 
   auto cmp = [&](const T &v1, const T &v2) {

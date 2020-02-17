@@ -33,6 +33,9 @@ TEST(binary_search, binary_search) {
     }
   };
 
+  search_test(0, 0, -0.2f, true, 0);
+  search_test(1, 1, 100.2f, true, 1);
+  search_test(8, 8, -100.2f, true, 8);
   search_test(0, 1, -0.2f, true, 0);
   search_test(0, 1, 0.1, true, 1);
   search_test(0, 1, 1.1f, true, 1);
@@ -49,6 +52,9 @@ TEST(binary_search, binary_search) {
   search_test(0, 60, 40.0f, true, 60);
   search_test(0, 60, 28.0f, true, 12);
 
+  search_test(0, 0, -0.2f, false, 0);
+  search_test(1, 1, 100.2f, false, 1);
+  search_test(8, 8, -100.2f, false, 8);
   search_test(0, 1, 28.0f, false, 1);
   search_test(0, 1, 38.1f, false, 0);
   search_test(0, 1, 50.0f, false, 0);

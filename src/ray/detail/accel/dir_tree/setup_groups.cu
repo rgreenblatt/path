@@ -14,7 +14,6 @@ void DirTreeGeneratorImpl<execution_model>::setup_groups() {
   unsigned size = better_than_no_split_.first->size();
   unsigned new_num_groups = num_groups_inclusive_[size - 1];
   axis_groups_.second->resize_all(new_num_groups);
-  open_mins_before_group_.second->resize(new_num_groups);
   num_per_group_.second->resize(new_num_groups);
   better_than_no_split_.second->resize(new_num_groups);
   current_edges_min_max_new_->resize(new_num_groups);
@@ -22,14 +21,13 @@ void DirTreeGeneratorImpl<execution_model>::setup_groups() {
 
   std::array<Span<const unsigned>, 2> new_indexes_arr = {new_edge_indexes_,
                                                          new_z_min_indexes_};
+  Span<const unsigned> outputs_inclusive = current_edge_outputs_inclusive_;
   Span<const unsigned> edges_groups = current_edges_groups();
   Span<unsigned> edges_new_groups = current_edges_new_groups();
   Span<const uint8_t> is_mins = current_edges_->is_mins();
 
   Span<const float> edge_values = current_edges_->values();
 
-  Span<const unsigned> old_open_mins_before_group =
-      open_mins_before_group_.first.get();
   Span<const unsigned> old_num_per_group = num_per_group_.first.get();
   Span<const uint8_t> old_better_than_no_split =
       better_than_no_split_.first.get();
@@ -40,8 +38,6 @@ void DirTreeGeneratorImpl<execution_model>::setup_groups() {
   Span<const std::array<float, 2>> old_other_edges_min_max =
       other_edges_min_max_.get();
 
-  Span<unsigned> new_open_mins_before_group =
-      open_mins_before_group_.second.get();
   Span<unsigned> new_num_per_group = num_per_group_.second.get();
   Span<uint8_t> new_better_than_no_split = better_than_no_split_.second.get();
   Span<const unsigned> best_edges_idxs = best_edges_.idxs();
@@ -77,10 +73,9 @@ void DirTreeGeneratorImpl<execution_model>::setup_groups() {
           assert(end > start);
           unsigned index_in_group = best_edge_idx - start;
 
-          auto [num_left, num_right, open_mins_before_right] =
-              left_right_counts(index_in_group, start_inclusive,
-                                old_open_mins_before_group[group_idx],
-                                is_best_edge_min, old_num_per_group[group_idx]);
+          auto [num_left, num_right] = left_right_counts(
+              index_in_group, start_inclusive, starts_inclusive[end - 1],
+              is_best_edge_min, old_num_per_group[group_idx]);
 
           bool using_left = num_left > 0;
           bool using_right = num_right > 0;
@@ -104,6 +99,10 @@ void DirTreeGeneratorImpl<execution_model>::setup_groups() {
               new_groups[right_output_idx] =
                   new_indexes[start_new_indexes + 2 * size - 1];
             }
+            if (using_left && using_right) {
+              assert(new_groups[right_output_idx] !=
+                     new_groups[left_output_idx]);
+            }
           }
 
           // predicting left and right idxs
@@ -111,17 +110,16 @@ void DirTreeGeneratorImpl<execution_model>::setup_groups() {
           unsigned left_idx =
               using_left ? new_node_offset + left_output_idx : 0;
           unsigned right_idx =
-              using_right ? new_node_offset + left_output_idx : 0;
+              using_right ? new_node_offset + right_output_idx : 0;
           float edge_value = edge_values[best_edge_idx];
           nodes[node_offset + group_idx] =
               DirTreeNode(edge_value, left_idx, right_idx);
 
           if (using_left) {
             edges_new_groups[left_output_idx] =
-                best_edge_idx + (is_best_edge_min ? 0 : 1);
+                ((best_edge_idx + (is_best_edge_min ? 0 : 1)) - start) +
+                get_previous(group_idx, outputs_inclusive);
             new_num_per_group[left_output_idx] = num_left;
-            new_open_mins_before_group[left_output_idx] =
-                old_open_mins_before_group[group_idx];
             new_better_than_no_split[left_output_idx] =
                 old_better_than_no_split[group_idx];
             // left side to edge
@@ -132,10 +130,8 @@ void DirTreeGeneratorImpl<execution_model>::setup_groups() {
           }
 
           if (using_right) {
-            edges_new_groups[right_output_idx] = end;
+            edges_new_groups[right_output_idx] = outputs_inclusive[group_idx];
             new_num_per_group[right_output_idx] = num_right;
-            new_open_mins_before_group[right_output_idx] =
-                open_mins_before_right;
             new_better_than_no_split[right_output_idx] =
                 old_better_than_no_split[group_idx];
             // edge to right side
@@ -143,6 +139,14 @@ void DirTreeGeneratorImpl<execution_model>::setup_groups() {
                 edge_value, old_current_edges_min_max[group_idx][1]};
             new_other_edges_min_max[right_output_idx] =
                 old_other_edges_min_max[group_idx];
+          }
+          if (using_left && using_right &&
+              edges_new_groups[right_output_idx] ==
+                  edges_new_groups[left_output_idx]) {
+            assert(outputs_inclusive[group_idx] !=
+                   get_previous(group_idx, outputs_inclusive));
+            // hacky approach to ensure 1 remains in group
+            edges_new_groups[left_output_idx]--;
           }
         } else {
           // z group sizes

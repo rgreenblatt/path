@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lib/utils.h"
 #include "ray/detail/intersection/shapes/cone.h"
 #include "ray/detail/intersection/shapes/cube.h"
 #include "ray/detail/intersection/shapes/cylinder.h"

@@ -13,9 +13,9 @@ inline float area_of_cap(float s_cap) {
   return 4 * float(M_PI) * sin_v * sin_v;
 }
 
-HalfSpherePartition::HalfSpherePartition(
-    unsigned target_num_regions,
-    HostDeviceVector<ColatitudeDiv> &colatitude_divs) {
+template <typename T>
+HalfSpherePartition::HalfSpherePartition(unsigned target_num_regions,
+                                         T &colatitude_divs) {
   const float area_of_half_sphere = 2 * float(M_PI);
   const float area_of_ideal_region = area_of_half_sphere / target_num_regions;
 
@@ -60,6 +60,12 @@ HalfSpherePartition::HalfSpherePartition(
 
   colatitude_divs_ = colatitude_divs;
 }
+
+template HalfSpherePartition::HalfSpherePartition(
+    unsigned target_num_regions, std::vector<ColatitudeDiv> &colatitude_divs);
+template HalfSpherePartition::HalfSpherePartition(
+    unsigned target_num_regions,
+    HostDeviceVector<ColatitudeDiv> &colatitude_divs);
 } // namespace dir_tree
 } // namespace accel
 } // namespace detail

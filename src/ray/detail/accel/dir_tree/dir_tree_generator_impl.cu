@@ -8,9 +8,11 @@ namespace accel {
 namespace dir_tree {
 template <ExecutionModel execution_model>
 DirTreeGeneratorImpl<execution_model>::DirTreeGeneratorImpl()
-    : use_async_(execution_model != ExecutionModel::CPU), is_x_(true),
-      current_edges_(edges_underlying_[0]), other_edges_(edges_underlying_[1]),
-      other_edges_new_(edges_underlying_[2]),
+    : use_async_(execution_model != ExecutionModel::CPU),
+      current_edges_(edges_underlying_[0]),
+      current_edges_new_(edges_underlying_[1]),
+      other_edges_(edges_underlying_[2]),
+      other_edges_new_(edges_underlying_[3]),
       sorted_by_z_min_(sorted_by_z_min_underlying_.first,
                        sorted_by_z_min_underlying_.second),
       sorted_by_z_max_(sorted_by_z_max_underlying_.first,
@@ -22,19 +24,38 @@ DirTreeGeneratorImpl<execution_model>::DirTreeGeneratorImpl()
       current_edges_keys_(x_edges_keys_), other_edges_keys_(y_edges_keys_),
       axis_groups_(axis_groups_underlying_.first,
                    axis_groups_underlying_.second),
-      open_mins_before_group_(open_mins_before_group_underlying_.first,
-                              open_mins_before_group_underlying_.second),
       num_per_group_(num_per_group_underlying_.first,
                      num_per_group_underlying_.second),
       better_than_no_split_(better_than_no_split_underlying_.first,
-                            better_than_no_split_underlying_.second),
-      node_offset_(0), output_values_offset_(0) {}
+                            better_than_no_split_underlying_.second) {}
 
 template <ExecutionModel execution_model>
 DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
     SpanSized<const scene::ShapeData> shapes, unsigned target_num_dir_trees,
     const Eigen::Vector3f &min_bound, const Eigen::Vector3f &max_bound) {
   is_x_ = true;
+  current_edges_ = edges_underlying_[0];
+  current_edges_new_ = edges_underlying_[1];
+  other_edges_ = edges_underlying_[2];
+  other_edges_new_ = edges_underlying_[3];
+  sorted_by_z_min_ = {sorted_by_z_min_underlying_.first,
+                      sorted_by_z_min_underlying_.second};
+  sorted_by_z_max_ = {sorted_by_z_max_underlying_.first,
+                      sorted_by_z_max_underlying_.second};
+  current_edges_min_max_ = group_min_max_underlying_[0];
+  other_edges_min_max_ = group_min_max_underlying_[1];
+  current_edges_min_max_new_ = group_min_max_underlying_[2];
+  other_edges_min_max_new_ = group_min_max_underlying_[3];
+  current_edges_keys_ = x_edges_keys_;
+  other_edges_keys_ = y_edges_keys_;
+  axis_groups_ = {axis_groups_underlying_.first,
+                  axis_groups_underlying_.second};
+  num_per_group_ = {num_per_group_underlying_.first,
+                    num_per_group_underlying_.second};
+  better_than_no_split_ = {better_than_no_split_underlying_.first,
+                           better_than_no_split_underlying_.second};
+  node_offset_ = 0;
+  output_values_offset_ = 0;
 
   num_shapes_ = shapes.size();
 

@@ -21,7 +21,7 @@ public:
   }
 
   template <typename V>
-  constexpr Span(const V &v) : ptr_(SpanConvertable<V>::ptr(v)) {
+  constexpr Span(const V &v) : ptr_(SpanConvertable<const V>::ptr(v)) {
     if constexpr (use_size) {
       size_ = SpanConvertable<V>::size(v);
     }
@@ -72,9 +72,11 @@ private:
   typename std::conditional_t<use_size, std::size_t, NoSize> size_;
 
   friend class SpanConvertable<Span>;
+  friend class SpanConvertable<const Span>;
 };
 
-template <typename T, bool is_sized> class SpanConvertable<Span<T, is_sized>> {
+template <typename T, bool is_sized>
+class SpanConvertable<const Span<T, is_sized>> {
 public:
   constexpr static T *ptr(const Span<T, is_sized> &v) { return v.ptr_; }
 
@@ -82,5 +84,9 @@ public:
     return v.size_;
   }
 };
+
+template <typename T, bool is_sized>
+class SpanConvertable<Span<T, is_sized>>
+    : public SpanConvertable<const Span<T, is_sized>> {};
 
 template <typename T> using SpanSized = Span<T, true>;

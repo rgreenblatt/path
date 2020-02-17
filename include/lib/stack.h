@@ -9,14 +9,19 @@ public:
   constexpr void push(const T &v) {
     assert(size_ < max_size);
     arr_[size_] = v;
+    size_++;
   }
 
   constexpr T pop() {
+    assert(size_ != 0);
     size_--;
     return arr_[size_];
   }
 
-  constexpr const T &peek() const { return arr_[size_ - 1]; }
+  constexpr const T &peek() const {
+    assert(size_ != 0);
+    return arr_[size_ - 1];
+  }
 
   using SizeType = std::conditional_t<
       (max_size > std::numeric_limits<uint16_t>::max()), uint32_t,

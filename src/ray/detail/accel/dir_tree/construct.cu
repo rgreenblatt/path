@@ -17,8 +17,18 @@ void DirTreeGeneratorImpl<execution_model>::construct() {
   while (num_groups() != 0) {
     better_than_no_split_.first->resize(num_groups());
 
-    x_edges_keys_.resize(current_edges_->size());
-    y_edges_keys_.resize(other_edges_->size());
+    current_edges_keys_->resize(current_edges_->size());
+    other_edges_keys_->resize(other_edges_->size());
+    assert(Span<const unsigned>(current_edges_keys_.get()).data() ==
+           (is_x_ ? Span<const unsigned>(x_edges_keys_).data()
+                  : Span<const unsigned>(y_edges_keys_).data()));
+    assert(Span<const unsigned>(other_edges_keys_.get()).data() ==
+           (is_x_ ? Span<const unsigned>(y_edges_keys_).data()
+                  : Span<const unsigned>(x_edges_keys_).data()));
+    assert(x_edges_keys_.size() ==
+           axis_groups_.first.get()[0][num_groups() - 1]);
+    assert(y_edges_keys_.size() ==
+           axis_groups_.first.get()[1][num_groups() - 1]);
     z_keys_.resize(sorted_by_z_min_.first->size());
 
     Timer fill_keys_timer;
@@ -51,6 +61,12 @@ void DirTreeGeneratorImpl<execution_model>::construct() {
 
     filter_others_timer.report("filter others");
 
+    Timer filter_current_edges_timer;
+
+    filter_current_edges();
+
+    filter_current_edges_timer.report("filter current edges");
+
     Timer setup_groups_timer;
 
     setup_groups();
@@ -58,20 +74,27 @@ void DirTreeGeneratorImpl<execution_model>::construct() {
     setup_groups_timer.report("setup groups");
 
     std::swap(current_edges_, other_edges_new_);
-    std::swap(other_edges_, other_edges_new_);
+    std::swap(other_edges_, current_edges_new_);
+    std::swap(other_edges_new_, current_edges_new_);
     std::swap(current_edges_keys_, other_edges_keys_);
     std::swap(sorted_by_z_min_.first, sorted_by_z_min_.second);
     std::swap(sorted_by_z_max_.first, sorted_by_z_max_.second);
     std::swap(axis_groups_.first, axis_groups_.second);
-    std::swap(open_mins_before_group_.first, open_mins_before_group_.second);
     std::swap(num_per_group_.first, num_per_group_.second);
-    std::swap(better_than_no_split_.first, better_than_no_split_.second);
     std::swap(current_edges_min_max_, current_edges_min_max_new_);
     std::swap(other_edges_min_max_, other_edges_min_max_new_);
     std::swap(current_edges_min_max_, other_edges_min_max_);
     std::swap(current_edges_min_max_new_, other_edges_min_max_new_);
 
+    assert(Span<const unsigned>(current_edges_keys_.get()).data() ==
+           (!is_x_ ? Span<const unsigned>(x_edges_keys_).data()
+                  : Span<const unsigned>(y_edges_keys_).data()));
+
     is_x_ = !is_x_;
+
+    assert(Span<const unsigned>(current_edges_keys_.get()).data() ==
+           (is_x_ ? Span<const unsigned>(x_edges_keys_).data()
+                  : Span<const unsigned>(y_edges_keys_).data()));
   }
 }
 

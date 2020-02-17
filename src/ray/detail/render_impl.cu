@@ -1,5 +1,6 @@
 #include "lib/span_convertable_device_vector.h"
 #include "lib/span_convertable_vector.h"
+#include "ray/detail/accel/dir_tree/dir_tree_lookup_ref.h"
 #include "ray/detail/accel/kdtree/kdtree_ref.h"
 #include "ray/detail/accel/loop_all.h"
 #include "ray/detail/render_impl.h"
@@ -118,8 +119,7 @@ void RendererImpl<execution_model>::render(
     };
 
     if (use_dir_tree) {
-      /* raytrace(dir_tree_lookup); */
-      raytrace(accel::LoopAll(num_shapes));
+      raytrace(accel::dir_tree::DirTreeLookupRef(dir_tree_lookup));
     } else if (use_kd_tree) {
       raytrace(accel::kdtree::KDTreeRef(kdtree_nodes_, moved_shapes_.size()));
     } else {

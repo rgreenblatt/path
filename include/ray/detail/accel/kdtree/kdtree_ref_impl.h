@@ -10,7 +10,18 @@ KDTreeRef::operator()(const Eigen::Vector3f &world_space_direction,
                       const Eigen::Vector3f &world_space_eye,
                       const thrust::optional<BestIntersection> &best,
                       const SolveIndex &solve_index) const {
-  auto inv_direction = (1.0f / world_space_direction.array()).eval();
+  Eigen::Vector3f direction_no_zeros = world_space_direction;
+  auto remove_zero = [](float& v) {
+    if (v == 0.0f || v == -0.0f) {
+      v = 1e-20f;
+    }
+  };
+
+  remove_zero(direction_no_zeros.x());
+  remove_zero(direction_no_zeros.y());
+  remove_zero(direction_no_zeros.z());
+
+  auto inv_direction = (1.0f / direction_no_zeros.array()).eval();
 
   struct StackData {
     unsigned node_index;

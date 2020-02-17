@@ -21,7 +21,8 @@ public:
 
   HOST_DEVICE DirTreeNode() {}
 
-  template <typename F> auto visit(F &f) const {
+  template <typename F> 
+   HOST_DEVICE auto visit(const F &f) const {
     switch (type_) {
     case Type::Split:
       return f(split_);
