@@ -129,6 +129,10 @@ def cc_command(builder, _):
                    "compile_commands.json")
 
 
+# def check_command(builder, _):
+#     builder(False, "check", additional_gen_args=["-DSYNTAX_ONLY=ON"])
+
+
 def main():
     name = "build"
 
@@ -175,6 +179,7 @@ COMMANDS:
         "test": test_command,
         "bench": bench_command,
         "compile_command": cc_command,
+        # "check": check_command,
     }
     page = args.paginate and not args.no_pager
     try:

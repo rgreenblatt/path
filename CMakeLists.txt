@@ -25,9 +25,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
-set(GENERAL_FLAGS "-std=c++2a -stdlib=libc++ -Wall -Wextra -fsized-deallocation")
-# disable all ptxas warnings
+
+# option(SYNTAX_ONLY "Only check syntax" OFF)
+
+set(GENERAL_FLAGS "-std=c++17 -Wall -Wextra -fsized-deallocation")
 set(GENERAL_CUDA_FLAGS "${GENERAL_FLAGS} -Xcuda-ptxas '-w'")
+
 set(CMAKE_QT_FLAGS "${CMAKE_CXX_FLAGS} ${GENERAL_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GENERAL_FLAGS}")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${GENERAL_CUDA_FLAGS}")

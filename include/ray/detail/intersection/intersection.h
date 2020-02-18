@@ -4,7 +4,7 @@
 
 #include <Eigen/Core>
 
-#include <compare>
+#include <type_traits>
 
 namespace ray {
 namespace detail {
@@ -19,12 +19,25 @@ struct IntersectionNormalUV {
                                    const Eigen::Vector3f &normal,
                                    const UVPosition &uv)
       : intersection(intersection), normal(normal), uv(uv) {}
-
-  constexpr std::partial_ordering
-  operator<=>(const IntersectionNormalUV &rhs) const {
-    return intersection <=> rhs.intersection;
-  }
 };
+
+HOST_DEVICE inline bool
+operator<(const IntersectionNormalUV &lhs,
+          const IntersectionNormalUV &rhs) { /* do actual comparison */
+  return lhs.intersection < rhs.intersection;
+}
+HOST_DEVICE inline bool operator>(const IntersectionNormalUV &lhs,
+                      const IntersectionNormalUV &rhs) {
+  return operator<(rhs, lhs);
+}
+HOST_DEVICE inline bool operator<=(const IntersectionNormalUV &lhs,
+                       const IntersectionNormalUV &rhs) {
+  return !operator>(lhs, rhs);
+}
+HOST_DEVICE inline bool operator>=(const IntersectionNormalUV &lhs,
+                       const IntersectionNormalUV &rhs) {
+  return !operator<(lhs, rhs);
+}
 
 template <bool normal_and_uv>
 using Intersection =
@@ -39,13 +52,31 @@ template <bool normals_and_uv> struct BestIntersectionGeneral {
                                       const unsigned shape_idx)
       : intersection(intersection), shape_idx(shape_idx) {}
 
-  HOST_DEVICE bool operator<(const BestIntersectionGeneral &rhs) const {
-    return intersection < rhs.intersection;
-  }
-
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
+
+template <bool normals_and_uv>
+HOST_DEVICE inline bool operator<(const BestIntersectionGeneral<normals_and_uv> &lhs,
+                      const BestIntersectionGeneral<normals_and_uv>
+                          &rhs) {
+return lhs.intersection < rhs.intersection;
+}
+template <bool normals_and_uv>
+HOST_DEVICE inline bool operator>(const BestIntersectionGeneral<normals_and_uv> &lhs,
+                      const BestIntersectionGeneral<normals_and_uv> &rhs) {
+  return operator<(rhs, lhs);
+}
+template <bool normals_and_uv>
+HOST_DEVICE inline bool operator<=(const BestIntersectionGeneral<normals_and_uv> &lhs,
+                       const BestIntersectionGeneral<normals_and_uv> &rhs) {
+  return !operator>(lhs, rhs);
+}
+template <bool normals_and_uv>
+HOST_DEVICE inline bool operator>=(const BestIntersectionGeneral<normals_and_uv> &lhs,
+                       const BestIntersectionGeneral<normals_and_uv> &rhs) {
+  return !operator<(lhs, rhs);
+}
 
 using BestIntersectionNormalUV = BestIntersectionGeneral<true>;
 using BestIntersection = BestIntersectionGeneral<false>;
