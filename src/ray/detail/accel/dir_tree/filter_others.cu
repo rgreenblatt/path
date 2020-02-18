@@ -36,30 +36,27 @@ void filter_values(
     return !(use_split_first[key] || use_split_second[key]);
   };
 
-  {
-    auto start_it = thrust::make_transform_iterator(
-        thrust::make_counting_iterator(0u),
-        [=] __host__ __device__(unsigned i) {
-          auto [key, idx, is_left] = get_key_idx_is_left(i);
+  auto start_it = thrust::make_transform_iterator(
+      thrust::make_counting_iterator(0u), [=] __host__ __device__(unsigned i) {
+        auto [key, idx, is_left] = get_key_idx_is_left(i);
 
-          if (not_using_split(key)) {
-            return false;
-          }
+        if (not_using_split(key)) {
+          return false;
+        }
 
-          unsigned previous_value = get_previous(key, best_edges_locations);
-          if (previous_value == best_edges_locations[key]) {
-            return is_left;
-          }
+        unsigned previous_value = get_previous(key, best_edges_locations);
+        if (previous_value == best_edges_locations[key]) {
+          return is_left;
+        }
 
-          float edge_value = edge_values[best_edges_idxs[previous_value]];
+        float edge_value = edge_values[best_edges_idxs[previous_value]];
 
-          return is_left ? compare_data_mins[idx] < edge_value
-                         : compare_data_maxs[idx] > edge_value;
-        });
+        return is_left ? compare_data_mins[idx] < edge_value
+                       : compare_data_maxs[idx] > edge_value;
+      });
 
-    thrust::inclusive_scan(execution_policy, start_it,
-                           start_it + iteration_size, new_indexes.begin());
-  }
+  thrust::inclusive_scan(execution_policy, start_it, start_it + iteration_size,
+                         new_indexes.begin());
 
   auto copy_to_new = resize();
 
@@ -99,6 +96,10 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
   async_for(use_async_, 0, 3, [&](unsigned i) {
     if (i == 0) {
       unsigned size = other_edges_->size() * 2;
+
+      if (size == 0) {
+        return;
+      }
 
       new_edge_indexes_.resize(size);
 
@@ -183,6 +184,8 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
       unsigned output_offset = output_values_offset_;
 
       unsigned size = old_z_vals.size() * 2;
+
+      assert(size != 0);
 
       auto &indexes = i == 1 ? new_z_min_indexes_ : new_z_max_indexes_;
 

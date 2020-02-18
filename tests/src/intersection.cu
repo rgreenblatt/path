@@ -71,7 +71,7 @@ static void test_accelerator(std::mt19937 &gen, const AccelGen &accel_gen,
     }
   };
 
-#if 0
+#if 1
   {
     HostDeviceVector<scene::ShapeData> shapes = {
         make_id_cube(Eigen::Affine3f::Identity(), 0)};
@@ -97,7 +97,7 @@ static void test_accelerator(std::mt19937 &gen, const AccelGen &accel_gen,
   }
 #endif
 
-#if 0
+#if 1
   {
     HostDeviceVector<scene::ShapeData> shapes = {
         make_id_cube(Eigen::Affine3f::Identity(), 0),
@@ -127,7 +127,7 @@ static void test_accelerator(std::mt19937 &gen, const AccelGen &accel_gen,
   }
 #endif
 
-#if 0
+#if 1
   {
     HostDeviceVector<scene::ShapeData> shapes = {
         make_id_cube(Eigen::Affine3f::Identity(), 0),
@@ -247,7 +247,7 @@ static void test_accelerator(std::mt19937 &gen, const AccelGen &accel_gen,
 #if 1
   {
     unsigned num_trials = 10;
-    std::uniform_int_distribution<unsigned> num_shapes_gen(1, 10);
+    std::uniform_int_distribution<unsigned> num_shapes_gen(1, 50);
     std::uniform_real_distribution<float> float_gen(-1, 1);
     for (unsigned trial_idx = 0; trial_idx < num_trials; ++trial_idx) {
       unsigned num_shapes = num_shapes_gen(gen);
@@ -289,35 +289,35 @@ static void test_accelerator(std::mt19937 &gen, const AccelGen &accel_gen,
 #endif
 }
 
-/* TEST(Intersection, loop_all) { */
-/*   std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed()); */
-/*   for (bool is_gpu : {false, true}) { */
+TEST(Intersection, loop_all) {
+  std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
+  for (bool is_gpu : {false, true}) {
 
-/*     test_accelerator( */
-/*         gen, */
-/*         [](SpanSized<const scene::ShapeData> shapes) { */
-/*           return accel::LoopAll(shapes.size()); */
-/*         }, */
-/*         is_gpu); */
-/*   } */
-/* } */
+    test_accelerator(
+        gen,
+        [](SpanSized<const scene::ShapeData> shapes) {
+          return accel::LoopAll(shapes.size());
+        },
+        is_gpu);
+  }
+}
 
-/* TEST(Intersection, kdtree) { */
-/*   std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed()); */
-/*   HostDeviceVector<kdtree::KDTreeNode<AABB>> copied_nodes; */
-/*   for (bool is_gpu : {false, true}) { */
-/*     test_accelerator( */
-/*         gen, */
-/*         [&](SpanSized<scene::ShapeData> shapes) { */
-/*           auto nodes = */
-/*               kdtree::construct_kd_tree(shapes.data(), shapes.size(), 100, 3); */
-/*           copied_nodes.clear(); */
-/*           copied_nodes.insert(copied_nodes.end(), nodes.begin(), nodes.end()); */
-/*           return kdtree::KDTreeRef(copied_nodes, shapes.size()); */
-/*         }, */
-/*         is_gpu); */
-/*   } */
-/* } */
+TEST(Intersection, kdtree) {
+  std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
+  HostDeviceVector<kdtree::KDTreeNode<AABB>> copied_nodes;
+  for (bool is_gpu : {false, true}) {
+    test_accelerator(
+        gen,
+        [&](SpanSized<scene::ShapeData> shapes) {
+          auto nodes =
+              kdtree::construct_kd_tree(shapes.data(), shapes.size(), 100, 3);
+          copied_nodes.clear();
+          copied_nodes.insert(copied_nodes.end(), nodes.begin(), nodes.end());
+          return kdtree::KDTreeRef(copied_nodes, shapes.size());
+        },
+        is_gpu);
+  }
+}
 
 TEST(Intersection, dir_tree) {
   std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
