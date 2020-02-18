@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
 TEST(DeviceVector, no_default_init) {
   class OneIfDefaultConstructed {
   public:

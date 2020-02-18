@@ -4,6 +4,8 @@
 
 #include <Eigen/Core>
 
+#include <compare>
+
 namespace ray {
 namespace detail {
 using UVPosition = Eigen::Array2f;
@@ -18,8 +20,9 @@ struct IntersectionNormalUV {
                                    const UVPosition &uv)
       : intersection(intersection), normal(normal), uv(uv) {}
 
-  constexpr bool operator<(const IntersectionNormalUV &rhs) const {
-    return intersection < rhs.intersection;
+  constexpr std::partial_ordering
+  operator<=>(const IntersectionNormalUV &rhs) const {
+    return intersection <=> rhs.intersection;
   }
 };
 

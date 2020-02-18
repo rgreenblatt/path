@@ -8,6 +8,8 @@
 #include <thrust/device_vector.h>
 #include <thrust/sort.h>
 
+#include <string>
+
 template <typename T> static void standard(benchmark::State &state) {
   ThrustData<ExecutionModel::GPU> thrust_data;
   DeviceVector<T> vals(unsigned(state.range(0)));

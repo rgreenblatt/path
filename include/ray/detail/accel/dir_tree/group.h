@@ -4,6 +4,7 @@
 #include "lib/span.h"
 
 #include <tuple>
+#include <array>
 
 namespace ray {
 namespace detail {

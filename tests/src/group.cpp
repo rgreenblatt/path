@@ -3,6 +3,8 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+
 TEST(Group, get_previous) {
   using ray::detail::accel::dir_tree::get_previous;
 

@@ -1,5 +1,8 @@
+#pragma once
+
 #include <functional>
 #include <future>
+#include <vector>
 
 template <typename F>
 void async_for(bool is_async, unsigned start, unsigned end, const F &f) {

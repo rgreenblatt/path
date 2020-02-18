@@ -9,6 +9,8 @@
 #include <thrust/device_vector.h>
 #include <thrust/scan.h>
 
+#include <string>
+
 template <typename T> static void standard(benchmark::State &state) {
   ThrustData<ExecutionModel::GPU> thrust_data;
   DeviceVector<T> in(unsigned(state.range(0)));

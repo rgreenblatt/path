@@ -3,6 +3,9 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+#include <vector>
+
 TEST(binary_search, binary_search) {
   unsigned size = 64;
 
