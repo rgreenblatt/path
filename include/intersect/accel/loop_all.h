@@ -1,12 +1,13 @@
+#include "intersect/intersection.h"
 #include "lib/cuda/utils.h"
 #include "lib/span.h"
-#include "ray/detail/intersection/intersection.h"
 
+#include <Eigen/Core>
 #include <thrust/optional.h>
 
-namespace ray {
-namespace detail {
+namespace intersect {
 namespace accel {
+// TODO: generic over meshes and triangles...
 class LoopAll {
 public:
   LoopAll(unsigned num_shapes) : num_shapes_(num_shapes) {}
@@ -24,5 +25,4 @@ private:
   unsigned num_shapes_;
 };
 } // namespace accel
-} // namespace detail
-} // namespace ray
+} // namespace intersect

@@ -58,50 +58,49 @@ endmacro()
 add_library(
   renderer
 
-  "${PROJECT_SOURCE_DIR}/src/ray/render.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/render.cu"
 
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/fill.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/float_to_bgra.cpp"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/float_to_bgra.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/all.cpp"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/dir_tree.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/kdtree_false.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/kdtree_true.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/loop_all_false.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/loop_all_true.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/render_impl.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/fill.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/float_to_bgra.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/float_to_bgra.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/all.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/dir_tree.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/kdtree_false.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/kdtree_true.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/loop_all_false.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/loop_all_true.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/render_impl.cu"
 
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/kdtree/kdtree.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/kdtree/kdtree.cpp"
 
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/dir_tree_generator.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/dir_tree_generator.cu"
 
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/compute_aabbs.cpp"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/compute_aabbs.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/construct.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/copy_to_sortable.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/dir_tree_generator_impl.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/fill_indexes.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/fill_keys.cpp"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/fill_keys.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/filter_others.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/filter_current_edges.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/find_best_edges.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/permute.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/scan_edges.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/scan_mins_maxs.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/setup.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/setup_groups.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/sort.cu"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/sphere_partition.cpp"
-  "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/test_splits.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/compute_aabbs.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/compute_aabbs.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/construct.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/copy_to_sortable.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/dir_tree_generator_impl.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/fill_indexes.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/fill_keys.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/fill_keys.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/filter_others.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/filter_current_edges.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/find_best_edges.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/permute.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/scan_edges.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/scan_mins_maxs.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/setup.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/setup_groups.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/sort.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/sphere_partition.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/test_splits.cu"
 
   "${PROJECT_SOURCE_DIR}/src/scene/camera.cpp"
-  "${PROJECT_SOURCE_DIR}/src/scene/pool_scene.cpp"
-  "${PROJECT_SOURCE_DIR}/src/scene/reflec_ball.cpp"
+  "${PROJECT_SOURCE_DIR}/src/scene/CS123XmlSceneParser.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/scene.cpp"
   )
 target_add_standard_include(renderer)
-target_link_libraries(renderer OpenMP::OpenMP_CXX Qt5::Widgets)
+target_link_libraries(renderer OpenMP::OpenMP_CXX Qt5::Widgets Qt5::Xml)
 
 if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
   enable_testing()
@@ -128,15 +127,15 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
     "${PROJECT_SOURCE_DIR}/tests/src/device_vector.cu")
   package_add_test(lambda_check
     "${PROJECT_SOURCE_DIR}/tests/src/lambda_check.cu")
-  package_add_test(sphere_partition
-    "${PROJECT_SOURCE_DIR}/tests/src/sphere_partition.cpp")
-  target_link_libraries(sphere_partition renderer)
+  # package_add_test(sphere_partition
+  #   "${PROJECT_SOURCE_DIR}/tests/src/sphere_partition.cpp")
+  # target_link_libraries(sphere_partition renderer)
   package_add_test(binary_search
     "${PROJECT_SOURCE_DIR}/tests/src/binary_search.cpp")
   package_add_test(projection "${PROJECT_SOURCE_DIR}/tests/src/projection.cpp")
-  package_add_test(intersection
-    "${PROJECT_SOURCE_DIR}/tests/src/intersection.cu")
-  target_link_libraries(intersection renderer)
+  # package_add_test(intersection
+  #   "${PROJECT_SOURCE_DIR}/tests/src/intersection.cu")
+  # target_link_libraries(intersection renderer)
 
   add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND}
     DEPENDS "${TEST_LIST}")
@@ -163,28 +162,28 @@ if(BUILD_BENCHMARKS OR CMAKE_EXPORT_COMPILE_COMMANDS)
     DEPENDS "${BENCH_LIST}")
 endif()
 
-add_executable(
-  final
-  "${UI_MAINWINDOW}"
-  "${UI_VIEW}"
-  "${PROJECT_SOURCE_DIR}/src/ui/mainwindow.ui"
-  "${PROJECT_SOURCE_DIR}/src/main.cpp"
-  "${PROJECT_SOURCE_DIR}/src/ui/mainwindow.cpp"
-  "${PROJECT_SOURCE_DIR}/src/ui/canvas.cpp"
-  )
-qt5_use_modules(final Widgets)
-target_link_libraries(final Qt5::Widgets renderer)
-target_add_standard_include(final)
+# add_executable(
+#   final
+#   "${UI_MAINWINDOW}"
+#   "${UI_VIEW}"
+#   "${PROJECT_SOURCE_DIR}/src/ui/mainwindow.ui"
+#   "${PROJECT_SOURCE_DIR}/src/main.cpp"
+#   "${PROJECT_SOURCE_DIR}/src/ui/mainwindow.cpp"
+#   "${PROJECT_SOURCE_DIR}/src/ui/canvas.cpp"
+#   )
+# qt5_use_modules(final Widgets)
+# target_link_libraries(final Qt5::Widgets renderer)
+# target_add_standard_include(final)
 
-add_executable(
-  image_test
-  "${PROJECT_SOURCE_DIR}/src/bin/image_test.cpp"
-  "${PROJECT_SOURCE_DIR}/src/scene/cs123_scene.cpp"
-  "${PROJECT_SOURCE_DIR}/src/cs123_compat/Scene.cpp"
-  "${PROJECT_SOURCE_DIR}/src/cs123_compat/CS123XmlSceneParser.cpp"
-  )
-target_link_libraries(image_test Qt5::Widgets Qt5::Xml renderer)
-target_add_standard_include(image_test)
+# add_executable(
+#   image_test
+#   "${PROJECT_SOURCE_DIR}/src/bin/image_test.cpp"
+#   "${PROJECT_SOURCE_DIR}/src/scene/cs123_scene.cpp"
+#   "${PROJECT_SOURCE_DIR}/src/cs123_compat/Scene.cpp"
+#   "${PROJECT_SOURCE_DIR}/src/cs123_compat/CS123XmlSceneParser.cpp"
+#   )
+# target_link_libraries(image_test Qt5::Widgets Qt5::Xml renderer)
+# target_add_standard_include(image_test)
 
 # add_executable(
 #   video_test

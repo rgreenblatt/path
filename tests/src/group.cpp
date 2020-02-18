@@ -1,4 +1,4 @@
-#include "ray/detail/accel/dir_tree/group.h"
+#include "lib/group.h"
 #include "lib/span_convertable_vector.h"
 
 #include <gtest/gtest.h>
@@ -6,8 +6,6 @@
 #include <string>
 
 TEST(Group, get_previous) {
-  using ray::detail::accel::dir_tree::get_previous;
-
   {
     std::vector arr = {1u, 2u, 3u, 4u, 5u};
 

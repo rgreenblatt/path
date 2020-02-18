@@ -4,7 +4,6 @@
 #include "lib/stack.h"
 #include "ray/detail/accel/dir_tree/dir_tree_lookup_ref.h"
 #include "ray/detail/accel/dir_tree/impl/sphere_partition_impl.h"
-#include "ray/detail/projection.h"
 
 namespace ray {
 namespace detail {

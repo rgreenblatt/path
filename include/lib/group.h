@@ -4,12 +4,7 @@
 #include "lib/span.h"
 
 #include <tuple>
-#include <array>
 
-namespace ray {
-namespace detail {
-namespace accel {
-namespace dir_tree {
 template <typename T>
 HOST_DEVICE inline T get_previous(unsigned i, Span<const T> vals) {
   return i == 0 ? T() : vals[i - 1];
@@ -29,7 +24,3 @@ HOST_DEVICE inline std::tuple<unsigned, unsigned>
 group_start_end(unsigned i, Span<const unsigned> groups) {
   return std::make_tuple(get_previous(i, groups), groups[i]);
 }
-} // namespace dir_tree
-} // namespace accel
-} // namespace detail
-} // namespace ray

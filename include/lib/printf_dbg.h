@@ -9,6 +9,19 @@
 
 namespace printf_dbg {
 namespace detail {
+template <typename Iter>
+constexpr size_t copy_in_n_times(Iter format_iter, std::string_view s,
+                                 size_t times) {
+  size_t offset = 0;
+  for (size_t i = 0; i < times; ++i) {
+    copy(s.begin(), s.end(), format_iter);
+
+    offset += s.size();
+  }
+
+  return offset;
+}
+
 // not ideal imo, some clean up is possible for sure...
 template <typename Iter, typename T>
 HOST_DEVICE inline auto debug_value(Iter format_iter, const T &val) {

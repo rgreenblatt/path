@@ -4,7 +4,6 @@
 #include "lib/span.h"
 #include "ray/detail/accel/dir_tree/bounding_points.h"
 #include "ray/detail/accel/dir_tree/idx_aabb.h"
-#include "ray/detail/projection.h"
 
 namespace ray {
 namespace detail {

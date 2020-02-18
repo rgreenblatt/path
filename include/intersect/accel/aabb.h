@@ -1,15 +1,13 @@
 #pragma once
 
 #include "lib/cuda/utils.h"
-#include "ray/detail/projection.h"
 
 #include <Eigen/Geometry>
 #include <thrust/optional.h>
 
 #include <iostream>
 
-namespace ray {
-namespace detail {
+namespace intersect {
 namespace accel {
 class AABB {
 public:
@@ -64,7 +62,7 @@ private:
 };
 
 inline std::tuple<Eigen::Vector3f, Eigen::Vector3f> get_transformed_bounds(
-    const Eigen::Projective3f &transform,
+    const Eigen::Affine3f &transform,
     const Eigen::Vector3f &min_bound = Eigen::Vector3f::Ones() * -0.5f,
     const Eigen::Vector3f &max_bound = Eigen::Vector3f::Ones() * 0.5f) {
   Eigen::Vector3f min_transformed_bound(std::numeric_limits<float>::max(),
@@ -79,10 +77,10 @@ inline std::tuple<Eigen::Vector3f, Eigen::Vector3f> get_transformed_bounds(
         auto get_axis = [&](bool is_min, uint8_t axis) {
           return is_min ? min_bound[axis] : max_bound[axis];
         };
-        Eigen::Vector3f transformed_edge = apply_projective_point(
-            Eigen::Vector3f(get_axis(x_is_min, 0), get_axis(y_is_min, 1),
-                            get_axis(z_is_min, 2)),
-            transform);
+        Eigen::Vector3f transformed_edge =
+            transform * Eigen::Vector3f(get_axis(x_is_min, 0),
+                                        get_axis(y_is_min, 1),
+                                        get_axis(z_is_min, 2));
         min_transformed_bound =
             min_transformed_bound.cwiseMin(transformed_edge);
         max_transformed_bound =
@@ -94,5 +92,4 @@ inline std::tuple<Eigen::Vector3f, Eigen::Vector3f> get_transformed_bounds(
   return {min_transformed_bound, max_transformed_bound};
 }
 } // namespace accel
-} // namespace detail
-} // namespace ray
+} // namespace intersect

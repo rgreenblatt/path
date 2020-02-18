@@ -2,14 +2,17 @@
  * CS123 New Parser for XML
  */
 
-#include "cs123_compat/CS123XmlSceneParser.h"
-#include "cs123_compat/CS123SceneData.h"
+#include "scene/CS123XmlSceneParser.h"
+#include "scene/CS123SceneData.h"
+
+#include <Eigen/Dense>
 
 #include <assert.h>
 #include <iostream>
 #include <string.h>
 #include <string>
 
+namespace scene {
 #define ERROR_AT(e)                                                            \
   "error at line " << e.lineNumber() << " col " << e.columnNumber() << ": "
 #define PARSE_ERROR(e)                                                         \
@@ -22,67 +25,68 @@
 CS123XmlSceneParser::CS123XmlSceneParser(const std::string &name) {
   file_name = name;
 
-  memset(&m_cameraData, 0, sizeof(CS123SceneCameraData));
-  memset(&m_globalData, 0, sizeof(CS123SceneGlobalData));
-  m_objects.clear();
-  m_lights.clear();
-  m_nodes.clear();
+  memset(&camera_data_, 0, sizeof(CS123SceneCameraData));
+  memset(&global_data_, 0, sizeof(CS123SceneGlobalData));
+  objects_.clear();
+  lights_.clear();
+  nodes_.clear();
 }
 
 CS123XmlSceneParser::~CS123XmlSceneParser() {
   std::vector<CS123SceneLightData *>::iterator lights;
-  for (lights = m_lights.begin(); lights != m_lights.end(); lights++) {
+  for (lights = lights_.begin(); lights != lights_.end(); lights++) {
     delete *lights;
   }
 
   // Delete all Scene Nodes
-  for (unsigned int node = 0; node < m_nodes.size(); node++) {
-    for (size_t i = 0; i < (m_nodes[node])->transformations.size(); i++) {
-      delete (m_nodes[node])->transformations[i];
+  for (unsigned int node = 0; node < nodes_.size(); node++) {
+    for (size_t i = 0; i < (nodes_[node])->transformations.size(); i++) {
+      delete (nodes_[node])->transformations[i];
     }
-    for (size_t i = 0; i < (m_nodes[node])->primitives.size(); i++) {
-      delete (m_nodes[node])->primitives[i];
+    for (size_t i = 0; i < (nodes_[node])->primitives.size(); i++) {
+      //            delete (nodes_[node])->primitives[i]->material.textureMap;
+      //            delete (nodes_[node])->primitives[i]->material(2)umpMap;
+      delete (nodes_[node])->primitives[i];
     }
-    (m_nodes[node])->transformations.clear();
-    (m_nodes[node])->primitives.clear();
-    (m_nodes[node])->children.clear();
-    delete m_nodes[node];
+    (nodes_[node])->transformations.clear();
+    (nodes_[node])->primitives.clear();
+    (nodes_[node])->children.clear();
+    delete nodes_[node];
   }
 
-  m_nodes.clear();
-  m_lights.clear();
-  m_objects.clear();
+  nodes_.clear();
+  lights_.clear();
+  objects_.clear();
 }
 
-bool CS123XmlSceneParser::getGlobalData(CS123SceneGlobalData &data) const {
-  data = m_globalData;
+bool CS123XmlSceneParser::get_global_data(CS123SceneGlobalData &data) const {
+  data = global_data_;
   return true;
 }
 
-bool CS123XmlSceneParser::getCameraData(CS123SceneCameraData &data) const {
-  data = m_cameraData;
+bool CS123XmlSceneParser::get_camera_data(CS123SceneCameraData &data) const {
+  data = camera_data_;
   return true;
 }
 
-int CS123XmlSceneParser::getNumLights() const {
-  return static_cast<int>(m_lights.size());
-}
+int CS123XmlSceneParser::get_num_lights() const { return lights_.size(); }
 
-bool CS123XmlSceneParser::getLightData(int i, CS123SceneLightData &data) const {
-  if (i < 0 || (unsigned int)i >= m_lights.size()) {
+bool CS123XmlSceneParser::get_light_data(int i,
+                                         CS123SceneLightData &data) const {
+  if (i < 0 || (unsigned int)i >= lights_.size()) {
     std::cout << "invalid light index %d" << std::endl;
     return false;
   }
-  data = *m_lights[static_cast<size_t>(i)];
+  data = *lights_[i];
   return true;
 }
 
-CS123SceneNode *CS123XmlSceneParser::getRootNode() const {
+CS123SceneNode *CS123XmlSceneParser::get_root_node() const {
   std::map<std::string, CS123SceneNode *>::iterator node =
-      m_objects.find("root");
-  if (node == m_objects.end())
+      objects_.find("root");
+  if (node == objects_.end())
     return nullptr;
-  return m_objects["root"];
+  return objects_["root"];
 }
 
 // This is where it all goes down...
@@ -113,32 +117,32 @@ bool CS123XmlSceneParser::parse() {
   }
 
   // Default camera
-  m_cameraData.pos = Eigen::Vector3f(5.f, 5.f, 5.f);
-  m_cameraData.up = Eigen::Vector3f(0.f, 1.f, 0.f);
-  m_cameraData.look = Eigen::Vector3f(-1.f, -1.f, -1.f);
-  m_cameraData.heightAngle = 45;
-  m_cameraData.aspectRatio = 1;
+  camera_data_.pos = Eigen::Vector4f(5.f, 5.f, 5.f, 1.f);
+  camera_data_.up = Eigen::Vector4f(0.f, 1.f, 0.f, 0.f);
+  camera_data_.look = Eigen::Vector4f(-1.f, -1.f, -1.f, 0.f);
+  camera_data_.heightAngle = 45;
+  camera_data_.aspectRatio = 1;
 
   // Default global data
-  m_globalData.ka = 0.5f;
-  m_globalData.kd = 0.5f;
-  m_globalData.ks = 0.5f;
+  global_data_.ka = 0.5f;
+  global_data_.kd = 0.5f;
+  global_data_.ks = 0.5f;
 
   // Iterate over child elements
   QDomNode childNode = scenefile.firstChild();
   while (!childNode.isNull()) {
     QDomElement e = childNode.toElement();
     if (e.tagName() == "globaldata") {
-      if (!parseGlobalData(e))
+      if (!parse_global_data(e))
         return false;
     } else if (e.tagName() == "lightdata") {
-      if (!parseLightData(e))
+      if (!parse_light_data(e))
         return false;
     } else if (e.tagName() == "cameradata") {
-      if (!parseCameraData(e))
+      if (!parse_camera_data(e))
         return false;
     } else if (e.tagName() == "object") {
-      if (!parseObjectData(e))
+      if (!parse_object_data(e))
         return false;
     } else if (!e.isNull()) {
       UNSUPPORTED_ELEMENT(e);
@@ -170,7 +174,7 @@ template <typename T>
 bool parseSingle(const QDomElement &single, T &a, const QString &str) {
   if (!single.hasAttribute(str))
     return false;
-  a = single.attribute(str).toFloat();
+  a = single.attribute(str).toDouble();
   return true;
 }
 
@@ -186,9 +190,9 @@ bool parseTriple(const QDomElement &triple, T &a, T &b, T &c,
   if (!triple.hasAttribute(str_a) || !triple.hasAttribute(str_b) ||
       !triple.hasAttribute(str_c))
     return false;
-  a = triple.attribute(str_a).toFloat();
-  b = triple.attribute(str_b).toFloat();
-  c = triple.attribute(str_c).toFloat();
+  a = triple.attribute(str_a).toDouble();
+  b = triple.attribute(str_b).toDouble();
+  c = triple.attribute(str_c).toDouble();
   return true;
 }
 
@@ -204,10 +208,10 @@ bool parseQuadruple(const QDomElement &quadruple, T &a, T &b, T &c, T &d,
   if (!quadruple.hasAttribute(str_a) || !quadruple.hasAttribute(str_b) ||
       !quadruple.hasAttribute(str_c) || !quadruple.hasAttribute(str_d))
     return false;
-  a = quadruple.attribute(str_a).toFloat();
-  b = quadruple.attribute(str_b).toFloat();
-  c = quadruple.attribute(str_c).toFloat();
-  d = quadruple.attribute(str_d).toFloat();
+  a = quadruple.attribute(str_a).toDouble();
+  b = quadruple.attribute(str_b).toDouble();
+  c = quadruple.attribute(str_c).toDouble();
+  d = quadruple.attribute(str_d).toDouble();
   return true;
 }
 
@@ -225,7 +229,6 @@ bool parseQuadruple(const QDomElement &quadruple, T &a, T &b, T &c, T &d,
  * </matrix>
  */
 bool parseMatrix(const QDomElement &matrix, Eigen::Matrix4f &m) {
-  float *valuePtr = m.data();
   QDomNode childNode = matrix.firstChild();
   int col = 0;
 
@@ -238,10 +241,10 @@ bool parseMatrix(const QDomElement &matrix, Eigen::Matrix4f &m) {
         PARSE_ERROR(e);
         return false;
       }
-      valuePtr[0 * 4 + col] = a;
-      valuePtr[1 * 4 + col] = b;
-      valuePtr[2 * 4 + col] = c;
-      valuePtr[3 * 4 + col] = d;
+      m(0, col) = a;
+      m(1, col) = b;
+      m(2, col) = c;
+      m(3, col) = d;
       if (++col == 4)
         break;
     }
@@ -256,11 +259,11 @@ bool parseMatrix(const QDomElement &matrix, Eigen::Matrix4f &m) {
  * a attributes (the a attribute is optional and defaults to 1).
  */
 bool parseColor(const QDomElement &color, CS123SceneColor &c) {
-  float discard;
-  return parseQuadruple(color, c[0], c[1], c[2], discard, "b", "g", "r", "a") ||
-         parseQuadruple(color, c[0], c[1], c[2], discard, "z", "y", "x", "w") ||
-         parseTriple(color, c[0], c[1], c[2], "b", "g", "r") ||
-         parseTriple(color, c[0], c[1], c[2], "z", "y", "x");
+  c(3) = 1;
+  return parseQuadruple(color, c(0), c(1), c(2), c(3), "r", "g", "b", "a") ||
+         parseQuadruple(color, c(0), c(1), c(2), c(3), "x", "y", "z", "w") ||
+         parseTriple(color, c(0), c(1), c(2), "r", "g", "b") ||
+         parseTriple(color, c(0), c(1), c(2), "x", "y", "z");
 }
 
 /**
@@ -278,30 +281,30 @@ bool parseMap(const QDomElement &e, CS123SceneFileMap &map) {
 }
 
 /**
- * Parse a <globaldata> tag and fill in m_globalData.
+ * Parse a <globaldata> tag and fill in global_data_.
  */
-bool CS123XmlSceneParser::parseGlobalData(const QDomElement &globaldata) {
+bool CS123XmlSceneParser::parse_global_data(const QDomElement &globaldata) {
   // Iterate over child elements
   QDomNode childNode = globaldata.firstChild();
   while (!childNode.isNull()) {
     QDomElement e = childNode.toElement();
     if (e.tagName() == "ambientcoeff") {
-      if (!parseSingle(e, m_globalData.ka, "v")) {
+      if (!parseSingle(e, global_data_.ka, "v")) {
         PARSE_ERROR(e);
         return false;
       }
     } else if (e.tagName() == "diffusecoeff") {
-      if (!parseSingle(e, m_globalData.kd, "v")) {
+      if (!parseSingle(e, global_data_.kd, "v")) {
         PARSE_ERROR(e);
         return false;
       }
     } else if (e.tagName() == "specularcoeff") {
-      if (!parseSingle(e, m_globalData.ks, "v")) {
+      if (!parseSingle(e, global_data_.ks, "v")) {
         PARSE_ERROR(e);
         return false;
       }
     } else if (e.tagName() == "transparentcoeff") {
-      if (!parseSingle(e, m_globalData.kt, "v")) {
+      if (!parseSingle(e, global_data_.kt, "v")) {
         PARSE_ERROR(e);
         return false;
       }
@@ -313,17 +316,17 @@ bool CS123XmlSceneParser::parseGlobalData(const QDomElement &globaldata) {
 }
 
 /**
- * Parse a <lightdata> tag and add a new CS123SceneLightData to m_lights.
+ * Parse a <lightdata> tag and add a new CS123SceneLightData to lights_.
  */
-bool CS123XmlSceneParser::parseLightData(const QDomElement &lightdata) {
+bool CS123XmlSceneParser::parse_light_data(const QDomElement &lightdata) {
   // Create a default light
   CS123SceneLightData *light = new CS123SceneLightData();
-  m_lights.push_back(light);
+  lights_.push_back(light);
   memset(light, 0, sizeof(CS123SceneLightData));
-  light->pos = Eigen::Vector3f(3.f, 3.f, 3.f);
-  light->dir = Eigen::Vector3f(0.f, 0.f, 0.f);
-  light->color[0] = light->color[1] = light->color[2] = 1;
-  light->function = Eigen::Array3f(1, 0, 0);
+  light->pos = Eigen::Vector4f(3.f, 3.f, 3.f, 1.f);
+  light->dir = Eigen::Vector4f(0.f, 0.f, 0.f, 0.f);
+  light->color(0) = light->color(1) = light->color(2) = 1;
+  light->function = Eigen::Vector3f(1, 0, 0);
 
   // Iterate over child elements
   QDomNode childNode = lightdata.firstChild();
@@ -358,12 +361,12 @@ bool CS123XmlSceneParser::parseLightData(const QDomElement &lightdata) {
         return false;
       }
     } else if (e.tagName() == "function") {
-      if (!parseTriple(e, light->function.x(), light->function.y(),
-                       light->function.z(), "a", "b", "c") &&
-          !parseTriple(e, light->function.x(), light->function.y(),
-                       light->function.z(), "x", "y", "z") &&
-          !parseTriple(e, light->function.x(), light->function.y(),
-                       light->function.z(), "v1", "v2", "v3")) {
+      if (!parseTriple(e, light->function(0), light->function(1),
+                       light->function(2), "a", "b", "c") &&
+          !parseTriple(e, light->function(0), light->function(1),
+                       light->function(2), "x", "y", "z") &&
+          !parseTriple(e, light->function(0), light->function(1),
+                       light->function(2), "v1", "v2", "v3")) {
         PARSE_ERROR(e);
         return false;
       }
@@ -374,8 +377,8 @@ bool CS123XmlSceneParser::parseLightData(const QDomElement &lightdata) {
                   << std::endl;
         return false;
       }
-      if (!parseTriple(e, light->pos.x(), light->pos.y(), light->pos.z(), "x",
-                       "y", "z")) {
+      if (!parseTriple(e, light->pos(0), light->pos(1), light->pos(2), "x", "y",
+                       "z")) {
         PARSE_ERROR(e);
         return false;
       }
@@ -385,8 +388,8 @@ bool CS123XmlSceneParser::parseLightData(const QDomElement &lightdata) {
                   << "direction is not applicable to point lights" << std::endl;
         return false;
       }
-      if (!parseTriple(e, light->dir.x(), light->dir.y(), light->dir.z(), "x",
-                       "y", "z")) {
+      if (!parseTriple(e, light->dir(0), light->dir(1), light->dir(2), "x", "y",
+                       "z")) {
         PARSE_ERROR(e);
         return false;
       }
@@ -451,9 +454,9 @@ bool CS123XmlSceneParser::parseLightData(const QDomElement &lightdata) {
 }
 
 /**
- * Parse a <cameradata> tag and fill in m_cameraData.
+ * Parse a <cameradata> tag and fill in camera_data_.
  */
-bool CS123XmlSceneParser::parseCameraData(const QDomElement &cameradata) {
+bool CS123XmlSceneParser::parse_camera_data(const QDomElement &cameradata) {
   bool focusFound = false;
   bool lookFound = false;
 
@@ -462,14 +465,15 @@ bool CS123XmlSceneParser::parseCameraData(const QDomElement &cameradata) {
   while (!childNode.isNull()) {
     QDomElement e = childNode.toElement();
     if (e.tagName() == "pos") {
-      if (!parseTriple(e, m_cameraData.pos.x(), m_cameraData.pos.y(),
-                       m_cameraData.pos.z(), "x", "y", "z")) {
+      if (!parseTriple(e, camera_data_.pos(0), camera_data_.pos(1),
+                       camera_data_.pos(2), "x", "y", "z")) {
         PARSE_ERROR(e);
         return false;
       }
+      camera_data_.pos(3) = 1;
     } else if (e.tagName() == "look" || e.tagName() == "focus") {
-      if (!parseTriple(e, m_cameraData.look.x(), m_cameraData.look.y(),
-                       m_cameraData.look.z(), "x", "y", "z")) {
+      if (!parseTriple(e, camera_data_.look(0), camera_data_.look(1),
+                       camera_data_.look(2), "x", "y", "z")) {
         PARSE_ERROR(e);
         return false;
       }
@@ -477,34 +481,37 @@ bool CS123XmlSceneParser::parseCameraData(const QDomElement &cameradata) {
       if (e.tagName() == "focus") {
         // Store the focus point in the look vector (we will later subtract
         // the camera position from this to get the actual look vector)
+        camera_data_.look(3) = 1;
         focusFound = true;
       } else {
         // Just store the look vector
+        camera_data_.look(3) = 0;
         lookFound = true;
       }
     } else if (e.tagName() == "up") {
-      if (!parseTriple(e, m_cameraData.up.x(), m_cameraData.up.y(),
-                       m_cameraData.up.z(), "x", "y", "z")) {
+      if (!parseTriple(e, camera_data_.up(0), camera_data_.up(1),
+                       camera_data_.up(2), "x", "y", "z")) {
         PARSE_ERROR(e);
         return false;
       }
+      camera_data_.up(3) = 0;
     } else if (e.tagName() == "heightangle") {
-      if (!parseSingle(e, m_cameraData.heightAngle, "v")) {
+      if (!parseSingle(e, camera_data_.heightAngle, "v")) {
         PARSE_ERROR(e);
         return false;
       }
     } else if (e.tagName() == "aspectratio") {
-      if (!parseSingle(e, m_cameraData.aspectRatio, "v")) {
+      if (!parseSingle(e, camera_data_.aspectRatio, "v")) {
         PARSE_ERROR(e);
         return false;
       }
     } else if (e.tagName() == "aperture") {
-      if (!parseSingle(e, m_cameraData.aperture, "v")) {
+      if (!parseSingle(e, camera_data_.aperture, "v")) {
         PARSE_ERROR(e);
         return false;
       }
     } else if (e.tagName() == "focallength") {
-      if (!parseSingle(e, m_cameraData.focalLength, "v")) {
+      if (!parseSingle(e, camera_data_.focalLength, "v")) {
         PARSE_ERROR(e);
         return false;
       }
@@ -524,16 +531,16 @@ bool CS123XmlSceneParser::parseCameraData(const QDomElement &cameradata) {
   if (focusFound) {
     // Convert the focus point (stored in the look vector) into a
     // look vector from the camera position to that focus point.
-    m_cameraData.look -= m_cameraData.pos;
+    camera_data_.look -= camera_data_.pos;
   }
 
   return true;
 }
 
 /**
- * Parse an <object> tag and create a new CS123SceneNode in m_nodes.
+ * Parse an <object> tag and create a new CS123SceneNode in nodes_.
  */
-bool CS123XmlSceneParser::parseObjectData(const QDomElement &object) {
+bool CS123XmlSceneParser::parse_object_data(const QDomElement &object) {
   if (!object.hasAttribute("name")) {
     PARSE_ERROR(object);
     return false;
@@ -548,7 +555,7 @@ bool CS123XmlSceneParser::parseObjectData(const QDomElement &object) {
   std::string name = object.attribute("name").toStdString();
 
   // Check that this object does not exist
-  if (m_objects[name]) {
+  if (objects_[name]) {
     std::cout << ERROR_AT(object) << "two objects with the same name: " << name
               << std::endl;
     return false;
@@ -556,8 +563,8 @@ bool CS123XmlSceneParser::parseObjectData(const QDomElement &object) {
 
   // Create the object and add to the map
   CS123SceneNode *node = new CS123SceneNode;
-  m_nodes.push_back(node);
-  m_objects[name] = node;
+  nodes_.push_back(node);
+  objects_[name] = node;
 
   // Iterate over child elements
   QDomNode childNode = object.firstChild();
@@ -565,8 +572,8 @@ bool CS123XmlSceneParser::parseObjectData(const QDomElement &object) {
     QDomElement e = childNode.toElement();
     if (e.tagName() == "transblock") {
       CS123SceneNode *child = new CS123SceneNode;
-      m_nodes.push_back(child);
-      if (!parseTransBlock(e, child)) {
+      nodes_.push_back(child);
+      if (!parse_trans_block(e, child)) {
         PARSE_ERROR(e);
         return false;
       }
@@ -595,8 +602,8 @@ bool CS123XmlSceneParser::parseObjectData(const QDomElement &object) {
  *   <object type="primitive" name="sphere"/>
  * </transblock>
  */
-bool CS123XmlSceneParser::parseTransBlock(const QDomElement &transblock,
-                                          CS123SceneNode *node) {
+bool CS123XmlSceneParser::parse_trans_block(const QDomElement &transblock,
+                                            CS123SceneNode *node) {
   // Iterate over child elements
   QDomNode childNode = transblock.firstChild();
   while (!childNode.isNull()) {
@@ -606,7 +613,7 @@ bool CS123XmlSceneParser::parseTransBlock(const QDomElement &transblock,
       node->transformations.push_back(t);
       t->type = TransformationType::Translate;
 
-      if (!parseTriple(e, t->translate.x(), t->translate.y(), t->translate.z(),
+      if (!parseTriple(e, t->translate(0), t->translate(1), t->translate(2),
                        "x", "y", "z")) {
         PARSE_ERROR(e);
         return false;
@@ -617,20 +624,20 @@ bool CS123XmlSceneParser::parseTransBlock(const QDomElement &transblock,
       t->type = TransformationType::Rotate;
 
       float angle;
-      if (!parseQuadruple(e, t->rotate.x(), t->rotate.y(), t->rotate.z(), angle,
+      if (!parseQuadruple(e, t->rotate(0), t->rotate(1), t->rotate(2), angle,
                           "x", "y", "z", "angle")) {
         PARSE_ERROR(e);
         return false;
       }
 
       // Convert to radians
-      t->angle = angle * static_cast<float>(M_PI) / 180;
+      t->angle = angle * M_PI / 180;
     } else if (e.tagName() == "scale") {
       CS123SceneTransformation *t = new CS123SceneTransformation();
       node->transformations.push_back(t);
       t->type = TransformationType::Scale;
 
-      if (!parseTriple(e, t->scale.x(), t->scale.y(), t->scale.z(), "x", "y",
+      if (!parseTriple(e, t->scale(0), t->scale(1), t->scale(2), "x", "y",
                        "z")) {
         PARSE_ERROR(e);
         return false;
@@ -647,22 +654,22 @@ bool CS123XmlSceneParser::parseTransBlock(const QDomElement &transblock,
     } else if (e.tagName() == "object") {
       if (e.attribute("type") == "master") {
         std::string masterName = e.attribute("name").toStdString();
-        if (!m_objects[masterName]) {
+        if (!objects_[masterName]) {
           std::cout << ERROR_AT(e)
                     << "invalid master object reference: " << masterName
                     << std::endl;
           return false;
         }
-        node->children.push_back(m_objects[masterName]);
+        node->children.push_back(objects_[masterName]);
       } else if (e.attribute("type") == "tree") {
         QDomNode subNode = e.firstChild();
         while (!subNode.isNull()) {
           QDomElement e = subNode.toElement();
           if (e.tagName() == "transblock") {
             CS123SceneNode *n = new CS123SceneNode;
-            m_nodes.push_back(n);
+            nodes_.push_back(n);
             node->children.push_back(n);
-            if (!parseTransBlock(e, n)) {
+            if (!parse_trans_block(e, n)) {
               PARSE_ERROR(e);
               return false;
             }
@@ -673,7 +680,7 @@ bool CS123XmlSceneParser::parseTransBlock(const QDomElement &transblock,
           subNode = subNode.nextSibling();
         }
       } else if (e.attribute("type") == "primitive") {
-        if (!parsePrimitive(e, node)) {
+        if (!parse_primitive(e, node)) {
           PARSE_ERROR(e);
           return false;
         }
@@ -695,16 +702,17 @@ bool CS123XmlSceneParser::parseTransBlock(const QDomElement &transblock,
 /**
  * Parse an <object type="primitive"> tag into node.
  */
-bool CS123XmlSceneParser::parsePrimitive(const QDomElement &prim,
-                                         CS123SceneNode *node) {
+bool CS123XmlSceneParser::parse_primitive(const QDomElement &prim,
+                                          CS123SceneNode *node) {
   // Default primitive
   CS123ScenePrimitive *primitive = new CS123ScenePrimitive();
   CS123SceneMaterial &mat = primitive->material;
+  //    memset(&mat, 0, sizeof(CS123SceneMaterial));
   mat.clear();
   primitive->type = PrimitiveType::Cube;
   mat.textureMap.isUsed = false;
   mat.bumpMap.isUsed = false;
-  mat.cDiffuse[0] = mat.cDiffuse[1] = mat.cDiffuse[2] = 1;
+  mat.cDiffuse(0) = mat.cDiffuse(1) = mat.cDiffuse(2) = 1;
   node->primitives.push_back(primitive);
 
   // Parse primitive type
@@ -799,3 +807,4 @@ bool CS123XmlSceneParser::parsePrimitive(const QDomElement &prim,
 
   return true;
 }
+} // namespace scene
