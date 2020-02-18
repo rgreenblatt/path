@@ -269,7 +269,7 @@ static void test_accelerator(std::mt19937 &gen, const AccelGen &accel_gen,
 
       auto accel = accel_gen(shapes);
 
-      unsigned num_tests = 10;
+      unsigned num_tests = 100;
 
       HostDeviceVector<Test> tests(num_tests);
 
