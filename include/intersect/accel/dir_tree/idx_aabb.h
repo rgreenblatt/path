@@ -19,7 +19,9 @@ struct IdxAABB {
 public:
   friend std::ostream &operator<<(std::ostream &s, const IdxAABB &v) {
     s << "idx: " << v.idx << "\n"
-      << "AABB: " << "\n" << v.aabb << "\n";
+      << "AABB: "
+      << "\n"
+      << v.aabb << "\n";
 
     return s;
   }

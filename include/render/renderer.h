@@ -1,9 +1,9 @@
 #pragma once
 
-#include "lib/rgba.h"
-#include "lib/execution_model.h"
-#include "scene/scene.h"
 #include "intersect/accel/accelerator_type.h"
+#include "lib/execution_model.h"
+#include "lib/rgba.h"
+#include "scene/scene.h"
 
 namespace render {
 namespace detail {

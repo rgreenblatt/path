@@ -1,7 +1,7 @@
 #pragma once
 
-#include "lib/cuda/utils.h"
 #include "intersect/ray.h"
+#include "lib/cuda/utils.h"
 
 #include <Eigen/Core>
 #include <thrust/optional.h>
@@ -23,4 +23,4 @@ private:
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
-} // namespace detail
+} // namespace intersect

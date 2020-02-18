@@ -17,13 +17,12 @@ TEST(LambdaCaptureWorks, list_args) {
     DeviceVector<unsigned> vals_first(size);
     DeviceVector<float> vals_second(size);
 
-    thrust::for_each(
-        thrust_data.execution_policy(), start_it, start_it + size,
-        [f = Span<unsigned>(vals_first),
-         s = Span<float>(vals_second)] __device__(unsigned i) {
-          f[i] = i;
-          s[i] = i;
-        });
+    thrust::for_each(thrust_data.execution_policy(), start_it, start_it + size,
+                     [f = Span<unsigned>(vals_first),
+                      s = Span<float>(vals_second)] __device__(unsigned i) {
+                       f[i] = i;
+                       s[i] = i;
+                     });
 
     for (unsigned i = 0; i < size; ++i) {
       ASSERT_EQ(vals_first[i], i);
@@ -57,11 +56,10 @@ TEST(LambdaCaptureWorks, list_args) {
     Span<unsigned> f = vals_first;
     Span<float> s = vals_second;
 
-    thrust::for_each(start_it, start_it + size,
-                     [=] __device__(unsigned i) {
-                       f[i] = i;
-                       s[i] = i;
-                     });
+    thrust::for_each(start_it, start_it + size, [=] __device__(unsigned i) {
+      f[i] = i;
+      s[i] = i;
+    });
 
     for (unsigned i = 0; i < size; ++i) {
       ASSERT_EQ(vals_first[i], i);

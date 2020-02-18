@@ -134,7 +134,7 @@ private:
    *  - sorted_by_z_max_.first <-> sorted_by_z_max_.second
    */
   void filter_others();
-  
+
   void filter_current_edges();
 
   /*
@@ -172,8 +172,7 @@ private:
   template <typename T> using ExecVecT = ExecVector<execution_model, T>;
   template <typename T> using SharedVecT = SharedVector<execution_model, T>;
 
-  SharedVecT<HalfSpherePartition::ColatitudeDiv>
-      sphere_partition_regions_;
+  SharedVecT<HalfSpherePartition::ColatitudeDiv> sphere_partition_regions_;
 
   SharedVecT<Eigen::Projective3f> transforms_;
   SharedVecT<BoundingPoints> bounds_;

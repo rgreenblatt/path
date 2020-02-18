@@ -66,7 +66,7 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
   auto partition = setup(target_num_dir_trees, min_bound, max_bound);
 
   if (show_times_) {
-  setup_timer.report("setup");
+    setup_timer.report("setup");
   }
 
   Timer project_shapes_dir_tree_timer;
@@ -100,7 +100,7 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
 #endif
 
   if (show_times_) {
-  project_shapes_dir_tree_timer.report("project shapes dir tree");
+    project_shapes_dir_tree_timer.report("project shapes dir tree");
   }
 
   Timer copy_to_sortable_timer;
@@ -129,7 +129,7 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
   copy_to_sortable();
 
   if (show_times_) {
-  copy_to_sortable_timer.report("copy to sortable");
+    copy_to_sortable_timer.report("copy to sortable");
   }
 
   Timer fill_indexes_timer;
@@ -155,7 +155,7 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
 #endif
 
   if (show_times_) {
-  fill_indexes_timer.report("fill indexes");
+    fill_indexes_timer.report("fill indexes");
   }
 
   Timer sort_timer;
@@ -163,7 +163,7 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
   sort();
 
   if (show_times_) {
-  sort_timer.report("sort");
+    sort_timer.report("sort");
   }
 
 #ifdef DEBUG_PRINT
@@ -175,7 +175,7 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
   permute();
 
   if (show_times_) {
-  permute_timer.report("permute");
+    permute_timer.report("permute");
   }
 
 #ifdef DEBUG_PRINT
@@ -243,7 +243,7 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
   construct();
 
   if (show_times_) {
-  construct_trees_timer.report("construct trees");
+    construct_trees_timer.report("construct trees");
   }
 
   scan_mins_maxs();

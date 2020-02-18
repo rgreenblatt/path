@@ -60,7 +60,7 @@ bool ScenefileLoader::parse_tree(Scene &scene, const CS123SceneNode &root,
          scene.mesh_ends_.size() != 0;
 }
 
-bool ScenefileLoader::parse_node(Scene& scene, const CS123SceneNode &node,
+bool ScenefileLoader::parse_node(Scene &scene, const CS123SceneNode &node,
                                  const Eigen::Affine3f &parent_transform,
                                  const std::string &base_dir) {
   Eigen::Affine3f transform = parent_transform;
@@ -97,7 +97,8 @@ bool ScenefileLoader::parse_node(Scene& scene, const CS123SceneNode &node,
   return true;
 }
 
-bool ScenefileLoader::add_primitive(Scene& scene, const CS123ScenePrimitive &prim,
+bool ScenefileLoader::add_primitive(Scene &scene,
+                                    const CS123ScenePrimitive &prim,
                                     const Eigen::Affine3f &transform,
                                     const std::string &base_dir) {
   switch (prim.type) {
@@ -109,7 +110,7 @@ bool ScenefileLoader::add_primitive(Scene& scene, const CS123ScenePrimitive &pri
   }
 }
 
-bool ScenefileLoader::load_mesh(Scene& scene, std::string file_path,
+bool ScenefileLoader::load_mesh(Scene &scene, std::string file_path,
                                 const Eigen::Affine3f &transform,
                                 const std::string &base_dir) {
   tinyobj::attrib_t attrib;

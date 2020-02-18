@@ -11,7 +11,7 @@ KDTreeRef::operator()(const Eigen::Vector3f &world_space_direction,
                       const thrust::optional<BestIntersection> &best,
                       const SolveIndex &solve_index) const {
   Eigen::Vector3f direction_no_zeros = world_space_direction;
-  auto remove_zero = [](float& v) {
+  auto remove_zero = [](float &v) {
     if (v == 0.0f || v == -0.0f) {
       v = 1e-20f;
     }

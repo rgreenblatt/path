@@ -72,8 +72,7 @@ void DirTreeGeneratorImpl<execution_model>::permute() {
           assert(is_min);
           group_min_maxs[group_idx][0] = value;
           unsigned node_idx = group_idx + (axis == 0 ? 0 : num_dir_trees) + 1;
-          nodes[node_idx] =
-              DirTreeNode(value, 0, node_idx + num_dir_trees);
+          nodes[node_idx] = DirTreeNode(value, 0, node_idx + num_dir_trees);
           tree_min[group_idx] = value;
         } else if ((k + 1) % num_edges_per == 0) {
           unsigned group_idx = k / num_edges_per;

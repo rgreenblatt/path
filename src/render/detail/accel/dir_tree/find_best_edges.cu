@@ -44,8 +44,7 @@ void DirTreeGeneratorImpl<execution_model>::find_best_edges() {
 
   // SPEED: could be executed at same time as below...
   thrust::inclusive_scan(thrust_data_[0].execution_policy(), start_it,
-                         start_it + num_groups(),
-                         best_edges_locations_.data());
+                         start_it + num_groups(), best_edges_locations_.data());
 
   using BestEdge = thrust::tuple<float, unsigned, uint8_t>;
 

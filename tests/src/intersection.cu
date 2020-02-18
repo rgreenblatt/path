@@ -343,7 +343,8 @@ TEST(Intersection, dir_tree) {
             max_bound = max_bound.cwiseMax(max_bound_new);
           }
 
-          auto lookup = cpu_gen.generate(shapes, 4, min_bound, max_bound, false);
+          auto lookup =
+              cpu_gen.generate(shapes, 4, min_bound, max_bound, false);
           return dir_tree::DirTreeLookupRef(lookup);
         },
         is_gpu);

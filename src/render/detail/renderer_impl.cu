@@ -1,9 +1,9 @@
+#include "intersect/accel/loop_all.h"
 #include "lib/span_convertable_device_vector.h"
 #include "lib/span_convertable_vector.h"
-#include "intersect/accel/loop_all.h"
+#include "lib/timer.h"
 #include "render/detail/renderer_impl.h"
 #include "scene/camera.h"
-#include "lib/timer.h"
 
 #include <boost/range/adaptor/indexed.hpp>
 #include <boost/range/combine.hpp>
@@ -19,11 +19,10 @@ RendererImpl<execution_model>::RendererImpl() {}
 
 template <ExecutionModel execution_model>
 void RendererImpl<execution_model>::render(
-RGBA *pixels, const Eigen::Affine3f &film_to_world,
-              unsigned x_dim, unsigned y_dim, unsigned samples_per,
-              intersect::accel::AcceleratorType mesh_accel_type,
-              intersect::accel::AcceleratorType triangle_accel_type,
-              bool show_times) {
+    RGBA *pixels, const Eigen::Affine3f &film_to_world, unsigned x_dim,
+    unsigned y_dim, unsigned samples_per,
+    intersect::accel::AcceleratorType mesh_accel_type,
+    intersect::accel::AcceleratorType triangle_accel_type, bool show_times) {
   const auto lights = scene_->getLights();
   const unsigned num_lights = scene_->getNumLights();
   const auto textures = scene_->getTextures();
@@ -111,4 +110,4 @@ RGBA *pixels, const Eigen::Affine3f &film_to_world,
 template class RendererImpl<ExecutionModel::CPU>;
 template class RendererImpl<ExecutionModel::GPU>;
 } // namespace detail
-} // namespace ray
+} // namespace render
