@@ -32,7 +32,9 @@ DirTreeGeneratorImpl<execution_model>::DirTreeGeneratorImpl()
 template <ExecutionModel execution_model>
 DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
     SpanSized<const scene::ShapeData> shapes, unsigned target_num_dir_trees,
-    const Eigen::Vector3f &min_bound, const Eigen::Vector3f &max_bound) {
+    const Eigen::Vector3f &min_bound, const Eigen::Vector3f &max_bound,
+    bool show_times) {
+  show_times_ = show_times;
   is_x_ = true;
   current_edges_ = edges_underlying_[0];
   current_edges_new_ = edges_underlying_[1];
@@ -63,7 +65,9 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
 
   auto partition = setup(target_num_dir_trees, min_bound, max_bound);
 
+  if (show_times_) {
   setup_timer.report("setup");
+  }
 
   Timer project_shapes_dir_tree_timer;
 
@@ -95,7 +99,9 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
   }
 #endif
 
+  if (show_times_) {
   project_shapes_dir_tree_timer.report("project shapes dir tree");
+  }
 
   Timer copy_to_sortable_timer;
 
@@ -122,7 +128,9 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
 
   copy_to_sortable();
 
+  if (show_times_) {
   copy_to_sortable_timer.report("copy to sortable");
+  }
 
   Timer fill_indexes_timer;
 
@@ -146,13 +154,17 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
   debug_print_sorting("before sort");
 #endif
 
+  if (show_times_) {
   fill_indexes_timer.report("fill indexes");
+  }
 
   Timer sort_timer;
 
   sort();
 
+  if (show_times_) {
   sort_timer.report("sort");
+  }
 
 #ifdef DEBUG_PRINT
   debug_print_sorting("after sort");
@@ -162,7 +174,9 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
 
   permute();
 
+  if (show_times_) {
   permute_timer.report("permute");
+  }
 
 #ifdef DEBUG_PRINT
   if constexpr (execution_model == ExecutionModel::CPU) {
@@ -228,7 +242,9 @@ DirTreeLookup DirTreeGeneratorImpl<execution_model>::generate(
 
   construct();
 
+  if (show_times_) {
   construct_trees_timer.report("construct trees");
+  }
 
   scan_mins_maxs();
 

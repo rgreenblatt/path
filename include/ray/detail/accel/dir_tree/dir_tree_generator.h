@@ -22,7 +22,7 @@ public:
   DirTreeLookup generate(SpanSized<const scene::ShapeData> shapes,
                          unsigned target_num_dir_trees,
                          const Eigen::Vector3f &min_bound,
-                         const Eigen::Vector3f &max_bound);
+                         const Eigen::Vector3f &max_bound, bool show_times);
 
 private:
   DirTreeGeneratorImpl<execution_model> *ptr_;

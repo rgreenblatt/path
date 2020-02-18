@@ -23,13 +23,17 @@ template <ExecutionModel execution_model>
 void DirTreeGeneratorImpl<execution_model>::test_splits() {
   Span<const float> best_edges_cost = best_edges_.costs();
   Span<const unsigned> num_per_group = num_per_group_.first.get();
+  Span<const unsigned> best_edges_locations = best_edges_locations_;
   auto start_counting_it = thrust::make_counting_iterator(0u);
   auto end_counting_it = start_counting_it + num_groups();
-  thrust::transform(start_counting_it, end_counting_it,
-                    better_than_no_split_.first->begin(),
-                    [=] __host__ __device__(unsigned i) {
-                      return use_division(best_edges_cost[i], num_per_group[i]);
-                    });
+  // SPEED: don't using num_per_group here, account else where somehow...
+  thrust::transform(
+      start_counting_it, end_counting_it, better_than_no_split_.first->begin(),
+      [=] __host__ __device__(unsigned i) {
+        unsigned previous_value = get_previous(i, best_edges_locations);
+        return previous_value != best_edges_locations[i] &&
+               use_division(best_edges_cost[previous_value], num_per_group[i]);
+      });
 
   using TupleType = thrust::tuple<unsigned, unsigned, unsigned>;
 
@@ -43,8 +47,14 @@ void DirTreeGeneratorImpl<execution_model>::test_splits() {
       [=] __host__ __device__(unsigned i) -> TupleType {
         bool using_split = use_split_first[i] || use_split_second[i];
 
+        unsigned previous_value = get_previous(i, best_edges_locations);
+        // TODO check
         unsigned output_split_groups =
-            using_split ? 2 - best_edge_one_split[i] : 0;
+            using_split ? (previous_value == best_edges_locations[i] ||
+                                   best_edge_one_split[previous_value]
+                               ? 1
+                               : 2)
+                        : 0;
 
         unsigned z_output_size = using_split ? 0 : group_size(i, z_groups);
 

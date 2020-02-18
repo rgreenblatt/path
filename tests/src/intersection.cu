@@ -162,7 +162,7 @@ static void test_accelerator(std::mt19937 &gen, const AccelGen &accel_gen,
   }
 #endif
 
-#if 0
+#if 1
   {
     HostDeviceVector<scene::ShapeData> shapes = {
         make_id_cube(Eigen::Affine3f::Identity(), 0),
@@ -201,7 +201,7 @@ static void test_accelerator(std::mt19937 &gen, const AccelGen &accel_gen,
   }
 #endif
 
-#if 0
+#if 1
   {
     HostDeviceVector<scene::ShapeData> shapes = {
         make_id_cube(Eigen::Affine3f::Identity(), 0),
@@ -247,7 +247,7 @@ static void test_accelerator(std::mt19937 &gen, const AccelGen &accel_gen,
 #if 1
   {
     unsigned num_trials = 10;
-    std::uniform_int_distribution<unsigned> num_shapes_gen(1, 6);
+    std::uniform_int_distribution<unsigned> num_shapes_gen(1, 10);
     std::uniform_real_distribution<float> float_gen(-1, 1);
     for (unsigned trial_idx = 0; trial_idx < num_trials; ++trial_idx) {
       unsigned num_shapes = num_shapes_gen(gen);
@@ -343,7 +343,7 @@ TEST(Intersection, dir_tree) {
             max_bound = max_bound.cwiseMax(max_bound_new);
           }
 
-          auto lookup = cpu_gen.generate(shapes, 4, min_bound, max_bound);
+          auto lookup = cpu_gen.generate(shapes, 4, min_bound, max_bound, false);
           return dir_tree::DirTreeLookupRef(lookup);
         },
         is_gpu);

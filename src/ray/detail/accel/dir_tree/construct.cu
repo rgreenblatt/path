@@ -35,43 +35,57 @@ void DirTreeGeneratorImpl<execution_model>::construct() {
 
     fill_keys();
 
+  if (show_times_) {
     fill_keys_timer.report("fill keys");
+  }
 
     Timer scan_edges_timer;
 
     scan_edges();
 
+  if (show_times_) {
     scan_edges_timer.report("scan edges");
+  }
 
     Timer find_best_edges_timer;
 
     find_best_edges();
 
+  if (show_times_) {
     find_best_edges_timer.report("find best edges");
+  }
 
     Timer test_splits_timer;
 
     test_splits();
 
+  if (show_times_) {
     test_splits_timer.report("test splits");
+  }
 
     Timer filter_others_timer;
 
     filter_others();
 
+  if (show_times_) {
     filter_others_timer.report("filter others");
+  }
 
     Timer filter_current_edges_timer;
 
     filter_current_edges();
 
+  if (show_times_) {
     filter_current_edges_timer.report("filter current edges");
+  }
 
     Timer setup_groups_timer;
 
     setup_groups();
 
+  if (show_times_) {
     setup_groups_timer.report("setup groups");
+  }
 
     std::swap(current_edges_, other_edges_new_);
     std::swap(other_edges_, current_edges_new_);
@@ -86,15 +100,7 @@ void DirTreeGeneratorImpl<execution_model>::construct() {
     std::swap(current_edges_min_max_, other_edges_min_max_);
     std::swap(current_edges_min_max_new_, other_edges_min_max_new_);
 
-    assert(Span<const unsigned>(current_edges_keys_.get()).data() ==
-           (!is_x_ ? Span<const unsigned>(x_edges_keys_).data()
-                  : Span<const unsigned>(y_edges_keys_).data()));
-
     is_x_ = !is_x_;
-
-    assert(Span<const unsigned>(current_edges_keys_.get()).data() ==
-           (is_x_ ? Span<const unsigned>(x_edges_keys_).data()
-                  : Span<const unsigned>(y_edges_keys_).data()));
   }
 }
 

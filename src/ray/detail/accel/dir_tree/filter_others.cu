@@ -12,10 +12,11 @@ namespace dir_tree {
 template <typename FResize, typename FCopyToOutputs, typename ExecPolicy>
 void filter_values(
     Span<const float> edge_values, Span<const unsigned> best_edges_idxs,
+    Span<const unsigned> best_edges_locations,
     Span<const float> compare_data_mins, Span<const float> compare_data_maxs,
     Span<const unsigned> keys, Span<const unsigned> groups,
     Span<const uint8_t> use_split_first, Span<const uint8_t> use_split_second,
-    Span<unsigned> new_indexes, unsigned size, const FResize &resize,
+    Span<unsigned> new_indexes, unsigned iteration_size, const FResize &resize,
     const FCopyToOutputs &copy_to_outputs, const ExecPolicy &execution_policy) {
   auto get_key_idx_is_left = [=] __host__ __device__(unsigned i) {
     unsigned key = keys[i / 2];
@@ -35,32 +36,41 @@ void filter_values(
     return !(use_split_first[key] || use_split_second[key]);
   };
 
-  auto start_it = thrust::make_transform_iterator(
-      thrust::make_counting_iterator(0u), [=] __host__ __device__(unsigned i) {
-        auto [key, idx, is_left] = get_key_idx_is_left(i);
+  {
+    auto start_it = thrust::make_transform_iterator(
+        thrust::make_counting_iterator(0u),
+        [=] __host__ __device__(unsigned i) {
+          auto [key, idx, is_left] = get_key_idx_is_left(i);
 
-        if (not_using_split(key)) {
-          return false;
-        }
+          if (not_using_split(key)) {
+            return false;
+          }
 
-        float edge_value = edge_values[best_edges_idxs[key]];
+          unsigned previous_value = get_previous(key, best_edges_locations);
+          if (previous_value == best_edges_locations[key]) {
+            return is_left;
+          }
 
-        return is_left ? compare_data_mins[idx] < edge_value
-                       : compare_data_maxs[idx] > edge_value;
-      });
+          float edge_value = edge_values[best_edges_idxs[previous_value]];
 
-  thrust::inclusive_scan(execution_policy, start_it, start_it + size,
-                         new_indexes.begin());
+          return is_left ? compare_data_mins[idx] < edge_value
+                         : compare_data_maxs[idx] > edge_value;
+        });
+
+    thrust::inclusive_scan(execution_policy, start_it,
+                           start_it + iteration_size, new_indexes.begin());
+  }
 
   auto copy_to_new = resize();
 
   auto start_counting_it = thrust::make_counting_iterator(0u);
   thrust::for_each(execution_policy, start_counting_it,
-                   start_counting_it + size,
+                   start_counting_it + iteration_size,
                    [=] __host__ __device__(unsigned i) {
                      unsigned previous_value = get_previous(i, new_indexes);
+                     unsigned this_value = new_indexes[i];
                      auto [key, idx, is_left] = get_key_idx_is_left(i);
-                     if (new_indexes[i] != previous_value) {
+                     if (this_value != previous_value) {
                        copy_to_new(idx, previous_value);
                      }
                      if (not_using_split(key) && is_left) {
@@ -103,9 +113,10 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
       Span<const uint8_t> other_edges_is_mins = other_edges_->is_mins();
 
       filter_values(
-          edge_values, best_edges_idxs, compare_data_mins, compare_data_maxs,
-          keys, groups, better_than_no_split_.first.get(),
-          better_than_no_split_.second.get(), new_edge_indexes_, size,
+          edge_values, best_edges_idxs, best_edges_locations_,
+          compare_data_mins, compare_data_maxs, keys, groups,
+          better_than_no_split_.first.get(), better_than_no_split_.second.get(),
+          new_edge_indexes_, size,
           [&] {
             unsigned new_size = new_edge_indexes_[size - 1];
             other_edges_new_->resize_all(new_size);
@@ -178,9 +189,10 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
       indexes.resize(size);
 
       filter_values(
-          edge_values, best_edges_idxs, compare_data_mins, compare_data_maxs,
-          keys, groups, better_than_no_split_.first.get(),
-          better_than_no_split_.second.get(), indexes, size,
+          edge_values, best_edges_idxs, best_edges_locations_,
+          compare_data_mins, compare_data_maxs, keys, groups,
+          better_than_no_split_.first.get(), better_than_no_split_.second.get(),
+          indexes, size,
           [&] {
             unsigned new_size = indexes[size - 1];
             new_z_vals.resize_all(new_size);

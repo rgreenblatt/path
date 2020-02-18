@@ -79,10 +79,9 @@ TEST(BitSet, count_leading_zeros) {
 }
 
 TEST(BitSet, up_to_mask) {
-  EXPECT_EQ(BitSetRef<unsigned>::up_to_mask(0), 0b1u);
-  EXPECT_EQ(BitSetRef<unsigned>::up_to_mask(3), 0b1111u);
-  EXPECT_EQ(BitSetRef<unsigned>::up_to_mask(31),
-            0b11111111111111111111111111111111u);
+  EXPECT_EQ(up_to_mask<unsigned>(0), 0b1u);
+  EXPECT_EQ(up_to_mask<unsigned>(3), 0b1111u);
+  EXPECT_EQ(up_to_mask<unsigned>(31), 0b11111111111111111111111111111111u);
 }
 
 TEST(BitSet, num_bits_set_inclusive_up_to) {

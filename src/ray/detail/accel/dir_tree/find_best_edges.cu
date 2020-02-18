@@ -33,7 +33,19 @@ void DirTreeGeneratorImpl<execution_model>::find_best_edges() {
   Span<const unsigned> num_per_group = num_per_group_.first.get();
   Span<const std::array<float, 2>> group_min_max = current_edges_min_max_.get();
 
-  best_edges_.resize_all(current_edges_groups().size());
+  best_edges_.resize_all(num_groups());
+  best_edges_locations_.resize(num_groups());
+
+  auto start_it = thrust::make_transform_iterator(
+      thrust::make_counting_iterator(0u),
+      [=] __host__ __device__(const unsigned group_idx) {
+        return group_size(group_idx, groups) > 0;
+      });
+
+  // SPEED: could be executed at same time as below...
+  thrust::inclusive_scan(thrust_data_[0].execution_policy(), start_it,
+                         start_it + num_groups(),
+                         best_edges_locations_.data());
 
   using BestEdge = thrust::tuple<float, unsigned, uint8_t>;
 

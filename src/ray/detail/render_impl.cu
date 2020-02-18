@@ -76,7 +76,7 @@ void RendererImpl<execution_model>::render(
     unsigned target_num_dir_trees = 16;
     dir_tree_lookup = dir_tree_generator_.generate(
         moved_shapes_, target_num_dir_trees, scene_->getMinBound(),
-        scene_->getMaxBound());
+        scene_->getMaxBound(), show_times_);
   } else if (use_kd_tree) {
     Timer kdtree_timer;
 

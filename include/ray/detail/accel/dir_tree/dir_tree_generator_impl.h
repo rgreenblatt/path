@@ -27,7 +27,7 @@ public:
   DirTreeLookup generate(SpanSized<const scene::ShapeData> shapes,
                          unsigned target_num_dir_trees,
                          const Eigen::Vector3f &min_bound,
-                         const Eigen::Vector3f &max_bound);
+                         const Eigen::Vector3f &max_bound, bool show_times);
 
 private:
   HalfSpherePartition setup(unsigned target_num_dir_trees,
@@ -183,7 +183,7 @@ private:
   static constexpr unsigned num_sortings = 4;
   SharedVecT<Eigen::Vector3f> sort_offsets_;
   SharedVecT<float> z_max_sort_offsets_;
-  std::array<ExecVecT<float>, num_sortings> sorting_values_;
+  std::array<ExecVecT<double>, num_sortings> sorting_values_;
   std::array<ExecVecT<unsigned>, num_sortings> indexes_;
 
   class AllEdges : public VectorGroup<ExecVecT, float, float, float, uint8_t> {
@@ -214,6 +214,8 @@ private:
   Pair<ZValues> sorted_by_z_max_underlying_;
 
   bool use_async_;
+
+  bool show_times_;
 
   bool is_x_;
 
@@ -284,6 +286,7 @@ private:
   };
 
   BestEdges best_edges_;
+  ExecVecT<unsigned> best_edges_locations_;
 
   Pair<ExecVecT<uint8_t>> better_than_no_split_underlying_;
 
