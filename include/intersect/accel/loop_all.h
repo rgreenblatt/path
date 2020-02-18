@@ -1,4 +1,4 @@
-#include "intersect/intersection.h"
+#include "intersect/ray.h"
 #include "lib/cuda/utils.h"
 #include "lib/span.h"
 
@@ -7,22 +7,28 @@
 
 namespace intersect {
 namespace accel {
-// TODO: generic over meshes and triangles...
-class LoopAll {
+// TODO: span or custom?
+template <typename Object> class LoopAll {
 public:
-  LoopAll(unsigned num_shapes) : num_shapes_(num_shapes) {}
+  LoopAll(Span<const Object> objects, unsigned start, unsigned end)
+      : objects_(objects), start_(start), end_(end) {}
+
+  using Intersection = decltype(std::declval<Object>()(Ray()));
 
   template <typename SolveIndex>
-  HOST_DEVICE void operator()(const Eigen::Vector3f &, const Eigen::Vector3f &,
-                              const thrust::optional<BestIntersection> &,
-                              const SolveIndex &solve_index) const {
-    for (unsigned i = 0; i < num_shapes_; i++) {
-      solve_index(i);
+  HOST_DEVICE Intersection operator()(const Ray &ray) const {
+    Intersection best_intersection;
+    for (unsigned i = start_; i < end_; i++) {
+      best_intersection = std::min(best_intersection, objects_[i](ray));
     }
+
+    return best_intersection;
   }
 
 private:
-  unsigned num_shapes_;
+  Span<const Object> objects_;
+  unsigned start_;
+  unsigned end_;
 };
 } // namespace accel
 } // namespace intersect

@@ -12,6 +12,7 @@
 #include <Eigen/Dense>
 
 namespace scene {
+namespace scenefile_compat {
 enum class LightType { Point, Directional, Spot, Area };
 
 enum class PrimitiveType { Cube, Cone, Cylinder, Torus, Sphere, Mesh };
@@ -181,4 +182,5 @@ struct CS123SceneNode {
 
   std::vector<CS123SceneNode *> children;
 };
+} // namespace scenefile_compat
 } // namespace scene

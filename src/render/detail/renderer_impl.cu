@@ -1,12 +1,10 @@
 #include "lib/span_convertable_device_vector.h"
 #include "lib/span_convertable_vector.h"
-#include "ray/detail/accel/dir_tree/dir_tree_lookup_ref.h"
-#include "ray/detail/accel/kdtree/kdtree_ref.h"
-#include "ray/detail/accel/loop_all.h"
-#include "ray/detail/render_impl.h"
+#include "intersect/accel/loop_all.h"
+#include "render/detail/renderer_impl.h"
 #include "scene/camera.h"
-
 #include "lib/timer.h"
+
 #include <boost/range/adaptor/indexed.hpp>
 #include <boost/range/combine.hpp>
 #include <thrust/copy.h>
@@ -14,30 +12,18 @@
 
 #include <chrono>
 
-namespace ray {
+namespace render {
 namespace detail {
 template <ExecutionModel execution_model>
-RendererImpl<execution_model>::RendererImpl(unsigned x_dim, unsigned y_dim,
-                                            unsigned super_sampling_rate,
-                                            unsigned recursive_iterations,
-                                            std::unique_ptr<scene::Scene> &s)
-    : block_data_(super_sampling_rate * x_dim, super_sampling_rate * y_dim, 32,
-                  8),
-      real_x_dim_(x_dim), real_y_dim_(y_dim),
-      super_sampling_rate_(super_sampling_rate),
-      recursive_iterations_(recursive_iterations), show_times_(false),
-      scene_(std::move(s)), world_space_eyes_(block_data_.totalSize()),
-      world_space_directions_(block_data_.totalSize()),
-      ignores_(block_data_.totalSize()),
-      color_multipliers_(block_data_.totalSize()),
-      disables_(block_data_.totalSize()), colors_(block_data_.totalSize()),
-      bgra_(real_x_dim_ * real_y_dim_) {}
+RendererImpl<execution_model>::RendererImpl() {}
 
 template <ExecutionModel execution_model>
 void RendererImpl<execution_model>::render(
-    BGRA *pixels, const Eigen::Affine3f &m_film_to_world,
-    const Eigen::Projective3f &, bool use_kd_tree, bool use_dir_tree,
-    bool show_times) {
+RGBA *pixels, const Eigen::Affine3f &film_to_world,
+              unsigned x_dim, unsigned y_dim, unsigned samples_per,
+              intersect::accel::AcceleratorType mesh_accel_type,
+              intersect::accel::AcceleratorType triangle_accel_type,
+              bool show_times) {
   const auto lights = scene_->getLights();
   const unsigned num_lights = scene_->getNumLights();
   const auto textures = scene_->getTextures();
@@ -46,19 +32,7 @@ void RendererImpl<execution_model>::render(
 
   const unsigned general_num_blocks = block_data_.generalNumBlocks();
 
-  group_disables_.resize(general_num_blocks);
-  group_indexes_.resize(general_num_blocks);
-
   unsigned current_num_blocks = general_num_blocks;
-
-  Timer fill_timer;
-
-  // could be made async until...
-  fill(scene::Color::Ones(), scene::Color::Zero(), m_film_to_world);
-
-  if (show_times_) {
-    fill_timer.report("fill");
-  }
 
   const unsigned num_shapes = scene_->getNumShapes();
   ManangedMemVec<scene::ShapeData> moved_shapes_(num_shapes);

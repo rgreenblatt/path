@@ -1,14 +1,15 @@
 #pragma once
 
-#include "scene/CS123ISceneParser.h"
-#include "scene/CS123SceneData.h"
+#include "scene/scenefile_compat/CS123ISceneParser.h"
+#include "scene/scenefile_compat/CS123SceneData.h"
+
+#include <QtXml>
 
 #include <map>
 #include <vector>
 
-#include <QtXml>
-
 namespace scene {
+namespace scenefile_compat {
 /**
  * @class CS123XmlSceneParser
  *
@@ -57,4 +58,5 @@ private:
   CS123SceneGlobalData global_data_;
   std::vector<CS123SceneNode *> nodes_;
 };
+} // namespace scenefile_compat
 } // namespace scene

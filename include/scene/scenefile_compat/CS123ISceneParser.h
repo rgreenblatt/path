@@ -12,6 +12,7 @@
 #pragma once
 
 namespace scene {
+namespace scenefile_compat {
 // Forward declare structs to contain parsed data.
 struct CS123SceneCameraData;
 struct CS123SceneNode;
@@ -42,4 +43,5 @@ public:
 protected:
   CS123ISceneParser() {}
 };
+} // namespace scenefile_compat
 } // namespace scene

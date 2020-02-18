@@ -1,14 +1,12 @@
 #pragma once
 
+#include "intersect/accel/aabb.h"
 #include "lib/cuda/utils.h"
-#include "ray/detail/accel/aabb.h"
-#include "scene/shape_data.h"
 
 #include <Eigen/Geometry>
 #include <thrust/optional.h>
 
-namespace ray {
-namespace detail {
+namespace intersect {
 namespace accel {
 namespace kdtree {
 struct KDTreeSplit {
@@ -85,5 +83,4 @@ std::vector<KDTreeNode<AABB>> construct_kd_tree(scene::ShapeData *shapes,
                                                 unsigned target_shapes_per);
 } // namespace kdtree
 } // namespace accel
-} // namespace detail
-} // namespace ray
+} // namespace intersect

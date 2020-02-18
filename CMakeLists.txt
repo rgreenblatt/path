@@ -58,7 +58,7 @@ endmacro()
 add_library(
   renderer
 
-  # "${PROJECT_SOURCE_DIR}/src/ray/render.cu"
+  "${PROJECT_SOURCE_DIR}/src/render/renderer.cu"
 
   # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/fill.cu"
   # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/float_to_bgra.cpp"
@@ -69,7 +69,7 @@ add_library(
   # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/kdtree_true.cu"
   # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/loop_all_false.cu"
   # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/loop_all_true.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/render_impl.cu"
+  "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl.cu"
 
   # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/kdtree/kdtree.cpp"
 
@@ -96,11 +96,18 @@ add_library(
   # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/test_splits.cu"
 
   "${PROJECT_SOURCE_DIR}/src/scene/camera.cpp"
-  "${PROJECT_SOURCE_DIR}/src/scene/CS123XmlSceneParser.cpp"
-  "${PROJECT_SOURCE_DIR}/src/scene/scene.cpp"
   )
 target_add_standard_include(renderer)
-target_link_libraries(renderer OpenMP::OpenMP_CXX Qt5::Widgets Qt5::Xml)
+target_link_libraries(renderer OpenMP::OpenMP_CXX Qt5::Widgets)
+
+add_library(
+  scenefile_compat
+
+  "${PROJECT_SOURCE_DIR}/src/scene/scenefile_compat/CS123XmlSceneParser.cpp"
+  "${PROJECT_SOURCE_DIR}/src/scene/scenefile_compat/scenefile_loader.cpp"
+  )
+target_add_standard_include(scenefile_compat)
+target_link_libraries(scenefile_compat OpenMP::OpenMP_CXX Qt5::Widgets Qt5::Xml)
 
 if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
   enable_testing()

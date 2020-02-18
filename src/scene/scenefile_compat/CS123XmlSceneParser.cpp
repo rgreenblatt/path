@@ -2,8 +2,7 @@
  * CS123 New Parser for XML
  */
 
-#include "scene/CS123XmlSceneParser.h"
-#include "scene/CS123SceneData.h"
+#include "scene/scenefile_compat/CS123XmlSceneParser.h"
 
 #include <Eigen/Dense>
 
@@ -13,6 +12,7 @@
 #include <string>
 
 namespace scene {
+namespace scenefile_compat {
 #define ERROR_AT(e)                                                            \
   "error at line " << e.lineNumber() << " col " << e.columnNumber() << ": "
 #define PARSE_ERROR(e)                                                         \
@@ -807,4 +807,5 @@ bool CS123XmlSceneParser::parse_primitive(const QDomElement &prim,
 
   return true;
 }
+} // namespace scenefile_compat
 } // namespace scene
