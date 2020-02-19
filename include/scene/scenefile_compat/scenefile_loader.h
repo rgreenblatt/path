@@ -14,25 +14,28 @@ public:
                                             float width_height_ratio);
 
 private:
-  bool parse_tree(Scene &scene, const CS123SceneNode &root,
+  bool parse_tree(Scene &scene_v, const CS123SceneNode &root,
                   const std::string &base_dir);
 
-  bool parse_node(Scene &scene, const CS123SceneNode &node,
+  bool parse_node(Scene &scene_v, const CS123SceneNode &node,
                   const Eigen::Affine3f &parent_transform,
                   const std::string &base_dir);
 
-  bool add_primitive(Scene &scene, const CS123ScenePrimitive &prim,
+  bool add_primitive(Scene &scene_v, const CS123ScenePrimitive &prim,
                      const Eigen::Affine3f &transform,
                      const std::string &base_dir);
 
-  bool load_mesh(Scene &scene, std::string file_path,
+  bool load_mesh(Scene &scene_v, std::string file_path,
                  const Eigen::Affine3f &transform, const std::string &base_dir);
 
-  bool add_light(Scene &scene, const CS123SceneLightData &data);
+  bool add_light(Scene &scene_v, const CS123SceneLightData &data);
 
   std::map<std::string, unsigned> loaded_meshes_; // avoid reloading dup meshes
 
   CS123SceneGlobalData global_data_; // TODO: what is global data for....
+
+  Eigen::Vector3f overall_min_b_transformed_;
+  Eigen::Vector3f overall_max_b_transformed_;
 };
 } // namespace scenefile_compat
 } // namespace scene

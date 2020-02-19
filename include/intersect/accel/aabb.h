@@ -9,6 +9,36 @@
 
 namespace intersect {
 namespace accel {
+inline std::tuple<Eigen::Vector3f, Eigen::Vector3f>
+get_transformed_bounds(const Eigen::Affine3f &transform,
+                       const Eigen::Vector3f &min_bound,
+                       const Eigen::Vector3f &max_bound) {
+  Eigen::Vector3f min_transformed_bound(std::numeric_limits<float>::max(),
+                                        std::numeric_limits<float>::max(),
+                                        std::numeric_limits<float>::max());
+  Eigen::Vector3f max_transformed_bound(std::numeric_limits<float>::lowest(),
+                                        std::numeric_limits<float>::lowest(),
+                                        std::numeric_limits<float>::lowest());
+  for (auto x_is_min : {false, true}) {
+    for (auto y_is_min : {false, true}) {
+      for (auto z_is_min : {false, true}) {
+        auto get_axis = [&](bool is_min, uint8_t axis) {
+          return is_min ? min_bound[axis] : max_bound[axis];
+        };
+        Eigen::Vector3f transformed_edge =
+            transform * Eigen::Vector3f(get_axis(x_is_min, 0),
+                                        get_axis(y_is_min, 1),
+                                        get_axis(z_is_min, 2));
+        min_transformed_bound =
+            min_transformed_bound.cwiseMin(transformed_edge);
+        max_transformed_bound =
+            max_transformed_bound.cwiseMax(transformed_edge);
+      }
+    }
+  }
+
+  return {min_transformed_bound, max_transformed_bound};
+}
 class AABB {
 public:
   HOST_DEVICE
@@ -17,6 +47,12 @@ public:
   HOST_DEVICE
   AABB(const Eigen::Vector3f &min_bound, const Eigen::Vector3f &max_bound)
       : min_bound_(min_bound), max_bound_(max_bound) {}
+
+  HOST_DEVICE inline AABB transform(const Eigen::Affine3f &transform) const {
+    auto [min, max] = get_transformed_bounds(transform, min_bound_, max_bound_);
+
+    return {min, max};
+  }
 
   HOST_DEVICE const Eigen::Vector3f &get_min_bound() const {
     return min_bound_;
@@ -60,36 +96,5 @@ private:
   Eigen::Vector3f min_bound_;
   Eigen::Vector3f max_bound_;
 };
-
-inline std::tuple<Eigen::Vector3f, Eigen::Vector3f> get_transformed_bounds(
-    const Eigen::Affine3f &transform,
-    const Eigen::Vector3f &min_bound = Eigen::Vector3f::Ones() * -0.5f,
-    const Eigen::Vector3f &max_bound = Eigen::Vector3f::Ones() * 0.5f) {
-  Eigen::Vector3f min_transformed_bound(std::numeric_limits<float>::max(),
-                                        std::numeric_limits<float>::max(),
-                                        std::numeric_limits<float>::max());
-  Eigen::Vector3f max_transformed_bound(std::numeric_limits<float>::lowest(),
-                                        std::numeric_limits<float>::lowest(),
-                                        std::numeric_limits<float>::lowest());
-  for (auto x_is_min : {false, true}) {
-    for (auto y_is_min : {false, true}) {
-      for (auto z_is_min : {false, true}) {
-        auto get_axis = [&](bool is_min, uint8_t axis) {
-          return is_min ? min_bound[axis] : max_bound[axis];
-        };
-        Eigen::Vector3f transformed_edge =
-            transform * Eigen::Vector3f(get_axis(x_is_min, 0),
-                                        get_axis(y_is_min, 1),
-                                        get_axis(z_is_min, 2));
-        min_transformed_bound =
-            min_transformed_bound.cwiseMin(transformed_edge);
-        max_transformed_bound =
-            max_transformed_bound.cwiseMax(transformed_edge);
-      }
-    }
-  }
-
-  return {min_transformed_bound, max_transformed_bound};
-}
 } // namespace accel
 } // namespace intersect

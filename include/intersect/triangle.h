@@ -1,5 +1,6 @@
 #pragma once
 
+#include "intersect/intersection.h"
 #include "intersect/ray.h"
 #include "lib/cuda/utils.h"
 
@@ -14,8 +15,8 @@ public:
   HOST_DEVICE Triangle(std::array<Eigen::Vector3f, 3> vertices)
       : vertices_(vertices) {}
 
-  HOST_DEVICE inline thrust::optional<float>
-  get_intersection(const Ray &ray) const;
+  HOST_DEVICE inline IntersectionOp<std::tuple<>>
+  operator()(const Ray &ray) const;
 
 private:
   std::array<Eigen::Vector3f, 3> vertices_;

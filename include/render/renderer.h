@@ -16,8 +16,8 @@ public:
 
   ~Renderer();
 
-  void render(RGBA *pixels, const Eigen::Affine3f &film_to_world,
-              unsigned x_dim, unsigned y_dim, unsigned samples_per,
+  void render(RGBA *pixels, const scene::Scene &s, unsigned x_dim,
+              unsigned y_dim, unsigned samples_per,
               intersect::accel::AcceleratorType mesh_accel_type,
               intersect::accel::AcceleratorType triangle_accel_type,
               bool show_times);

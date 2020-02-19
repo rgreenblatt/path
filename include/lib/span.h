@@ -55,6 +55,14 @@ public:
 
   constexpr T *end() const { return ptr_ + size(); }
 
+  constexpr Span<T, true> slice(std::size_t start, std::size_t end) const {
+    if constexpr (use_size) {
+      assert(end <= size_);
+    }
+
+    return {ptr_ + start, end - start};
+  }
+
 private:
   T *ptr_;
 

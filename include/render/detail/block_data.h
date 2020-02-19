@@ -2,6 +2,7 @@
 
 #include "lib/cuda/utils.h"
 #include "lib/span.h"
+#include "lib/utils.h"
 
 #include <tuple>
 
@@ -16,7 +17,7 @@ get_block_idxs(unsigned general_block_idx, unsigned num_blocks_x) {
 }
 
 inline unsigned num_blocks(unsigned size, unsigned block_size) {
-  return (size + block_size - 1) / block_size;
+  return ceil_divide(size, block_size);
 };
 
 struct BlockData {

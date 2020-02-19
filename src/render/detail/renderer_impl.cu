@@ -1,7 +1,9 @@
 #include "intersect/accel/loop_all.h"
+#include "lib/group.h"
 #include "lib/span_convertable_device_vector.h"
 #include "lib/span_convertable_vector.h"
 #include "lib/timer.h"
+#include "render/detail/divide_work.h"
 #include "render/detail/renderer_impl.h"
 #include "scene/camera.h"
 
@@ -10,8 +12,6 @@
 #include <thrust/copy.h>
 #include <thrust/fill.h>
 
-#include <chrono>
-
 namespace render {
 namespace detail {
 template <ExecutionModel execution_model>
@@ -19,20 +19,121 @@ RendererImpl<execution_model>::RendererImpl() {}
 
 template <ExecutionModel execution_model>
 void RendererImpl<execution_model>::render(
-    RGBA *pixels, const Eigen::Affine3f &film_to_world, unsigned x_dim,
-    unsigned y_dim, unsigned samples_per,
-    intersect::accel::AcceleratorType mesh_accel_type,
+    RGBA *pixels, const scene::Scene &s, unsigned x_dim, unsigned y_dim,
+    unsigned samples_per, intersect::accel::AcceleratorType mesh_accel_type,
     intersect::accel::AcceleratorType triangle_accel_type, bool show_times) {
-  const auto lights = scene_->getLights();
-  const unsigned num_lights = scene_->getNumLights();
-  const auto textures = scene_->getTextures();
-  const unsigned num_textures = scene_->getNumTextures();
-  show_times_ = show_times;
+  unsigned target_block_size = 512;
+  unsigned target_work_per_thread = 4;
 
-  const unsigned general_num_blocks = block_data_.generalNumBlocks();
+  auto division =
+      divide_work(samples_per, target_block_size, target_work_per_thread);
 
-  unsigned current_num_blocks = general_num_blocks;
+  const float dir_tree_triangle_traversal_cost = 1;
+  const float dir_tree_triangle_intersection_cost = 1;
+  const unsigned num_dir_trees_triangle = 16;
+  
+  const float kd_tree_triangle_traversal_cost = 1;
+  const float kd_tree_triangle_intersection_cost = 1;
 
+  const float dir_tree_mesh_traversal_cost = 1;
+  const float dir_tree_mesh_intersection_cost = 1;
+  const unsigned num_dir_trees_mesh = 16;
+  
+  const float kd_tree_mesh_traversal_cost = 1;
+  const float kd_tree_mesh_intersection_cost = 1;
+
+  intersect::accel::run_over_accelerator_types(
+      [&](auto &&i) {
+        constexpr auto tri_accel_type = std::decay_t<decltype(i)>::value;
+        using AcceleratorType = intersect::accel::AcceleratorType;
+
+        auto &v = stored_mesh_accels_.template get_item<tri_accel_type>();
+
+        using TriRefType = typename std::decay_t<decltype(v)>::RefType;
+        using TriSettings = typename std::decay_t<decltype(v)>::Settings;
+
+        TriSettings triangle_accel_settings;
+        if constexpr (tri_accel_type == AcceleratorType::DirTree) {
+          triangle_accel_settings.s_a_heuristic_settings = {
+              dir_tree_triangle_traversal_cost,
+              dir_tree_triangle_intersection_cost};
+          triangle_accel_settings.num_dir_trees = num_dir_trees_triangle;
+        } else if constexpr (tri_accel_type == AcceleratorType::KDTree) {
+          triangle_accel_settings.s_a_heuristic_settings = {
+              kd_tree_triangle_traversal_cost,
+              kd_tree_triangle_intersection_cost};
+        }
+
+        unsigned num_meshs = s.mesh_paths().size();
+
+        v.reset();
+
+        std::vector<TriRefType> cpu_refs(num_meshs);
+        std::vector<uint8_t> ref_set(num_meshs, 0);
+
+        for (unsigned i = 0; i < num_meshs; i++) {
+          auto ref_op = v.query(s.mesh_paths()[i]);
+          if (ref_op.has_value()) {
+            cpu_refs[i] = *ref_op;
+            ref_set[i] = true;
+          }
+        }
+
+        assert(s.mesh_aabbs().size() == num_meshs);
+
+        for (unsigned i = 0; i < num_meshs; i++) {
+          if (!ref_set[i]) {
+            const auto &aabb = s.mesh_aabbs()[i];
+            cpu_refs[i] = v.add(s.triangles(), get_previous(i, s.mesh_ends()),
+                            s.mesh_ends()[i], aabb.get_min_bound(),
+                            aabb.get_max_bound());
+          }
+        }
+
+        ExecVecT<TriRefType> refs(cpu_refs.begin(), cpu_refs.end());
+
+        intersect::accel::run_over_accelerator_types([&](auto &&i) {
+          constexpr auto mesh_accel_type = std::decay_t<decltype(i)>::value;
+
+          using MeshInstanceRef = intersect::accel::MeshInstanceRef<TriRefType>;
+          using MeshGenerator =
+              intersect::accel::Generator<MeshInstanceRef, execution_model,
+                                          mesh_accel_type>;
+          using MeshSettings = intersect::accel::Settings<mesh_accel_type>;
+
+          MeshSettings mesh_accel_settings;
+          if constexpr (mesh_accel_type == AcceleratorType::DirTree) {
+            mesh_accel_settings.s_a_heuristic_settings = {
+                dir_tree_mesh_traversal_cost,
+                dir_tree_mesh_intersection_cost};
+            mesh_accel_settings.num_dir_trees = num_dir_trees_mesh;
+          } else if constexpr (mesh_accel_type == AcceleratorType::KDTree) {
+            mesh_accel_settings.s_a_heuristic_settings = {
+                kd_tree_mesh_traversal_cost,
+                kd_tree_mesh_intersection_cost};
+          }
+
+          MeshGenerator generator;
+
+          unsigned num_mesh_instances = s.mesh_instances().size();
+
+          std::vector<MeshInstanceRef> instance_refs(num_mesh_instances);
+
+          for (unsigned i = 0; i < num_mesh_instances; ++i) {
+            instance_refs[i] =
+                s.mesh_instances()[i].get_ref(Span<const TriRefType>{refs});
+          }
+
+          const auto& aabb = s.overall_aabb();
+
+          auto mesh_instance_accel_ref =
+              generator.gen(instance_refs, 0, num_mesh_instances,
+                            aabb.get_min_bound(), aabb.get_max_bound(), mesh_accel_settings);
+        }, mesh_accel_type);
+      },
+      triangle_accel_type);
+
+#if 0
   const unsigned num_shapes = scene_->getNumShapes();
   ManangedMemVec<scene::ShapeData> moved_shapes_(num_shapes);
 
@@ -105,6 +206,7 @@ void RendererImpl<execution_model>::render(
   }
 
   float_to_bgra(pixels, colors_);
+#endif
 }
 
 template class RendererImpl<ExecutionModel::CPU>;

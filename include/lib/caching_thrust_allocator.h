@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lib/cuda/utils.h"
 #include "lib/execution_model.h"
 
 #include <thrust/host_vector.h>
