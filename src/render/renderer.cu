@@ -15,12 +15,12 @@ Renderer<execution_model>::~Renderer() {
 }
 
 template <ExecutionModel execution_model>
-void Renderer<execution_model>::render(
-    Span<RGBA> pixels, const scene::Scene &s, unsigned x_dim, unsigned y_dim,
-    unsigned samples_per, intersect::accel::AcceleratorType mesh_accel_type,
-    intersect::accel::AcceleratorType triangle_accel_type, bool show_times) {
-  renderer_impl_->render(pixels, s, x_dim, y_dim, samples_per, mesh_accel_type,
-                         triangle_accel_type, show_times);
+void Renderer<execution_model>::render(Span<RGBA> pixels, const scene::Scene &s,
+                                       unsigned x_dim, unsigned y_dim,
+                                       unsigned samples_per,
+                                       PerfSettings settings, bool show_times) {
+  renderer_impl_->render(pixels, s, x_dim, y_dim, samples_per, settings,
+                         show_times);
 }
 
 template class Renderer<ExecutionModel::CPU>;

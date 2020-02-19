@@ -1,7 +1,6 @@
 #include "lib/span.h"
-#include "lib/span_convertable_device_vector.h"
-#include "lib/thrust_data.h"
-#include "lib/vector_type.h"
+#include "lib/execution_model/thrust_data.h"
+#include "lib/execution_model/vector_type.h"
 
 #include <gtest/gtest.h>
 

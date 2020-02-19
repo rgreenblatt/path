@@ -1,7 +1,7 @@
 #pragma once
 
-#include "lib/execution_model.h"
-#include "lib/vector_type.h"
+#include "lib/execution_model/execution_model.h"
+#include "lib/execution_model/vector_type.h"
 
 namespace execution_model {
 namespace detail {

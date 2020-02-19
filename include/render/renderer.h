@@ -2,6 +2,7 @@
 
 #include "intersect/accel/accelerator_type.h"
 #include "lib/execution_model.h"
+#include "render/settings.h"
 #include "lib/rgba.h"
 #include "lib/span.h"
 #include "scene/scene.h"
@@ -18,9 +19,7 @@ public:
   ~Renderer();
 
   void render(Span<RGBA> pixels, const scene::Scene &s, unsigned x_dim,
-              unsigned y_dim, unsigned samples_per,
-              intersect::accel::AcceleratorType mesh_accel_type,
-              intersect::accel::AcceleratorType triangle_accel_type,
+              unsigned y_dim, unsigned samples_per, PerfSettings settings,
               bool show_times);
 
 private:

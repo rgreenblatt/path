@@ -1,7 +1,6 @@
 #include "lib/bitset.h"
-#include "lib/cuda/managed_mem_vec.h"
-#include "lib/span_convertable_device_vector.h"
-#include "lib/span_convertable_vector.h"
+#include "lib/execution_model/host_device_vector.h"
+#include "lib/span.h"
 
 #include <gtest/gtest.h>
 
@@ -9,17 +8,17 @@
 
 template <typename T> static void popcount_test(std::mt19937 &gen) {
   const unsigned size = 1000;
-  ManangedMemVec<T> values(size);
+  HostDeviceVector<T> values(size);
   std::uniform_int_distribution<T> dis(0, std::numeric_limits<T>::max());
   std::generate(values.begin(), values.end(), [&] { return dis(gen); });
 
   values[0] = 0b100001111100001111001111u;
   values[1] = std::numeric_limits<T>::max();
 
-  ManangedMemVec<T> gpu_out(size);
-  ManangedMemVec<T> cpu_out(size);
+  HostDeviceVector<T> gpu_out(size);
+  HostDeviceVector<T> cpu_out(size);
 
-  auto transform_values = [&](const auto type, ManangedMemVec<T> &out) {
+  auto transform_values = [&](const auto type, HostDeviceVector<T> &out) {
     thrust::transform(type, values.data(), values.data() + values.size(),
                       out.data(),
                       [] __host__ __device__(T v) { return popcount(v); });
@@ -48,16 +47,16 @@ TEST(BitSet, popcount) {
 
 template <typename T> static void count_leading_zeros_test(std::mt19937 &gen) {
   const unsigned size = 1000;
-  ManangedMemVec<T> values(size);
+  HostDeviceVector<T> values(size);
   std::uniform_int_distribution<T> dis(0u, std::numeric_limits<T>::max());
   std::uniform_int_distribution<T> dis_mask(0u, 31);
   std::generate(values.begin(), values.end(),
                 [&] { return (dis(gen) & ((1u << dis_mask(gen)) - 1)) | 1u; });
 
-  ManangedMemVec<T> gpu_out(size);
-  ManangedMemVec<T> cpu_out(size);
+  HostDeviceVector<T> gpu_out(size);
+  HostDeviceVector<T> cpu_out(size);
 
-  auto transform_values = [&](const auto type, ManangedMemVec<T> &out) {
+  auto transform_values = [&](const auto type, HostDeviceVector<T> &out) {
     thrust::transform(
         type, values.data(), values.data() + values.size(), out.data(),
         [] __host__ __device__(T v) { return count_leading_zeros(v); });

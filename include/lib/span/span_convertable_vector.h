@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lib/span_convertable.h"
+#include "lib/span/span_convertable.h"
 
 #include <vector>
 

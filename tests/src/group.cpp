@@ -1,9 +1,7 @@
 #include "lib/group.h"
-#include "lib/span_convertable_vector.h"
+#include "lib/span.h"
 
 #include <gtest/gtest.h>
-
-#include <string>
 
 TEST(Group, get_previous) {
   {

@@ -1,14 +1,13 @@
 #pragma once
 
 #include "intersect/accel/accelerator_type.h"
+#include "render/settings.h"
 #include "intersect/accel/accelerator_type_generator.h"
+#include "lib/compile_time_dispatch/enum.h"
+#include "lib/compile_time_dispatch/one_per_instance.h"
 #include "lib/execution_model.h"
-#include "lib/execution_model_vector_type.h"
 #include "lib/rgba.h"
-#include "lib/thrust_data.h"
 #include "scene/scene.h"
-
-#include <thrust/device_vector.h>
 
 #include <map>
 #include <set>
@@ -18,9 +17,7 @@ namespace detail {
 template <ExecutionModel execution_model> class RendererImpl {
 public:
   void render(Span<RGBA> pixels, const scene::Scene &s, unsigned x_dim,
-              unsigned y_dim, unsigned samples_per,
-              intersect::accel::AcceleratorType mesh_accel_type,
-              intersect::accel::AcceleratorType triangle_accel_type,
+              unsigned y_dim, unsigned samples_per, PerfSettings settings,
               bool show_times);
 
   RendererImpl();
@@ -93,30 +90,17 @@ private:
     HostVector<Generator> generators_;
   };
 
-  intersect::accel::OnePerAcceleratorType<StoredMeshAccels> stored_mesh_accels_;
+  void dispatch_compute_intensities(const PerfSettings& settings);
 
-#if 0
-  template <intersect::accel::AcceleratorType type> class StoredPrimAccel {
-    using MeshInstance = intersect::accel::MeshInstance;
-    using Generator =
-        intersect::accel::Generator<MeshInstance, execution_model, type>;
-    using Settings = intersect::accel::Settings<type>;
-    using RefType = typename Generator::RefType;
-
-    void set_settings(const Settings &settings) { settings_ = settings; }
-
-
-
-
-  private:
-    Settings settings_;
-  };
-#endif
+  OnePerInstance<intersect::accel::AcceleratorType, StoredMeshAccels>
+      stored_mesh_accels_;
 
   ThrustData<execution_model> thrust_data_;
 
   ExecVecT<Eigen::Vector3f> intermediate_intensities_;
   ExecVecT<Eigen::Vector3f> final_intensities_;
+  ExecVecT<scene::TriangleData> triangle_data_;
+  ExecVecT<scene::Material> materials_;
   ExecVecT<RGBA> bgra_;
 };
 } // namespace detail

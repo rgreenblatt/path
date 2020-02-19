@@ -4,7 +4,7 @@
 #include "intersect/accel/aabb.h"
 #include "intersect/triangle.h"
 #include "lib/span.h"
-#include "lib/span_convertable_vector.h"
+#include "scene/material.h"
 #include "scene/triangle_data.h"
 
 #include <thrust/optional.h>
@@ -23,7 +23,6 @@ public:
 
   using Triangle = intersect::Triangle;
   using MeshInstance = intersect::accel::MeshInstance;
-  using Material = tinyobj::material_t;
 
   SpanSized<const unsigned> mesh_ends() const { return mesh_ends_; }
 

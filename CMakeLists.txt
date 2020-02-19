@@ -31,6 +31,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 # option(SYNTAX_ONLY "Only check syntax" OFF)
 
 set(GENERAL_FLAGS "-std=c++17 -Wall -Wextra -fsized-deallocation")
+set(GENERAL_FLAGS "${GENERAL_FLAGS} -fconstexpr-steps=80000000")
 set(GENERAL_CUDA_FLAGS "${GENERAL_FLAGS} -Xcuda-ptxas '-w'")
 
 set(CMAKE_QT_FLAGS "${CMAKE_CXX_FLAGS} ${GENERAL_FLAGS}")
@@ -62,15 +63,8 @@ add_library(
 
   "${PROJECT_SOURCE_DIR}/src/render/renderer.cu"
 
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/fill.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/float_to_bgra.cpp"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/float_to_bgra.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/all.cpp"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/dir_tree.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/kdtree_false.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/kdtree_true.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/loop_all_false.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/impl/raytrace/loop_all_true.cu"
+  "${PROJECT_SOURCE_DIR}/src/render/detail/compute_intensities.cu"
+  "${PROJECT_SOURCE_DIR}/src/render/detail/compute_intensities.cpp"
   "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl.cu"
 
   # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/kdtree/kdtree.cpp"

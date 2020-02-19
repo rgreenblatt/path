@@ -1,7 +1,7 @@
 #pragma once
 
-#include "lib/device_vector.h"
-#include "lib/span_convertable.h"
+#include "lib/execution_model/device_vector.h"
+#include "lib/span/span_convertable.h"
 
 template <typename T> class SpanConvertable<const DeviceVector<T>> {
 public:

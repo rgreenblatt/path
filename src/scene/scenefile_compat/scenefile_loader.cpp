@@ -156,8 +156,9 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
     return false;
   }
 
-  scene_v.materials_.insert(scene_v.materials_.end(), mesh_materials.begin(),
-                            mesh_materials.end());
+  for (const auto &m : mesh_materials) {
+    scene_v.materials_.push_back(Material{m});
+  }
 
   if (!ret) {
     std::cerr << "Failed to load/parse .obj file" << std::endl;

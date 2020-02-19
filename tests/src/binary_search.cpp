@@ -1,9 +1,8 @@
 #include "lib/binary_search.h"
-#include "lib/span_convertable_vector.h"
+#include "lib/span.h"
 
 #include <gtest/gtest.h>
 
-#include <string>
 #include <vector>
 
 TEST(binary_search, binary_search) {
