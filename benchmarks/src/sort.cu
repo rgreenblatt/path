@@ -1,5 +1,5 @@
-#include "lib/cuda/utils.h"
 #include "lib/caching_thrust_allocator.h"
+#include "lib/cuda/utils.h"
 #include "lib/device_vector.h"
 #include "lib/span_convertable_device_vector.h"
 #include "lib/thrust_data.h"

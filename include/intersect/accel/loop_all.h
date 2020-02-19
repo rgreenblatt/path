@@ -18,21 +18,7 @@ private:
   public:
     LoopAllRef() {}
 
-    using PrevInfoType = typename std::decay_t<decltype(
-        *std::declval<Object>()(Ray()))>::InfoType;
-    using NewInfoType = AppendIndexInfoType<PrevInfoType>;
-    using IntersectionOpT = IntersectionOp<NewInfoType>;
-
-    HOST_DEVICE IntersectionOpT operator()(const Ray &ray) const {
-      IntersectionOpT best_intersection;
-      for (unsigned idx = 0; idx < objects_.size(); idx++) {
-        auto intersection = objects_[idx](ray);
-        best_intersection = optional_min(
-            best_intersection, append_index(intersection, idx + offset_));
-      }
-
-      return best_intersection;
-    }
+    HOST_DEVICE inline auto operator()(const Ray &ray) const;
 
   private:
     LoopAllRef(SpanSized<const Object> objects, unsigned offset)

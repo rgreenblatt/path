@@ -1,6 +1,6 @@
-#include "lib/utils.h"
 #include "scene/scenefile_compat/scenefile_loader.h"
 #include "lib/group.h"
+#include "lib/utils.h"
 #include "scene/camera.h"
 #include "scene/scene.h"
 #include "scene/scenefile_compat/CS123XmlSceneParser.h"
@@ -128,7 +128,8 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
 
   auto absolute_path = info.absoluteFilePath().toStdString();
 
-  auto add_mesh_instance = [&](unsigned idx, const intersect::accel::AABB &aabb) {
+  auto add_mesh_instance = [&](unsigned idx,
+                               const intersect::accel::AABB &aabb) {
     auto transformed_aabb = aabb.transform(transform);
     scene_v.mesh_instances_.push_back({idx, transform, transformed_aabb});
     overall_max_b_transformed_ =

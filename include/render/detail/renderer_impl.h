@@ -17,7 +17,7 @@ namespace render {
 namespace detail {
 template <ExecutionModel execution_model> class RendererImpl {
 public:
-  void render(RGBA *pixels, const scene::Scene &s, unsigned x_dim,
+  void render(Span<RGBA> pixels, const scene::Scene &s, unsigned x_dim,
               unsigned y_dim, unsigned samples_per,
               intersect::accel::AcceleratorType mesh_accel_type,
               intersect::accel::AcceleratorType triangle_accel_type,
@@ -115,7 +115,8 @@ private:
 
   ThrustData<execution_model> thrust_data_;
 
-  ExecVecT<Eigen::Vector3f> intensities;
+  ExecVecT<Eigen::Vector3f> intermediate_intensities_;
+  ExecVecT<Eigen::Vector3f> final_intensities_;
   ExecVecT<RGBA> bgra_;
 };
 } // namespace detail

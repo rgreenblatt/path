@@ -55,7 +55,7 @@ private:
 
   std::vector<unsigned> mesh_ends_;
   std::vector<intersect::accel::AABB> mesh_aabbs_; // not transformed
-  std::vector<std::string> mesh_paths_; // used as unique identifiers
+  std::vector<std::string> mesh_paths_;            // used as unique identifiers
   std::vector<MeshInstance> mesh_instances_;
   std::vector<Triangle> triangles_;
   std::vector<TriangleData> triangle_data_;

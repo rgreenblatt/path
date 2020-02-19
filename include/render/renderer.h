@@ -3,6 +3,7 @@
 #include "intersect/accel/accelerator_type.h"
 #include "lib/execution_model.h"
 #include "lib/rgba.h"
+#include "lib/span.h"
 #include "scene/scene.h"
 
 namespace render {
@@ -16,7 +17,7 @@ public:
 
   ~Renderer();
 
-  void render(RGBA *pixels, const scene::Scene &s, unsigned x_dim,
+  void render(Span<RGBA> pixels, const scene::Scene &s, unsigned x_dim,
               unsigned y_dim, unsigned samples_per,
               intersect::accel::AcceleratorType mesh_accel_type,
               intersect::accel::AcceleratorType triangle_accel_type,
