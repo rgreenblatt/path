@@ -100,7 +100,7 @@ private:
 
   ExecVecT<Eigen::Array3f> intensities_;
   ExecVecT<scene::TriangleData> triangle_data_;
-  ExecVecT<scene::Material> materials_;
+  ExecVecT<material::Material> materials_;
   ExecVecT<RGBA> bgra_;
 };
 } // namespace detail

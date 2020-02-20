@@ -130,7 +130,7 @@ private:
       default_uniform_term_prob = {0.1f};
 
   static constexpr TermProbSettings<TermProbType::MultiplierNorm>
-      default_multiplier_norm_term_prob;
+      default_multiplier_norm_term_prob = {0.0f};
 
   AllTermProbSettings default_term_prob = {default_uniform_term_prob,
                                            default_multiplier_norm_term_prob};

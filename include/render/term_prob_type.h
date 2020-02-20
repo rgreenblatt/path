@@ -9,6 +9,8 @@ template <TermProbType type> struct TermProbSettings;
 template <> struct TermProbSettings<TermProbType::Uniform> { float prob; };
 
 template <> struct TermProbSettings<TermProbType::MultiplierNorm> {
-  // TODO: settings for some function of multiplier...
+  // -2 to 2 (continuous)
+  // -2 is most concave, 0 is linear, and 2 is most convex
+  float convexity_scale;
 };
 }; // namespace render

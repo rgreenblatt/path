@@ -1,11 +1,8 @@
 #pragma once
 
 #include <array>
-#include <assert.h>
-#include <numeric>
 
-namespace render {
-namespace detail {
+namespace rng {
 namespace halton_detail {
 constexpr std::array<unsigned, 11> primes = {1,  2,  3,  5,  7, 11,
                                              13, 17, 19, 23, 29};
@@ -81,5 +78,4 @@ constexpr std::array<float, dim> halton(unsigned i) {
     return halton_detail::halton<dim>(i);
   }
 }
-} // namespace detail
-} // namespace render
+} // namespace rng

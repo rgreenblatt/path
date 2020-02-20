@@ -4,7 +4,7 @@
 #include "intersect/mesh_instance.h"
 #include "intersect/triangle.h"
 #include "lib/span.h"
-#include "scene/material.h"
+#include "material/material.h"
 #include "scene/triangle_data.h"
 
 #include <thrust/optional.h>
@@ -40,7 +40,7 @@ public:
 
   SpanSized<const TriangleData> triangle_data() const { return triangle_data_; }
 
-  SpanSized<const Material> materials() const { return materials_; }
+  SpanSized<const material::Material> materials() const { return materials_; }
 
   // Note: may not be very precise...
   intersect::accel::AABB overall_aabb() const { return overall_aabb_; }
@@ -58,7 +58,7 @@ private:
   std::vector<MeshInstance> mesh_instances_;
   std::vector<Triangle> triangles_;
   std::vector<TriangleData> triangle_data_;
-  std::vector<Material> materials_;
+  std::vector<material::Material> materials_;
 
   intersect::accel::AABB overall_aabb_;
 

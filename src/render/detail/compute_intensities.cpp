@@ -13,7 +13,7 @@ void compute_intensities(const WorkDivision &division, unsigned samples_per,
                          const TermProb &term_prob,
                          Span<Eigen::Array3f> intensities,
                          Span<const scene::TriangleData> triangle_data,
-                         Span<const scene::Material> materials,
+                         Span<const material::Material> materials,
                          const Eigen::Affine3f &film_to_world) {
   unsigned grid =
       ceil_divide(samples_per * x_dim * y_dim, division.sample_block_size *

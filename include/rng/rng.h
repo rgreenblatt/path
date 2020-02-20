@@ -1,10 +1,9 @@
 #pragma once
 
 #include "lib/cuda/utils.h"
-#include "render/detail/halton.h"
+#include "rng/halton.h"
 
-namespace render {
-namespace detail {
+namespace rng {
 // TODO: consider making configurable...
 class Rng {
 public:
@@ -42,5 +41,4 @@ private:
   StateType state_;
   StateType max_state_;
 };
-} // namespace detail
-} // namespace render
+} // namespace rng

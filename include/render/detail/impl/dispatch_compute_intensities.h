@@ -25,7 +25,7 @@ void RendererImpl<execution_model>::dispatch_compute_intensities(
   intensities_.resize(division.num_sample_blocks * x_dim * y_dim);
 
   Span<const scene::TriangleData> triangle_data;
-  Span<const scene::Material> materials;
+  Span<const material::Material> materials;
 
   if constexpr (execution_model == ExecutionModel::GPU) {
     auto inp_t_data = s.triangle_data();

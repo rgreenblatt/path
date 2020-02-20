@@ -1,8 +1,6 @@
-#include "render/detail/projection.h"
+#include "lib/projection.h"
 
 #include <gtest/gtest.h>
-
-using namespace ray::detail;
 
 TEST(Projection, find_rotate_vector_to_vector) {
   auto check = [](const Eigen::Vector3f &inp, const Eigen::Vector3f &target) {

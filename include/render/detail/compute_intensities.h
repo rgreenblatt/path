@@ -2,8 +2,8 @@
 
 #include "lib/execution_model.h"
 #include "lib/span.h"
+#include "material/material.h"
 #include "render/detail/divide_work.h"
-#include "scene/material.h"
 #include "scene/triangle_data.h"
 
 #include <Eigen/Geometry>
@@ -19,7 +19,7 @@ void compute_intensities(const WorkDivision &division, unsigned samples_per,
                          const TermProb &term_prob,
                          Span<Eigen::Array3f> intensities,
                          Span<const scene::TriangleData> triangle_data,
-                         Span<const scene::Material> materials,
+                         Span<const material::Material> materials,
                          const Eigen::Affine3f &film_to_world);
 }
 } // namespace render

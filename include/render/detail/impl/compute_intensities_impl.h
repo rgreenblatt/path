@@ -5,7 +5,7 @@
 #include "intersect/impl/triangle_impl.h"
 #include "intersect/ray.h"
 #include "render/detail/compute_intensities.h"
-#include "render/detail/rng.h"
+#include "rng/rng.h"
 
 namespace render {
 namespace detail {
@@ -34,7 +34,7 @@ HOST_DEVICE inline void compute_intensities_impl(
     const DirSampler &direction_sampler, const TermProb &term_prob,
     Span<Eigen::Array3f> intensities,
     Span<const scene::TriangleData> triangle_data,
-    Span<const scene::Material> materials,
+    Span<const material::Material> materials,
     const Eigen::Affine3f &film_to_world) {
   const unsigned block_idx_sample = block_idx % division.num_sample_blocks;
   const unsigned block_idx_pixel = block_idx / division.num_sample_blocks;
@@ -92,14 +92,14 @@ HOST_DEVICE inline void compute_intensities_impl(
 
   unsigned next_idx = this_thread_start;
   bool finished = true;
-  bool is_first = true;
+  bool count_emission = true;
 
   intersect::Ray ray;
   Eigen::Array3f multiplier;
 
   unsigned max_sampling_num; // TODO
 
-  Rng rng(0, max_sampling_num);
+  rng::Rng rng(0, max_sampling_num);
 
   constexpr unsigned max_values_covered_by_thread = 4;
 
@@ -138,7 +138,7 @@ HOST_DEVICE inline void compute_intensities_impl(
                         film_to_world);
 
       finished = false;
-      is_first = true;
+      count_emission = true;
     }
 
     auto next_intersection = accel(ray);
@@ -154,13 +154,11 @@ HOST_DEVICE inline void compute_intensities_impl(
     const auto &data = triangle_data[triangle_idx];
     const auto &material = materials[data.material_idx()];
 
-    bool is_mirror = material.is_mirror();
-
     Eigen::Array3f &intensity = values_covered[value_idx].intensity;
 
     // count intensity if eye ray
-    if (!LightSampler::performs_samples || is_first) {
-      intensity += multiplier * material.emmited(); // TODO: check
+    if (!LightSampler::performs_samples || count_emission) {
+      intensity += multiplier * material.emission(); // TODO: check
     }
 
     Eigen::Vector3f intersection_point =
@@ -174,20 +172,24 @@ HOST_DEVICE inline void compute_intensities_impl(
     const intersect::Triangle &triangle =
         mesh.accel_triangle().get(triangle_idx);
 
+#if 0
     Eigen::Array3f color =
         data.get_color(mesh_space_intersection_point, triangle);
+#endif
     Eigen::Vector3f normal =
         (mesh.mesh_to_world() *
          data.get_normal(mesh_space_intersection_point, triangle))
             .normalized();
 
     auto direction_multiplier =
-        [&](const Eigen::Vector3f &outgoing_dir) -> float {
-      return material.brdf(outgoing_dir, ray.direction) *
+        [&](const Eigen::Vector3f &outgoing_dir) -> Eigen::Array3f {
+      return material.brdf(ray.direction, outgoing_dir, normal) *
              outgoing_dir.dot(normal);
     };
 
+#if 0
     multiplier *= color; // TODO: check
+#endif
 
     auto compute_direct_lighting = [&]() -> Eigen::Array3f {
       Eigen::Array3f intensity = Eigen::Array3f::Zero();
@@ -205,52 +207,52 @@ HOST_DEVICE inline void compute_intensities_impl(
         const auto &data = triangle_data[triangle_idx];
         const auto &material = materials[data.material_idx()];
 
-        // TODO: check
-        intensity += material.emmited() *
-                 direction_multiplier(light_ray.direction) / sample.prob;
+        // TODO: check (prob not delta needed?)
+        intensity += material.emission() *
+                     material.prob_not_delta() *
+                     direction_multiplier(light_ray.direction) / sample.prob;
       }
 
       return intensity;
     };
 
-    if (!is_mirror) {
+    if (material.has_non_delta_samples()) {
       intensity += multiplier * compute_direct_lighting();
     }
 
-    float this_term_prob =
-        term_prob(intersection_point, material, normal, ray.direction, rng);
+    Eigen::Vector3f next_dir;
+
+    bool use_delta_event = material.delta_prob_check(rng);
+    count_emission = use_delta_event;
+
+    if (use_delta_event) {
+      auto [next_dir_v, m] = material.delta_sample(rng, ray.direction, normal);
+
+      next_dir = next_dir_v;
+
+      multiplier *= m;
+    } else {
+      auto [next_dir_v, prob_of_next_direction_v] = direction_sampler(
+          intersection_point, material, normal, ray.direction, rng);
+
+      next_dir = next_dir_v;
+
+      multiplier *= direction_multiplier(next_dir) / prob_of_next_direction_v;
+    }
+
+    float this_term_prob = term_prob(multiplier);
 
     if (rng.sample_1() < this_term_prob) {
       finished = true;
       continue;
     }
 
-    Eigen::Vector3f next_dir;
-    float prob_of_direction;
-
-    if (is_mirror) {
-      // reflect over normal
-      next_dir = (ray.direction + 2.0f * -ray.direction.dot(normal) * normal)
-                     .normalized();
-      prob_of_direction = 1.0f;
-    } else {
-      auto [next_dir_v, prob_of_direction_v] = direction_sampler(
-          intersection_point, material, normal, ray.direction, rng);
-
-      next_dir = next_dir_v;
-      prob_of_direction = prob_of_direction_v;
-    }
-
-    // TODO: check
-    multiplier *=
-        direction_multiplier(next_dir) / (prob_of_direction * this_term_prob);
+    multiplier /= (1.0f - this_term_prob);
 
     ray.origin = intersection_point;
     ray.direction = next_dir;
 
     rng.next_state();
-
-    is_first = is_mirror && is_first;
   }
 
   // TODO: total intensities

@@ -22,7 +22,7 @@ static void test_accelerator(std::mt19937 &gen, const AccelGen &accel_gen,
       std::tuple<Eigen::Vector3f, Eigen::Vector3f, thrust::optional<float>>;
 
   auto make_id_cube = [](const Eigen::Affine3f &transform, unsigned i) {
-    scene::Material material;
+    material::Material material;
     material.ior = i;
 
     return scene::ShapeData(transform, material, scene::Shape::Cube);

@@ -1,9 +1,9 @@
 #pragma once
 
 #include "lib/execution_model/execution_model.h"
-#include "render/detail/rng.h"
 #include "render/light_sampler_type.h"
-#include "scene/material.h"
+#include "rng/rng.h"
+#include "material/material.h"
 
 #include <Eigen/Core>
 
@@ -23,45 +23,52 @@ template <ExecutionModel execution_model>
 class LightSamplerGenerator<execution_model,
                             LightSamplerType::NoDirectLighting> {
 public:
+  using Settings = LightSamplerSettings<LightSamplerType::NoDirectLighting>;
+
   class Ref {
   public:
-    // TODO
-    HOST_DEVICE auto operator()(const Eigen::Vector3f &point,
-                                const scene::Material &material,
-                                const Eigen::Vector3f &normal,
-                                const Eigen::Vector3f &direction,
-                                Rng &rng) const {
+    HOST_DEVICE Ref() = default;
+
+    HOST_DEVICE Ref(const Settings &) {}
+
+    HOST_DEVICE auto operator()(const Eigen::Vector3f &,
+                                const material::Material &,
+                                const Eigen::Vector3f &,
+                                const Eigen::Vector3f &, rng::Rng &) const {
       return std::array<LightSample, 0>{};
     }
 
     static const bool performs_samples = false;
   };
 
-  auto gen(LightSamplerSettings<LightSamplerType::NoDirectLighting>) {
-    return Ref();
-  }
+  auto gen(const Settings &settings) { return Ref(settings); }
 };
 
 template <ExecutionModel execution_model>
 class LightSamplerGenerator<execution_model, LightSamplerType::WeightedAABB> {
 public:
+  using Settings = LightSamplerSettings<LightSamplerType::WeightedAABB>;
+
   class Ref {
   public:
-    // TODO
+    HOST_DEVICE Ref() = default;
+
+    HOST_DEVICE Ref(const Settings &) {}
+
     HOST_DEVICE auto operator()(const Eigen::Vector3f &point,
-                                const scene::Material &material,
+                                const material::Material &material,
                                 const Eigen::Vector3f &normal,
                                 const Eigen::Vector3f &direction,
-                                Rng &rng) const {
+                                rng::Rng &rng) const {
+      assert(false);
+
       return std::array<LightSample, 0>{};
     }
 
-    static const bool performs_samples = false;
+    static const bool performs_samples = true;
   };
 
-  auto gen(LightSamplerSettings<LightSamplerType::WeightedAABB>) {
-    return Ref();
-  }
+  auto gen(const Settings &settings) { return Ref(settings); }
 };
 } // namespace detail
 } // namespace render

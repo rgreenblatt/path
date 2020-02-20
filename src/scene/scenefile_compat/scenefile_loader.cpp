@@ -2,6 +2,7 @@
 #include "lib/group.h"
 #include "lib/utils.h"
 #include "scene/camera.h"
+#include "scene/mat_to_material.h"
 #include "scene/scene.h"
 #include "scene/scenefile_compat/CS123XmlSceneParser.h"
 
@@ -157,7 +158,7 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
   }
 
   for (const auto &m : mesh_materials) {
-    scene_v.materials_.push_back(Material{m});
+    scene_v.materials_.push_back(mat_to_material(m));
   }
 
   if (!ret) {

@@ -140,6 +140,7 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
   # package_add_test(intersection
   #   "${PROJECT_SOURCE_DIR}/tests/src/intersection.cu")
   # target_link_libraries(intersection renderer)
+  package_add_test(brdf "${PROJECT_SOURCE_DIR}/tests/src/brdf.cpp")
 
   add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND}
     DEPENDS "${TEST_LIST}")
