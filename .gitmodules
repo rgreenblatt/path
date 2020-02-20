@@ -7,3 +7,6 @@
 [submodule "benchmark"]
 	path = extern/benchmark
 	url = https://github.com/google/benchmark
+[submodule "extern/docopt.cpp"]
+	path = extern/docopt.cpp
+	url = https://github.com/docopt/docopt.cpp
