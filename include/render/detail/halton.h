@@ -20,7 +20,6 @@ constexpr T sum(const std::array<T, size> &arr) {
   return ret;
 }
 
-// TODO: test
 template <unsigned dim> constexpr std::array<float, dim> halton(unsigned i) {
   static_assert(primes.size() > dim);
 
@@ -56,7 +55,7 @@ template <unsigned dim> constexpr std::array<float, dim> halton(unsigned i) {
 }
 } // namespace halton_detail
 
-constexpr unsigned sequence_size = 8192;
+constexpr unsigned sequence_size = 4096;
 
 template <unsigned dim>
 constexpr std::array<std::array<float, dim>, sequence_size>

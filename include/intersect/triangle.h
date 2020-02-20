@@ -15,7 +15,7 @@ public:
   HOST_DEVICE Triangle(std::array<Eigen::Vector3f, 3> vertices)
       : vertices_(vertices) {}
 
-  HOST_DEVICE inline IntersectionOp<std::tuple<>>
+  HOST_DEVICE inline IntersectionOp<std::array<unsigned, 0>>
   operator()(const Ray &ray) const;
 
 private:

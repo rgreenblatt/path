@@ -10,7 +10,7 @@ namespace scene {
 namespace scenefile_compat {
 class ScenefileLoader {
 public:
-  inline thrust::optional<Scene> load_scene(const std::string &filename,
+  thrust::optional<Scene> load_scene(const std::string &filename,
                                             float width_height_ratio);
 
 private:

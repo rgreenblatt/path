@@ -1,12 +1,12 @@
 #pragma once
 
 #include "intersect/accel/accelerator_type.h"
-#include "render/settings.h"
 #include "intersect/accel/accelerator_type_generator.h"
 #include "lib/compile_time_dispatch/enum.h"
 #include "lib/compile_time_dispatch/one_per_instance.h"
 #include "lib/execution_model.h"
 #include "lib/rgba.h"
+#include "render/settings.h"
 #include "scene/scene.h"
 
 #include <map>
@@ -16,8 +16,8 @@ namespace render {
 namespace detail {
 template <ExecutionModel execution_model> class RendererImpl {
 public:
-  void render(Span<RGBA> pixels, const scene::Scene &s, unsigned x_dim,
-              unsigned y_dim, unsigned samples_per, PerfSettings settings,
+  void render(Span<RGBA> pixels, const scene::Scene &s, unsigned samples_per,
+              unsigned x_dim, unsigned y_dim, PerfSettings settings,
               bool show_times);
 
   RendererImpl();
@@ -26,16 +26,20 @@ private:
   template <typename T> using ExecVecT = ExecVector<execution_model, T>;
   template <typename T> using SharedVecT = SharedVector<execution_model, T>;
 
+
+  void dispatch_compute_intensities(const scene::Scene &s, unsigned samples_per,
+                                    unsigned x_dim, unsigned y_dim,
+                                    const PerfSettings &settings,
+                                    bool show_times);
+
   // TODO: consider eventually freeing...
-  template <intersect::accel::AcceleratorType type> class StoredMeshAccels {
+  template <intersect::accel::AcceleratorType type> class StoredTriangleAccels {
   public:
     using Triangle = intersect::Triangle;
     using Generator =
         intersect::accel::Generator<Triangle, execution_model, type>;
     using Settings = intersect::accel::Settings<type>;
     using RefType = typename Generator::RefType;
-
-    void set_settings(const Settings &settings) { settings_ = settings; }
 
     void reset() {
       free_indexes_.clear();
@@ -57,11 +61,11 @@ private:
 
     RefType add(Span<const Triangle> triangles, unsigned start, unsigned end,
                 const Eigen::Vector3f &min_bound,
-                const Eigen::Vector3f &max_bound) {
+                const Eigen::Vector3f &max_bound, const Settings &settings) {
       // SPEED: try to get item which is closest in size...
       auto generate_new = [&](unsigned idx) {
         return generators_[idx].gen(triangles, start, end, min_bound, max_bound,
-                                    settings_);
+                                    settings);
       };
 
       if (free_indexes_.empty()) {
@@ -85,20 +89,16 @@ private:
     std::set<unsigned> free_indexes_;
     std::map<std::string, unsigned> existing_triangle_accel_vals_;
 
-    Settings settings_;
     HostVector<RefType> refs_;
     HostVector<Generator> generators_;
   };
 
-  void dispatch_compute_intensities(const PerfSettings& settings);
-
-  OnePerInstance<intersect::accel::AcceleratorType, StoredMeshAccels>
-      stored_mesh_accels_;
+  OnePerInstance<intersect::accel::AcceleratorType, StoredTriangleAccels>
+      stored_triangle_accels_;
 
   ThrustData<execution_model> thrust_data_;
 
-  ExecVecT<Eigen::Vector3f> intermediate_intensities_;
-  ExecVecT<Eigen::Vector3f> final_intensities_;
+  ExecVecT<Eigen::Vector3f> intensities_;
   ExecVecT<scene::TriangleData> triangle_data_;
   ExecVecT<scene::Material> materials_;
   ExecVecT<RGBA> bgra_;

@@ -13,7 +13,7 @@ template <typename AccelMesh> class MeshInstanceRef {
 public:
   HOST_DEVICE MeshInstanceRef() {}
 
-  HOST_DEVICE inline auto operator()(const Ray &ray) {
+  HOST_DEVICE inline auto operator()(const Ray &ray) const {
     return (*accel_mesh_)(ray.transform(transform_));
   }
 

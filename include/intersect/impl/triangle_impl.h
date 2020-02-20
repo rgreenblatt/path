@@ -4,7 +4,7 @@
 
 namespace intersect {
 
-HOST_DEVICE inline IntersectionOp<std::tuple<>>
+HOST_DEVICE inline IntersectionOp<std::array<unsigned, 0>>
 Triangle::operator()(const Ray &ray) const {
   // mostly the same as TA code
   static constexpr float float_epsilon = 1e-4f;
@@ -31,7 +31,7 @@ Triangle::operator()(const Ray &ray) const {
   }
   float t = f * edge2.dot(q);
   if (t > float_epsilon) {
-    return Intersection<std::tuple<>>{t, std::tuple<>{}};
+    return Intersection<std::array<unsigned, 0>>{t, std::array<unsigned, 0>{}};
   } else {
     return thrust::nullopt;
   }

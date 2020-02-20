@@ -10,7 +10,7 @@ namespace intersect {
 template <typename T> struct Intersection {
   using InfoType = T;
 
-  HOST_DEVICE Intersection() {}
+  HOST_DEVICE Intersection() = default;
 
   HOST_DEVICE Intersection(float intersection_dist, const T &info)
       : intersection_dist(intersection_dist), info(info) {}
@@ -47,17 +47,22 @@ template <typename InfoType>
 using IntersectionOp = thrust::optional<Intersection<InfoType>>;
 
 template <typename InfoType>
-using AppendIndexInfoType = decltype(std::tuple_cat(
-    std::declval<InfoType>(), std::declval<std::tuple<unsigned>>()));
+using AppendIndexInfoType = std::array<unsigned, std::tuple_size_v<InfoType>>;
 
 template <typename InfoType>
 HOST_DEVICE IntersectionOp<AppendIndexInfoType<InfoType>>
-append_index(const IntersectionOp<InfoType> &i, unsigned idx) {
-  return optional_map(i,
-                      [&](const Intersection<InfoType> &i)
+append_index(const IntersectionOp<InfoType> &intersect_op, unsigned idx) {
+  return optional_map(intersect_op,
+                      [&](const Intersection<InfoType> &intersect)
                           -> Intersection<AppendIndexInfoType<InfoType>> {
-                        return {i.intersection_dist,
-                                std::tuple_cat(i.info, std::make_tuple(idx))};
+                        AppendIndexInfoType<InfoType> out;
+                        for (unsigned i = 0; i < std::tuple_size_v<InfoType>;
+                             ++i) {
+                          out[i] = intersect.info[i];
+                        }
+                        out[out.size() - 1] = idx;
+
+                        return {intersect.intersection_dist, out};
                       });
 }
 } // namespace intersect

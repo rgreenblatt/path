@@ -6,7 +6,7 @@ template <typename DispatchT, template <DispatchT> class TypeOver,
           unsigned idx = 0>
 class OnePerInstance {
 public:
-  OnePerInstance();
+  OnePerInstance(){};
 
   template <typename First, typename... Rest>
   OnePerInstance(const First &first, const Rest &... rest)
@@ -20,6 +20,15 @@ public:
       CompileTimeDispatchable<DispatchT>::values[idx];
 
   using ItemType = TypeOver<this_value>;
+
+  template <DispatchT value> const auto &get_item() const {
+    if constexpr (value == this_value) {
+      return item_;
+    } else {
+      static_assert(size != 1, "enum value not found");
+      return next.template get_item<value>();
+    }
+  }
 
   template <DispatchT value> auto &get_item() {
     if constexpr (value == this_value) {

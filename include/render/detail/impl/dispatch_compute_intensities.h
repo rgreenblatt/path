@@ -1,46 +1,72 @@
 #pragma once
 
+#include "lib/compile_time_dispatch/dispatch_value.h"
+#include "lib/compile_time_dispatch/tuple.h"
+#include "lib/group.h"
+#include "render/detail/compute_intensities.h"
+#include "render/detail/divide_work.h"
 #include "render/detail/renderer_impl.h"
+
 namespace render {
 namespace detail {
-
 template <ExecutionModel execution_model>
-void dispatch_compute_intensities(const PerfSettings &settings) {
+void RendererImpl<execution_model>::dispatch_compute_intensities(
+    const scene::Scene &s, unsigned samples_per, unsigned x_dim, unsigned y_dim,
+    const PerfSettings &settings, bool show_times) {
+  unsigned block_size = 512;
+  unsigned target_work_per_thread = 4;
+
+  auto division = divide_work(samples_per, x_dim, y_dim, block_size,
+                              target_work_per_thread);
+
+  intensities_.resize(division.num_sample_blocks * x_dim * y_dim);
+
+  Span<const scene::TriangleData> triangle_data;
+  Span<const scene::Material> materials;
+
+  if constexpr (execution_model == ExecutionModel::GPU) {
+    auto inp_t_data = s.triangle_data();
+    auto inp_materials = s.materials();
+
+    triangle_data_.resize(inp_t_data.size());
+    materials_.resize(inp_materials.size());
+
+    thrust::copy(inp_t_data.begin(), inp_t_data.end(), triangle_data_.begin());
+    thrust::copy(inp_materials.begin(), inp_materials.end(),
+                 materials_.begin());
+
+    triangle_data = triangle_data_;
+    materials = materials_;
+  } else {
+    triangle_data = s.triangle_data();
+    materials = s.materials();
+  }
+
   dispatch_value(
       [&](auto &&settings_tup) {
         constexpr CompileTimePerfSettings compile_time_settings =
             std::decay_t<decltype(settings_tup)>::value;
-    /* constexpr auto tri_accel_type = settings. */
-#if 0
-        constexpr auto tri_accel_type = std::decay_t<decltype(i)>::value;
-        using AcceleratorType = intersect::accel::AcceleratorType;
 
-        auto &v = stored_mesh_accels_.template get_item<tri_accel_type>();
+        constexpr auto triangle_accel_type =
+            compile_time_settings.triangle_accel_type();
 
-        using TriRefType = typename std::decay_t<decltype(v)>::RefType;
-        using TriSettings = typename std::decay_t<decltype(v)>::Settings;
+        auto &triangle_accels =
+            stored_triangle_accels_.template get_item<triangle_accel_type>();
 
-        TriSettings triangle_accel_settings;
-        if constexpr (tri_accel_type == AcceleratorType::DirTree) {
-          triangle_accel_settings.s_a_heuristic_settings = {
-              dir_tree_triangle_traversal_cost,
-              dir_tree_triangle_intersection_cost};
-          triangle_accel_settings.num_dir_trees = num_dir_trees_triangle;
-        } else if constexpr (tri_accel_type == AcceleratorType::KDTree) {
-          triangle_accel_settings.s_a_heuristic_settings = {
-              kd_tree_triangle_traversal_cost,
-              kd_tree_triangle_intersection_cost};
-        }
+        using Triangle = intersect::Triangle;
+        using Generator = intersect::accel::Generator<Triangle, execution_model,
+                                                      triangle_accel_type>;
+        using TriRefType = typename Generator::RefType;
 
         unsigned num_meshs = s.mesh_paths().size();
 
-        v.reset();
+        triangle_accels.reset();
 
         std::vector<TriRefType> cpu_refs(num_meshs);
         std::vector<uint8_t> ref_set(num_meshs, 0);
 
         for (unsigned i = 0; i < num_meshs; i++) {
-          auto ref_op = v.query(s.mesh_paths()[i]);
+          auto ref_op = triangle_accels.query(s.mesh_paths()[i]);
           if (ref_op.has_value()) {
             cpu_refs[i] = *ref_op;
             ref_set[i] = true;
@@ -52,64 +78,48 @@ void dispatch_compute_intensities(const PerfSettings &settings) {
         for (unsigned i = 0; i < num_meshs; i++) {
           if (!ref_set[i]) {
             const auto &aabb = s.mesh_aabbs()[i];
-            cpu_refs[i] = v.add(s.triangles(), get_previous(i, s.mesh_ends()),
-                                s.mesh_ends()[i], aabb.get_min_bound(),
-                                aabb.get_max_bound());
+            cpu_refs[i] = triangle_accels.add(
+                s.triangles(), get_previous(i, s.mesh_ends()), s.mesh_ends()[i],
+                aabb.get_min_bound(), aabb.get_max_bound(),
+                settings.triangle_accel_settings
+                    .template get_item<triangle_accel_type>());
           }
         }
 
         ExecVecT<TriRefType> refs(cpu_refs.begin(), cpu_refs.end());
 
-        intersect::accel::run_over_accelerator_types(
-            [&](auto &&i) {
-              constexpr auto mesh_accel_type = std::decay_t<decltype(i)>::value;
+        constexpr auto mesh_accel_type =
+            compile_time_settings.mesh_accel_type();
 
-              using MeshInstanceRef =
-                  intersect::accel::MeshInstanceRef<TriRefType>;
-              using MeshGenerator =
-                  intersect::accel::Generator<MeshInstanceRef, execution_model,
-                                              mesh_accel_type>;
-              using MeshSettings = intersect::accel::Settings<mesh_accel_type>;
+        using MeshInstanceRef = intersect::accel::MeshInstanceRef<TriRefType>;
+        using MeshGenerator =
+            intersect::accel::Generator<MeshInstanceRef, execution_model,
+                                        mesh_accel_type>;
 
-              MeshSettings mesh_accel_settings;
-              if constexpr (mesh_accel_type == AcceleratorType::DirTree) {
-                mesh_accel_settings.s_a_heuristic_settings = {
-                    dir_tree_mesh_traversal_cost,
-                    dir_tree_mesh_intersection_cost};
-                mesh_accel_settings.num_dir_trees = num_dir_trees_mesh;
-              } else if constexpr (mesh_accel_type == AcceleratorType::KDTree) {
-                mesh_accel_settings.s_a_heuristic_settings = {
-                    kd_tree_mesh_traversal_cost,
-                    kd_tree_mesh_intersection_cost};
-              }
+        MeshGenerator generator;
 
-              MeshGenerator generator;
+        unsigned num_mesh_instances = s.mesh_instances().size();
 
-              unsigned num_mesh_instances = s.mesh_instances().size();
+        std::vector<MeshInstanceRef> instance_refs(num_mesh_instances);
 
-              std::vector<MeshInstanceRef> instance_refs(num_mesh_instances);
+        for (unsigned i = 0; i < num_mesh_instances; ++i) {
+          instance_refs[i] =
+              s.mesh_instances()[i].get_ref(Span<const TriRefType>{refs});
+        }
 
-              for (unsigned i = 0; i < num_mesh_instances; ++i) {
-                instance_refs[i] =
-                    s.mesh_instances()[i].get_ref(Span<const TriRefType>{refs});
-              }
+        const auto &aabb = s.overall_aabb();
 
-              const auto &aabb = s.overall_aabb();
+        auto mesh_instance_accel_ref = generator.gen(
+            instance_refs, 0, num_mesh_instances, aabb.get_min_bound(),
+            aabb.get_max_bound(),
+            settings.mesh_accel_settings.template get_item<mesh_accel_type>());
 
-              auto mesh_instance_accel_ref = generator.gen(
-                  instance_refs, 0, num_mesh_instances, aabb.get_min_bound(),
-                  aabb.get_max_bound(), mesh_accel_settings);
-
-              compute_intensities<execution_model>(
-                  division, samples_per, x_dim, y_dim, block_size,
-                  mesh_instance_accel_ref, intermediate_intensities_,
-                  final_intensities_, triangle_data, materials,
-                  s.film_to_world());
-            },
-            mesh_accel_type);
-#endif
+        compute_intensities<execution_model>(
+            division, samples_per, x_dim, y_dim, block_size,
+            mesh_instance_accel_ref, intensities_, triangle_data, materials,
+            s.film_to_world());
       },
       settings.compile_time.values());
-}
+} // namespace detail
 } // namespace detail
 } // namespace render

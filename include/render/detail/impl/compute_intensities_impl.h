@@ -1,5 +1,8 @@
 #pragma once
 
+#include "intersect/accel/impl/loop_all_impl.h"
+#include "intersect/impl/ray_impl.h"
+#include "intersect/impl/triangle_impl.h"
 #include "intersect/ray.h"
 #include "render/detail/compute_intensities.h"
 #include "render/detail/halton.h"
@@ -27,8 +30,7 @@ HOST_DEVICE inline void
 compute_intensities_impl(unsigned block_idx, unsigned thread_idx,
                          unsigned block_dim, const WorkDivision &division,
                          unsigned x_dim, unsigned y_dim, const Accel &accel,
-                         Span<Eigen::Vector3f> intermediate_intensities,
-                         Span<Eigen::Vector3f> final_intensities,
+                         Span<Eigen::Vector3f> intensities,
                          Span<const scene::TriangleData> triangle_data,
                          Span<const scene::Material> materials,
                          const Eigen::Affine3f &film_to_world) {
@@ -80,8 +82,8 @@ compute_intensities_impl(unsigned block_idx, unsigned thread_idx,
 
   bool this_thread_low = thread_idx > (block_dim - extra - 1);
   unsigned this_thread_start =
-      this_thread_low ? size_before_low + (thread_idx - thread_idx_start_low) *
-                                              low_per_thread
+      this_thread_low ? size_before_low +
+                            (thread_idx - thread_idx_start_low) * low_per_thread
                       : high_per_thread * thread_idx;
   unsigned this_thread_end =
       this_thread_start + (this_thread_low ? low_per_thread : high_per_thread);

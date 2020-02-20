@@ -19,6 +19,7 @@ find_package(Qt5 COMPONENTS Widgets Xml REQUIRED)
 find_package(OpenMP REQUIRED)
 # find_package(OpenCV REQUIRED)
 find_package(Threads REQUIRED)
+add_subdirectory("${PROJECT_SOURCE_DIR}/extern/docopt.cpp")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -42,8 +43,8 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${RELEASE_FlAGS}")
 set(CMAKE_CUDA_FLAGS_RELEASE "${CMAKE_CUDA_FLAGS_RELEASE} ${RELEASE_FlAGS}")
 set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} -g")
 
-qt5_wrap_cpp(UI_MAINWINDOW "${PROJECT_SOURCE_DIR}/include/ui/mainwindow.h")
-qt5_wrap_cpp(UI_VIEW "${PROJECT_SOURCE_DIR}/include/ui/canvas.h")
+# qt5_wrap_cpp(UI_MAINWINDOW "${PROJECT_SOURCE_DIR}/include/ui/mainwindow.h")
+# qt5_wrap_cpp(UI_VIEW "${PROJECT_SOURCE_DIR}/include/ui/canvas.h")
 
 add_definitions(-DEIGEN_DEFAULT_DENSE_INDEX_TYPE=int
   -DEIGEN_MAX_ALIGN_BYTES=0)
@@ -63,6 +64,7 @@ add_library(
 
   "${PROJECT_SOURCE_DIR}/src/render/renderer.cu"
 
+  "${PROJECT_SOURCE_DIR}/src/render/detail/tone_map.cu"
   "${PROJECT_SOURCE_DIR}/src/render/detail/compute_intensities.cu"
   "${PROJECT_SOURCE_DIR}/src/render/detail/compute_intensities.cpp"
   "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl.cu"
@@ -90,8 +92,6 @@ add_library(
   # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/sort.cu"
   # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/sphere_partition.cpp"
   # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/test_splits.cu"
-
-  "${PROJECT_SOURCE_DIR}/src/scene/camera.cpp"
   )
 target_add_standard_include(renderer)
 target_link_libraries(renderer OpenMP::OpenMP_CXX Qt5::Widgets)
@@ -99,6 +99,7 @@ target_link_libraries(renderer OpenMP::OpenMP_CXX Qt5::Widgets)
 add_library(
   scenefile_compat
 
+  "${PROJECT_SOURCE_DIR}/src/scene/camera.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/scenefile_compat/CS123XmlSceneParser.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/scenefile_compat/scenefile_loader.cpp"
   )
@@ -165,18 +166,18 @@ if(BUILD_BENCHMARKS OR CMAKE_EXPORT_COMPILE_COMMANDS)
     DEPENDS "${BENCH_LIST}")
 endif()
 
-# add_executable(
-#   final
-#   "${UI_MAINWINDOW}"
-#   "${UI_VIEW}"
-#   "${PROJECT_SOURCE_DIR}/src/ui/mainwindow.ui"
-#   "${PROJECT_SOURCE_DIR}/src/main.cpp"
-#   "${PROJECT_SOURCE_DIR}/src/ui/mainwindow.cpp"
-#   "${PROJECT_SOURCE_DIR}/src/ui/canvas.cpp"
-#   )
+add_executable(
+  final
+  # "${UI_MAINWINDOW}"
+  # "${UI_VIEW}"
+  # "${PROJECT_SOURCE_DIR}/src/ui/mainwindow.ui"
+  "${PROJECT_SOURCE_DIR}/src/main.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/ui/mainwindow.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/ui/canvas.cpp"
+  )
 # qt5_use_modules(final Widgets)
-# target_link_libraries(final Qt5::Widgets renderer)
-# target_add_standard_include(final)
+target_link_libraries(final Qt5::Widgets renderer docopt scenefile_compat)
+target_add_standard_include(final)
 
 # add_executable(
 #   image_test

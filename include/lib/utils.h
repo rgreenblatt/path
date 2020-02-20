@@ -25,7 +25,9 @@ template <typename T> constexpr void swap_val(T &first, T &second) {
   second = temp;
 }
 
-inline unsigned ceil_divide(unsigned l, unsigned r) { return (l + r - 1) / r; };
+HOST_DEVICE inline unsigned ceil_divide(unsigned l, unsigned r) {
+  return (l + r - 1) / r;
+};
 
 HOST_DEVICE inline Eigen::Vector3f max_eigen_vec() {
   return Eigen::Vector3f(std::numeric_limits<float>::max(),

@@ -4,25 +4,39 @@
 namespace render {
 using namespace detail;
 
-template <ExecutionModel execution_model>
-Renderer<execution_model>::Renderer()
-    // needs to not be smart pointer (compiler error otherwise)
-    : renderer_impl_(new RendererImpl<execution_model>()) {}
+Renderer::Renderer() {}
 
-template <ExecutionModel execution_model>
-Renderer<execution_model>::~Renderer() {
-  delete renderer_impl_;
+Renderer::~Renderer() {
+  if (cpu_renderer_impl_ != nullptr) {
+    delete cpu_renderer_impl_;
+  }
+  if (gpu_renderer_impl_ != nullptr) {
+    delete gpu_renderer_impl_;
+  }
 }
 
-template <ExecutionModel execution_model>
-void Renderer<execution_model>::render(Span<RGBA> pixels, const scene::Scene &s,
-                                       unsigned x_dim, unsigned y_dim,
-                                       unsigned samples_per,
-                                       PerfSettings settings, bool show_times) {
-  renderer_impl_->render(pixels, s, x_dim, y_dim, samples_per, settings,
-                         show_times);
-}
+void Renderer::render(ExecutionModel execution_model, Span<RGBA> pixels,
+                      const scene::Scene &s, unsigned samples_per,
+                      unsigned x_dim, unsigned y_dim, PerfSettings settings,
+                      bool show_times) {
+  auto render = [&](auto renderer) {
+    renderer->render(pixels, s, samples_per, x_dim, y_dim, settings,
+                     show_times);
+  };
 
-template class Renderer<ExecutionModel::CPU>;
-template class Renderer<ExecutionModel::GPU>;
+  switch (execution_model) {
+  case ExecutionModel::CPU:
+    if (cpu_renderer_impl_ == nullptr) {
+      cpu_renderer_impl_ = new RendererImpl<ExecutionModel::CPU>();
+    }
+
+    render(cpu_renderer_impl_);
+  case ExecutionModel::GPU:
+    if (gpu_renderer_impl_ == nullptr) {
+      gpu_renderer_impl_ = new RendererImpl<ExecutionModel::GPU>();
+    }
+
+    render(gpu_renderer_impl_);
+  };
+}
 } // namespace render
