@@ -17,7 +17,7 @@ namespace detail {
 template <ExecutionModel execution_model> class RendererImpl {
 public:
   void render(Span<RGBA> pixels, const scene::Scene &s, unsigned samples_per,
-              unsigned x_dim, unsigned y_dim, PerfSettings settings,
+              unsigned x_dim, unsigned y_dim, const Settings &settings,
               bool show_times);
 
   RendererImpl();
@@ -29,16 +29,16 @@ private:
 
   void dispatch_compute_intensities(const scene::Scene &s, unsigned samples_per,
                                     unsigned x_dim, unsigned y_dim,
-                                    const PerfSettings &settings,
+                                    const Settings &settings,
                                     bool show_times);
 
   // TODO: consider eventually freeing...
-  template <intersect::accel::AcceleratorType type> class StoredTriangleAccels {
+  template <intersect::accel::AccelType type> class StoredTriangleAccels {
   public:
     using Triangle = intersect::Triangle;
     using Generator =
         intersect::accel::Generator<Triangle, execution_model, type>;
-    using Settings = intersect::accel::Settings<type>;
+    using Settings = intersect::accel::AccelSettings<type>;
     using RefType = typename Generator::RefType;
 
     void reset() {
@@ -93,12 +93,12 @@ private:
     HostVector<Generator> generators_;
   };
 
-  OnePerInstance<intersect::accel::AcceleratorType, StoredTriangleAccels>
+  OnePerInstance<intersect::accel::AccelType, StoredTriangleAccels>
       stored_triangle_accels_;
 
   ThrustData<execution_model> thrust_data_;
 
-  ExecVecT<Eigen::Vector3f> intensities_;
+  ExecVecT<Eigen::Array3f> intensities_;
   ExecVecT<scene::TriangleData> triangle_data_;
   ExecVecT<scene::Material> materials_;
   ExecVecT<RGBA> bgra_;

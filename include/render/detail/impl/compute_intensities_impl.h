@@ -5,7 +5,7 @@
 #include "intersect/impl/triangle_impl.h"
 #include "intersect/ray.h"
 #include "render/detail/compute_intensities.h"
-#include "render/detail/halton.h"
+#include "render/detail/rng.h"
 
 namespace render {
 namespace detail {
@@ -25,15 +25,17 @@ initial_ray(float x, float y, unsigned x_dim, unsigned y_dim,
   return ray;
 }
 
-template <typename Accel>
-HOST_DEVICE inline void
-compute_intensities_impl(unsigned block_idx, unsigned thread_idx,
-                         unsigned block_dim, const WorkDivision &division,
-                         unsigned x_dim, unsigned y_dim, const Accel &accel,
-                         Span<Eigen::Vector3f> intensities,
-                         Span<const scene::TriangleData> triangle_data,
-                         Span<const scene::Material> materials,
-                         const Eigen::Affine3f &film_to_world) {
+template <typename Accel, typename LightSampler, typename DirSampler,
+          typename TermProb>
+HOST_DEVICE inline void compute_intensities_impl(
+    unsigned block_idx, unsigned thread_idx, unsigned block_dim,
+    const WorkDivision &division, unsigned x_dim, unsigned y_dim,
+    const Accel &accel, const LightSampler &light_sampler,
+    const DirSampler &direction_sampler, const TermProb &term_prob,
+    Span<Eigen::Array3f> intensities,
+    Span<const scene::TriangleData> triangle_data,
+    Span<const scene::Material> materials,
+    const Eigen::Affine3f &film_to_world) {
   const unsigned block_idx_sample = block_idx % division.num_sample_blocks;
   const unsigned block_idx_pixel = block_idx / division.num_sample_blocks;
   const unsigned block_idx_x = block_idx_pixel % division.num_x_blocks;
@@ -93,26 +95,47 @@ compute_intensities_impl(unsigned block_idx, unsigned thread_idx,
   bool is_first = true;
 
   intersect::Ray ray;
-  float multiplier;
+  Eigen::Array3f multiplier;
 
-  uint16_t halton_counter;
-  unsigned x;
-  unsigned y;
-  unsigned sample_idx;
+  unsigned max_sampling_num; // TODO
+
+  Rng rng(0, max_sampling_num);
+
+  constexpr unsigned max_values_covered_by_thread = 4;
+
+  struct IntensityIndexes {
+    Eigen::Array3f intensity;
+    unsigned x;
+    unsigned y;
+  };
+
+  std::array<IntensityIndexes, max_values_covered_by_thread> values_covered;
+  uint8_t value_idx = 255;
 
   while (!finished || next_idx != this_thread_end) {
     if (finished) {
-      multiplier = 1.0f;
-      sample_idx = next_idx % division.sample_block_size + start_sample;
-      x = (next_idx / division.sample_block_size) % division.x_block_size;
-      y = (next_idx / (division.sample_block_size * division.x_block_size));
-      halton_counter = sample_idx;
-      assert(y < division.y_block_size);
+      unsigned new_x =
+          (next_idx / division.sample_block_size) % division.x_block_size;
+      unsigned new_y =
+          (next_idx / (division.sample_block_size * division.x_block_size));
 
-      auto [x_offset, y_offset] = halton<2>(halton_counter);
+      if (value_idx == 255 || values_covered[value_idx].x != new_x ||
+          values_covered[value_idx].y != new_y) {
+        value_idx++;
+        assert(value_idx < values_covered.size());
+        values_covered[value_idx] = {Eigen::Vector3f::Zero(), new_x, new_y};
+      }
 
-      ray =
-          initial_ray(x + x_offset, y + y_offset, x_dim, y_dim, film_to_world);
+      multiplier = Eigen::Vector3f::Ones();
+      unsigned sample_idx =
+          next_idx % division.sample_block_size + start_sample;
+      rng.set_state(sample_idx);
+      assert(new_y < division.y_block_size);
+
+      auto [x_offset, y_offset] = rng.sample_2();
+
+      ray = initial_ray(new_x + x_offset, new_y + y_offset, x_dim, y_dim,
+                        film_to_world);
 
       finished = false;
       is_first = true;
@@ -125,10 +148,112 @@ compute_intensities_impl(unsigned block_idx, unsigned thread_idx,
       continue;
     }
 
-    /* compute_direct_lighting(); */
+    unsigned triangle_idx = next_intersection->info[0];
+    unsigned mesh_idx = next_intersection->info[1];
 
-    is_first = false;
+    const auto &data = triangle_data[triangle_idx];
+    const auto &material = materials[data.material_idx()];
+
+    bool is_mirror = material.is_mirror();
+
+    Eigen::Array3f &intensity = values_covered[value_idx].intensity;
+
+    // count intensity if eye ray
+    if (!LightSampler::performs_samples || is_first) {
+      intensity += multiplier * material.emmited(); // TODO: check
+    }
+
+    Eigen::Vector3f intersection_point =
+        next_intersection->intersection_dist * ray.direction + ray.origin;
+
+    const auto &mesh = accel.get(mesh_idx);
+
+    Eigen::Vector3f mesh_space_intersection_point =
+        mesh.world_to_mesh() * intersection_point;
+
+    const intersect::Triangle &triangle =
+        mesh.accel_triangle().get(triangle_idx);
+
+    Eigen::Array3f color =
+        data.get_color(mesh_space_intersection_point, triangle);
+    Eigen::Vector3f normal =
+        (mesh.mesh_to_world() *
+         data.get_normal(mesh_space_intersection_point, triangle))
+            .normalized();
+
+    auto direction_multiplier =
+        [&](const Eigen::Vector3f &outgoing_dir) -> float {
+      return material.brdf(outgoing_dir, ray.direction) *
+             outgoing_dir.dot(normal);
+    };
+
+    multiplier *= color; // TODO: check
+
+    auto compute_direct_lighting = [&]() -> Eigen::Array3f {
+      Eigen::Array3f intensity = Eigen::Array3f::Zero();
+      const auto samples = light_sampler(intersection_point, material, normal,
+                                         ray.direction, rng);
+      for (const auto &sample : samples) {
+        intersect::Ray light_ray{intersection_point, sample.direction};
+
+        auto light_intersection = accel(light_ray);
+        if (!light_intersection.has_value()) {
+          continue;
+        }
+
+        unsigned triangle_idx = next_intersection->info[0];
+        const auto &data = triangle_data[triangle_idx];
+        const auto &material = materials[data.material_idx()];
+
+        // TODO: check
+        intensity += material.emmited() *
+                 direction_multiplier(light_ray.direction) / sample.prob;
+      }
+
+      return intensity;
+    };
+
+    if (!is_mirror) {
+      intensity += multiplier * compute_direct_lighting();
+    }
+
+    float this_term_prob =
+        term_prob(intersection_point, material, normal, ray.direction, rng);
+
+    if (rng.sample_1() < this_term_prob) {
+      finished = true;
+      continue;
+    }
+
+    Eigen::Vector3f next_dir;
+    float prob_of_direction;
+
+    if (is_mirror) {
+      // reflect over normal
+      next_dir = (ray.direction + 2.0f * -ray.direction.dot(normal) * normal)
+                     .normalized();
+      prob_of_direction = 1.0f;
+    } else {
+      auto [next_dir_v, prob_of_direction_v] = direction_sampler(
+          intersection_point, material, normal, ray.direction, rng);
+
+      next_dir = next_dir_v;
+      prob_of_direction = prob_of_direction_v;
+    }
+
+    // TODO: check
+    multiplier *=
+        direction_multiplier(next_dir) / (prob_of_direction * this_term_prob);
+
+    ray.origin = intersection_point;
+    ray.direction = next_dir;
+
+    rng.next_state();
+
+    is_first = is_mirror && is_first;
   }
+
+  // TODO: total intensities
 }
 } // namespace detail
 } // namespace render

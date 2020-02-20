@@ -183,7 +183,7 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
 
       std::array<Eigen::Vector3f, 3> vertices;
       std::array<Eigen::Vector3f, 3> normals;
-      std::array<Eigen::Vector3f, 3> colors;
+      std::array<Eigen::Array3f, 3> colors;
       for (size_t v = 0; v < fv; v++) {
         tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
         tinyobj::real_t vx = attrib.vertices[3 * idx.vertex_index + 0];

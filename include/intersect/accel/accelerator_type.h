@@ -2,7 +2,7 @@
 
 namespace intersect {
 namespace accel {
-enum class AcceleratorType {
+enum class AccelType {
   LoopAll,
   KDTree,
   DirTree,

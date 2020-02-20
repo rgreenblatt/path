@@ -55,7 +55,8 @@ template <unsigned dim> constexpr std::array<float, dim> halton(unsigned i) {
 }
 } // namespace halton_detail
 
-constexpr unsigned sequence_size = 4096;
+// SPEED: does this matter?
+constexpr unsigned sequence_size = 2048;
 
 template <unsigned dim>
 constexpr std::array<std::array<float, dim>, sequence_size>
@@ -80,18 +81,5 @@ constexpr std::array<float, dim> halton(unsigned i) {
     return halton_detail::halton<dim>(i);
   }
 }
-
-static_assert(halton_sequence<2>[0][0] == 0.0f);
-static_assert(halton_sequence<2>[0][1] == 0.0f);
-static_assert(halton_sequence<3>[0][0] == 0.0f);
-static_assert(halton_sequence<3>[0][1] == 0.0f);
-static_assert(halton_sequence<3>[0][2] == 0.0f);
-static_assert(halton_sequence<3>[1][0] == 0.5f);
-static_assert(halton_sequence<3>[1][1] == 0.33333333333333333333333333333333f);
-static_assert(halton_sequence<3>[1][2] == 0.2f);
-static_assert(halton_sequence<2>[1][0] == 0.5f);
-static_assert(halton_sequence<2>[1][1] == 0.33333333333333333333333333333333f);
-static_assert(halton_sequence<2>[2][0] == 0.25f);
-static_assert(halton_sequence<2>[2][1] == 0.666666666666666666666666666666f);
 } // namespace detail
 } // namespace render

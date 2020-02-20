@@ -9,7 +9,6 @@
 namespace render {
 namespace detail {
 template <ExecutionModel execution_model>
-void tone_map(SpanSized<const Eigen::Vector3f> intensities,
-              SpanSized<RGBA> rgb);
+void tone_map(SpanSized<const Eigen::Array3f> intensities, SpanSized<RGBA> rgb);
 }
 } // namespace render

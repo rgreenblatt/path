@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
   Span<RGBA> pixels(reinterpret_cast<RGBA *>(image.bits()), width * height);
 
   renderer.render(execution_model, pixels, *scene, samples, width, height,
-                  render::PerfSettings(), false);
+                  render::Settings(), false);
 
   return 0;
 }

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "intersect/accel//mesh_instance.h"
 #include "intersect/accel/aabb.h"
+#include "intersect/mesh_instance.h"
 #include "intersect/triangle.h"
 #include "lib/span.h"
 #include "scene/material.h"
@@ -22,7 +22,7 @@ public:
   const Eigen::Affine3f &film_to_world() const { return film_to_world_; }
 
   using Triangle = intersect::Triangle;
-  using MeshInstance = intersect::accel::MeshInstance;
+  using MeshInstance = intersect::MeshInstance;
 
   SpanSized<const unsigned> mesh_ends() const { return mesh_ends_; }
 

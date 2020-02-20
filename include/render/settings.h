@@ -4,27 +4,41 @@
 #include "intersect/accel/accelerator_type_settings.h"
 #include "lib/compile_time_dispatch/enum.h"
 #include "lib/compile_time_dispatch/one_per_instance.h"
+#include "render/dir_sampler_type.h"
+#include "render/light_sampler_type.h"
+#include "render/term_prob_type.h"
 
 #include <tuple>
 
 namespace render {
-class CompileTimePerfSettings {
+class CompileTimeSettings {
 public:
-  using AcceleratorType = intersect::accel::AcceleratorType;
-  using T = std::tuple<AcceleratorType, AcceleratorType>;
+  using AccelType = intersect::accel::AccelType;
+  using T = std::tuple<AccelType, AccelType, LightSamplerType,
+                       DirSamplerType, TermProbType>;
 
-  constexpr CompileTimePerfSettings(const T &v) : values_(v) {}
+  constexpr CompileTimeSettings(const T &v) : values_(v) {}
 
   template <typename... Vals>
-  constexpr CompileTimePerfSettings(Vals &&... vals) : values_({vals...}) {}
+  constexpr CompileTimeSettings(Vals &&... vals) : values_({vals...}) {}
 
-  constexpr AcceleratorType triangle_accel_type() const {
+  constexpr AccelType triangle_accel_type() const {
     return std::get<0>(values_);
   }
 
-  constexpr AcceleratorType mesh_accel_type() const {
-    return std::get<0>(values_);
+  constexpr AccelType mesh_accel_type() const {
+    return std::get<1>(values_);
   }
+
+  constexpr LightSamplerType light_sampler_type() const {
+    return std::get<2>(values_);
+  }
+
+  constexpr DirSamplerType dir_sampler_type() const {
+    return std::get<3>(values_);
+  }
+
+  constexpr TermProbType term_prob_type() const { return std::get<4>(values_); }
 
   constexpr const T &values() const { return values_; }
 
@@ -32,12 +46,16 @@ private:
   T values_;
 };
 
-struct PerfSettings {
+// TODO: serialization???
+struct Settings {
 private:
   // default should be pretty reasonable...
-  using AccelType = intersect::accel::AcceleratorType;
+  using AccelType = intersect::accel::AccelType;
 
-  template <AccelType t> using AccelSettings = intersect::accel::Settings<t>;
+  template <AccelType t>
+  using AccelSettings = intersect::accel::AccelSettings<t>;
+
+  using AllAccelSettings = OnePerInstance<AccelType, AccelSettings>;
 
   static constexpr AccelSettings<AccelType::LoopAll> default_loop_all_triangle;
 
@@ -57,6 +75,10 @@ private:
         default_dir_tree_triangle_intersection_cost},
        default_num_dir_trees_triangle};
 
+  AllAccelSettings default_triangle_accel = {default_loop_all_triangle,
+                                             default_kd_tree_triangle,
+                                             default_dir_tree_triangle};
+
   static constexpr AccelSettings<AccelType::LoopAll> default_loop_all_mesh;
 
   static constexpr float default_kd_tree_mesh_traversal_cost = 1;
@@ -75,14 +97,55 @@ private:
        default_dir_tree_mesh_intersection_cost},
       default_num_dir_trees_mesh};
 
-public:
-  OnePerInstance<AccelType, intersect::accel::Settings> mesh_accel_settings = {
+  AllAccelSettings default_mesh_accel = {
       default_loop_all_mesh, default_kd_tree_mesh, default_dir_tree_mesh};
-  OnePerInstance<AccelType, intersect::accel::Settings>
-      triangle_accel_settings = {default_loop_all_triangle,
-                                 default_kd_tree_triangle,
-                                 default_dir_tree_triangle};
 
-  CompileTimePerfSettings compile_time;
+  using AllLightSamplerSettings =
+      OnePerInstance<LightSamplerType, LightSamplerSettings>;
+
+  static constexpr LightSamplerSettings<LightSamplerType::NoDirectLighting>
+      default_no_direct_light;
+
+  static constexpr LightSamplerSettings<LightSamplerType::WeightedAABB>
+      default_weighted_aabb;
+
+  AllLightSamplerSettings default_light_sampler = {default_no_direct_light,
+                                                   default_weighted_aabb};
+
+  using AllDirSamplerSettings =
+      OnePerInstance<DirSamplerType, DirSamplerSettings>;
+
+  static constexpr DirSamplerSettings<DirSamplerType::Uniform>
+      default_uniform_sampler;
+
+  static constexpr DirSamplerSettings<DirSamplerType::BRDF>
+      default_brdf_sampler;
+
+  AllDirSamplerSettings default_dir_sampler = {default_uniform_sampler,
+                                               default_brdf_sampler};
+
+  using AllTermProbSettings = OnePerInstance<TermProbType, TermProbSettings>;
+
+  static constexpr TermProbSettings<TermProbType::Uniform>
+      default_uniform_term_prob = {0.1f};
+
+  static constexpr TermProbSettings<TermProbType::MultiplierNorm>
+      default_multiplier_norm_term_prob;
+
+  AllTermProbSettings default_term_prob = {default_uniform_term_prob,
+                                           default_multiplier_norm_term_prob};
+
+public:
+  AllAccelSettings triangle_accel = default_triangle_accel;
+
+  AllAccelSettings mesh_accel = default_mesh_accel;
+
+  AllLightSamplerSettings light_sampler = default_light_sampler;
+
+  AllDirSamplerSettings dir_sampler = default_dir_sampler;
+
+  AllTermProbSettings term_prob = default_term_prob;
+
+  CompileTimeSettings compile_time;
 };
 } // namespace render

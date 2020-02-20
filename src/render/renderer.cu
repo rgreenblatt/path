@@ -17,7 +17,7 @@ Renderer::~Renderer() {
 
 void Renderer::render(ExecutionModel execution_model, Span<RGBA> pixels,
                       const scene::Scene &s, unsigned samples_per,
-                      unsigned x_dim, unsigned y_dim, PerfSettings settings,
+                      unsigned x_dim, unsigned y_dim, const Settings &settings,
                       bool show_times) {
   auto render = [&](auto renderer) {
     renderer->render(pixels, s, samples_per, x_dim, y_dim, settings,

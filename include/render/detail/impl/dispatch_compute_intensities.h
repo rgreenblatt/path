@@ -4,15 +4,18 @@
 #include "lib/compile_time_dispatch/tuple.h"
 #include "lib/group.h"
 #include "render/detail/compute_intensities.h"
+#include "render/detail/dir_sampler_generator.h"
 #include "render/detail/divide_work.h"
+#include "render/detail/light_sampler_generator.h"
 #include "render/detail/renderer_impl.h"
+#include "render/detail/term_prob_generator.h"
 
 namespace render {
 namespace detail {
 template <ExecutionModel execution_model>
 void RendererImpl<execution_model>::dispatch_compute_intensities(
     const scene::Scene &s, unsigned samples_per, unsigned x_dim, unsigned y_dim,
-    const PerfSettings &settings, bool show_times) {
+    const Settings &settings, bool show_times) {
   unsigned block_size = 512;
   unsigned target_work_per_thread = 4;
 
@@ -44,7 +47,8 @@ void RendererImpl<execution_model>::dispatch_compute_intensities(
 
   dispatch_value(
       [&](auto &&settings_tup) {
-        constexpr CompileTimePerfSettings compile_time_settings =
+        // TODO: consider dispatching more generically...
+        constexpr CompileTimeSettings compile_time_settings =
             std::decay_t<decltype(settings_tup)>::value;
 
         constexpr auto triangle_accel_type =
@@ -81,7 +85,7 @@ void RendererImpl<execution_model>::dispatch_compute_intensities(
             cpu_refs[i] = triangle_accels.add(
                 s.triangles(), get_previous(i, s.mesh_ends()), s.mesh_ends()[i],
                 aabb.get_min_bound(), aabb.get_max_bound(),
-                settings.triangle_accel_settings
+                settings.triangle_accel
                     .template get_item<triangle_accel_type>());
           }
         }
@@ -91,7 +95,7 @@ void RendererImpl<execution_model>::dispatch_compute_intensities(
         constexpr auto mesh_accel_type =
             compile_time_settings.mesh_accel_type();
 
-        using MeshInstanceRef = intersect::accel::MeshInstanceRef<TriRefType>;
+        using MeshInstanceRef = intersect::MeshInstanceRef<TriRefType>;
         using MeshGenerator =
             intersect::accel::Generator<MeshInstanceRef, execution_model,
                                         mesh_accel_type>;
@@ -112,14 +116,32 @@ void RendererImpl<execution_model>::dispatch_compute_intensities(
         auto mesh_instance_accel_ref = generator.gen(
             instance_refs, 0, num_mesh_instances, aabb.get_min_bound(),
             aabb.get_max_bound(),
-            settings.mesh_accel_settings.template get_item<mesh_accel_type>());
+            settings.mesh_accel.template get_item<mesh_accel_type>());
+
+        constexpr auto light_sampler_type =
+            compile_time_settings.light_sampler_type();
+        constexpr auto dir_sampler_type =
+            compile_time_settings.dir_sampler_type();
+        constexpr auto term_prob_type = compile_time_settings.term_prob_type();
+
+        auto light_sampler =
+            LightSamplerGenerator<execution_model, light_sampler_type>().gen(
+                settings.light_sampler.template get_item<light_sampler_type>());
+
+        auto dir_sampler =
+            DirSamplerGenerator<execution_model, dir_sampler_type>().gen(
+                settings.dir_sampler.template get_item<dir_sampler_type>());
+
+        auto term_prob =
+            TermProbGenerator<execution_model, term_prob_type>().gen(
+                settings.term_prob.template get_item<term_prob_type>());
 
         compute_intensities<execution_model>(
             division, samples_per, x_dim, y_dim, block_size,
-            mesh_instance_accel_ref, intensities_, triangle_data, materials,
-            s.film_to_world());
+            mesh_instance_accel_ref, light_sampler, dir_sampler, term_prob,
+            intensities_, triangle_data, materials, s.film_to_world());
       },
       settings.compile_time.values());
-} // namespace detail
+}
 } // namespace detail
 } // namespace render

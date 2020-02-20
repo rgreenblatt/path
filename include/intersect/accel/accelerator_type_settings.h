@@ -5,15 +5,15 @@
 
 namespace intersect {
 namespace accel {
-template <AcceleratorType type> struct Settings;
+template <AccelType type> struct AccelSettings;
 
-template <> struct Settings<AcceleratorType::LoopAll> {};
+template <> struct AccelSettings<AccelType::LoopAll> {};
 
-template <> struct Settings<AcceleratorType::KDTree> {
+template <> struct AccelSettings<AccelType::KDTree> {
   SAHeuristicSettings s_a_heuristic_settings;
 };
 
-template <> struct Settings<AcceleratorType::DirTree> {
+template <> struct AccelSettings<AccelType::DirTree> {
   SAHeuristicSettings s_a_heuristic_settings;
   unsigned num_dir_trees;
 };

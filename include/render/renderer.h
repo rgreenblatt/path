@@ -20,7 +20,7 @@ public:
 
   void render(ExecutionModel execution_model, Span<RGBA> pixels,
               const scene::Scene &s, unsigned samples_per, unsigned x_dim,
-              unsigned y_dim, PerfSettings settings, bool show_times);
+              unsigned y_dim, const Settings &settings, bool show_times);
 
 private:
   // needs to not be smart pointer (compiler error otherwise)

@@ -18,6 +18,10 @@ public:
   HOST_DEVICE inline IntersectionOp<std::array<unsigned, 0>>
   operator()(const Ray &ray) const;
 
+  template <typename T>
+  HOST_DEVICE inline T interpolate_values(const Eigen::Vector3f &point,
+                                          const std::array<T, 3> &data) const;
+
 private:
   std::array<Eigen::Vector3f, 3> vertices_;
 

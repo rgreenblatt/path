@@ -5,7 +5,7 @@
 namespace render {
 namespace detail {
 template <ExecutionModel execution_model>
-void tone_map(SpanSized<const Eigen::Vector3f> intensities,
+void tone_map(SpanSized<const Eigen::Array3f> intensities,
               SpanSized<RGBA> rgb) {
   auto start_it = thrust::make_counting_iterator(0u);
 
@@ -16,7 +16,7 @@ void tone_map(SpanSized<const Eigen::Vector3f> intensities,
   thrust::transform(ThrustData<execution_model>().execution_policy(), start_it,
                     start_it + size, rgb.begin(),
                     [=] __host__ __device__(unsigned idx) {
-                      Eigen::Vector3f sum = Eigen::Vector3f::Zero();
+                      Eigen::Array3f sum = Eigen::Vector3f::Zero();
 
                       for (unsigned i = 0; i < intensities_per_output; i++) {
                         sum += intensities[i + idx * intensities_per_output];
@@ -27,10 +27,10 @@ void tone_map(SpanSized<const Eigen::Vector3f> intensities,
 }
 
 template void
-tone_map<ExecutionModel::GPU>(SpanSized<const Eigen::Vector3f> intensities,
+tone_map<ExecutionModel::GPU>(SpanSized<const Eigen::Array3f> intensities,
                               SpanSized<RGBA> rgb);
 template void
-tone_map<ExecutionModel::CPU>(SpanSized<const Eigen::Vector3f> intensities,
+tone_map<ExecutionModel::CPU>(SpanSized<const Eigen::Array3f> intensities,
                               SpanSized<RGBA> rgb);
 } // namespace detail
 } // namespace render

@@ -6,7 +6,7 @@
 
 using RGBA = Eigen::Array4<uint8_t>;
 
-HOST_DEVICE inline RGBA intensity_to_rgb(const Eigen::Vector3f &intensity) {
+HOST_DEVICE inline RGBA intensity_to_rgb(const Eigen::Array3f &intensity) {
   assert(intensity.x() >= 0.0f);
   assert(intensity.y() >= 0.0f);
   assert(intensity.z() >= 0.0f);

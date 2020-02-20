@@ -12,7 +12,7 @@ RendererImpl<execution_model>::RendererImpl() {}
 template <ExecutionModel execution_model>
 void RendererImpl<execution_model>::render(
     Span<RGBA> pixels, const scene::Scene &s, unsigned samples_per,
-    unsigned x_dim, unsigned y_dim, PerfSettings settings, bool show_times) {
+    unsigned x_dim, unsigned y_dim, const Settings& settings, bool show_times) {
   if (samples_per > std::numeric_limits<uint16_t>::max()) {
     std::cerr << "more samples than allowed" << std::endl;
     return;

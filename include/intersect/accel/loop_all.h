@@ -20,6 +20,10 @@ private:
 
     HOST_DEVICE inline auto operator()(const Ray &ray) const;
 
+    HOST_DEVICE inline const Object &get(unsigned idx) const {
+      return objects_[idx - offset_];
+    }
+
   private:
     LoopAllRef(SpanSized<const Object> objects, unsigned offset)
         : objects_(objects), offset_(offset) {}
