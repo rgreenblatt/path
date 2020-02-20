@@ -1592,11 +1592,11 @@ public:
         using thrust::swap;
         swap(**this, *rhs);
       } else {
-        new (addressof(rhs.m_value)) T(std::move(this->m_value));
+        new (thrust::addressof(rhs.m_value)) T(std::move(this->m_value));
         this->m_value.T::~T();
       }
     } else if (rhs.has_value()) {
-      new (addressof(this->m_value)) T(std::move(rhs.m_value));
+      new (thrust::addressof(this->m_value)) T(std::move(rhs.m_value));
       rhs.m_value.T::~T();
     }
   }
@@ -1608,7 +1608,7 @@ public:
   __thrust_exec_check_disable__
   __host__ __device__
   constexpr const T *operator->() const {
-    return addressof(this->m_value);
+    return thrust::addressof(this->m_value);
   }
 
   /// \group pointer
@@ -1616,7 +1616,7 @@ public:
   __thrust_exec_check_disable__
   __host__ __device__
   THRUST_OPTIONAL_CPP11_CONSTEXPR T *operator->() {
-    return addressof(this->m_value);
+    return thrust::addressof(this->m_value);
   }
 
   /// \returns the stored value
