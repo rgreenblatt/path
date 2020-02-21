@@ -1,8 +1,8 @@
 #pragma once
 
 #include "intersect/accel/accelerator_type.h"
-#include "lib/execution_model.h"
 #include "lib/bgra.h"
+#include "lib/execution_model.h"
 #include "lib/span.h"
 #include "render/settings.h"
 #include "scene/scene.h"

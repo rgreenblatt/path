@@ -2,10 +2,10 @@
 
 #include "intersect/accel/accelerator_type.h"
 #include "intersect/accel/accelerator_type_generator.h"
+#include "lib/bgra.h"
 #include "lib/compile_time_dispatch/enum.h"
 #include "lib/compile_time_dispatch/one_per_instance.h"
 #include "lib/execution_model.h"
-#include "lib/bgra.h"
 #include "render/settings.h"
 #include "scene/scene.h"
 

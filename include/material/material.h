@@ -18,7 +18,7 @@ public:
 
   HOST_DEVICE Material &operator=(const Material &other) {
     copy_in_other(other);
-    
+
     return *this;
   }
 

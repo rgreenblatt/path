@@ -31,8 +31,8 @@ public:
   }
 
   HOST_DEVICE render::DirSample sample(rng::Rng &rng,
-                                    const Eigen::Vector3f &incoming_dir,
-                                    const Eigen::Vector3f &normal) const {
+                                       const Eigen::Vector3f &incoming_dir,
+                                       const Eigen::Vector3f &normal) const {
     auto [v0, v1] = rng.sample_2();
 
     auto reflection = reflect_over_normal(incoming_dir, normal);

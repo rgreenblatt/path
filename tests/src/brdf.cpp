@@ -5,8 +5,7 @@
 using namespace material;
 
 TEST(Material, refract_by_normal) {
-  auto check = [](float ior, Eigen::Vector3f vec,
-                  Eigen::Vector3f normal,
+  auto check = [](float ior, Eigen::Vector3f vec, Eigen::Vector3f normal,
                   Eigen::Vector3f expected) {
     vec.normalize();
     normal.normalize();

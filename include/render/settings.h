@@ -14,8 +14,8 @@ namespace render {
 class CompileTimeSettings {
 public:
   using AccelType = intersect::accel::AccelType;
-  using T = std::tuple<AccelType, AccelType, LightSamplerType,
-                       DirSamplerType, TermProbType>;
+  using T = std::tuple<AccelType, AccelType, LightSamplerType, DirSamplerType,
+                       TermProbType>;
 
   constexpr CompileTimeSettings(const T &v) : values_(v) {}
 
@@ -26,9 +26,7 @@ public:
     return std::get<0>(values_);
   }
 
-  constexpr AccelType mesh_accel_type() const {
-    return std::get<1>(values_);
-  }
+  constexpr AccelType mesh_accel_type() const { return std::get<1>(values_); }
 
   constexpr LightSamplerType light_sampler_type() const {
     return std::get<2>(values_);

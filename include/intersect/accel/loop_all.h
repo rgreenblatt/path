@@ -3,8 +3,8 @@
 #include "intersect/intersection.h"
 #include "intersect/ray.h"
 #include "lib/cuda/utils.h"
-#include "lib/span.h"
 #include "lib/execution_model.h"
+#include "lib/span.h"
 
 #include <Eigen/Core>
 #include <thrust/copy.h>

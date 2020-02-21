@@ -24,7 +24,7 @@ public:
 
   HOST_DEVICE std::tuple<Eigen::Vector3f, Eigen::Array3f>
   delta_sample(rng::Rng &rng, const Eigen::Vector3f &incoming_dir,
-              const Eigen::Vector3f &normal) const {
+               const Eigen::Vector3f &normal) const {
     float cos_to_normal = incoming_dir.dot(normal);
     float prop_reflected = r_0_ + (1 - r_0_) * std::pow(1 - cos_to_normal, 5);
     if (rng.sample_1() < prop_reflected) {

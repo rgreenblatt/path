@@ -20,7 +20,7 @@ public:
 
   HOST_DEVICE std::tuple<Eigen::Vector3f, Eigen::Array3f>
   delta_sample(rng::Rng &, const Eigen::Vector3f &incoming_dir,
-                  const Eigen::Vector3f &normal) const {
+               const Eigen::Vector3f &normal) const {
     return std::make_tuple(reflect_over_normal(incoming_dir, normal),
                            specular_);
   }

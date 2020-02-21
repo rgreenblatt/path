@@ -16,9 +16,11 @@
 namespace render {
 namespace detail {
 template <ExecutionModel execution_model>
-void RendererImpl<execution_model>::render(
-    Span<BGRA> pixels, const scene::Scene &s, unsigned samples_per,
-    unsigned x_dim, unsigned y_dim, const Settings &settings, bool) {
+void RendererImpl<execution_model>::render(Span<BGRA> pixels,
+                                           const scene::Scene &s,
+                                           unsigned samples_per, unsigned x_dim,
+                                           unsigned y_dim,
+                                           const Settings &settings, bool) {
   if (samples_per > std::numeric_limits<uint16_t>::max()) {
     std::cerr << "more samples than allowed" << std::endl;
     return;

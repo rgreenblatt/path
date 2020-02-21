@@ -1,9 +1,9 @@
 #pragma once
 
 #include "lib/execution_model/execution_model.h"
+#include "material/material.h"
 #include "render/light_sampler_type.h"
 #include "rng/rng.h"
-#include "material/material.h"
 
 #include <Eigen/Core>
 
@@ -58,8 +58,7 @@ public:
     HOST_DEVICE auto operator()(const Eigen::Vector3f &,
                                 const material::Material &,
                                 const Eigen::Vector3f &,
-                                const Eigen::Vector3f &,
-                                rng::Rng &) const {
+                                const Eigen::Vector3f &, rng::Rng &) const {
       assert(false);
 
       return std::array<LightSample, 0>{};
