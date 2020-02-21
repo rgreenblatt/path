@@ -6,20 +6,25 @@ Eigen::Affine3f get_camera_transform(const Eigen::Vector3f &look,
                                      const Eigen::Vector3f &pos,
                                      float height_angle,
                                      float width_height_ratio) {
-  float theta_h = height_angle;
-  float theta_w = std::atan(width_height_ratio * std::tan(theta_h / 2)) * 2;
 
-  auto mat = look_at(look, up);
+  Eigen::Vector3f f = look.normalized();
+  Eigen::Vector3f u = up.normalized();
+  Eigen::Vector3f s = f.cross(u);
+  u = s.cross(f);
 
-  auto f = (mat * Eigen::Translation3f(-pos)).inverse();
+  Eigen::Matrix4f view_mat;
+  view_mat << s.x(), s.y(), s.z(), -s.dot(pos), u.x(), u.y(), u.z(),
+      -u.dot(pos), -f.x(), -f.y(), -f.z(), f.dot(pos), 0, 0, 0, 1;
 
-  Eigen::Vector3f scaling_vec(1.0f / (std::tan(theta_w / 2)),
-                              1.0f / (std::tan(theta_h / 2)), 1.0f);
+  float height_angle_rads = M_PI * height_angle / 360.f; // We need half the
+                                                         // angle
+  float tan_theta_h = tan(height_angle_rads);
+  float tan_theta_w = width_height_ratio * tan_theta_h;
 
-  Eigen::Affine3f scaling(Eigen::Scaling(scaling_vec));
+  Eigen::Matrix4f scale = Eigen::Matrix4f::Identity();
+  scale(0, 0) = 1 / tan_theta_w;
+  scale(1, 1) = 1 / tan_theta_h;
 
-  auto film_to_world = f * scaling.inverse();
-
-  return film_to_world;
+  return Eigen::Affine3f((scale * view_mat).inverse());
 }
 } // namespace scene

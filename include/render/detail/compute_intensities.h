@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lib/execution_model.h"
+#include "lib/bgra.h"
 #include "lib/span.h"
 #include "material/material.h"
 #include "render/detail/divide_work.h"
@@ -16,7 +17,7 @@ void compute_intensities(const WorkDivision &division, unsigned samples_per,
                          unsigned x_dim, unsigned y_dim, unsigned block_size,
                          const Accel &accel, const LightSampler &light_sampler,
                          const DirSampler &direction_sampler,
-                         const TermProb &term_prob,
+                         const TermProb &term_prob, Span<BGRA> pixels,
                          Span<Eigen::Array3f> intensities,
                          Span<const scene::TriangleData> triangle_data,
                          Span<const material::Material> materials,

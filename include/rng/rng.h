@@ -3,6 +3,8 @@
 #include "lib/cuda/utils.h"
 #include "rng/halton.h"
 
+#include <assert.h>
+
 namespace rng {
 // TODO: consider making configurable...
 class Rng {

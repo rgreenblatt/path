@@ -80,6 +80,7 @@ public:
             return x_minus_1;
           }
         case 4:
+        default:
 
           // very convex:
           // (x - 1)^4

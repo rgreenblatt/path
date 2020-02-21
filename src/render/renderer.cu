@@ -15,7 +15,7 @@ Renderer::~Renderer() {
   }
 }
 
-void Renderer::render(ExecutionModel execution_model, Span<RGBA> pixels,
+void Renderer::render(ExecutionModel execution_model, Span<BGRA> pixels,
                       const scene::Scene &s, unsigned samples_per,
                       unsigned x_dim, unsigned y_dim, const Settings &settings,
                       bool show_times) {
@@ -31,12 +31,16 @@ void Renderer::render(ExecutionModel execution_model, Span<RGBA> pixels,
     }
 
     render(cpu_renderer_impl_);
+
+    return;
   case ExecutionModel::GPU:
     if (gpu_renderer_impl_ == nullptr) {
       gpu_renderer_impl_ = new RendererImpl<ExecutionModel::GPU>();
     }
 
     render(gpu_renderer_impl_);
+
+    return;
   };
 }
 } // namespace render

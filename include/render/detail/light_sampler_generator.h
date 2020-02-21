@@ -55,11 +55,11 @@ public:
 
     HOST_DEVICE Ref(const Settings &) {}
 
-    HOST_DEVICE auto operator()(const Eigen::Vector3f &point,
-                                const material::Material &material,
-                                const Eigen::Vector3f &normal,
-                                const Eigen::Vector3f &direction,
-                                rng::Rng &rng) const {
+    HOST_DEVICE auto operator()(const Eigen::Vector3f &,
+                                const material::Material &,
+                                const Eigen::Vector3f &,
+                                const Eigen::Vector3f &,
+                                rng::Rng &) const {
       assert(false);
 
       return std::array<LightSample, 0>{};

@@ -5,7 +5,7 @@
 #include "lib/compile_time_dispatch/enum.h"
 #include "lib/compile_time_dispatch/one_per_instance.h"
 #include "lib/execution_model.h"
-#include "lib/rgba.h"
+#include "lib/bgra.h"
 #include "render/settings.h"
 #include "scene/scene.h"
 
@@ -16,7 +16,7 @@ namespace render {
 namespace detail {
 template <ExecutionModel execution_model> class RendererImpl {
 public:
-  void render(Span<RGBA> pixels, const scene::Scene &s, unsigned samples_per,
+  void render(Span<BGRA> pixels, const scene::Scene &s, unsigned samples_per,
               unsigned x_dim, unsigned y_dim, const Settings &settings,
               bool show_times);
 
@@ -25,12 +25,6 @@ public:
 private:
   template <typename T> using ExecVecT = ExecVector<execution_model, T>;
   template <typename T> using SharedVecT = SharedVector<execution_model, T>;
-
-
-  void dispatch_compute_intensities(const scene::Scene &s, unsigned samples_per,
-                                    unsigned x_dim, unsigned y_dim,
-                                    const Settings &settings,
-                                    bool show_times);
 
   // TODO: consider eventually freeing...
   template <intersect::accel::AccelType type> class StoredTriangleAccels {
@@ -101,7 +95,7 @@ private:
   ExecVecT<Eigen::Array3f> intensities_;
   ExecVecT<scene::TriangleData> triangle_data_;
   ExecVecT<material::Material> materials_;
-  ExecVecT<RGBA> bgra_;
+  ExecVecT<BGRA> bgra_;
 };
 } // namespace detail
 } // namespace render

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "intersect/impl/ray_impl.h"
+#include "intersect/impl/triangle_impl.h"
 #include "lib/compile_time_dispatch/dispatch_value.h"
 #include "lib/compile_time_dispatch/tuple.h"
 #include "lib/group.h"
@@ -9,23 +11,28 @@
 #include "render/detail/light_sampler_generator.h"
 #include "render/detail/renderer_impl.h"
 #include "render/detail/term_prob_generator.h"
+#include "render/detail/tone_map.h"
 
 namespace render {
 namespace detail {
 template <ExecutionModel execution_model>
-void RendererImpl<execution_model>::dispatch_compute_intensities(
-    const scene::Scene &s, unsigned samples_per, unsigned x_dim, unsigned y_dim,
-    const Settings &settings, bool show_times) {
+void RendererImpl<execution_model>::render(
+    Span<BGRA> pixels, const scene::Scene &s, unsigned samples_per,
+    unsigned x_dim, unsigned y_dim, const Settings &settings, bool) {
+  if (samples_per > std::numeric_limits<uint16_t>::max()) {
+    std::cerr << "more samples than allowed" << std::endl;
+    return;
+  }
+
   unsigned block_size = 512;
   unsigned target_work_per_thread = 4;
 
   auto division = divide_work(samples_per, x_dim, y_dim, block_size,
                               target_work_per_thread);
 
-  intensities_.resize(division.num_sample_blocks * x_dim * y_dim);
-
   Span<const scene::TriangleData> triangle_data;
   Span<const material::Material> materials;
+  Span<BGRA> output_pixels;
 
   if constexpr (execution_model == ExecutionModel::GPU) {
     auto inp_t_data = s.triangle_data();
@@ -40,9 +47,17 @@ void RendererImpl<execution_model>::dispatch_compute_intensities(
 
     triangle_data = triangle_data_;
     materials = materials_;
+
+    if (division.num_sample_blocks != 1) {
+      intensities_.resize(division.num_sample_blocks * x_dim * y_dim);
+    }
+
+    bgra_.resize(x_dim * y_dim);
+    output_pixels = bgra_;
   } else {
     triangle_data = s.triangle_data();
     materials = s.materials();
+    output_pixels = pixels;
   }
 
   dispatch_value(
@@ -139,9 +154,18 @@ void RendererImpl<execution_model>::dispatch_compute_intensities(
         compute_intensities<execution_model>(
             division, samples_per, x_dim, y_dim, block_size,
             mesh_instance_accel_ref, light_sampler, dir_sampler, term_prob,
-            intensities_, triangle_data, materials, s.film_to_world());
+            output_pixels, intensities_, triangle_data, materials,
+            s.film_to_world());
       },
       settings.compile_time.values());
+
+  if constexpr (execution_model == ExecutionModel::GPU) {
+    if (division.num_sample_blocks != 1) {
+      tone_map<execution_model>(intensities_, bgra_);
+    }
+
+    thrust::copy(bgra_.begin(), bgra_.end(), pixels.begin());
+  }
 }
 } // namespace detail
 } // namespace render

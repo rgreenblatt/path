@@ -1,6 +1,7 @@
 #pragma once
 
 #include "intersect/triangle.h"
+#include "intersect/impl/triangle_impl.h"
 #include "lib/cuda/utils.h"
 
 #include <Eigen/Core>

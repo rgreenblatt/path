@@ -36,7 +36,13 @@ public:
       float phi = 2 * M_PI * v0;
       float theta = std::acos(need_whole_sphere ? 2 * v1 - 1 : v1);
 
-      return DirSample{find_relative_vec(normal, phi, theta),
+      auto direction = find_relative_vec(normal, phi, theta);
+
+      assert(need_whole_sphere || direction.dot(normal) >= 0);
+      assert(need_whole_sphere ||
+             std::abs(direction.dot(normal) - std::cos(theta)) < 1e-4);
+
+      return DirSample{direction,
                        1 / float((need_whole_sphere ? 4 : 2) * M_PI)};
     }
   };
@@ -60,7 +66,7 @@ public:
                                      const Eigen::Vector3f &normal,
                                      const Eigen::Vector3f &direction,
                                      rng::Rng &rng) const {
-      material.sample(rng, direction, normal);
+      return material.sample(rng, direction, normal);
     }
   };
 

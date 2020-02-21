@@ -229,6 +229,15 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
 
       unsigned material_idx = shapes[s].mesh.material_ids[f] + materials_offset;
 
+      // No normals..
+      if (normals[0].squaredNorm() < 1e-5) {
+        auto normal =
+            (vertices[1] - vertices[0]).cross(vertices[2] - vertices[0]).eval();
+        for (unsigned i = 0; i < 3; ++i) {
+          normals[i] = normal;
+        }
+      }
+
       scene_v.triangles_.push_back({vertices});
       scene_v.triangle_data_.push_back({normals, material_idx, colors});
 
@@ -241,6 +250,10 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
   scene_v.mesh_aabbs_.push_back(aabb);
   add_mesh_instance(mesh_idx, aabb);
   loaded_meshes_.insert({absolute_path, mesh_idx});
+  scene_v.mesh_paths_.push_back(absolute_path);
+
+  std::cout << "added mesh, total triangl count: " << scene_v.triangles_.size()
+            << std::endl;
 
   return true;
 }

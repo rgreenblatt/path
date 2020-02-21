@@ -79,10 +79,12 @@ int main(int argc, char *argv[]) {
 
   render::Renderer renderer;
 
-  Span<RGBA> pixels(reinterpret_cast<RGBA *>(image.bits()), width * height);
+  Span<BGRA> pixels(reinterpret_cast<BGRA *>(image.bits()), width * height);
 
   renderer.render(execution_model, pixels, *scene, samples, width, height,
                   render::Settings(), false);
+
+  image.save(file_name.c_str());
 
   return 0;
 }

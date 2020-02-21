@@ -47,7 +47,8 @@ template <typename InfoType>
 using IntersectionOp = thrust::optional<Intersection<InfoType>>;
 
 template <typename InfoType>
-using AppendIndexInfoType = std::array<unsigned, std::tuple_size_v<InfoType>>;
+using AppendIndexInfoType =
+    std::array<unsigned, std::tuple_size_v<InfoType> + 1>;
 
 template <typename InfoType>
 HOST_DEVICE IntersectionOp<AppendIndexInfoType<InfoType>>

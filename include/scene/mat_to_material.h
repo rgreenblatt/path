@@ -11,7 +11,7 @@ material::Material mat_to_material(const tinyobj::material_t &material) {
 
   auto diffuse = to_eigen(material.diffuse);
   auto specular = to_eigen(material.specular);
-  auto emission = to_eigen(material.ambient);
+  auto emission = to_eigen(material.emission);
   float shininess = material.shininess;
   float ior = material.ior;
   int illum = material.illum;
