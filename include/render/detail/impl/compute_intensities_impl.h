@@ -26,12 +26,13 @@ initial_ray(float x, float y, unsigned x_dim, unsigned y_dim,
 }
 
 template <typename Accel, typename LightSampler, typename DirSampler,
-          typename TermProb>
+          typename TermProb /*, typename Rng*/>
 HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
     unsigned x, unsigned y, unsigned start_sample, unsigned end_sample,
     unsigned x_dim, unsigned y_dim, unsigned num_samples, const Accel &accel,
     const LightSampler &light_sampler, const DirSampler &direction_sampler,
-    const TermProb &term_prob, Span<const scene::TriangleData> triangle_data,
+    const TermProb &term_prob, /*const Rng &rng,*/
+    Span<const scene::TriangleData> triangle_data,
     Span<const material::Material> materials,
     const Eigen::Affine3f &film_to_world) {
   unsigned sample_idx = start_sample;
@@ -41,7 +42,7 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
   intersect::Ray ray;
   Eigen::Array3f multiplier;
 
-  unsigned max_sampling_num = std::max(num_samples, rng::sequence_size);
+  unsigned max_sampling_num = std::max(num_samples * 16, rng::sequence_size);
 
   rng::Rng rng(0, max_sampling_num);
 
@@ -50,7 +51,7 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
   while (!finished || sample_idx != end_sample) {
     if (finished) {
       multiplier = Eigen::Vector3f::Ones();
-      rng.set_state(sample_idx);
+      rng.set_state(sample_idx * 16);
 
       auto [x_offset, y_offset] = rng.sample_2();
 
@@ -76,7 +77,6 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
     const auto &data = triangle_data[triangle_idx];
     const auto &material = materials[data.material_idx()];
 
-    // count intensity if eye ray
     if (!LightSampler::performs_samples || count_emission) {
       intensity += multiplier * material.emission(); // TODO: check
     }
@@ -92,10 +92,6 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
     const intersect::Triangle &triangle =
         mesh.accel_triangle().get(triangle_idx);
 
-#if 0
-    Eigen::Array3f color =
-        data.get_color(mesh_space_intersection_point, triangle);
-#endif
     Eigen::Vector3f normal =
         (mesh.mesh_to_world() *
          data.get_normal(mesh_space_intersection_point, triangle))
@@ -114,15 +110,12 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
       return brdf_val * normal_v;
     };
 
-#if 0
-    multiplier *= color; // TODO: check
-#endif
-
     auto compute_direct_lighting = [&]() -> Eigen::Array3f {
       Eigen::Array3f intensity = Eigen::Array3f::Zero();
       const auto samples = light_sampler(intersection_point, material, normal,
                                          ray.direction, rng);
-      for (const auto &sample : samples) {
+      for (unsigned i = 0; i < samples.num_samples; i++) {
+        const auto &sample = samples.samples[i];
         intersect::Ray light_ray{intersection_point, sample.direction};
 
         auto light_intersection = accel(light_ray);
@@ -130,9 +123,24 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
           continue;
         }
 
-        unsigned triangle_idx = next_intersection->info[0];
+        unsigned triangle_idx = light_intersection->info[0];
         const auto &data = triangle_data[triangle_idx];
         const auto &material = materials[data.material_idx()];
+
+        assert([&] {
+          unsigned mesh_idx = light_intersection->info[1];
+
+          const auto &mesh = accel.get(mesh_idx);
+
+          const intersect::Triangle &triangle =
+              mesh.accel_triangle().get(triangle_idx);
+
+          auto intersection = triangle(light_ray);
+
+          return intersection.has_value() &&
+                 intersection->intersection_dist ==
+                     light_intersection->intersection_dist;
+        }());
 
         // TODO: check (prob not delta needed?)
         intensity += material.emission() * material.prob_not_delta() *

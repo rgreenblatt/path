@@ -7,6 +7,7 @@
 #include <docopt.h>
 #include <thrust/optional.h>
 
+#include <string>
 #include <iostream>
 
 static const char USAGE[] =
@@ -81,8 +82,13 @@ int main(int argc, char *argv[]) {
 
   Span<BGRA> pixels(reinterpret_cast<BGRA *>(image.bits()), width * height);
 
+  render::Settings settings;
+
+  settings.compile_time.light_sampler_type() =
+      render::LightSamplerType::WeightedAABB;
+
   renderer.render(execution_model, pixels, *scene, samples, width, height,
-                  render::Settings(), false);
+                  settings, false);
 
   image.save(file_name.c_str());
 

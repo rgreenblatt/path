@@ -6,10 +6,10 @@
 
 // previous element less, this element greater_equal
 template <typename T, bool ignore_increment_guess = false>
-constexpr unsigned binary_search(unsigned start, unsigned end, T target,
-                                 unsigned guess,
-                                 unsigned start_search_increment,
-                                 Span<const T> values, bool is_increasing) {
+constexpr unsigned
+binary_search(unsigned start, unsigned end, T target, unsigned guess,
+              unsigned start_search_increment, Span<const T> values,
+              bool is_increasing = true) {
   if (start == end) {
     return start;
   }
@@ -69,7 +69,8 @@ constexpr unsigned binary_search(unsigned start, unsigned end, T target,
 
 template <typename T>
 constexpr unsigned binary_search(unsigned start, unsigned end, T target,
-                                 Span<const T> values, bool is_increasing) {
+                                 Span<const T> values,
+                                 bool is_increasing = true) {
   return binary_search<T, true>(start, end, target, start, 0, values,
                                 is_increasing);
 }

@@ -18,7 +18,15 @@ public:
 
   // TODO: should sampling increment???
   template <unsigned n> HOST_DEVICE auto sample_n() {
+#ifdef __CUDA_ARCH__
     return halton<n>(state_);
+#else
+    std::array<float, n> out;
+    for (unsigned i = 0; i < n; i++) {
+      out[i] = float(double(rand()) / double(RAND_MAX));
+    }
+    return out;
+#endif
   }
 
   HOST_DEVICE auto sample_1() { return sample_n<1>()[0]; }

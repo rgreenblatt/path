@@ -14,7 +14,9 @@ void compute_intensities(const WorkDivision &, unsigned samples_per,
                          Span<const scene::TriangleData> triangle_data,
                          Span<const material::Material> materials,
                          const Eigen::Affine3f &film_to_world) {
+#ifdef NDEBUG
 #pragma omp parallel for collapse(2)
+#endif
   for (unsigned y = 0; y < y_dim; y++) {
     for (unsigned x = 0; x < x_dim; x++) {
       pixels[x + y * x_dim] = intensity_to_bgr(

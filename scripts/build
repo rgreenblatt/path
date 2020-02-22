@@ -132,6 +132,12 @@ def cc_command(builder, _):
 # def check_command(builder, _):
 #     builder(False, "check", additional_gen_args=["-DSYNTAX_ONLY=ON"])
 
+def clean_command(builder, remaining_args):
+    parser = argparse.ArgumentParser(description='clean project')
+    parser.add_argument('--release', action='store_true')
+    args = parser.parse_args(remaining_args)
+    shutil.rmtree(get_directory(args.release))
+
 
 def main():
     name = "build"
@@ -180,6 +186,7 @@ COMMANDS:
         "bench": bench_command,
         "compile_command": cc_command,
         # "check": check_command,
+        "clean": clean_command,
     }
     page = args.paginate and not args.no_pager
     try:

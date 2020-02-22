@@ -62,6 +62,12 @@ public:
     return max_bound_;
   }
 
+  HOST_DEVICE float surface_area() const {
+    auto dims = (max_bound_ - min_bound_).eval();
+    return 2 *
+           (dims.x() * dims.y() + dims.z() * dims.y() + dims.z() * dims.x());
+  }
+
   // needs to be inline
   HOST_DEVICE thrust::optional<float>
   solveBoundingIntersection(const Eigen::Vector3f &point,

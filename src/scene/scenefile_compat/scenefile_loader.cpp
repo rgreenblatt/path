@@ -158,7 +158,11 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
   }
 
   for (const auto &m : mesh_materials) {
-    scene_v.materials_.push_back(mat_to_material(m));
+    auto material = mat_to_material(m);
+
+    is_emissive.push_back(material.emission().matrix().squaredNorm() > 1e-9f);
+
+    scene_v.materials_.push_back(material);
   }
 
   if (!ret) {
@@ -170,6 +174,21 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
 
   auto min_b = max_eigen_vec();
   auto max_b = lowest_eigen_vec();
+
+  Eigen::Vector3f emissive_group_min_b;
+  Eigen::Vector3f emissive_group_max_b;
+  bool adding_to_emissive_group = false;
+  unsigned emissive_material_idx;
+  unsigned emissive_start_idx;
+
+  auto end_emissive_group = [&] {
+    unsigned emissive_end_idx = scene_v.triangles_.size();
+    scene_v.emissive_groups_.push_back(
+        {emissive_material_idx,
+         emissive_start_idx,
+         emissive_end_idx,
+         {emissive_group_min_b, emissive_group_max_b}});
+  };
 
   // TODO populate vectors and use tranform
   for (size_t s = 0; s < shapes.size(); s++) {
@@ -184,7 +203,6 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
 
       std::array<Eigen::Vector3f, 3> vertices;
       std::array<Eigen::Vector3f, 3> normals;
-      std::array<Eigen::Array3f, 3> colors;
       for (size_t v = 0; v < fv; v++) {
         tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
         tinyobj::real_t vx = attrib.vertices[3 * idx.vertex_index + 0];
@@ -213,38 +231,74 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
           ty = 0;
         }
 
-        tinyobj::real_t red = attrib.colors[3 * idx.vertex_index + 0];
-        tinyobj::real_t green = attrib.colors[3 * idx.vertex_index + 1];
-        tinyobj::real_t blue = attrib.colors[3 * idx.vertex_index + 2];
-
-        // TODO: UV
         Eigen::Vector3f vertex(vx, vy, vz);
         min_b = min_b.cwiseMin(vertex);
         max_b = max_b.cwiseMax(vertex);
 
         vertices[v] = vertex;
         normals[v] = Eigen::Vector3f(nx, ny, nz).normalized();
-        colors[v] = Eigen::Vector3f(red, green, blue);
       }
 
       unsigned material_idx = shapes[s].mesh.material_ids[f] + materials_offset;
+
+      auto add_vertices_emissive_group = [&] {
+        for (const auto &vertex : vertices) {
+          emissive_group_min_b = emissive_group_min_b.cwiseMin(vertex);
+          emissive_group_max_b = emissive_group_max_b.cwiseMax(vertex);
+        }
+      };
+
+      auto new_emissive_group = [&] {
+        emissive_group_min_b = max_eigen_vec();
+        emissive_group_max_b = lowest_eigen_vec();
+        adding_to_emissive_group = true;
+        emissive_start_idx = scene_v.triangles_.size();
+        emissive_material_idx = material_idx;
+
+        add_vertices_emissive_group();
+      };
+
+      if (is_emissive[material_idx]) {
+        if (adding_to_emissive_group) {
+          if (material_idx != emissive_material_idx) {
+            // end, new group
+            end_emissive_group();
+
+            new_emissive_group();
+          } else {
+            add_vertices_emissive_group();
+          }
+        } else {
+          new_emissive_group();
+        }
+      } else if (adding_to_emissive_group) {
+        end_emissive_group();
+
+        adding_to_emissive_group = false;
+      }
 
       // No normals..
       if (normals[0].squaredNorm() < 1e-5) {
         auto normal =
             (vertices[1] - vertices[0]).cross(vertices[2] - vertices[0]).eval();
-        for (unsigned i = 0; i < 3; ++i) {
-          normals[i] = normal;
+        for (auto &n : normals) {
+          n = normal;
         }
       }
 
       scene_v.triangles_.push_back({vertices});
-      scene_v.triangle_data_.push_back({normals, material_idx, colors});
+      scene_v.triangle_data_.push_back({normals, material_idx});
 
       index_offset += fv;
     }
   }
 
+  if (adding_to_emissive_group) {
+    end_emissive_group();
+  }
+
+  scene_v.emissive_group_ends_per_mesh_.push_back(
+      scene_v.emissive_groups_.size());
   scene_v.mesh_ends_.push_back(scene_v.triangles_.size());
   intersect::accel::AABB aabb{min_b, max_b};
   scene_v.mesh_aabbs_.push_back(aabb);
@@ -252,7 +306,10 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
   loaded_meshes_.insert({absolute_path, mesh_idx});
   scene_v.mesh_paths_.push_back(absolute_path);
 
-  std::cout << "added mesh, total triangl count: " << scene_v.triangles_.size()
+  std::cout << "added mesh" << std::endl;
+  std::cout << "total triangle count: " << scene_v.triangles_.size()
+            << std::endl;
+  std::cout << "total num emissive groups: " << scene_v.emissive_groups_.size()
             << std::endl;
 
   return true;

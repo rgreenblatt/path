@@ -6,6 +6,9 @@
 #include "lib/compile_time_dispatch/enum.h"
 #include "lib/compile_time_dispatch/one_per_instance.h"
 #include "lib/execution_model.h"
+#include "render/detail/dir_sampler_generator.h"
+#include "render/detail/light_sampler_generator.h"
+#include "render/detail/term_prob_generator.h"
 #include "render/settings.h"
 #include "scene/scene.h"
 
@@ -89,6 +92,22 @@ private:
 
   OnePerInstance<intersect::accel::AccelType, StoredTriangleAccels>
       stored_triangle_accels_;
+
+  template <LightSamplerType type>
+  using LightSamplerGenerator = LightSamplerGenerator<execution_model, type>;
+
+  OnePerInstance<LightSamplerType, LightSamplerGenerator>
+      light_sampler_generators_;
+
+  template <DirSamplerType type>
+  using DirSamplerGenerator = DirSamplerGenerator<execution_model, type>;
+
+  OnePerInstance<DirSamplerType, DirSamplerGenerator> dir_sampler_generators_;
+
+  template <TermProbType type>
+  using TermProbGenerator = TermProbGenerator<execution_model, type>;
+
+  OnePerInstance<TermProbType, TermProbGenerator> term_prob_generators_;
 
   ThrustData<execution_model> thrust_data_;
 

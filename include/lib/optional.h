@@ -1,6 +1,7 @@
 #pragma once
 
 #include <thrust/optional.h>
+#include <algorithm>
 
 // constexpr used to allow function to build targeting device...
 // compare to HOST_DEVICE macro

@@ -26,17 +26,27 @@ public:
     return std::get<0>(values_);
   }
 
+  AccelType &triangle_accel_type() { return std::get<0>(values_); }
+
   constexpr AccelType mesh_accel_type() const { return std::get<1>(values_); }
+
+  AccelType &mesh_accel_type() { return std::get<1>(values_); }
 
   constexpr LightSamplerType light_sampler_type() const {
     return std::get<2>(values_);
   }
 
+  LightSamplerType &light_sampler_type() { return std::get<2>(values_); }
+
   constexpr DirSamplerType dir_sampler_type() const {
     return std::get<3>(values_);
   }
 
+  DirSamplerType &dir_sampler_type() { return std::get<3>(values_); }
+
   constexpr TermProbType term_prob_type() const { return std::get<4>(values_); }
+
+  TermProbType &term_prob_type() { return std::get<4>(values_); }
 
   constexpr const T &values() const { return values_; }
 

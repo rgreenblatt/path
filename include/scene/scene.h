@@ -6,6 +6,7 @@
 #include "lib/span.h"
 #include "material/material.h"
 #include "scene/triangle_data.h"
+#include "scene/emissive_group.h"
 
 #include <thrust/optional.h>
 #include <tiny_obj_loader.h>
@@ -42,12 +43,16 @@ public:
 
   SpanSized<const material::Material> materials() const { return materials_; }
 
+  SpanSized<const EmissiveGroup> emissive_groups() const {
+    return emissive_groups_;
+  }
+
+  SpanSized<const unsigned> emissive_group_ends_per_mesh() const {
+    return emissive_group_ends_per_mesh_;
+  }
+
   // Note: may not be very precise...
   intersect::accel::AABB overall_aabb() const { return overall_aabb_; }
-
-#if 0
-  SpanSized<const CS123SceneLightData> lights() const { return lights_; }
-#endif
 
 private:
   Scene() {}
@@ -59,6 +64,8 @@ private:
   std::vector<Triangle> triangles_;
   std::vector<TriangleData> triangle_data_;
   std::vector<material::Material> materials_;
+  std::vector<EmissiveGroup> emissive_groups_;
+  std::vector<unsigned> emissive_group_ends_per_mesh_;
 
   intersect::accel::AABB overall_aabb_;
 

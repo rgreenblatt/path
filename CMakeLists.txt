@@ -1,8 +1,8 @@
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
 
-set(CMAKE_CXX_COMPILER clang++-9)
-set(CMAKE_QT_COMPILER clang++-9)
-set(CMAKE_CUDA_COMPILER clang++-9)
+set(CMAKE_CXX_COMPILER clang++)
+set(CMAKE_QT_COMPILER clang++)
+set(CMAKE_CUDA_COMPILER clang++)
 
 cmake_policy(SET CMP0048 NEW)
 project(final VERSION 0.1 LANGUAGES CUDA CXX)
@@ -15,33 +15,39 @@ set(CMAKE_AUTOUIC ON)
 
 # set(CMAKE_VERBOSE_MAKEFILE TRUE)
 
+add_link_options(-stdlib=libc++ -lc++abi)
+add_compile_options(-Wall -Wextra -fsized-deallocation -stdlib=libc++)
+
+# required for Eigen
+add_compile_options(-Wno-deprecated-copy)
+add_compile_options(-Wno-deprecated-anon-enum-enum-conversion)
+
+add_compile_options(-fconstexpr-steps=80000000)
+add_compile_options("$<$<COMPILE_LANGUAGE:CUDA>:-std=c++2a>")
+add_compile_options("$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:DEBUG>>:-g>")
+add_compile_options("$<$<CONFIG:RELEASE>:-Ofast -march=native -g -DNDEBUG>")
+
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcuda-ptxas '-w'")
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CUDA_STANDARD 20)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+set(CMAKE_QT_STANDARD 20)
+set(CMAKE_QT_STANDARD_REQUIRED ON)
+
 find_package(Qt5 COMPONENTS Widgets Xml REQUIRED)
 find_package(OpenMP REQUIRED)
 # find_package(OpenCV REQUIRED)
 find_package(Threads REQUIRED)
 add_subdirectory("${PROJECT_SOURCE_DIR}/extern/docopt.cpp")
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CUDA_STANDARD 17)
-set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
-# option(SYNTAX_ONLY "Only check syntax" OFF)
+set(BUILD_SHARED_LIBS OFF)
 
-set(GENERAL_FLAGS "-std=c++17 -Wall -Wextra -fsized-deallocation")
-set(GENERAL_FLAGS "${GENERAL_FLAGS} -fconstexpr-steps=80000000")
-set(GENERAL_CUDA_FLAGS "${GENERAL_FLAGS} -Xcuda-ptxas '-w'")
-
-set(CMAKE_QT_FLAGS "${CMAKE_CXX_FLAGS} ${GENERAL_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GENERAL_FLAGS}")
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} ${GENERAL_CUDA_FLAGS}")
-set(RELEASE_FlAGS "-Ofast -march=native -g -DNDEBUG")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${RELEASE_FlAGS}")
-set(CMAKE_CUDA_FLAGS_RELEASE "${CMAKE_CUDA_FLAGS_RELEASE} ${RELEASE_FlAGS}")
-set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} -g")
+option(SYNTAX_ONLY "Only check syntax" OFF)
 
 # qt5_wrap_cpp(UI_MAINWINDOW "${PROJECT_SOURCE_DIR}/include/ui/mainwindow.h")
 # qt5_wrap_cpp(UI_VIEW "${PROJECT_SOURCE_DIR}/include/ui/canvas.h")
@@ -61,6 +67,7 @@ endmacro()
 
 add_library(
   renderer
+  STATIC
 
   "${PROJECT_SOURCE_DIR}/src/render/renderer.cu"
 
@@ -98,6 +105,7 @@ target_link_libraries(renderer OpenMP::OpenMP_CXX Qt5::Widgets)
 
 add_library(
   scenefile_compat
+  STATIC
 
   "${PROJECT_SOURCE_DIR}/src/scene/camera.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/scenefile_compat/CS123XmlSceneParser.cpp"
@@ -148,8 +156,8 @@ endif()
 
 option(BUILD_BENCHMARKS "build benchmarks" OFF)
 if(BUILD_BENCHMARKS OR CMAKE_EXPORT_COMPILE_COMMANDS)
-  set(BENCHMARK_ENABLE_TESTING OFF)
   add_subdirectory("${PROJECT_SOURCE_DIR}/extern/benchmark")
+  set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "don't test google benchmark")
 
   macro(package_add_bench BENCH_NAME)
     add_executable(${BENCH_NAME} ${ARGN})

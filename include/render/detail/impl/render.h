@@ -6,11 +6,8 @@
 #include "lib/compile_time_dispatch/tuple.h"
 #include "lib/group.h"
 #include "render/detail/compute_intensities.h"
-#include "render/detail/dir_sampler_generator.h"
 #include "render/detail/divide_work.h"
-#include "render/detail/light_sampler_generator.h"
 #include "render/detail/renderer_impl.h"
-#include "render/detail/term_prob_generator.h"
 #include "render/detail/tone_map.h"
 
 namespace render {
@@ -113,6 +110,7 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
             compile_time_settings.mesh_accel_type();
 
         using MeshInstanceRef = intersect::MeshInstanceRef<TriRefType>;
+
         using MeshGenerator =
             intersect::accel::Generator<MeshInstanceRef, execution_model,
                                         mesh_accel_type>;
@@ -142,15 +140,18 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
         constexpr auto term_prob_type = compile_time_settings.term_prob_type();
 
         auto light_sampler =
-            LightSamplerGenerator<execution_model, light_sampler_type>().gen(
-                settings.light_sampler.template get_item<light_sampler_type>());
+            light_sampler_generators_.template get_item<light_sampler_type>()
+                .gen(settings.light_sampler
+                         .template get_item<light_sampler_type>(),
+                     s.emissive_groups(), s.emissive_group_ends_per_mesh(),
+                     s.materials(), s.mesh_instances());
 
         auto dir_sampler =
-            DirSamplerGenerator<execution_model, dir_sampler_type>().gen(
+            dir_sampler_generators_.template get_item<dir_sampler_type>().gen(
                 settings.dir_sampler.template get_item<dir_sampler_type>());
 
         auto term_prob =
-            TermProbGenerator<execution_model, term_prob_type>().gen(
+            term_prob_generators_.template get_item<term_prob_type>().gen(
                 settings.term_prob.template get_item<term_prob_type>());
 
         compute_intensities<execution_model>(

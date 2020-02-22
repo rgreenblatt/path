@@ -46,20 +46,26 @@ private:
 
 class MeshInstance {
 public:
-  MeshInstance(unsigned idx, const Eigen::Affine3f &transform,
+  MeshInstance(unsigned idx, const Eigen::Affine3f &mesh_to_world,
                const accel::AABB &aabb)
-      : idx_(idx), transform_(transform), aabb_(aabb) {}
+      : idx_(idx), mesh_to_world_(mesh_to_world), aabb_(aabb) {}
+
+  HOST_DEVICE inline unsigned idx() const { return idx_; }
+
+  HOST_DEVICE inline const Eigen::Affine3f &mesh_to_world() const {
+    return mesh_to_world_;
+  }
 
   HOST_DEVICE inline const accel::AABB &aabb() const { return aabb_; }
 
   template <typename AccelMesh>
   MeshInstanceRef<AccelMesh> get_ref(Span<const AccelMesh> accel_meshs) const {
-    return {accel_meshs.data() + idx_, transform_, aabb_};
+    return {accel_meshs.data() + idx_, mesh_to_world_, aabb_};
   }
 
 private:
   unsigned idx_;
-  Eigen::Affine3f transform_;
+  Eigen::Affine3f mesh_to_world_;
   accel::AABB aabb_; // should be transformed by transform
 
 public:

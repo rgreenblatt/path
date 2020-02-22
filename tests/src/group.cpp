@@ -3,6 +3,9 @@
 
 #include <gtest/gtest.h>
 
+#include <vector>
+#include <array>
+
 TEST(Group, get_previous) {
   {
     std::vector arr = {1u, 2u, 3u, 4u, 5u};
