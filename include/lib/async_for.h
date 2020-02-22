@@ -4,7 +4,11 @@
 #include <future>
 #include <vector>
 
-template <typename F>
+template <typename F> concept CallableOnIndex = requires(const F &f) {
+  {f(unsigned())};
+};
+
+template <CallableOnIndex F>
 void async_for(bool is_async, unsigned start, unsigned end, const F &f) {
   // alternative async strategy may be better...
   if (is_async) {

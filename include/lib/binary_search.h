@@ -3,6 +3,7 @@
 #include "lib/span.h"
 
 #include <algorithm>
+#include <concepts>
 
 // previous element less, this element greater_equal
 template <typename T, bool ignore_increment_guess = false>

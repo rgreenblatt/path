@@ -15,8 +15,10 @@ set(CMAKE_AUTOUIC ON)
 
 # set(CMAKE_VERBOSE_MAKEFILE TRUE)
 
-add_link_options(-stdlib=libc++ -lc++abi)
-add_compile_options(-Wall -Wextra -fsized-deallocation -stdlib=libc++)
+add_compile_options(-Wall -Wextra -fsized-deallocation -stdlib=libstdc++)
+
+# am I in too deep?
+add_compile_options(-isystem ${CMAKE_SOURCE_DIR}/system/include/)
 
 # required for Eigen
 add_compile_options(-Wno-deprecated-copy)
@@ -37,13 +39,13 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_QT_STANDARD 20)
 set(CMAKE_QT_STANDARD_REQUIRED ON)
 
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+
 find_package(Qt5 COMPONENTS Widgets Xml REQUIRED)
 find_package(OpenMP REQUIRED)
 # find_package(OpenCV REQUIRED)
 find_package(Threads REQUIRED)
 add_subdirectory("${PROJECT_SOURCE_DIR}/extern/docopt.cpp")
-
-set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 set(BUILD_SHARED_LIBS OFF)
 
@@ -59,6 +61,7 @@ macro(target_add_standard_include TARGET_NAME)
   target_include_directories(${TARGET_NAME} PUBLIC
     "${PROJECT_SOURCE_DIR}/include")
   target_include_directories(${TARGET_NAME} SYSTEM PUBLIC
+    "${PROJECT_SOURCE_DIR}/system/include/"
     "${PROJECT_SOURCE_DIR}/extern/eigen/"
     "${PROJECT_SOURCE_DIR}/extern/include/"
     "/usr/local/cuda/include/"
@@ -156,8 +159,8 @@ endif()
 
 option(BUILD_BENCHMARKS "build benchmarks" OFF)
 if(BUILD_BENCHMARKS OR CMAKE_EXPORT_COMPILE_COMMANDS)
+  set(BENCHMARK_ENABLE_TESTING OFF)
   add_subdirectory("${PROJECT_SOURCE_DIR}/extern/benchmark")
-  set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "don't test google benchmark")
 
   macro(package_add_bench BENCH_NAME)
     add_executable(${BENCH_NAME} ${ARGN})

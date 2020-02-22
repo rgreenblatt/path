@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __CUDACC__
+#include "__clang_cuda_runtime_wrapper.h"
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 
