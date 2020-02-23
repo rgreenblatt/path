@@ -5,7 +5,7 @@
 #include <vector>
 
 template <typename F> concept CallableOnIndex = requires(const F &f) {
-  {f(unsigned())};
+  f(unsigned());
 };
 
 template <CallableOnIndex F>

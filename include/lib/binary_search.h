@@ -6,7 +6,7 @@
 #include <concepts>
 
 // previous element less, this element greater_equal
-template <typename T, bool ignore_increment_guess = false>
+template <std::equality_comparable T, bool ignore_increment_guess = false>
 constexpr unsigned
 binary_search(unsigned start, unsigned end, T target, unsigned guess,
               unsigned start_search_increment, Span<const T> values,
@@ -68,7 +68,7 @@ binary_search(unsigned start, unsigned end, T target, unsigned guess,
   return end;
 }
 
-template <typename T>
+template <std::equality_comparable T>
 constexpr unsigned binary_search(unsigned start, unsigned end, T target,
                                  Span<const T> values,
                                  bool is_increasing = true) {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lib/execution_model/caching_thrust_allocator.h"
+#include "execution_model/caching_thrust_allocator.h"
 
 #include <thrust/execution_policy.h>
 

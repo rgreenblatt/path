@@ -3,6 +3,7 @@
 #include "lib/cuda/utils.h"
 
 #include <limits>
+#include <concepts>
 
 inline HOST_DEVICE uint32_t popcount(uint32_t v) {
   static_assert(sizeof(uint32_t) == sizeof(unsigned));
@@ -46,13 +47,14 @@ inline HOST_DEVICE unsigned count_leading_zeros(uint64_t v) {
 #endif
 }
 
-template <typename T> static constexpr unsigned bits_per = sizeof(T) * CHAR_BIT;
+template <std::integral T>
+static constexpr unsigned bits_per = sizeof(T) * CHAR_BIT;
 
-template <typename T> constexpr inline T bit_mask(unsigned bit_idx) {
+template <std::integral T> constexpr inline T bit_mask(unsigned bit_idx) {
   return T(1) << bit_idx;
 }
 
-template <typename T> constexpr inline T up_to_mask(unsigned n) {
+template <std::integral T> constexpr inline T up_to_mask(unsigned n) {
   // in binary, 1 (n + 1) times
   // 0: 1
   // 1: 11

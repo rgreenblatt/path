@@ -5,9 +5,9 @@
 
 #include <tuple>
 
-template <typename T>
+template <std::integral T>
 HOST_DEVICE inline T get_previous(unsigned i, Span<const T> vals) {
-  return i == 0 ? T() : vals[i - 1];
+  return i == 0 ? T(0) : vals[i - 1];
 }
 
 HOST_DEVICE inline unsigned get_previous(unsigned i,

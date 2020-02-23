@@ -7,6 +7,8 @@
 inline HOST_DEVICE Eigen::AngleAxisf
 find_rotate_vector_to_vector(const Eigen::Vector3f &inp,
                              const Eigen::Vector3f &target) {
+  // SPEED: better approach
+  // SPEED: cache/don't recompute cos etc
   auto inp_normalized = inp.normalized().eval();
   auto target_normalized = target.normalized().eval();
   float angle_between = std::acos(inp_normalized.dot(target_normalized));
@@ -17,6 +19,7 @@ find_rotate_vector_to_vector(const Eigen::Vector3f &inp,
 
 inline HOST_DEVICE Eigen::Vector3f find_relative_vec(const Eigen::Vector3f &vec,
                                                      float phi, float theta) {
+  // SPEED: better approach
   float sin_theta = std::sin(theta);
   return (find_rotate_vector_to_vector(vec, {0, 0, 1}).inverse() *
           Eigen::Vector3f(sin_theta * std::cos(phi), sin_theta * std::sin(phi),

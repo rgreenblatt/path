@@ -1,14 +1,15 @@
 #pragma once
 
+#include "data_structure/get_size.h"
 #include "lib/bit_utils.h"
 #include "lib/span.h"
 
+#include <concepts>
 #include <cstdint>
 
-template <typename Block> class BitSetRef {
+template <std::integral Block> class BitsetRef {
 public:
-  BitSetRef(const Span<Block> &data, unsigned num_bits)
-      : data_(data), num_bits_(num_bits) {}
+  BitsetRef(const SpanSized<Block> &data) : data_(data) {}
 
   // at some point it may be worthwhile to allow for assigning bits...
   // note potential issues with parallelism here though...
@@ -23,6 +24,8 @@ public:
   HOST_DEVICE bool test(unsigned block_idx, unsigned bit_idx) const {
     return (data_[block_idx] & bit_mask<Block>(bit_idx)) != 0;
   }
+
+  HOST_DEVICE unsigned size() const { return data_.size() * bits_per_block; }
 
   HOST_DEVICE bool test(unsigned pos) const {
     return test(block_index(pos), bit_index(pos));
@@ -90,6 +93,10 @@ public:
   }
 
 private:
-  Span<Block> data_;
-  unsigned num_bits_;
+  SpanSized<Block> data_;
+};
+
+template <typename Base, std::integral Block>
+struct GetSizeTraitImpl<Base, BitsetRef<Block>> : Base {
+  static constexpr unsigned get(const BitsetRef<Block> &v) { return v.size(); }
 };
