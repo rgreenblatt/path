@@ -1,5 +1,6 @@
 #include "data_structure/bitset_ref.h"
 #include "execution_model/execution_model_vector_type.h"
+#include "execution_model/thrust_data.h"
 #include "lib/span.h"
 
 #include <benchmark/benchmark.h>

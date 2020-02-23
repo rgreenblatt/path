@@ -1,6 +1,6 @@
 #include "execution_model/thrust_data.h"
 #include "execution_model/vector_type.h"
-#include "span.h"
+#include "lib/span.h"
 
 #include <gtest/gtest.h>
 
