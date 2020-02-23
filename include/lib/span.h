@@ -7,12 +7,6 @@
 #include <concepts>
 #include <type_traits>
 
-/* template <typename Elem, bool is_sized, typename V> */
-/* concept SpanConvertable = requires { */
-/*   GetPtr<V, Elem>; */
-/*   !is_sized || GetSize<V>; */
-/* }; */
-
 template <typename T, bool is_sized = false> class Span {
 private:
   static constexpr bool is_debug =
@@ -79,8 +73,7 @@ public:
 private:
   T *ptr_;
 
-  template<typename Base, typename V>
-  friend struct GetSizeTraitImpl;
+  template <typename V> friend struct GetSizeImpl;
 
   struct NoSize {};
 
@@ -95,15 +88,13 @@ struct is_span<Span<T, is_sized>> : std::true_type {};
 template <typename V>
 concept SpanSpecialization = is_span<std::decay_t<V>>::value;
 
-template <typename SpanT, typename Base>
-requires SpanSpecialization<SpanT> 
-struct GetSizeTraitImpl<Base, SpanT> : Base {
-  static constexpr unsigned get(SpanT &&v) { return v.size_; }
+template <typename SpanT>
+requires SpanSpecialization<SpanT> struct GetSizeImpl<SpanT> {
+  static constexpr std::size_t get(SpanT &&v) { return v.size_; }
 };
 
-template <typename SpanT, typename Base>
-requires SpanSpecialization<SpanT> 
-struct GetPtrTraitImpl<Base, SpanT> : Base {
+template <typename SpanT>
+requires SpanSpecialization<SpanT> struct GetPtrImpl<SpanT> {
   static constexpr auto get(SpanT &&v) { return v.data(); }
 };
 

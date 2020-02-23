@@ -2,7 +2,7 @@
 
 #include "compile_time_dispatch/compile_time_dispatch.h"
 
-template <typename DispatchT, template <DispatchT> class TypeOver,
+template <CompileTimeDispatchable T, template <T> class TypeOver,
           unsigned idx = 0>
 class OnePerInstance {
 public:
@@ -12,29 +12,29 @@ public:
   OnePerInstance(const First &first, const Rest &... rest)
       : item_(first), next(rest...) {}
 
-  static constexpr unsigned size = CompileTimeDispatchable<DispatchT>::size;
+  static constexpr unsigned size = CompileTimeDispatchableT<T>::size;
 
   static_assert(size != 0);
 
-  static constexpr DispatchT this_value =
-      CompileTimeDispatchable<DispatchT>::values[idx];
+  static constexpr T this_value =
+      CompileTimeDispatchableT<T>::values[idx];
 
   using ItemType = TypeOver<this_value>;
 
-  template <DispatchT value> const auto &get_item() const {
+  template <T value> const auto &get_item() const {
     if constexpr (value == this_value) {
       return item_;
     } else {
-      static_assert(size != 1, "enum value not found");
+      static_assert(size != 1, "dispatch value not found");
       return next.template get_item<value>();
     }
   }
 
-  template <DispatchT value> auto &get_item() {
+  template <T value> auto &get_item() {
     if constexpr (value == this_value) {
       return item_;
     } else {
-      static_assert(size != 1, "enum value not found");
+      static_assert(size != 1, "dispatch value not found");
       return next.template get_item<value>();
     }
   }
@@ -45,6 +45,6 @@ private:
   struct NoneType {};
 
   std::conditional_t<idx + 1 == size, NoneType,
-                     OnePerInstance<DispatchT, TypeOver, idx + 1>>
+                     OnePerInstance<T, TypeOver, idx + 1>>
       next;
 };

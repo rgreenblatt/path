@@ -15,8 +15,9 @@ public:
   HOST_DEVICE Triangle(std::array<Eigen::Vector3f, 3> vertices)
       : vertices_(vertices) {}
 
-  HOST_DEVICE inline IntersectionOp<std::array<unsigned, 0>>
-  operator()(const Ray &ray) const;
+  HOST_DEVICE inline const std::array<Eigen::Vector3f, 3> &vertices() const {
+    return vertices_;
+  }
 
   template <typename T>
   HOST_DEVICE inline T interpolate_values(const Eigen::Vector3f &point,

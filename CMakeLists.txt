@@ -27,9 +27,13 @@ add_compile_options(-Wno-deprecated-anon-enum-enum-conversion)
 add_compile_options(-fconstexpr-steps=80000000)
 add_compile_options("$<$<COMPILE_LANGUAGE:CUDA>:-std=c++2a>")
 add_compile_options("$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:DEBUG>>:-g>")
+# add_compile_options("$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:DEBUG>>:")
 add_compile_options("$<$<CONFIG:RELEASE>:-Ofast -march=native -g -DNDEBUG>")
+# add_compile_options("$<$<CONFIG:DEBUG>:-Ofast -march=native -g -DNDEBUG>")
 
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcuda-ptxas '-w'")
+set(CMAKE_CUDA_FLAGS_DEBUG 
+  "${CMAKE_CUDA_FLAGS_DEBUG} -Xcuda-ptxas '-O0' -Xcuda-ptxas '--allow-expensive-optimizations=false'")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

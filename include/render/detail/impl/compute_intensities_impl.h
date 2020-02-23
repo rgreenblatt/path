@@ -1,9 +1,10 @@
 #pragma once
 
-#include "intersect/accel/impl/loop_all_impl.h"
+#include "intersect/accel/loop_all.h"
+#include "intersect/accel/dir_tree.h"
+#include "intersect/accel/kdtree.h"
 #include "intersect/impl/ray_impl.h"
 #include "intersect/impl/triangle_impl.h"
-#include "intersect/ray.h"
 #include "render/detail/compute_intensities.h"
 #include "rng/rng.h"
 
@@ -25,11 +26,11 @@ initial_ray(float x, float y, unsigned x_dim, unsigned y_dim,
   return ray;
 }
 
-template <typename Accel, typename LightSampler, typename DirSampler,
+template <intersect::accel::AccelRef A, typename LightSampler, typename DirSampler,
           typename TermProb /*, typename Rng*/>
 HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
     unsigned x, unsigned y, unsigned start_sample, unsigned end_sample,
-    unsigned x_dim, unsigned y_dim, unsigned num_samples, const Accel &accel,
+    unsigned x_dim, unsigned y_dim, unsigned num_samples, const A &accel,
     const LightSampler &light_sampler, const DirSampler &direction_sampler,
     const TermProb &term_prob, /*const Rng &rng,*/
     Span<const scene::TriangleData> triangle_data,
@@ -64,7 +65,8 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
       sample_idx++;
     }
 
-    auto next_intersection = accel(ray);
+    auto next_intersection =
+        intersect::IntersectableT<A>::intersect(ray, accel);
 
     if (!next_intersection.has_value()) {
       finished = true;
@@ -118,7 +120,8 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
         const auto &sample = samples.samples[i];
         intersect::Ray light_ray{intersection_point, sample.direction};
 
-        auto light_intersection = accel(light_ray);
+        auto light_intersection =
+            intersect::IntersectableT<A>::intersect(light_ray, accel);
         if (!light_intersection.has_value()) {
           continue;
         }
@@ -135,7 +138,9 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
           const intersect::Triangle &triangle =
               mesh.accel_triangle().get(triangle_idx);
 
-          auto intersection = triangle(light_ray);
+          auto intersection =
+              intersect::IntersectableT<intersect::Triangle>::intersect(
+                  light_ray, triangle);
 
           return intersection.has_value() &&
                  intersection->intersection_dist ==

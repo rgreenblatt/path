@@ -1,14 +1,25 @@
 #pragma once
 
+#include "compile_time_dispatch/dispatch_value.h"
 #include "intersect/impl/ray_impl.h"
 #include "intersect/impl/triangle_impl.h"
-#include "compile_time_dispatch/dispatch_value.h"
-#include "compile_time_dispatch/tuple.h"
+#include "intersect/accel/loop_all.h"
 #include "lib/group.h"
 #include "render/detail/compute_intensities.h"
 #include "render/detail/divide_work.h"
 #include "render/detail/renderer_impl.h"
 #include "render/detail/tone_map.h"
+
+
+static_assert(
+    intersect::Bounded<intersect::accel::AccelT<intersect::accel::AccelType::LoopAll, ExecutionModel::CPU,
+                          intersect::Triangle>::Ref>);
+static_assert(
+    intersect::Bounded<intersect::accel::AccelT<intersect::accel::AccelType::LoopAll, ExecutionModel::GPU,
+                          intersect::Triangle>::Ref>);
+static_assert(
+    intersect::Bounded<intersect::accel::AccelT<intersect::accel::AccelType::LoopAll, ExecutionModel::CPU,
+                          intersect::Triangle>::Ref>);
 
 namespace render {
 namespace detail {
@@ -72,9 +83,9 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
             stored_triangle_accels_.template get_item<triangle_accel_type>();
 
         using Triangle = intersect::Triangle;
-        using Generator = intersect::accel::Generator<Triangle, execution_model,
-                                                      triangle_accel_type>;
-        using TriRefType = typename Generator::RefType;
+        using TriAccel = intersect::accel::AccelT<triangle_accel_type,
+                                               execution_model, Triangle>;
+        using TriRefType = typename TriAccel::Ref;
 
         unsigned num_meshs = s.mesh_paths().size();
 
@@ -83,8 +94,12 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
         std::vector<TriRefType> cpu_refs(num_meshs);
         std::vector<uint8_t> ref_set(num_meshs, 0);
 
+        auto specific_settings =
+            settings.triangle_accel.template get_item<triangle_accel_type>();
+
         for (unsigned i = 0; i < num_meshs; i++) {
-          auto ref_op = triangle_accels.query(s.mesh_paths()[i]);
+          auto ref_op =
+              triangle_accels.query(s.mesh_paths()[i], specific_settings);
           if (ref_op.has_value()) {
             cpu_refs[i] = *ref_op;
             ref_set[i] = true;
@@ -98,9 +113,7 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
             const auto &aabb = s.mesh_aabbs()[i];
             cpu_refs[i] = triangle_accels.add(
                 s.triangles(), get_previous(i, s.mesh_ends()), s.mesh_ends()[i],
-                aabb.get_min_bound(), aabb.get_max_bound(),
-                settings.triangle_accel
-                    .template get_item<triangle_accel_type>());
+                aabb, specific_settings, s.mesh_paths()[i]);
           }
         }
 
@@ -111,11 +124,11 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
 
         using MeshInstanceRef = intersect::MeshInstanceRef<TriRefType>;
 
-        using MeshGenerator =
-            intersect::accel::Generator<MeshInstanceRef, execution_model,
-                                        mesh_accel_type>;
+        using MeshAccel =
+            intersect::accel::AccelT<mesh_accel_type, execution_model,
+                                     MeshInstanceRef>;
 
-        MeshGenerator generator;
+        MeshAccel mesh_accel;
 
         unsigned num_mesh_instances = s.mesh_instances().size();
 
@@ -128,10 +141,9 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
 
         const auto &aabb = s.overall_aabb();
 
-        auto mesh_instance_accel_ref = generator.gen(
-            instance_refs, 0, num_mesh_instances, aabb.get_min_bound(),
-            aabb.get_max_bound(),
-            settings.mesh_accel.template get_item<mesh_accel_type>());
+        auto mesh_instance_accel_ref = mesh_accel.gen(
+            settings.mesh_accel.template get_item<mesh_accel_type>(),
+            instance_refs, 0, num_mesh_instances, aabb);
 
         constexpr auto light_sampler_type =
             compile_time_settings.light_sampler_type();
@@ -140,19 +152,17 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
         constexpr auto term_prob_type = compile_time_settings.term_prob_type();
 
         auto light_sampler =
-            light_sampler_generators_.template get_item<light_sampler_type>()
-                .gen(settings.light_sampler
-                         .template get_item<light_sampler_type>(),
-                     s.emissive_groups(), s.emissive_group_ends_per_mesh(),
-                     s.materials(), s.mesh_instances());
+            light_samplers_.template get_item<light_sampler_type>().gen(
+                settings.light_sampler.template get_item<light_sampler_type>(),
+                s.emissive_groups(), s.emissive_group_ends_per_mesh(),
+                s.materials(), s.mesh_instances());
 
         auto dir_sampler =
-            dir_sampler_generators_.template get_item<dir_sampler_type>().gen(
+            dir_samplers_.template get_item<dir_sampler_type>().gen(
                 settings.dir_sampler.template get_item<dir_sampler_type>());
 
-        auto term_prob =
-            term_prob_generators_.template get_item<term_prob_type>().gen(
-                settings.term_prob.template get_item<term_prob_type>());
+        auto term_prob = term_probs_.template get_item<term_prob_type>().gen(
+            settings.term_prob.template get_item<term_prob_type>());
 
         compute_intensities<execution_model>(
             division, samples_per, x_dim, y_dim, block_size,

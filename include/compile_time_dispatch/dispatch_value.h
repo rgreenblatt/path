@@ -7,13 +7,14 @@
 
 #include <map>
 
-template <typename T, unsigned idx> struct Holder {
-  static constexpr auto value = CompileTimeDispatchable<T>::values[idx];
+template <CompileTimeDispatchable T, std::size_t idx> struct Holder {
+  static constexpr auto value = CompileTimeDispatchableT<T>::values[idx];
 };
 
-template <typename F, typename T,
-          typename Dispatch = CompileTimeDispatchable<T>>
+template <typename F, CompileTimeDispatchable T>
 auto dispatch_value(const F &f, T value) {
+  using Dispatch = CompileTimeDispatchableT<T>;
+
   static_assert(Dispatch::size != 0);
 
   auto get_result =
@@ -23,16 +24,16 @@ auto dispatch_value(const F &f, T value) {
           std::cerr << "invalid dispatch value!" << std::endl;
           abort();
         } else {
-          constexpr unsigned index = std::decay_t<decltype(i)>::value;
+          constexpr std::size_t index = std::decay_t<decltype(i)>::value;
 
           return f(Holder<T, index>{});
         }
       });
 
-  const static std::map<T, unsigned> lookup = [] {
-    std::map<T, unsigned> lookup;
+  const static std::map<T, std::size_t> lookup = [] {
+    std::map<T, std::size_t> lookup;
 
-    for (unsigned i = 0; i < Dispatch::size; i++) {
+    for (std::size_t i = 0; i < Dispatch::size; i++) {
       lookup.insert(std::pair{Dispatch::values[i], i});
     }
 

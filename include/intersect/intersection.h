@@ -1,8 +1,10 @@
 #pragma once
 
 #include "lib/cuda/utils.h"
-
 #include "lib/optional.h"
+#include "lib/concepts.h"
+
+#include <map>
 
 #include <thrust/optional.h>
 
@@ -19,28 +21,10 @@ template <typename T> struct Intersection {
   T info;
 };
 
-template <typename Info>
-HOST_DEVICE inline bool operator<(const Intersection<Info> &lhs,
-                                  const Intersection<Info> &rhs) {
-  return lhs.intersection_dist < rhs.intersection_dist;
-}
-
-template <typename Info>
-HOST_DEVICE inline bool operator>(const Intersection<Info> &lhs,
-                                  const Intersection<Info> &rhs) {
-  return operator<(rhs, lhs);
-}
-
-template <typename Info>
-HOST_DEVICE inline bool operator<=(const Intersection<Info> &lhs,
-                                   const Intersection<Info> &rhs) {
-  return !operator>(lhs, rhs);
-}
-
-template <typename Info>
-HOST_DEVICE inline bool operator>=(const Intersection<Info> &lhs,
-                                   const Intersection<Info> &rhs) {
-  return !operator<(lhs, rhs);
+template <typename InfoType>
+HOST_DEVICE inline auto operator<=>(const Intersection<InfoType> &lhs,
+                                    const Intersection<InfoType> &rhs) {
+  return lhs.intersection_dist <=> rhs.intersection_dist;
 }
 
 template <typename InfoType>
@@ -53,6 +37,7 @@ using AppendIndexInfoType =
 template <typename InfoType>
 HOST_DEVICE IntersectionOp<AppendIndexInfoType<InfoType>>
 append_index(const IntersectionOp<InfoType> &intersect_op, unsigned idx) {
+  static_assert(StdArraySpecialization<InfoType>);
   return optional_map(intersect_op,
                       [&](const Intersection<InfoType> &intersect)
                           -> Intersection<AppendIndexInfoType<InfoType>> {
@@ -66,4 +51,9 @@ append_index(const IntersectionOp<InfoType> &intersect_op, unsigned idx) {
                         return {intersect.intersection_dist, out};
                       });
 }
-} // namespace intersect
+}
+
+// Fix specialization check...
+template <template <typename... Args> class Template, typename Arg>
+struct is_specialization<intersect::IntersectionOp<Arg>, Template>
+    : std::true_type {};

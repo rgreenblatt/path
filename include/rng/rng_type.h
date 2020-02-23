@@ -1,13 +1,16 @@
 #pragma once
 
+/* #include "lib/trait.h" */
+
+#include <concepts>
+
 namespace rng {
 enum class RngType { Uniform, Halton, Sobel };
 
-template <RngType type> struct RngSettings;
+template <typename Impl>
+concept RngTrait = requires{
+  typename Impl::Settings;
+  std::semiregular<typename Impl::Settings>;
+};
 
-template <> struct RngSettings<RngType::Uniform> {};
-
-template <> struct RngSettings<RngType::Halton> {};
-
-template <> struct RngSettings<RngType::Sobel> {};
 } // namespace rng

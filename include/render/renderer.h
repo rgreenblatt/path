@@ -1,6 +1,6 @@
 #pragma once
 
-#include "intersect/accel/accelerator_type.h"
+#include "intersect/accel/accel.h"
 #include "lib/bgra.h"
 #include "execution_model/execution_model.h"
 #include "lib/span.h"

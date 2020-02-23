@@ -1,8 +1,8 @@
 #pragma once
 
-#include "intersect/accel/accelerator_type.h"
-#include "intersect/accel/accelerator_type_settings.h"
-#include "compile_time_dispatch/enum.h"
+#include "intersect/accel/dir_tree.h"
+#include "intersect/accel/kdtree.h"
+#include "intersect/accel/loop_all.h"
 #include "compile_time_dispatch/one_per_instance.h"
 #include "render/dir_sampler_type.h"
 #include "render/light_sampler_type.h"
@@ -60,8 +60,8 @@ private:
   // default should be pretty reasonable...
   using AccelType = intersect::accel::AccelType;
 
-  template <AccelType t>
-  using AccelSettings = intersect::accel::AccelSettings<t>;
+  template <AccelType type>
+  using AccelSettings = typename intersect::accel::AccelSettings<type>;
 
   using AllAccelSettings = OnePerInstance<AccelType, AccelSettings>;
 

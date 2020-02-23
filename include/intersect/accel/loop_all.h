@@ -1,55 +1,61 @@
 #pragma once
 
-#include "intersect/intersection.h"
-#include "intersect/ray.h"
-#include "lib/cuda/utils.h"
-#include "execution_model/execution_model.h"
 #include "execution_model/execution_model_vector_type.h"
-#include "lib/span.h"
+#include "intersect/accel/accel.h"
+#include "lib/cuda/utils.h"
 
-#include <Eigen/Core>
+#include "intersect/impl/triangle_impl.h"
+#include "intersect/mesh_instance.h"
+#include "intersect/triangle.h"
+
 #include <thrust/copy.h>
-#include <thrust/optional.h>
 
 namespace intersect {
 namespace accel {
-template <ExecutionModel execution_model, typename Object> class LoopAll {
-private:
-  class LoopAllRef {
+template <> struct AccelSettings<AccelType::LoopAll> {
+  HOST_DEVICE inline auto
+  operator<=>(const AccelSettings<AccelType::LoopAll> &) const = default;
+};
+
+template <ExecutionModel execution_model, Object O>
+struct AccelImpl<AccelType::LoopAll, execution_model, O> {
+  AccelImpl() {}
+
+  class Ref {
   public:
-    LoopAllRef() {}
+    HOST_DEVICE Ref() {}
 
-    HOST_DEVICE inline auto operator()(const Ray &ray) const;
+    Ref(SpanSized<const O> objects, unsigned offset, const AABB &aabb)
+        : objects_(objects), offset_(offset), aabb_(aabb) {}
 
-    HOST_DEVICE inline const Object &get(unsigned idx) const {
+    HOST_DEVICE inline const O &get(unsigned idx) const {
       return objects_[idx - offset_];
     }
 
-  private:
-    LoopAllRef(SpanSized<const Object> objects, unsigned offset)
-        : objects_(objects), offset_(offset) {}
+    constexpr static AccelType inst_type = AccelType::LoopAll;
+    constexpr static ExecutionModel inst_execution_model = execution_model;
+    using InstO = O;
 
-    SpanSized<const Object> objects_;
+  private:
+    SpanSized<const O> objects_;
     unsigned offset_;
 
-    friend class LoopAll;
+    AABB aabb_;
+
+    friend struct IntersectableImpl<Ref>;
   };
 
-public:
-  LoopAll() {}
-
-  using RefType = LoopAllRef;
-
-  RefType gen(Span<const Object> objects, unsigned start, unsigned end) {
+  Ref gen(const AccelSettings<AccelType::LoopAll> &, Span<const O> objects,
+          unsigned start, unsigned end, const AABB &aabb) {
     if constexpr (execution_model == ExecutionModel::GPU) {
       unsigned size = end - start;
       store_.resize(size);
       thrust::copy(objects.begin() + start, objects.begin() + end,
                    store_.begin());
 
-      return {store_, start};
+      return {store_, start, aabb};
     } else {
-      return {objects.slice(start, end), start};
+      return {objects.slice(start, end), start, aabb};
     }
   }
 
@@ -57,8 +63,40 @@ private:
   struct NoneType {};
 
   std::conditional_t<execution_model == ExecutionModel::GPU,
-                     ExecVector<execution_model, Object>, NoneType>
+                     ExecVector<execution_model, O>, NoneType>
       store_;
 };
+
+template <typename V>
+concept LoopAllRefSpecialization = RefSpecialization<AccelType::LoopAll, V>;
 } // namespace accel
+
+// TODO: consider moving to impl file
+template <accel::LoopAllRefSpecialization Ref> struct IntersectableImpl<Ref> {
+  using Temp = float;
+  static HOST_DEVICE inline auto intersect(const Ray &ray, const Ref &ref) {
+    using O = typename Ref::InstO;
+    using IntersectionO = IntersectableT<O>;
+    using PrevInfoType = typename IntersectionO::Intersection;
+    using NewInfoType = AppendIndexInfoType<PrevInfoType>;
+    using IntersectionOpT = IntersectionOp<NewInfoType>;
+
+    IntersectionOpT best_intersection;
+
+    for (unsigned idx = 0; idx < ref.objects_.size(); idx++) {
+      auto intersection =
+          IntersectableImpl<O>::intersect(ray, ref.objects_[idx]);
+      best_intersection = optional_min(
+          best_intersection, append_index(intersection, idx + ref.offset_));
+    }
+
+    return best_intersection;
+  }
+};
+
+template <accel::LoopAllRefSpecialization Ref> struct BoundedImpl<Ref> {
+  static HOST_DEVICE inline const accel::AABB &bounds(const Ref &ref) {
+    return ref.aabb();
+  }
+};
 } // namespace intersect

@@ -99,8 +99,7 @@ private:
   SpanSized<Block> data_;
 };
 
-template <typename Base, typename Ref>
-requires SpecializationOf<Ref, BitsetRef> struct GetSizeTraitImpl<Base, Ref>
-    : Base {
+template <typename Ref>
+requires SpecializationOf<Ref, BitsetRef> struct GetSizeImpl<Ref> {
   static constexpr unsigned get(Ref &&v) { return v.size(); }
 };
