@@ -34,9 +34,9 @@ public:
   template <typename V>
       requires GetPtr<V, T> &&
       (!Span::use_size || GetSize<V>)constexpr Span(V &&v)
-      : ptr_(GetPtrT<V, T>::get(v)) {
+      : ptr_(GetPtrT<V, T>::get(std::forward<V>(v))) {
     if constexpr (use_size) {
-      size_ = GetSizeT<V>::get(v);
+      size_ = GetSizeT<V>::get(std::forward<V>(v));
     }
   }
 
@@ -87,14 +87,24 @@ private:
   typename std::conditional_t<use_size, std::size_t, NoSize> size_;
 };
 
-template <typename Elem, bool is_sized, typename Base>
-struct GetSizeTraitImpl<Base, Span<Elem, is_sized>> : Base {
-  static constexpr unsigned get(const Span<Elem, is_sized> &v) { return v.size_; }
+template <typename> struct is_span : std::false_type {};
+
+template <typename T, bool is_sized>
+struct is_span<Span<T, is_sized>> : std::true_type {};
+
+template <typename V>
+concept SpanSpecialization = is_span<std::decay_t<V>>::value;
+
+template <typename SpanT, typename Base>
+requires SpanSpecialization<SpanT> 
+struct GetSizeTraitImpl<Base, SpanT> : Base {
+  static constexpr unsigned get(SpanT &&v) { return v.size_; }
 };
 
-template <typename Elem, bool is_sized, typename Base>
-struct GetPtrTraitImpl<Base, Span<Elem, is_sized>> : Base {
-  static constexpr Elem get(const Span<Elem, is_sized> &v) { return v.data(); }
+template <typename SpanT, typename Base>
+requires SpanSpecialization<SpanT> 
+struct GetPtrTraitImpl<Base, SpanT> : Base {
+  static constexpr auto get(SpanT &&v) { return v.data(); }
 };
 
 template <typename T> using SpanSized = Span<T, true>;

@@ -1,4 +1,5 @@
 #include "render/detail/tone_map.h"
+#include "execution_model/thrust_data.h"
 
 #include <thrust/transform.h>
 

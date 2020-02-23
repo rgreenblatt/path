@@ -3,12 +3,11 @@
 #include <thrust/optional.h>
 
 #include <algorithm>
-#include <concepts>
 
 // constexpr used to allow function to build targeting device...
 // compare to HOST_DEVICE macro
 
-template <typename T, std::regular_invocable<T> F,
+template <typename T, typename F,
           typename Ret = decltype(std::declval<F>()())>
 constexpr Ret optional_or_else(const thrust::optional<T> &v, const F &f) {
   if (v.has_value()) {
@@ -24,7 +23,7 @@ constexpr thrust::optional<T> optional_or(const thrust::optional<T> &v,
   return optional_or_else(v, [&]() { return e; });
 }
 
-template <typename T, std::regular_invocable<T> F,
+template <typename T, typename F,
           typename Ret = decltype(std::declval<F>()(std::declval<T>()))>
 constexpr thrust::optional<Ret> optional_map(const thrust::optional<T> &v,
                                              const F &f) {
@@ -35,14 +34,13 @@ constexpr thrust::optional<Ret> optional_map(const thrust::optional<T> &v,
   }
 }
 
-template <typename V, typename FFold, std::regular_invocable<> FBase>
+template <typename V, typename FFold, typename FBase>
 constexpr auto optional_fold(const FFold &, const FBase &f_base,
                              const thrust::optional<V> &first) {
   return optional_map(first, f_base);
 }
 
-template <typename V, typename FFold, std::regular_invocable<> FBase,
-          typename... T>
+template <typename V, typename FFold, typename FBase, typename... T>
 constexpr auto optional_fold(const FFold &f_fold, const FBase &f_base,
                              const thrust::optional<V> &first,
                              const thrust::optional<T> &... rest) {

@@ -30,13 +30,13 @@ template <typename Meta, typename T> struct GetPtrTraitImpl;
 template <IsBaseCaseType V> struct GetPtrTraitImpl<StartT, V> {};
 
 template <typename Base, typename T>
-    requires IsStdArray<T> ||
-    IsSpecialization<T, std::vector> struct GetPtrTraitImpl<Base, T> : Base {
+    requires StdArraySpecialization<T> ||
+    SpecializationOf<T, std::vector> struct GetPtrTraitImpl<Base, T> : Base {
   static auto get(T &&v) { return v.data(); }
 };
 
 template <typename Base, typename T>
-requires IsSpecialization<T, thrust::device_vector> struct GetPtrTraitImpl<Base,
+requires SpecializationOf<T, thrust::device_vector> struct GetPtrTraitImpl<Base,
                                                                            T>
     : Base {
   static auto get(T &&t) { return thrust::raw_pointer_cast(t.data()); }

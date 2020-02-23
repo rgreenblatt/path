@@ -2,7 +2,7 @@
 
 #include "intersect/mesh_instance.h"
 #include "lib/binary_search.h"
-#include "lib/execution_model.h"
+#include "execution_model/execution_model_vector_type.h"
 #include "lib/group.h"
 #include "lib/projection.h"
 #include "lib/span.h"

@@ -87,7 +87,7 @@ TEST(Bitset, num_bits_set_inclusive_up_to) {
   std::vector<unsigned> values = {0b100001111100001111001111u, 0u, 0b11111111u,
                                   0b111100000000000000000001111111u,
                                   0b11111111111111111111111111111111u};
-  BitsetRef<unsigned> bit_set(values, 5 * 32);
+  BitsetRef<unsigned> bit_set(values);
 
   EXPECT_EQ(bit_set.num_bits_set_inclusive_up_to(0, 0), 1u);
   EXPECT_EQ(bit_set.num_bits_set_inclusive_up_to(0, 8), 7u);
@@ -102,7 +102,7 @@ TEST(Bitset, find_mask_same) {
   std::vector<unsigned> values = {0b100001111100001111001111u, 0u, 0b11111111u,
                                   0b111100000000000000000001111111u,
                                   0b11111111111111111111111111111111u};
-  BitsetRef<unsigned> bit_set(values, 5 * 32);
+  BitsetRef<unsigned> bit_set(values);
 
   EXPECT_EQ(bit_set.find_mask_same(0, 0), 1u);
   EXPECT_EQ(bit_set.find_mask_same(0, 8), 0b111000000u);

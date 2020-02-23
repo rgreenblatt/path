@@ -2,6 +2,7 @@
 
 #include "data_structure/get_size.h"
 #include "lib/bit_utils.h"
+#include "lib/concepts.h"
 #include "lib/span.h"
 
 #include <concepts>
@@ -9,7 +10,9 @@
 
 template <std::integral Block> class BitsetRef {
 public:
-  BitsetRef(const SpanSized<Block> &data) : data_(data) {}
+  HOST_DEVICE BitsetRef(const SpanSized<Block> &data) : data_(data) {}
+
+  HOST_DEVICE BitsetRef(const BitsetRef &v) : data_(v.data_) {}
 
   // at some point it may be worthwhile to allow for assigning bits...
   // note potential issues with parallelism here though...
@@ -96,7 +99,8 @@ private:
   SpanSized<Block> data_;
 };
 
-template <typename Base, std::integral Block>
-struct GetSizeTraitImpl<Base, BitsetRef<Block>> : Base {
-  static constexpr unsigned get(const BitsetRef<Block> &v) { return v.size(); }
+template <typename Base, typename Ref>
+requires SpecializationOf<Ref, BitsetRef> struct GetSizeTraitImpl<Base, Ref>
+    : Base {
+  static constexpr unsigned get(Ref &&v) { return v.size(); }
 };

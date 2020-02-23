@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lib/execution_model/execution_model.h"
+#include "execution_model/execution_model.h"
 #include "lib/projection.h"
 #include "material/material.h"
 #include "render/dir_sampler_type.h"
