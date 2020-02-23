@@ -2,8 +2,8 @@
 
 #include "intersect/impl/ray_impl.h"
 #include "intersect/impl/triangle_impl.h"
-#include "lib/compile_time_dispatch/dispatch_value.h"
-#include "lib/compile_time_dispatch/tuple.h"
+#include "compile_time_dispatch/dispatch_value.h"
+#include "compile_time_dispatch/tuple.h"
 #include "lib/group.h"
 #include "render/detail/compute_intensities.h"
 #include "render/detail/divide_work.h"

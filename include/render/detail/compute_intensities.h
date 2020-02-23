@@ -1,7 +1,8 @@
 #pragma once
 
 #include "lib/bgra.h"
-#include "lib/execution_model.h"
+#include "execution_model/execution_model_vector_type.h"
+#include "execution_model/thrust_data.h"
 #include "lib/span.h"
 #include "material/material.h"
 #include "render/detail/divide_work.h"

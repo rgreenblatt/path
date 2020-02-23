@@ -3,7 +3,7 @@
 #include "intersect/accel/accelerator_type.h"
 #include "intersect/accel/accelerator_type_settings.h"
 #include "intersect/accel/loop_all.h"
-#include "lib/execution_model/execution_model.h"
+#include "execution_model/execution_model.h"
 
 namespace intersect {
 namespace accel {

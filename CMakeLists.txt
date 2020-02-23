@@ -137,7 +137,7 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
   endmacro()
 
   package_add_test(bitset "${PROJECT_SOURCE_DIR}/tests/src/bitset.cu")
-  package_add_test(group "${PROJECT_SOURCE_DIR}/tests/src/group.cpp")
+  # package_add_test(group "${PROJECT_SOURCE_DIR}/tests/src/group.cpp")
   package_add_test(device_vector
     "${PROJECT_SOURCE_DIR}/tests/src/device_vector.cu")
   package_add_test(lambda_check

@@ -7,15 +7,23 @@
 #include <concepts>
 #include <type_traits>
 
-template <typename Elem, bool is_sized = false> class Span;
+/* template <typename Elem, bool is_sized, typename V> */
+/* concept SpanConvertable = requires { */
+/*   GetPtr<V, Elem>; */
+/*   !is_sized || GetSize<V>; */
+/* }; */
 
-template <typename Elem, bool is_sized, typename V>
-concept SpanConvertable = requires {
-  GetPtr<V, Elem>;
-  !is_sized || GetSize<V>;
-};
+template <typename T, bool is_sized = false> class Span {
+private:
+  static constexpr bool is_debug =
+#ifdef NDEBUG
+      false
+#else
+      true
+#endif
+      ;
+  static constexpr bool use_size = is_sized || is_debug;
 
-template <typename T, bool is_sized> class Span {
 public:
   constexpr Span(T *ptr, std::size_t size) : ptr_(ptr) {
     if constexpr (use_size) {
@@ -24,7 +32,8 @@ public:
   }
 
   template <typename V>
-  requires SpanConvertable<T, is_sized, V> constexpr Span(V &&v)
+      requires GetPtr<V, T> &&
+      (!Span::use_size || GetSize<V>)constexpr Span(V &&v)
       : ptr_(GetPtrT<V, T>::get(v)) {
     if constexpr (use_size) {
       size_ = GetSizeT<V>::get(v);
@@ -70,30 +79,22 @@ public:
 private:
   T *ptr_;
 
-  struct NoSize {};
+  template<typename Base, typename V>
+  friend struct GetSizeTraitImpl;
 
-  static constexpr bool is_debug =
-#ifdef NDEBUG
-      false
-#else
-      true
-#endif
-      ;
-  static constexpr bool use_size = is_sized || is_debug;
+  struct NoSize {};
 
   typename std::conditional_t<use_size, std::size_t, NoSize> size_;
 };
 
-template <typename Elem, typename Base>
-struct GetSizeTraitImpl<Base, Span<Elem, true>> : Base {
-  static constexpr unsigned get(const Span<Elem, true> &v) { return v.size(); }
+template <typename Elem, bool is_sized, typename Base>
+struct GetSizeTraitImpl<Base, Span<Elem, is_sized>> : Base {
+  static constexpr unsigned get(const Span<Elem, is_sized> &v) { return v.size_; }
 };
 
 template <typename Elem, bool is_sized, typename Base>
 struct GetPtrTraitImpl<Base, Span<Elem, is_sized>> : Base {
-  static constexpr unsigned get(const Span<Elem, is_sized> &v) {
-    return v.data();
-  }
+  static constexpr Elem get(const Span<Elem, is_sized> &v) { return v.data(); }
 };
 
 template <typename T> using SpanSized = Span<T, true>;

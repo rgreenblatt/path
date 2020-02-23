@@ -2,8 +2,8 @@
 
 #include "intersect/accel/accelerator_type.h"
 #include "intersect/accel/accelerator_type_settings.h"
-#include "lib/compile_time_dispatch/enum.h"
-#include "lib/compile_time_dispatch/one_per_instance.h"
+#include "compile_time_dispatch/enum.h"
+#include "compile_time_dispatch/one_per_instance.h"
 #include "render/dir_sampler_type.h"
 #include "render/light_sampler_type.h"
 #include "render/term_prob_type.h"

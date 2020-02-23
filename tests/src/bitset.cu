@@ -1,5 +1,5 @@
-#include "lib/bitset.h"
-#include "lib/execution_model/host_device_vector.h"
+#include "data_structure/bitset_ref.h"
+#include "execution_model/host_device_vector.h"
 #include "lib/span.h"
 
 #include <gtest/gtest.h>
@@ -38,7 +38,7 @@ template <typename T> static void popcount_test(std::mt19937 &gen) {
   EXPECT_EQ(cpu_out[1], max_value_bits);
 }
 
-TEST(BitSet, popcount) {
+TEST(Bitset, popcount) {
   std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
 
   popcount_test<uint32_t>(gen);
@@ -70,24 +70,24 @@ template <typename T> static void count_leading_zeros_test(std::mt19937 &gen) {
   }
 }
 
-TEST(BitSet, count_leading_zeros) {
+TEST(Bitset, count_leading_zeros) {
   std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
 
   count_leading_zeros_test<uint32_t>(gen);
   count_leading_zeros_test<uint64_t>(gen);
 }
 
-TEST(BitSet, up_to_mask) {
+TEST(Bitset, up_to_mask) {
   EXPECT_EQ(up_to_mask<unsigned>(0), 0b1u);
   EXPECT_EQ(up_to_mask<unsigned>(3), 0b1111u);
   EXPECT_EQ(up_to_mask<unsigned>(31), 0b11111111111111111111111111111111u);
 }
 
-TEST(BitSet, num_bits_set_inclusive_up_to) {
+TEST(Bitset, num_bits_set_inclusive_up_to) {
   std::vector<unsigned> values = {0b100001111100001111001111u, 0u, 0b11111111u,
                                   0b111100000000000000000001111111u,
                                   0b11111111111111111111111111111111u};
-  BitSetRef<unsigned> bit_set(values, 5 * 32);
+  BitsetRef<unsigned> bit_set(values, 5 * 32);
 
   EXPECT_EQ(bit_set.num_bits_set_inclusive_up_to(0, 0), 1u);
   EXPECT_EQ(bit_set.num_bits_set_inclusive_up_to(0, 8), 7u);
@@ -98,11 +98,11 @@ TEST(BitSet, num_bits_set_inclusive_up_to) {
   EXPECT_EQ(bit_set.num_bits_set_inclusive_up_to(4, 31), 32u);
 }
 
-TEST(BitSet, find_mask_same) {
+TEST(Bitset, find_mask_same) {
   std::vector<unsigned> values = {0b100001111100001111001111u, 0u, 0b11111111u,
                                   0b111100000000000000000001111111u,
                                   0b11111111111111111111111111111111u};
-  BitSetRef<unsigned> bit_set(values, 5 * 32);
+  BitsetRef<unsigned> bit_set(values, 5 * 32);
 
   EXPECT_EQ(bit_set.find_mask_same(0, 0), 1u);
   EXPECT_EQ(bit_set.find_mask_same(0, 8), 0b111000000u);

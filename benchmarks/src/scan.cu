@@ -1,5 +1,5 @@
-#include "lib/bitset.h"
-#include "lib/execution_model.h"
+#include "data_structure/bitset_ref.h"
+#include "execution_model/execution_model_vector_type.h"
 #include "lib/span.h"
 
 #include <benchmark/benchmark.h>
@@ -32,7 +32,7 @@ static void standard_keys(benchmark::State &state) {
   }
 }
 
-template <typename Block> static void bitset_direct(benchmark::State &state) {
+template <std::integral Block> static void bitset_direct(benchmark::State &state) {
   ThrustData<ExecutionModel::GPU> thrust_data;
   uint32_t size_per = BitSetRef<Block>::bits_per_block;
   DeviceVector<Block> in(unsigned(state.range(0)) / size_per);
@@ -51,7 +51,7 @@ template <typename Block> static void bitset_direct(benchmark::State &state) {
   }
 }
 
-template <typename Block> static void bitset_popcount(benchmark::State &state) {
+template <std::integral Block> static void bitset_popcount(benchmark::State &state) {
   ThrustData<ExecutionModel::GPU> thrust_data;
   unsigned size_per = BitSetRef<Block>::bits_per_block;
   unsigned num_blocks = unsigned(state.range(0)) / size_per;
@@ -73,7 +73,7 @@ template <typename Block> static void bitset_popcount(benchmark::State &state) {
   }
 }
 
-template <typename Block>
+template <std::integral Block>
 static void bitset_direct_keys(benchmark::State &state) {
   ThrustData<ExecutionModel::GPU> thrust_data;
   unsigned size_per = BitSetRef<Block>::bits_per_block;
@@ -104,7 +104,7 @@ static void bitset_direct_keys(benchmark::State &state) {
   }
 }
 
-template <typename Block>
+template <std::integral Block>
 static void bitset_popcount_keys(benchmark::State &state) {
   ThrustData<ExecutionModel::GPU> thrust_data;
   unsigned size_per = BitSetRef<Block>::bits_per_block;

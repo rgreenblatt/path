@@ -1,7 +1,7 @@
 #pragma once
 
-#include "lib/compile_time_dispatch/compile_time_dispatch.h"
-#include "lib/compile_time_dispatch/to_array.h"
+#include "compile_time_dispatch/compile_time_dispatch.h"
+#include "compile_time_dispatch/to_array.h"
 
 #include <petra/sequential_table.hpp>
 

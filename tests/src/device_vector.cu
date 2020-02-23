@@ -1,4 +1,4 @@
-#include "lib/execution_model/vector_type.h"
+#include "execution_model/vector_type.h"
 
 #include <gtest/gtest.h>
 
