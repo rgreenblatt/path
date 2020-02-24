@@ -1,7 +1,7 @@
 #pragma once
 
 #include "intersect/accel/aabb.h"
-#include "intersect/mesh_instance.h"
+#include "intersect/transformed_object.h"
 #include "intersect/triangle.h"
 #include "lib/span.h"
 #include "material/material.h"
@@ -23,7 +23,7 @@ public:
   const Eigen::Affine3f &film_to_world() const { return film_to_world_; }
 
   using Triangle = intersect::Triangle;
-  using MeshInstance = intersect::MeshInstance;
+  using TransformedObject = intersect::TransformedObject;
 
   SpanSized<const unsigned> mesh_ends() const { return mesh_ends_; }
 
@@ -33,8 +33,8 @@ public:
 
   SpanSized<const std::string> mesh_paths() const { return mesh_paths_; }
 
-  SpanSized<const MeshInstance> mesh_instances() const {
-    return mesh_instances_;
+  SpanSized<const TransformedObject> transformed_objects() const {
+    return transformed_objects_;
   }
 
   SpanSized<const Triangle> triangles() const { return triangles_; }
@@ -60,7 +60,7 @@ private:
   std::vector<unsigned> mesh_ends_;
   std::vector<intersect::accel::AABB> mesh_aabbs_; // not transformed
   std::vector<std::string> mesh_paths_;            // used as unique identifiers
-  std::vector<MeshInstance> mesh_instances_;
+  std::vector<TransformedObject> transformed_objects_;
   std::vector<Triangle> triangles_;
   std::vector<TriangleData> triangle_data_;
   std::vector<material::Material> materials_;

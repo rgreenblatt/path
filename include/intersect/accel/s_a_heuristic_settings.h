@@ -1,6 +1,7 @@
 #pragma once
 
-#include "lib/cuda//utils.h"
+#include "lib/cuda/utils.h"
+#include "lib/settings.h"
 
 #include <compare>
 
@@ -13,5 +14,7 @@ struct SAHeuristicSettings {
   HOST_DEVICE inline bool
   operator==(const SAHeuristicSettings &) const = default;
 };
+
+static_assert(Setting<SAHeuristicSettings>);
 } // namespace accel
 } // namespace intersect

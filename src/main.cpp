@@ -84,9 +84,6 @@ int main(int argc, char *argv[]) {
 
   render::Settings settings;
 
-  settings.compile_time.light_sampler_type() =
-      render::LightSamplerType::WeightedAABB;
-
   renderer.render(execution_model, pixels, *scene, samples, width, height,
                   settings, false);
 

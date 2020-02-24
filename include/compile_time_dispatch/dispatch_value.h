@@ -33,6 +33,7 @@ auto dispatch_value(const F &f, T value) {
   const static std::map<T, std::size_t> lookup = [] {
     std::map<T, std::size_t> lookup;
 
+    static_assert(Dispatch::size == Dispatch::values.size());
     for (std::size_t i = 0; i < Dispatch::size; i++) {
       lookup.insert(std::pair{Dispatch::values[i], i});
     }

@@ -132,7 +132,7 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
   auto add_mesh_instance = [&](unsigned idx,
                                const intersect::accel::AABB &aabb) {
     auto transformed_aabb = aabb.transform(transform);
-    scene_v.mesh_instances_.push_back({idx, transform, transformed_aabb});
+    scene_v.transformed_objects_.push_back({idx, transform, transformed_aabb});
     overall_max_b_transformed_ =
         overall_max_b_transformed_.cwiseMax(transformed_aabb.get_max_bound());
     overall_min_b_transformed_ =

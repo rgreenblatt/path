@@ -2,11 +2,11 @@
 
 namespace render {
 // TODO: add more
-enum class TermProbType { Uniform, MultiplierNorm };
+enum class TermProbType { Constant, MultiplierNorm };
 
 template <TermProbType type> struct TermProbSettings;
 
-template <> struct TermProbSettings<TermProbType::Uniform> { float prob; };
+template <> struct TermProbSettings<TermProbType::Constant> { float prob; };
 
 template <> struct TermProbSettings<TermProbType::MultiplierNorm> {
   // -2 to 2 (continuous)

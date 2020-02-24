@@ -3,11 +3,13 @@
 
 namespace render {
 namespace detail {
-template <intersect::accel::AccelRef A, LightSamplerRef L, DirSamplerRef D,
-          TermProbRef T, rng::RngRef R>
+template <intersect::accel::AccelRef MeshAccel,
+          intersect::accel::AccelRef TriAccel, LightSamplerRef L,
+          DirSamplerRef D, TermProbRef T, rng::RngRef R>
 __global__ void compute_intensities_global(
     const WorkDivision division, unsigned x_dim, unsigned y_dim,
-    unsigned samples_per, const A accel, const L light_sampler,
+    unsigned samples_per, const MeshAccel mesh_accel,
+    Span<const TriAccel> tri_accels, const L light_sampler,
     const D direction_sampler, const T term_prob, const R rng, Span<BGRA>,
     Span<Eigen::Array3f>, Span<const scene::TriangleData> triangle_data,
     Span<const material::Material> materials,
@@ -39,20 +41,22 @@ __global__ void compute_intensities_global(
   const unsigned y = work_idx_y + block_idx_y * division.y_block_size;
 
   compute_intensities_impl(x, y, start_sample, end_sample, x_dim, y_dim,
-                           samples_per, accel, light_sampler, direction_sampler,
-                           term_prob, rng, triangle_data, materials,
-                           film_to_world);
+                           samples_per, mesh_accel, tri_accels, light_sampler,
+                           direction_sampler, term_prob, rng, triangle_data,
+                           materials, film_to_world);
 
   // TODO: sum intensities
 }
 
-template <intersect::accel::AccelRef A, LightSamplerRef L, DirSamplerRef D,
-          TermProbRef T, rng::RngRef R>
+template <intersect::accel::AccelRef MeshAccel,
+          intersect::accel::AccelRef TriAccel, LightSamplerRef L,
+          DirSamplerRef D, TermProbRef T, rng::RngRef R>
 void compute_intensities(const WorkDivision &division, unsigned samples_per,
                          unsigned x_dim, unsigned y_dim, unsigned block_size,
-                         const A &accel, const L &light_sampler,
-                         const D &direction_sampler, const T &term_prob,
-                         const R &rng, Span<BGRA> pixels,
+                         const MeshAccel &mesh_accel,
+                         Span<const TriAccel> tri_accels,
+                         const L &light_sampler, const D &direction_sampler,
+                         const T &term_prob, const R &rng, Span<BGRA> pixels,
                          Span<Eigen::Array3f> intensities,
                          Span<const scene::TriangleData> triangle_data,
                          Span<const material::Material> materials,
@@ -63,9 +67,9 @@ void compute_intensities(const WorkDivision &division, unsigned samples_per,
                                                    division.y_block_size);
 
   compute_intensities_global<<<grid, block_size>>>(
-      division, x_dim, y_dim, samples_per, accel, light_sampler,
-      direction_sampler, term_prob, rng, pixels, intensities, triangle_data,
-      materials, film_to_world);
+      division, x_dim, y_dim, samples_per, mesh_accel, tri_accels,
+      light_sampler, direction_sampler, term_prob, rng, pixels, intensities,
+      triangle_data, materials, film_to_world);
 
   CUDA_ERROR_CHK(cudaDeviceSynchronize());
 }

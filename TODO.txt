@@ -1,0 +1,8 @@
+sobol/halton rng
+loading config from file
+accel datastructure
+  - consider flattening
+Many files...
+
+Better template names in compute intensities
+Ugly types in accels

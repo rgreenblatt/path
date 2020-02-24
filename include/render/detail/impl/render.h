@@ -106,33 +106,19 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
           }
         }
 
-        ExecVecT<TriRefType> refs(cpu_refs.begin(), cpu_refs.end());
+        ExecVecT<TriRefType> triangle_accel_refs(cpu_refs.begin(),
+                                                 cpu_refs.end());
 
         constexpr auto mesh_accel_type =
             compile_time_settings.mesh_accel_type();
 
-        using MeshInstanceRef = intersect::MeshInstanceRef<TriRefType>;
+        unsigned num_mesh_instances = s.transformed_objects().size();
 
-        using MeshAccel =
-            intersect::accel::AccelT<mesh_accel_type, execution_model,
-                                     MeshInstanceRef>;
-
-        MeshAccel mesh_accel;
-
-        unsigned num_mesh_instances = s.mesh_instances().size();
-
-        std::vector<MeshInstanceRef> instance_refs(num_mesh_instances);
-
-        for (unsigned i = 0; i < num_mesh_instances; ++i) {
-          instance_refs[i] =
-              s.mesh_instances()[i].get_ref(Span<const TriRefType>{refs});
-        }
-
-        const auto &aabb = s.overall_aabb();
-
-        auto mesh_instance_accel_ref = mesh_accel.gen(
-            settings.mesh_accel.template get_item<mesh_accel_type>(),
-            instance_refs, 0, num_mesh_instances, aabb);
+        auto mesh_accel_ref =
+            mesh_accel_.template get_item<mesh_accel_type>().gen(
+                settings.mesh_accel.template get_item<mesh_accel_type>(),
+                s.transformed_objects(), 0, num_mesh_instances,
+                s.overall_aabb());
 
         constexpr auto light_sampler_type =
             compile_time_settings.light_sampler_type();
@@ -145,7 +131,7 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
             light_samplers_.template get_item<light_sampler_type>().gen(
                 settings.light_sampler.template get_item<light_sampler_type>(),
                 s.emissive_groups(), s.emissive_group_ends_per_mesh(),
-                s.materials(), s.mesh_instances());
+                s.materials(), s.transformed_objects());
 
         auto dir_sampler =
             dir_samplers_.template get_item<dir_sampler_type>().gen(
@@ -161,10 +147,11 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
             settings.rng.template get_item<rng_type>(), samples_per, x_dim,
             y_dim, max_draws_per_sample);
 
-        compute_intensities(division, samples_per, x_dim, y_dim, block_size,
-                            mesh_instance_accel_ref, light_sampler, dir_sampler,
-                            term_prob, rng, output_pixels, intensities_,
-                            triangle_data, materials, s.film_to_world());
+        compute_intensities(
+            division, samples_per, x_dim, y_dim, block_size, mesh_accel_ref,
+            Span<const TriRefType>{triangle_accel_refs}, light_sampler,
+            dir_sampler, term_prob, rng, output_pixels, intensities_,
+            triangle_data, materials, s.film_to_world());
       },
       settings.compile_time.values());
 

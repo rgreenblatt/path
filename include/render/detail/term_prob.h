@@ -36,9 +36,9 @@ requires TermProb<type, execution_model> struct TermProbT
   using TermProbImpl<type, execution_model>::TermProbImpl;
 };
 template <ExecutionModel execution_model>
-struct TermProbImpl<TermProbType::Uniform, execution_model> {
+struct TermProbImpl<TermProbType::Constant, execution_model> {
 public:
-  using Settings = TermProbSettings<TermProbType::Uniform>;
+  using Settings = TermProbSettings<TermProbType::Constant>;
 
   class Ref {
   public:

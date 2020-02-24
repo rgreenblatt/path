@@ -54,6 +54,11 @@ public:
     return {min, max};
   }
 
+  HOST_DEVICE inline AABB union_other(const AABB &other) const {
+    return {min_bound_.cwiseMin(other.get_min_bound()),
+            max_bound_.cwiseMax(other.get_max_bound())};
+  }
+
   HOST_DEVICE const Eigen::Vector3f &get_min_bound() const {
     return min_bound_;
   }

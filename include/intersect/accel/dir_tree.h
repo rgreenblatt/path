@@ -32,10 +32,7 @@ struct AccelImpl<AccelType::DirTree, execution_model, O> {
   };
 
   Ref gen(const AccelSettings<AccelType::DirTree> &, Span<const O>, unsigned,
-          unsigned, const AABB &aabb) {
-    assert(false);
-    return Ref(aabb);
-  }
+          unsigned, const AABB &aabb);
 };
 
 template <typename V>
@@ -44,13 +41,14 @@ concept DirTreeRef = AccelRefOfType<V, AccelType::DirTree>;
 
 // TODO: consider moving to impl file
 template <accel::DirTreeRef Ref> struct IntersectableImpl<Ref> {
-  static HOST_DEVICE inline auto intersect(const Ray &, const Ref &) {
+  template <typename... T>
+  HOST_DEVICE static inline auto intersect(const Ray &, const Ref &, T...) {
     // TODO
     assert(false);
 
     using O = typename Ref::InstO;
-    using IntersectionO = IntersectableT<O>;
-    using PrevInfoType = typename IntersectionO::Intersection;
+    using IntersectableO = IntersectableT<O>;
+    using PrevInfoType = typename IntersectableO::template Intersection<T...>;
     using NewInfoType = AppendIndexInfoType<PrevInfoType>;
     using IntersectionOpT = IntersectionOp<NewInfoType>;
 
@@ -59,7 +57,7 @@ template <accel::DirTreeRef Ref> struct IntersectableImpl<Ref> {
 };
 
 template <accel::DirTreeRef Ref> struct BoundedImpl<Ref> {
-  static HOST_DEVICE inline const accel::AABB &bounds(const Ref &ref) {
+  HOST_DEVICE static inline const accel::AABB &bounds(const Ref &ref) {
     return ref.aabb();
   }
 };

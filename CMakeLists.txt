@@ -15,7 +15,7 @@ set(CMAKE_AUTOUIC ON)
 
 # set(CMAKE_VERBOSE_MAKEFILE TRUE)
 
-add_compile_options(-Wall -Wextra -fsized-deallocation -stdlib=libstdc++)
+add_compile_options(-Wall -Wextra -fsized-deallocation -stdlib=libstdc++ -g)
 
 # am I in too deep?
 add_compile_options(-isystem ${CMAKE_SOURCE_DIR}/system/include/)
@@ -26,14 +26,13 @@ add_compile_options(-Wno-deprecated-anon-enum-enum-conversion)
 
 add_compile_options(-fconstexpr-steps=80000000)
 add_compile_options("$<$<COMPILE_LANGUAGE:CUDA>:-std=c++2a>")
-add_compile_options("$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:DEBUG>>:-g>")
-# add_compile_options("$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:DEBUG>>:")
-add_compile_options("$<$<CONFIG:RELEASE>:-Ofast -march=native -g -DNDEBUG>")
-# add_compile_options("$<$<CONFIG:DEBUG>:-Ofast -march=native -g -DNDEBUG>")
+add_compile_options("$<$<CONFIG:RELEASE>:-Ofast;-march=native;-DNDEBUG>")
 
+# TODO: convert to generator...
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcuda-ptxas '-w'")
-set(CMAKE_CUDA_FLAGS_DEBUG 
-  "${CMAKE_CUDA_FLAGS_DEBUG} -Xcuda-ptxas '-O0' -Xcuda-ptxas '--allow-expensive-optimizations=false'")
+set(CUDA_EXTRA_DEBUG_ARGS
+  "-O0 -Xcuda-ptxas '-O0' -Xcuda-ptxas '--allow-expensive-optimizations=false'")
+set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} ${PTXAS_DEBUG_ARGS}")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -83,7 +82,11 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/render/detail/compute_intensities.cpp"
   "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl.cu"
 
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/kdtree/kdtree.cpp"
+  "${PROJECT_SOURCE_DIR}/src/intersect/accel/loop_all.cu"
+  "${PROJECT_SOURCE_DIR}/src/intersect/accel/dir_tree.cu"
+  "${PROJECT_SOURCE_DIR}/src/intersect/accel/kdtree.cu"
+
+  "${PROJECT_SOURCE_DIR}/src/intersect/accel/kdtree/generator.cu"
 
   # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/dir_tree_generator.cu"
 

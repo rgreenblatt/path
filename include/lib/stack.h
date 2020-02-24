@@ -1,6 +1,8 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
+#include <limits>
 
 template <typename T, uint32_t max_size> class Stack {
 public:
@@ -29,6 +31,8 @@ public:
                          uint16_t, uint8_t>>;
 
   constexpr SizeType size() const { return size_; }
+
+  constexpr bool empty() const { return size_ == 0; }
 
 private:
   std::array<T, max_size> arr_;

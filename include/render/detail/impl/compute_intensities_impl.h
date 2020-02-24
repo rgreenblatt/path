@@ -5,6 +5,8 @@
 #include "intersect/impl/triangle_impl.h"
 #include "render/detail/compute_intensities.h"
 #include "rng/rng.h"
+#include "intersect/accel/impl/kdtree_impl.h"
+#include "intersect/accel/impl/loop_all_impl.h"
 
 namespace render {
 namespace detail {
@@ -23,13 +25,15 @@ initial_ray(float x, float y, unsigned x_dim, unsigned y_dim,
   return ray;
 }
 
-template <intersect::accel::AccelRef A, LightSamplerRef L, DirSamplerRef D,
-          TermProbRef T, rng::RngRef R>
+template <intersect::accel::AccelRef MeshAccel,
+          intersect::accel::AccelRef TriAccel, LightSamplerRef L,
+          DirSamplerRef D, TermProbRef T, rng::RngRef R>
 HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
     unsigned x, unsigned y, unsigned start_sample, unsigned end_sample,
-    unsigned x_dim, unsigned y_dim, unsigned, const A &accel,
-    const L &light_sampler, const D &dir_sampler, const T &term_prob,
-    const R &rng_ref, Span<const scene::TriangleData> triangle_data,
+    unsigned x_dim, unsigned y_dim, unsigned, const MeshAccel &accel,
+    Span<const TriAccel> &tri_accels, const L &light_sampler,
+    const D &dir_sampler, const T &term_prob, const R &rng_ref,
+    Span<const scene::TriangleData> triangle_data,
     Span<const material::Material> materials,
     const Eigen::Affine3f &film_to_world) {
   unsigned sample_idx = start_sample;
@@ -60,8 +64,12 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
       sample_idx++;
     }
 
-    auto next_intersection =
-        intersect::IntersectableT<A>::intersect(ray, accel);
+    auto get_intersection = [&](const intersect::Ray &ray) {
+      return intersect::IntersectableT<MeshAccel>::intersect(ray, accel,
+                                                             tri_accels);
+    };
+
+    auto next_intersection = get_intersection(ray);
 
     if (!next_intersection.has_value()) {
       finished = true;
@@ -84,13 +92,13 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
     const auto &mesh = accel.get(mesh_idx);
 
     Eigen::Vector3f mesh_space_intersection_point =
-        mesh.world_to_mesh() * intersection_point;
+        mesh.world_to_object() * intersection_point;
 
     const intersect::Triangle &triangle =
-        mesh.accel_triangle().get(triangle_idx);
+        tri_accels[mesh.idx()].get(triangle_idx);
 
     Eigen::Vector3f normal =
-        (mesh.mesh_to_world() *
+        (mesh.object_to_world() *
          data.get_normal(mesh_space_intersection_point, triangle))
             .normalized();
 
@@ -115,8 +123,7 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
         const auto &sample = samples.samples[i];
         intersect::Ray light_ray{intersection_point, sample.direction};
 
-        auto light_intersection =
-            intersect::IntersectableT<A>::intersect(light_ray, accel);
+        auto light_intersection = get_intersection(light_ray);
         if (!light_intersection.has_value()) {
           continue;
         }
@@ -131,7 +138,7 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
           const auto &mesh = accel.get(mesh_idx);
 
           const intersect::Triangle &triangle =
-              mesh.accel_triangle().get(triangle_idx);
+              tri_accels[mesh.idx()].get(triangle_idx);
 
           auto intersection =
               intersect::IntersectableT<intersect::Triangle>::intersect(
@@ -166,8 +173,8 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
 
       multiplier *= m;
     } else {
-      auto [next_dir_v, prob_of_next_direction_v] = dir_sampler(
-          intersection_point, material, ray.direction, normal, rng);
+      auto [next_dir_v, prob_of_next_direction_v] =
+          dir_sampler(intersection_point, material, ray.direction, normal, rng);
 
       next_dir = next_dir_v;
 

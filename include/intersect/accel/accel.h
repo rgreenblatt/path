@@ -4,6 +4,7 @@
 #include "intersect/accel/s_a_heuristic_settings.h"
 #include "intersect/object.h"
 #include "lib/span.h"
+#include "intersect/accel/kdtree/settings.h"
 
 namespace intersect {
 namespace accel {
@@ -44,7 +45,7 @@ concept Accel = requires {
 
   // Settings type is the same for each execution model and object
   typename AccelSettings<type>;
-  std::equality_comparable<AccelSettings<type>>;
+  Setting<AccelSettings<type>>;
 
   // generation
   requires requires(AccelImpl<type, execution_model, O> & accel,
@@ -69,7 +70,7 @@ template <> struct AccelSettings<AccelType::LoopAll> {
 };
 
 template <> struct AccelSettings<AccelType::KDTree> {
-  SAHeuristicSettings s_a_heuristic_settings;
+  kdtree::Settings generate;
 
   HOST_DEVICE inline bool operator==(const AccelSettings &) const = default;
 };

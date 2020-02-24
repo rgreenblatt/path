@@ -7,6 +7,7 @@
 #include "intersect/accel/dir_tree.h"
 #include "intersect/accel/kdtree.h"
 #include "intersect/accel/loop_all.h"
+#include "intersect/transformed_object.h"
 #include "lib/bgra.h"
 #include "render/detail/dir_sampler.h"
 #include "render/detail/light_sampler.h"
@@ -103,6 +104,12 @@ private:
 
   OnePerInstance<intersect::accel::AccelType, StoredTriangleAccels>
       stored_triangle_accels_;
+
+  template <intersect::accel::AccelType type>
+  using MeshAccel = intersect::accel::AccelT<type, execution_model,
+                                             intersect::TransformedObject>;
+
+  OnePerInstance<intersect::accel::AccelType, MeshAccel> mesh_accel_;
 
   template <LightSamplerType type>
   using LightSamplerT = LightSamplerT<type, execution_model>;

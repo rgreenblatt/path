@@ -1,7 +1,7 @@
 #pragma once
 
 #include "execution_model/execution_model_vector_type.h"
-#include "intersect/mesh_instance.h"
+#include "intersect/transformed_object.h"
 #include "lib/binary_search.h"
 #include "lib/group.h"
 #include "lib/projection.h"
@@ -45,15 +45,16 @@ concept LightSampler = requires {
   typename LightSamplerSettings<type>;
   typename LightSamplerImpl<type, execution_model>;
 
-  requires requires(LightSamplerImpl<type, execution_model> & light_sampler,
-                    const LightSamplerSettings<type> &settings,
-                    Span<const scene::EmissiveGroup> emissive_groups,
-                    Span<const unsigned> emissive_group_ends_per_mesh,
-                    Span<const material::Material> materials,
-                    SpanSized<const intersect::MeshInstance> mesh_instances) {
+  requires requires(
+      LightSamplerImpl<type, execution_model> & light_sampler,
+      const LightSamplerSettings<type> &settings,
+      Span<const scene::EmissiveGroup> emissive_groups,
+      Span<const unsigned> emissive_group_ends_per_mesh,
+      Span<const material::Material> materials,
+      SpanSized<const intersect::TransformedObject> transformed_objects) {
     {
       light_sampler.gen(settings, emissive_groups, emissive_group_ends_per_mesh,
-                        materials, mesh_instances)
+                        materials, transformed_objects)
     }
     ->LightSamplerRef;
   };
@@ -89,7 +90,7 @@ public:
 
   auto gen(const Settings &settings, Span<const scene::EmissiveGroup>,
            Span<const unsigned>, Span<const material::Material>,
-           Span<const intersect::MeshInstance>) {
+           SpanSized<const intersect::TransformedObject>) {
     return Ref(settings);
   }
 };
@@ -192,20 +193,21 @@ public:
            Span<const scene::EmissiveGroup> emissive_groups,
            Span<const unsigned> emissive_group_ends_per_mesh,
            Span<const material::Material> materials,
-           SpanSized<const intersect::MeshInstance> mesh_instances) {
+           SpanSized<const intersect::TransformedObject> transformed_objects) {
     std::vector<float> cumulative_weights;
     std::vector<intersect::accel::AABB> aabbs;
     float cumulative_weight = 0.0f;
-    for (const auto &mesh_instance : mesh_instances) {
-      auto [start, end] =
-          group_start_end(mesh_instance.idx(), emissive_group_ends_per_mesh);
+    for (const auto &transformed_object : transformed_objects) {
+      auto [start, end] = group_start_end(transformed_object.idx(),
+                                          emissive_group_ends_per_mesh);
       for (unsigned i = start; i < end; i++) {
         // weight is proportional to intensity and volume
         auto group = emissive_groups[i];
         cumulative_weight += group.aabb.surface_area() *
                              materials[group.material_idx].emission().sum();
         cumulative_weights.push_back(cumulative_weight);
-        aabbs.push_back(group.aabb.transform(mesh_instance.mesh_to_world()));
+        aabbs.push_back(
+            group.aabb.transform(transformed_object.object_to_world()));
       }
     }
 
