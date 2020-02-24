@@ -57,8 +57,9 @@ public:
     template <rng::RngState R>
     HOST_DEVICE DirSample operator()(const Eigen::Vector3f &,
                                      const material::Material &material,
+                                     const Eigen::Vector3f &,
                                      const Eigen::Vector3f &normal,
-                                     const Eigen::Vector3f &, R &rng) const {
+                                     R &rng) const {
       float v0 = rng.next();
       float v1 = rng.next();
 
@@ -95,8 +96,8 @@ public:
     template <rng::RngState R>
     HOST_DEVICE DirSample operator()(const Eigen::Vector3f &,
                                      const material::Material &material,
-                                     const Eigen::Vector3f &normal,
                                      const Eigen::Vector3f &direction,
+                                     const Eigen::Vector3f &normal,
                                      R &rng) const {
       return material.sample(direction, normal, rng);
     }

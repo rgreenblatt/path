@@ -27,8 +27,8 @@ template <intersect::accel::AccelRef A, LightSamplerRef L, DirSamplerRef D,
           TermProbRef T, rng::RngRef R>
 HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
     unsigned x, unsigned y, unsigned start_sample, unsigned end_sample,
-    unsigned x_dim, unsigned y_dim, unsigned num_samples, const A &accel,
-    const L &light_sampler, const D &direction_sampler, const T &term_prob,
+    unsigned x_dim, unsigned y_dim, unsigned, const A &accel,
+    const L &light_sampler, const D &dir_sampler, const T &term_prob,
     const R &rng_ref, Span<const scene::TriangleData> triangle_data,
     Span<const material::Material> materials,
     const Eigen::Affine3f &film_to_world) {
@@ -166,7 +166,7 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
 
       multiplier *= m;
     } else {
-      auto [next_dir_v, prob_of_next_direction_v] = direction_sampler(
+      auto [next_dir_v, prob_of_next_direction_v] = dir_sampler(
           intersection_point, material, ray.direction, normal, rng);
 
       next_dir = next_dir_v;
