@@ -1,14 +1,18 @@
 #pragma once
 
-#include "intersect/accel/accel.h"
-#include "lib/bgra.h"
 #include "compile_time_dispatch/one_per_instance.h"
 #include "execution_model/execution_model_vector_type.h"
 #include "execution_model/thrust_data.h"
-#include "render/detail/dir_sampler_generator.h"
-#include "render/detail/light_sampler_generator.h"
-#include "render/detail/term_prob_generator.h"
+#include "intersect/accel/accel.h"
+#include "intersect/accel/dir_tree.h"
+#include "intersect/accel/kdtree.h"
+#include "intersect/accel/loop_all.h"
+#include "lib/bgra.h"
+#include "render/detail/dir_sampler.h"
+#include "render/detail/light_sampler.h"
+#include "render/detail/term_prob.h"
 #include "render/settings.h"
+#include "rng/uniform.h"
 #include "scene/scene.h"
 
 #include <map>
@@ -101,19 +105,23 @@ private:
       stored_triangle_accels_;
 
   template <LightSamplerType type>
-  using LightSamplerGenerator = LightSamplerGenerator<execution_model, type>;
+  using LightSamplerT = LightSamplerT<type, execution_model>;
 
-  OnePerInstance<LightSamplerType, LightSamplerGenerator> light_samplers_;
+  OnePerInstance<LightSamplerType, LightSamplerT> light_samplers_;
 
   template <DirSamplerType type>
-  using DirSamplerGenerator = DirSamplerGenerator<execution_model, type>;
+  using DirSamplerT = DirSamplerT<type, execution_model>;
 
-  OnePerInstance<DirSamplerType, DirSamplerGenerator> dir_samplers_;
+  OnePerInstance<DirSamplerType, DirSamplerT> dir_samplers_;
 
   template <TermProbType type>
-  using TermProbGenerator = TermProbGenerator<execution_model, type>;
+  using TermProbT = TermProbT<type, execution_model>;
 
-  OnePerInstance<TermProbType, TermProbGenerator> term_probs_;
+  OnePerInstance<TermProbType, TermProbT> term_probs_;
+
+  template <rng::RngType type> using Rng = rng::RngT<type, execution_model>;
+
+  OnePerInstance<rng::RngType, Rng> rngs_;
 
   ThrustData<execution_model> thrust_data_;
 

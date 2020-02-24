@@ -3,12 +3,12 @@
 
 namespace render {
 namespace detail {
-template <typename Accel, typename LightSampler, typename DirSampler,
-          typename TermProb>
+template <intersect::accel::AccelRef A, LightSamplerRef L, DirSamplerRef D,
+          TermProbRef T, rng::RngRef R>
 __global__ void compute_intensities_global(
     const WorkDivision division, unsigned x_dim, unsigned y_dim,
-    unsigned samples_per, const Accel accel, const LightSampler light_sampler,
-    const DirSampler direction_sampler, const TermProb term_prob, Span<BGRA>,
+    unsigned samples_per, const A accel, const L light_sampler,
+    const D direction_sampler, const T term_prob, const R rng, Span<BGRA>,
     Span<Eigen::Array3f>, Span<const scene::TriangleData> triangle_data,
     Span<const material::Material> materials,
     const Eigen::Affine3f film_to_world) {
@@ -40,18 +40,19 @@ __global__ void compute_intensities_global(
 
   compute_intensities_impl(x, y, start_sample, end_sample, x_dim, y_dim,
                            samples_per, accel, light_sampler, direction_sampler,
-                           term_prob, triangle_data, materials, film_to_world);
+                           term_prob, rng, triangle_data, materials,
+                           film_to_world);
 
   // TODO: sum intensities
 }
 
-template <ExecutionModel execution_model, typename Accel, typename LightSampler,
-          typename DirSampler, typename TermProb>
+template <intersect::accel::AccelRef A, LightSamplerRef L, DirSamplerRef D,
+          TermProbRef T, rng::RngRef R>
 void compute_intensities(const WorkDivision &division, unsigned samples_per,
                          unsigned x_dim, unsigned y_dim, unsigned block_size,
-                         const Accel &accel, const LightSampler &light_sampler,
-                         const DirSampler &direction_sampler,
-                         const TermProb &term_prob, Span<BGRA> pixels,
+                         const A &accel, const L &light_sampler,
+                         const D &direction_sampler, const T &term_prob,
+                         const R &rng, Span<BGRA> pixels,
                          Span<Eigen::Array3f> intensities,
                          Span<const scene::TriangleData> triangle_data,
                          Span<const material::Material> materials,
@@ -63,7 +64,7 @@ void compute_intensities(const WorkDivision &division, unsigned samples_per,
 
   compute_intensities_global<<<grid, block_size>>>(
       division, x_dim, y_dim, samples_per, accel, light_sampler,
-      direction_sampler, term_prob, pixels, intensities, triangle_data,
+      direction_sampler, term_prob, rng, pixels, intensities, triangle_data,
       materials, film_to_world);
 
   CUDA_ERROR_CHK(cudaDeviceSynchronize());

@@ -1,8 +1,6 @@
 #pragma once
 
-#include "intersect/accel/loop_all.h"
-#include "intersect/accel/dir_tree.h"
-#include "intersect/accel/kdtree.h"
+#include "intersect/accel/accel.h"
 #include "intersect/impl/ray_impl.h"
 #include "intersect/impl/triangle_impl.h"
 #include "render/detail/compute_intensities.h"
@@ -13,7 +11,6 @@ namespace detail {
 HOST_DEVICE inline intersect::Ray
 initial_ray(float x, float y, unsigned x_dim, unsigned y_dim,
             const Eigen::Affine3f &film_to_world) {
-
   const Eigen::Vector3f camera_space_film_plane(
       (2.0f * x) / x_dim - 1.0f, (-2.0f * y) / y_dim + 1.0f, -1.0f);
   const auto world_space_film_plane = film_to_world * camera_space_film_plane;
@@ -26,14 +23,13 @@ initial_ray(float x, float y, unsigned x_dim, unsigned y_dim,
   return ray;
 }
 
-template <intersect::accel::AccelRef A, typename LightSampler, typename DirSampler,
-          typename TermProb /*, typename Rng*/>
+template <intersect::accel::AccelRef A, LightSamplerRef L, DirSamplerRef D,
+          TermProbRef T, rng::RngRef R>
 HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
     unsigned x, unsigned y, unsigned start_sample, unsigned end_sample,
     unsigned x_dim, unsigned y_dim, unsigned num_samples, const A &accel,
-    const LightSampler &light_sampler, const DirSampler &direction_sampler,
-    const TermProb &term_prob, /*const Rng &rng,*/
-    Span<const scene::TriangleData> triangle_data,
+    const L &light_sampler, const D &direction_sampler, const T &term_prob,
+    const R &rng_ref, Span<const scene::TriangleData> triangle_data,
     Span<const material::Material> materials,
     const Eigen::Affine3f &film_to_world) {
   unsigned sample_idx = start_sample;
@@ -43,18 +39,17 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
   intersect::Ray ray;
   Eigen::Array3f multiplier;
 
-  unsigned max_sampling_num = std::max(num_samples * 16, rng::sequence_size);
-
-  rng::Rng rng(0, max_sampling_num);
+  typename R::State rng;
 
   Eigen::Array3f intensity = Eigen::Array3f::Zero();
 
   while (!finished || sample_idx != end_sample) {
     if (finished) {
       multiplier = Eigen::Vector3f::Ones();
-      rng.set_state(sample_idx * 16);
+      rng = rng_ref.get_generator(sample_idx, x, y);
 
-      auto [x_offset, y_offset] = rng.sample_2();
+      float x_offset = rng.next();
+      float y_offset = rng.next();
 
       ray =
           initial_ray(x + x_offset, y + y_offset, x_dim, y_dim, film_to_world);
@@ -79,7 +74,7 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
     const auto &data = triangle_data[triangle_idx];
     const auto &material = materials[data.material_idx()];
 
-    if (!LightSampler::performs_samples || count_emission) {
+    if (!L::performs_samples || count_emission) {
       intensity += multiplier * material.emission(); // TODO: check
     }
 
@@ -114,8 +109,8 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
 
     auto compute_direct_lighting = [&]() -> Eigen::Array3f {
       Eigen::Array3f intensity = Eigen::Array3f::Zero();
-      const auto samples = light_sampler(intersection_point, material, normal,
-                                         ray.direction, rng);
+      const auto samples = light_sampler(intersection_point, material,
+                                         ray.direction, normal, rng);
       for (unsigned i = 0; i < samples.num_samples; i++) {
         const auto &sample = samples.samples[i];
         intersect::Ray light_ray{intersection_point, sample.direction};
@@ -165,14 +160,14 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
     count_emission = use_delta_event;
 
     if (use_delta_event) {
-      auto [next_dir_v, m] = material.delta_sample(rng, ray.direction, normal);
+      auto [next_dir_v, m] = material.delta_sample(ray.direction, normal, rng);
 
       next_dir = next_dir_v;
 
       multiplier *= m;
     } else {
       auto [next_dir_v, prob_of_next_direction_v] = direction_sampler(
-          intersection_point, material, normal, ray.direction, rng);
+          intersection_point, material, ray.direction, normal, rng);
 
       next_dir = next_dir_v;
 
@@ -186,7 +181,7 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
 
     float this_term_prob = term_prob(multiplier);
 
-    if (rng.sample_1() < this_term_prob) {
+    if (rng.next() < this_term_prob) {
       finished = true;
       continue;
     }
@@ -195,8 +190,6 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
 
     ray.origin = intersection_point;
     ray.direction = next_dir;
-
-    rng.next_state();
   }
 
   return intensity;

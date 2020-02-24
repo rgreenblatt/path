@@ -1,7 +1,7 @@
 #pragma once
 
-#include "lib/bgra.h"
 #include "execution_model/execution_model.h"
+#include "lib/bgra.h"
 #include "lib/span.h"
 
 #include <Eigen/Core>

@@ -32,7 +32,7 @@ private:
 
   std::map<std::string, unsigned> loaded_meshes_; // avoid reloading dup meshes
 
-  std::vector<uint8_t> is_emissive; 
+  std::vector<uint8_t> is_emissive;
 
   CS123SceneGlobalData global_data_; // TODO: what is global data for....
 

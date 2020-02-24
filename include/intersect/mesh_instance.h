@@ -9,7 +9,7 @@
 #include <Eigen/Geometry>
 
 namespace intersect {
-template <typename AccelTriangle> class MeshInstanceRef {
+template <Object AccelTriangle> class MeshInstanceRef {
 public:
   HOST_DEVICE MeshInstanceRef() {}
 
@@ -31,9 +31,7 @@ private:
   MeshInstanceRef(const AccelTriangle *accel_triangle,
                   const Eigen::Affine3f &mesh_to_world, const accel::AABB &aabb)
       : accel_triangle_(accel_triangle), mesh_to_world_(mesh_to_world),
-        world_to_mesh_(mesh_to_world.inverse()), aabb_(aabb) {
-    static_assert(intersect::Object<AccelTriangle>);
-  }
+        world_to_mesh_(mesh_to_world.inverse()), aabb_(aabb) {}
 
   const AccelTriangle *accel_triangle_;
   Eigen::Affine3f mesh_to_world_;
@@ -43,8 +41,7 @@ private:
   friend class MeshInstance;
 };
 
-template <typename AccelTriangle>
-/* requires AccelTriangle ... */
+template <Object AccelTriangle>
 struct IntersectableImpl<MeshInstanceRef<AccelTriangle>> {
   static HOST_DEVICE inline auto
   intersect(const Ray &ray, const MeshInstanceRef<AccelTriangle> &mesh) {

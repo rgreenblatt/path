@@ -4,19 +4,10 @@
 #include "intersect/accel/accel.h"
 #include "lib/cuda/utils.h"
 
-#include "intersect/impl/triangle_impl.h"
-#include "intersect/mesh_instance.h"
-#include "intersect/triangle.h"
-
 #include <thrust/copy.h>
 
 namespace intersect {
 namespace accel {
-template <> struct AccelSettings<AccelType::LoopAll> {
-  HOST_DEVICE inline auto
-  operator<=>(const AccelSettings<AccelType::LoopAll> &) const = default;
-};
-
 template <ExecutionModel execution_model, Object O>
 struct AccelImpl<AccelType::LoopAll, execution_model, O> {
   AccelImpl() {}
@@ -68,11 +59,11 @@ private:
 };
 
 template <typename V>
-concept LoopAllRefSpecialization = RefSpecialization<AccelType::LoopAll, V>;
+concept LoopAllRef = AccelRefOfType<V, AccelType::LoopAll>;
 } // namespace accel
 
 // TODO: consider moving to impl file
-template <accel::LoopAllRefSpecialization Ref> struct IntersectableImpl<Ref> {
+template <accel::LoopAllRef Ref> struct IntersectableImpl<Ref> {
   using Temp = float;
   static HOST_DEVICE inline auto intersect(const Ray &ray, const Ref &ref) {
     using O = typename Ref::InstO;
@@ -94,7 +85,7 @@ template <accel::LoopAllRefSpecialization Ref> struct IntersectableImpl<Ref> {
   }
 };
 
-template <accel::LoopAllRefSpecialization Ref> struct BoundedImpl<Ref> {
+template <accel::LoopAllRef Ref> struct BoundedImpl<Ref> {
   static HOST_DEVICE inline const accel::AABB &bounds(const Ref &ref) {
     return ref.aabb();
   }

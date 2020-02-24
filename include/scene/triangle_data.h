@@ -26,6 +26,7 @@ public:
   }
 
   HOST_DEVICE unsigned material_idx() const { return material_idx_; }
+
 private:
   std::array<Eigen::Vector3f, 3> normals_;
   unsigned material_idx_;

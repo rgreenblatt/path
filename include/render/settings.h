@@ -1,12 +1,11 @@
 #pragma once
 
-#include "intersect/accel/dir_tree.h"
-#include "intersect/accel/kdtree.h"
-#include "intersect/accel/loop_all.h"
 #include "compile_time_dispatch/one_per_instance.h"
-#include "render/dir_sampler_type.h"
-#include "render/light_sampler_type.h"
-#include "render/term_prob_type.h"
+#include "intersect/accel/accel.h"
+#include "render/dir_sampler.h"
+#include "render/light_sampler.h"
+#include "render/term_prob.h"
+#include "rng/rng.h"
 
 #include <tuple>
 
@@ -14,8 +13,9 @@ namespace render {
 class CompileTimeSettings {
 public:
   using AccelType = intersect::accel::AccelType;
+  using RngType = rng::RngType;
   using T = std::tuple<AccelType, AccelType, LightSamplerType, DirSamplerType,
-                       TermProbType>;
+                       TermProbType, RngType>;
 
   constexpr CompileTimeSettings(const T &v) : values_(v) {}
 
@@ -48,6 +48,10 @@ public:
 
   TermProbType &term_prob_type() { return std::get<4>(values_); }
 
+  constexpr RngType rng_type() const { return std::get<5>(values_); }
+
+  RngType &rng_type() { return std::get<5>(values_); }
+
   constexpr const T &values() const { return values_; }
 
 private:
@@ -59,6 +63,7 @@ struct Settings {
 private:
   // default should be pretty reasonable...
   using AccelType = intersect::accel::AccelType;
+  using RngType = rng::RngType;
 
   template <AccelType type>
   using AccelSettings = typename intersect::accel::AccelSettings<type>;
@@ -143,6 +148,12 @@ private:
   AllTermProbSettings default_term_prob = {default_uniform_term_prob,
                                            default_multiplier_norm_term_prob};
 
+  using AllRngSettings = OnePerInstance<RngType, rng::RngSettings>;
+
+  static constexpr rng::RngSettings<RngType::Uniform> default_rng_uniform = {};
+
+  AllRngSettings default_rng = {default_rng_uniform};
+
 public:
   AllAccelSettings triangle_accel = default_triangle_accel;
 
@@ -153,6 +164,8 @@ public:
   AllDirSamplerSettings dir_sampler = default_dir_sampler;
 
   AllTermProbSettings term_prob = default_term_prob;
+
+  AllRngSettings rng = default_rng;
 
   CompileTimeSettings compile_time;
 };

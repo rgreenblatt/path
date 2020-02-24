@@ -7,8 +7,8 @@
 #include <docopt.h>
 #include <thrust/optional.h>
 
-#include <string>
 #include <iostream>
+#include <string>
 
 static const char USAGE[] =
     R"(Path

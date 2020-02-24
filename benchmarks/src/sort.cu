@@ -1,5 +1,5 @@
-#include "execution_model/thrust_data.h"
 #include "execution_model/device_vector.h"
+#include "execution_model/thrust_data.h"
 #include "lib/span.h"
 
 #include <benchmark/benchmark.h>

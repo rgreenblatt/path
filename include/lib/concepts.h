@@ -1,7 +1,7 @@
 #pragma once
 
-#include <type_traits>
 #include <array>
+#include <type_traits>
 
 template <class T, template <typename...> class Template>
 struct is_specialization : std::false_type {};

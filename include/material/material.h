@@ -2,6 +2,10 @@
 
 #include "lib/cuda/utils.h"
 #include "material/brdf.h"
+#include "material/brdf/dielectric_refractive.h"
+#include "material/brdf/diffuse.h"
+#include "material/brdf/glossy.h"
+#include "material/brdf/mirror.h"
 
 #include <Eigen/Core>
 
@@ -11,8 +15,9 @@ namespace material {
 // TODO:
 class Material {
 public:
+  // default
   HOST_DEVICE Material()
-      : Material(BRDF<BRDFType::Diffuse>(), Eigen::Array3f::Zero()) {}
+      : Material(BRDFT<BRDFType::Diffuse>(), Eigen::Array3f::Zero()) {}
 
   HOST_DEVICE Material(const Material &other) { copy_in_other(other); }
 
@@ -23,10 +28,10 @@ public:
   }
 
   template <BRDFType type>
-  HOST_DEVICE Material(const BRDF<type> &brdf, const Eigen::Array3f &emission)
+  HOST_DEVICE Material(const BRDFT<type> &brdf, const Eigen::Array3f &emission)
       : type_(type), emission_(emission) {
     visit([&](auto &val) {
-      if constexpr (std::is_same_v<std::decay_t<decltype(val)>, BRDF<type>>) {
+      if constexpr (std::is_same_v<std::decay_t<decltype(val)>, BRDFT<type>>) {
         val = brdf;
       }
     });
@@ -103,7 +108,8 @@ public:
 
   HOST_DEVICE float prob_not_delta() const { return 1.0f - prob_delta(); }
 
-  HOST_DEVICE bool delta_prob_check(rng::Rng &rng) const {
+  // TODO:
+  template <rng::RngState R> HOST_DEVICE bool delta_prob_check(R &rng) const {
     return visit([&](const auto &v) -> bool {
       using T = std::decay_t<decltype(v)>;
       if constexpr (T::has_non_delta_samples && !T::has_delta_samples) {
@@ -111,31 +117,32 @@ public:
       } else if constexpr (T::has_delta_samples && !T::has_non_delta_samples) {
         return true;
       } else {
-        return rng.sample_1() < v.prob_delta();
+        return rng.next() < v.prob_delta();
       }
     });
   }
 
-  HOST_DEVICE std::tuple<Eigen::Vector3f, Eigen::Array3f>
-  delta_sample(rng::Rng &rng, const Eigen::Vector3f &incoming_dir,
-               const Eigen::Vector3f &normal) const {
-    return visit(
-        [&](const auto &v) -> std::tuple<Eigen::Vector3f, Eigen::Array3f> {
-          if constexpr (std::decay_t<decltype(v)>::has_delta_samples) {
-            return v.delta_sample(rng, incoming_dir, normal);
-          } else {
-            assert(false);
-            return {};
-          }
-        });
+  template <rng::RngState R>
+  HOST_DEVICE DeltaSample delta_sample(const Eigen::Vector3f &incoming_dir,
+                                       const Eigen::Vector3f &normal,
+                                       R &rng) const {
+    return visit([&](const auto &v) -> DeltaSample {
+      if constexpr (std::decay_t<decltype(v)>::has_delta_samples) {
+        return v.delta_sample(incoming_dir, normal, rng);
+      } else {
+        assert(false);
+        return {};
+      }
+    });
   }
 
-  HOST_DEVICE render::DirSample sample(rng::Rng &rng,
-                                       const Eigen::Vector3f &incoming_dir,
-                                       const Eigen::Vector3f &normal) const {
+  template <rng::RngState R>
+  HOST_DEVICE render::DirSample sample(const Eigen::Vector3f &incoming_dir,
+                                       const Eigen::Vector3f &normal,
+                                       R &rng) const {
     return visit([&](const auto &v) -> render::DirSample {
       if constexpr (std::decay_t<decltype(v)>::has_non_delta_samples) {
-        return v.sample(rng, incoming_dir, normal);
+        return v.sample(incoming_dir, normal, rng);
       } else {
         assert(false);
         return {};
@@ -168,10 +175,10 @@ private:
   Eigen::Array3f emission_;
 
   union {
-    BRDF<BRDFType::Diffuse> diffuse_;
-    BRDF<BRDFType::Glossy> glossy_;
-    BRDF<BRDFType::Mirror> mirror_;
-    BRDF<BRDFType::DielectricRefractive> dielectric_refractive_;
+    BRDFT<BRDFType::Diffuse> diffuse_;
+    BRDFT<BRDFType::Glossy> glossy_;
+    BRDFT<BRDFType::Mirror> mirror_;
+    BRDFT<BRDFType::DielectricRefractive> dielectric_refractive_;
   };
 };
 } // namespace material

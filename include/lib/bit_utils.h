@@ -2,8 +2,8 @@
 
 #include "lib/cuda/utils.h"
 
-#include <limits>
 #include <concepts>
+#include <limits>
 
 inline HOST_DEVICE uint32_t popcount(uint32_t v) {
   static_assert(sizeof(uint32_t) == sizeof(unsigned));

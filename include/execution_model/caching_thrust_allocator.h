@@ -1,7 +1,7 @@
 #pragma once
 
-#include "lib/cuda/utils.h"
 #include "execution_model/execution_model.h"
+#include "lib/cuda/utils.h"
 
 #include <thrust/host_vector.h>
 #include <thrust/system/cuda/execution_policy.h>

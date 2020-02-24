@@ -16,8 +16,7 @@ public:
 
   static_assert(size != 0);
 
-  static constexpr T this_value =
-      CompileTimeDispatchableT<T>::values[idx];
+  static constexpr T this_value = CompileTimeDispatchableT<T>::values[idx];
 
   using ItemType = TypeOver<this_value>;
 

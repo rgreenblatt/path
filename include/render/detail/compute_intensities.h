@@ -1,24 +1,28 @@
 #pragma once
 
-#include "lib/bgra.h"
 #include "execution_model/execution_model_vector_type.h"
 #include "execution_model/thrust_data.h"
+#include "intersect/accel/accel.h"
+#include "lib/bgra.h"
 #include "lib/span.h"
 #include "material/material.h"
+#include "render/detail/dir_sampler.h"
 #include "render/detail/divide_work.h"
+#include "render/detail/light_sampler.h"
+#include "render/detail/term_prob.h"
 #include "scene/triangle_data.h"
 
 #include <Eigen/Geometry>
 
 namespace render {
 namespace detail {
-template <ExecutionModel execution_model, typename Accel, typename LightSampler,
-          typename DirSampler, typename TermProb>
+template <intersect::accel::AccelRef A, LightSamplerRef L, DirSamplerRef D,
+          TermProbRef T, rng::RngRef R>
 void compute_intensities(const WorkDivision &division, unsigned samples_per,
                          unsigned x_dim, unsigned y_dim, unsigned block_size,
-                         const Accel &accel, const LightSampler &light_sampler,
-                         const DirSampler &direction_sampler,
-                         const TermProb &term_prob, Span<BGRA> pixels,
+                         const A &accel, const L &light_sampler,
+                         const D &direction_sampler, const T &term_prob,
+                         const R &rng, Span<BGRA> pixels,
                          Span<Eigen::Array3f> intensities,
                          Span<const scene::TriangleData> triangle_data,
                          Span<const material::Material> materials,

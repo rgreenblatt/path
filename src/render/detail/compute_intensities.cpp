@@ -3,14 +3,14 @@
 
 namespace render {
 namespace detail {
-template <ExecutionModel execution_model, typename Accel, typename LightSampler,
-          typename DirSampler, typename TermProb>
-void compute_intensities(const WorkDivision &, unsigned samples_per,
-                         unsigned x_dim, unsigned y_dim, unsigned,
-                         const Accel &accel, const LightSampler &light_sampler,
-                         const DirSampler &direction_sampler,
-                         const TermProb &term_prob, Span<BGRA> pixels,
-                         Span<Eigen::Array3f>,
+template <intersect::accel::AccelRef A, LightSamplerRef L, DirSamplerRef D,
+          TermProbRef T, rng::RngRef R>
+void compute_intensities(const WorkDivision &division, unsigned samples_per,
+                         unsigned x_dim, unsigned y_dim, unsigned block_size,
+                         const A &accel, const L &light_sampler,
+                         const D &direction_sampler, const T &term_prob,
+                         const R &rng, Span<BGRA> pixels,
+                         Span<Eigen::Array3f> intensities,
                          Span<const scene::TriangleData> triangle_data,
                          Span<const material::Material> materials,
                          const Eigen::Affine3f &film_to_world) {
@@ -22,8 +22,8 @@ void compute_intensities(const WorkDivision &, unsigned samples_per,
       pixels[x + y * x_dim] = intensity_to_bgr(
           compute_intensities_impl(x, y, 0, samples_per, x_dim, y_dim,
                                    samples_per, accel, light_sampler,
-                                   direction_sampler, term_prob, triangle_data,
-                                   materials, film_to_world) /
+                                   direction_sampler, term_prob, rng,
+                                   triangle_data, materials, film_to_world) /
           samples_per);
     }
   }

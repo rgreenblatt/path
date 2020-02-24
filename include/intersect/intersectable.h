@@ -12,6 +12,7 @@ template <typename T> struct IntersectableImpl;
 template <typename T> concept Intersectable = requires {
   typename IntersectableImpl<T>;
 
+  // TODO:
   /* requires requires(const Ray &ray, const T &t) { */
   /*   { IntersectableImpl<T>::intersect(ray, t) } */
   /*   ->SpecializationOf<IntersectionOp>; */

@@ -51,7 +51,7 @@ template <> struct BoundedImpl<Triangle> {
     Eigen::Vector3f max_b(std::numeric_limits<float>::lowest(),
                           std::numeric_limits<float>::lowest(),
                           std::numeric_limits<float>::lowest());
-    for (const auto& vertex : triangle.vertices()) {
+    for (const auto &vertex : triangle.vertices()) {
       min_b = min_b.cwiseMin(vertex);
       max_b = max_b.cwiseMax(vertex);
     }

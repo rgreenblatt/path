@@ -1,6 +1,7 @@
 #pragma once
 
 #include "execution_model/execution_model.h"
+#include "intersect/accel/s_a_heuristic_settings.h"
 #include "intersect/object.h"
 #include "lib/span.h"
 
@@ -15,8 +16,24 @@ enum class AccelType {
 template <AccelType type, ExecutionModel execution_model, Object O>
 struct AccelImpl;
 
-template <AccelType type>
-struct AccelSettings;
+template <AccelType type> struct AccelSettings;
+
+template <typename V> concept AccelRef = requires {
+  Object<V>;
+
+  typename V::InstO;
+  V::inst_type;
+  V::inst_execution_model;
+
+  // indexing (for the reference)
+  requires requires(const V &accel_ref, unsigned idx) {
+    { accel_ref.get(idx) }
+    ->std::convertible_to<typename V::InstO>;
+  };
+};
+
+template <typename V, AccelType type>
+concept AccelRefOfType = AccelRef<V> &&type == V::inst_type;
 
 // why can't I use Object O? (concept cannot have associated constraints)
 template <AccelType type, ExecutionModel execution_model, typename O>
@@ -25,35 +42,16 @@ concept Accel = requires {
   typename AccelImpl<type, execution_model, O>;
   std::default_initializable<AccelImpl<type, execution_model, O>>;
 
-  // reference type which is used to actually find intersections
-  typename AccelImpl<type, execution_model, O>::Ref;
-  Object<typename AccelImpl<type, execution_model, O>::Ref>;
-
-  // type aliases in the reference are used to map from reference types
-  // to implementations
-  typename AccelImpl<type, execution_model, O>::Ref::InstO;
-  AccelImpl<type, execution_model, O>::Ref::inst_type == type;
-  AccelImpl<type, execution_model, O>::Ref::inst_execution_model ==
-      execution_model;
-  std::same_as<typename AccelImpl<type, execution_model, O>::Ref::InstO, O>;
-
   // Settings type is the same for each execution model and object
   typename AccelSettings<type>;
+  std::equality_comparable<AccelSettings<type>>;
 
   // generation
   requires requires(AccelImpl<type, execution_model, O> & accel,
                     const AccelSettings<type> &settings, Span<const O> objects,
                     unsigned start, unsigned end, const AABB &aabb) {
     { accel.gen(settings, objects, start, end, aabb) }
-    ->std::convertible_to<typename AccelImpl<type, execution_model, O>::Ref>;
-  };
-
-  // indexing (for the reference)
-  requires requires(
-      const typename AccelImpl<type, execution_model, O>::Ref &accel_ref,
-      unsigned idx) {
-    { accel_ref.get(idx) }
-    ->std::convertible_to<O>;
+    ->AccelRefOfType<type>;
   };
 };
 
@@ -65,21 +63,22 @@ requires Accel<accel_type, execution_model, O> struct AccelChecked {
 template <AccelType type, ExecutionModel execution_model, Object O>
 using AccelT = typename AccelChecked<type, execution_model, O>::type;
 
-template <AccelType type, typename V> concept RefSpecialization = requires {
-  typename V::InstO;
-  { V::inst_execution_model }
-  ->std::common_with<ExecutionModel>;
-  { V::inst_type }
-  ->std::common_with<AccelType>;
-  std::same_as<
-      V, typename accel::AccelT<type, V::inst_execution_model, typename V::InstO>::Ref>;
-}
-&&V::inst_type == type;
+template <> struct AccelSettings<AccelType::LoopAll> {
+  HOST_DEVICE inline bool
+  operator==(const AccelSettings<AccelType::LoopAll> &) const = default;
+};
 
-template<typename V> concept AccelRef = requires {
-  { V::inst_type }
-  ->std::common_with<AccelType>;
-  RefSpecialization<V::inst_type, V>;
+template <> struct AccelSettings<AccelType::KDTree> {
+  SAHeuristicSettings s_a_heuristic_settings;
+
+  HOST_DEVICE inline bool operator==(const AccelSettings &) const = default;
+};
+
+template <> struct AccelSettings<AccelType::DirTree> {
+  SAHeuristicSettings s_a_heuristic_settings;
+  unsigned num_dir_trees;
+
+  HOST_DEVICE inline bool operator==(const AccelSettings &) const = default;
 };
 } // namespace accel
 } // namespace intersect

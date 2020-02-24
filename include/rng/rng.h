@@ -1,54 +1,59 @@
 #pragma once
 
+#include "execution_model/execution_model.h"
 #include "lib/cuda/utils.h"
-#include "rng/halton.h"
 
-#include <assert.h>
+#include <array>
+#include <concepts>
 
 namespace rng {
-// TODO: consider making configurable...
-class Rng {
-public:
-  using StateType = uint16_t;
+enum class RngType { Uniform /*,Halton, Sobel*/ };
 
-  HOST_DEVICE Rng() = default;
+template <RngType type, ExecutionModel execution_model> struct RngImpl;
 
-  HOST_DEVICE Rng(StateType state, StateType max_state)
-      : state_(state), max_state_(max_state) {}
+template <RngType type> struct RngSettings;
 
-  // TODO: should sampling increment???
-  template <unsigned n> HOST_DEVICE auto sample_n() {
-#ifdef __CUDA_ARCH__
-    return halton<n>(state_);
-#else
-    std::array<float, n> out;
-    for (unsigned i = 0; i < n; i++) {
-      out[i] = float(double(rand()) / double(RAND_MAX));
-    }
-    return out;
-#endif
-  }
+template <typename State> concept RngState = requires(State &state) {
+  std::default_initializable<State>;
+  { state.next() }
+  ->std::same_as<float>;
+};
 
-  HOST_DEVICE auto sample_1() { return sample_n<1>()[0]; }
+template <typename Ref>
+concept RngRef = requires(const Ref &ref, unsigned sample_idx, unsigned x,
+                          unsigned y) {
+  typename Ref::State;
+  RngState<typename Ref::State>;
+  { ref.get_generator(x, y, sample_idx) }
+  ->std::common_with<typename Ref::State>;
+};
 
-  HOST_DEVICE auto sample_2() { return sample_n<2>(); }
+template <RngType type, ExecutionModel execution_model> concept Rng = requires {
+  typename RngImpl<type, execution_model>;
+  typename RngImpl<type, execution_model>::Ref;
+  RngRef<typename RngImpl<type, execution_model>::Ref>;
+  typename RngImpl<type, execution_model>::Ref::State;
+  RngState<typename RngImpl<type, execution_model>::Ref::State>;
+  typename RngSettings<type>;
+  typename RngSettings<type>;
 
-  HOST_DEVICE void set_state(StateType state) {
-    assert(state_ < max_state_);
-    state_ = state;
-  }
+  // generation
+  requires requires(RngImpl<type, execution_model> & rng,
+                    const RngSettings<type> &settings, unsigned samples_per,
+                    unsigned x_dim, unsigned y_dim,
+                    unsigned max_draws_per_sample) {
+    { rng.gen(settings, samples_per, x_dim, y_dim, max_draws_per_sample) }
+    ->std::common_with<typename RngImpl<type, execution_model>::Ref>;
+  };
+};
 
-  HOST_DEVICE void next_state() {
-    state_++;
+template <> struct RngSettings<RngType::Uniform> {};
 
-    // wrap
-    if (state_ >= max_state_) {
-      state_ = 0;
-    }
-  }
+template <RngType type, ExecutionModel execution_model>
+requires Rng<type, execution_model> struct RngT
+    : RngImpl<type, execution_model> {
+  HOST_DEVICE RngT() = default;
 
-private:
-  StateType state_;
-  StateType max_state_;
+  using RngImpl<type, execution_model>::RngImpl;
 };
 } // namespace rng

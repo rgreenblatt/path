@@ -35,7 +35,8 @@ static void standard_keys(benchmark::State &state) {
   }
 }
 
-template <std::integral Block> static void bitset_direct(benchmark::State &state) {
+template <std::integral Block>
+static void bitset_direct(benchmark::State &state) {
   ThrustData<ExecutionModel::GPU> thrust_data;
   uint32_t size_per = BitsetRef<Block>::bits_per_block;
   DeviceVector<Block> in(unsigned(state.range(0)) / size_per);
@@ -44,13 +45,13 @@ template <std::integral Block> static void bitset_direct(benchmark::State &state
   // Why can't I copy BitsetRef to BitsetRef...
   SpanSized<Block> bit_set_data(in);
 
-  auto start_bit_iter = thrust::make_transform_iterator(
-      thrust::make_counting_iterator(0u),
-      [=] __host__ __device__(unsigned pos) { 
-      BitsetRef<Block> bit_set = bit_set_data;
+  auto start_bit_iter =
+      thrust::make_transform_iterator(thrust::make_counting_iterator(0u),
+                                      [=] __host__ __device__(unsigned pos) {
+                                        BitsetRef<Block> bit_set = bit_set_data;
 
-      return bit_set[pos];
-      });
+                                        return bit_set[pos];
+                                      });
   auto end_bit_iter = start_bit_iter + unsigned(state.range(0));
 
   for (auto _ : state) {
@@ -59,7 +60,8 @@ template <std::integral Block> static void bitset_direct(benchmark::State &state
   }
 }
 
-template <std::integral Block> static void bitset_popcount(benchmark::State &state) {
+template <std::integral Block>
+static void bitset_popcount(benchmark::State &state) {
   ThrustData<ExecutionModel::GPU> thrust_data;
   unsigned size_per = BitsetRef<Block>::bits_per_block;
   unsigned num_blocks = unsigned(state.range(0)) / size_per;
@@ -68,13 +70,13 @@ template <std::integral Block> static void bitset_popcount(benchmark::State &sta
 
   SpanSized<Block> bit_set_data(in);
 
-  auto start_block_iter = thrust::make_transform_iterator(
-      thrust::make_counting_iterator(0u),
-      [=] __host__ __device__(unsigned block) {
-      BitsetRef<Block> bit_set = bit_set_data;
+  auto start_block_iter =
+      thrust::make_transform_iterator(thrust::make_counting_iterator(0u),
+                                      [=] __host__ __device__(unsigned block) {
+                                        BitsetRef<Block> bit_set = bit_set_data;
 
-        return bit_set.count(block);
-      });
+                                        return bit_set.count(block);
+                                      });
   auto end_block_iter = start_block_iter + num_blocks;
 
   for (auto _ : state) {

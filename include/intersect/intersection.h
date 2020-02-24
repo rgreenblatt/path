@@ -1,8 +1,8 @@
 #pragma once
 
+#include "lib/concepts.h"
 #include "lib/cuda/utils.h"
 #include "lib/optional.h"
-#include "lib/concepts.h"
 
 #include <map>
 
@@ -37,7 +37,6 @@ using AppendIndexInfoType =
 template <typename InfoType>
 HOST_DEVICE IntersectionOp<AppendIndexInfoType<InfoType>>
 append_index(const IntersectionOp<InfoType> &intersect_op, unsigned idx) {
-  static_assert(StdArraySpecialization<InfoType>);
   return optional_map(intersect_op,
                       [&](const Intersection<InfoType> &intersect)
                           -> Intersection<AppendIndexInfoType<InfoType>> {
@@ -51,7 +50,7 @@ append_index(const IntersectionOp<InfoType> &intersect_op, unsigned idx) {
                         return {intersect.intersection_dist, out};
                       });
 }
-}
+} // namespace intersect
 
 // Fix specialization check...
 template <template <typename... Args> class Template, typename Arg>

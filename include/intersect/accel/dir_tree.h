@@ -3,19 +3,8 @@
 #include "intersect/accel/accel.h"
 #include "intersect/accel/s_a_heuristic_settings.h"
 
-#include "intersect/impl/triangle_impl.h"
-#include "intersect/mesh_instance.h"
-#include "intersect/triangle.h"
-
 namespace intersect {
 namespace accel {
-template <> struct AccelSettings<AccelType::DirTree> {
-  SAHeuristicSettings s_a_heuristic_settings;
-  unsigned num_dir_trees;
-
-  HOST_DEVICE inline bool operator==(const AccelSettings &) const = default;
-};
-
 template <ExecutionModel execution_model, Object O>
 struct AccelImpl<AccelType::DirTree, execution_model, O> {
   AccelImpl() {}
@@ -50,11 +39,11 @@ struct AccelImpl<AccelType::DirTree, execution_model, O> {
 };
 
 template <typename V>
-concept DirTreeRefSpecialization = RefSpecialization<AccelType::DirTree, V>;
+concept DirTreeRef = AccelRefOfType<V, AccelType::DirTree>;
 } // namespace accel
 
 // TODO: consider moving to impl file
-template <accel::DirTreeRefSpecialization Ref> struct IntersectableImpl<Ref> {
+template <accel::DirTreeRef Ref> struct IntersectableImpl<Ref> {
   static HOST_DEVICE inline auto intersect(const Ray &, const Ref &) {
     // TODO
     assert(false);
@@ -69,7 +58,7 @@ template <accel::DirTreeRefSpecialization Ref> struct IntersectableImpl<Ref> {
   }
 };
 
-template <accel::DirTreeRefSpecialization Ref> struct BoundedImpl<Ref> {
+template <accel::DirTreeRef Ref> struct BoundedImpl<Ref> {
   static HOST_DEVICE inline const accel::AABB &bounds(const Ref &ref) {
     return ref.aabb();
   }

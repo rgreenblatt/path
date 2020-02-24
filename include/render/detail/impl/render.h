@@ -1,25 +1,14 @@
 #pragma once
 
 #include "compile_time_dispatch/dispatch_value.h"
+#include "intersect/accel/loop_all.h"
 #include "intersect/impl/ray_impl.h"
 #include "intersect/impl/triangle_impl.h"
-#include "intersect/accel/loop_all.h"
 #include "lib/group.h"
 #include "render/detail/compute_intensities.h"
 #include "render/detail/divide_work.h"
 #include "render/detail/renderer_impl.h"
 #include "render/detail/tone_map.h"
-
-
-static_assert(
-    intersect::Bounded<intersect::accel::AccelT<intersect::accel::AccelType::LoopAll, ExecutionModel::CPU,
-                          intersect::Triangle>::Ref>);
-static_assert(
-    intersect::Bounded<intersect::accel::AccelT<intersect::accel::AccelType::LoopAll, ExecutionModel::GPU,
-                          intersect::Triangle>::Ref>);
-static_assert(
-    intersect::Bounded<intersect::accel::AccelT<intersect::accel::AccelType::LoopAll, ExecutionModel::CPU,
-                          intersect::Triangle>::Ref>);
 
 namespace render {
 namespace detail {
@@ -84,7 +73,7 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
 
         using Triangle = intersect::Triangle;
         using TriAccel = intersect::accel::AccelT<triangle_accel_type,
-                                               execution_model, Triangle>;
+                                                  execution_model, Triangle>;
         using TriRefType = typename TriAccel::Ref;
 
         unsigned num_meshs = s.mesh_paths().size();
@@ -150,6 +139,7 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
         constexpr auto dir_sampler_type =
             compile_time_settings.dir_sampler_type();
         constexpr auto term_prob_type = compile_time_settings.term_prob_type();
+        constexpr auto rng_type = compile_time_settings.rng_type();
 
         auto light_sampler =
             light_samplers_.template get_item<light_sampler_type>().gen(
@@ -164,11 +154,17 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
         auto term_prob = term_probs_.template get_item<term_prob_type>().gen(
             settings.term_prob.template get_item<term_prob_type>());
 
-        compute_intensities<execution_model>(
-            division, samples_per, x_dim, y_dim, block_size,
-            mesh_instance_accel_ref, light_sampler, dir_sampler, term_prob,
-            output_pixels, intensities_, triangle_data, materials,
-            s.film_to_world());
+        // TODO
+        const unsigned max_draws_per_sample = 100;
+
+        auto rng = rngs_.template get_item<rng_type>().gen(
+            settings.rng.template get_item<rng_type>(), samples_per, x_dim,
+            y_dim, max_draws_per_sample);
+
+        compute_intensities(division, samples_per, x_dim, y_dim, block_size,
+                            mesh_instance_accel_ref, light_sampler, dir_sampler,
+                            term_prob, rng, output_pixels, intensities_,
+                            triangle_data, materials, s.film_to_world());
       },
       settings.compile_time.values());
 

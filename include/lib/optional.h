@@ -7,8 +7,7 @@
 // constexpr used to allow function to build targeting device...
 // compare to HOST_DEVICE macro
 
-template <typename T, typename F,
-          typename Ret = decltype(std::declval<F>()())>
+template <typename T, typename F, typename Ret = decltype(std::declval<F>()())>
 constexpr Ret optional_or_else(const thrust::optional<T> &v, const F &f) {
   if (v.has_value()) {
     return v;

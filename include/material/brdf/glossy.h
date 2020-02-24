@@ -2,7 +2,7 @@
 
 #include "lib/cuda/utils.h"
 #include "lib/projection.h"
-#include "material/brdf_type.h"
+#include "material/brdf.h"
 #include "material/utils.h"
 #include "render/dir_sample.h"
 #include "rng/rng.h"
@@ -10,17 +10,23 @@
 #include <Eigen/Core>
 
 namespace material {
-template <> class BRDF<BRDFType::Glossy> {
+template <> struct BRDFImpl<BRDFType::Glossy> {
 public:
   static constexpr bool has_delta_samples = false;
   static constexpr bool has_non_delta_samples = true;
   static constexpr bool is_bsdf = false;
 
-  HOST_DEVICE BRDF() = default;
+  struct Params {
+    Eigen::Array3f specular;
+    float shininess;
+  };
 
-  HOST_DEVICE BRDF(const Eigen::Array3f &specular, float shininess)
-      : normalized_specular_(specular * normalizing_factor(shininess)),
-        shininess_(shininess) {}
+  HOST_DEVICE BRDFImpl() = default;
+
+  HOST_DEVICE BRDFImpl(const Params &params)
+      : normalized_specular_(params.specular *
+                             normalizing_factor(params.shininess)),
+        shininess_(params.shininess) {}
 
   HOST_DEVICE Eigen::Array3f brdf(const Eigen::Vector3f &incoming_dir,
                                   const Eigen::Vector3f &outgoing_dir,
@@ -30,10 +36,12 @@ public:
                     shininess_);
   }
 
-  HOST_DEVICE render::DirSample sample(rng::Rng &rng,
-                                       const Eigen::Vector3f &incoming_dir,
-                                       const Eigen::Vector3f &normal) const {
-    auto [v0, v1] = rng.sample_2();
+  template <rng::RngState R>
+  HOST_DEVICE render::DirSample sample(const Eigen::Vector3f &incoming_dir,
+                                       const Eigen::Vector3f &normal,
+                                       R &rng) const {
+    float v0 = rng.next();
+    float v1 = rng.next();
 
     auto reflection = reflect_over_normal(incoming_dir, normal);
 

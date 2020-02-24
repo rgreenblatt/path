@@ -2,17 +2,41 @@
 
 #include "execution_model/execution_model_vector_type.h"
 #include "material/material.h"
-#include "render/term_prob_type.h"
+#include "render/term_prob.h"
 
 #include <Eigen/Core>
 
 namespace render {
 namespace detail {
-template <ExecutionModel execution_model, TermProbType type>
-class TermProbGenerator;
+template <TermProbType type, ExecutionModel execution_model>
+struct TermProbImpl;
 
+template <typename V>
+concept TermProbRef = requires(const V &term_prob,
+                               const Eigen::Array3f &multiplier) {
+  { term_prob(multiplier) }
+  ->std::convertible_to<float>;
+};
+
+template <TermProbType type, ExecutionModel execution_model>
+concept TermProb = requires {
+  typename TermProbSettings<type>;
+  typename TermProbImpl<type, execution_model>;
+
+  requires requires(TermProbImpl<type, execution_model> & term_prob,
+                    const TermProbSettings<type> &settings) {
+    { term_prob.gen(settings) }
+    ->TermProbRef;
+  };
+};
+
+template <TermProbType type, ExecutionModel execution_model>
+requires TermProb<type, execution_model> struct TermProbT
+    : TermProbImpl<type, execution_model> {
+  using TermProbImpl<type, execution_model>::TermProbImpl;
+};
 template <ExecutionModel execution_model>
-class TermProbGenerator<execution_model, TermProbType::Uniform> {
+struct TermProbImpl<TermProbType::Uniform, execution_model> {
 public:
   using Settings = TermProbSettings<TermProbType::Uniform>;
 
@@ -32,7 +56,7 @@ public:
 };
 
 template <ExecutionModel execution_model>
-class TermProbGenerator<execution_model, TermProbType::MultiplierNorm> {
+struct TermProbImpl<TermProbType::MultiplierNorm, execution_model> {
 public:
   using Settings = TermProbSettings<TermProbType::MultiplierNorm>;
 

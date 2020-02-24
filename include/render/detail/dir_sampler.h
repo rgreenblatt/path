@@ -3,18 +3,48 @@
 #include "execution_model/execution_model.h"
 #include "lib/projection.h"
 #include "material/material.h"
-#include "render/dir_sampler_type.h"
+#include "render/dir_sampler.h"
 #include "rng/rng.h"
+#include "rng/test_rng_state_type.h"
 
 #include <Eigen/Core>
 
 namespace render {
 namespace detail {
-template <ExecutionModel execution_model, DirSamplerType type>
-class DirSamplerGenerator;
+template <DirSamplerType type, ExecutionModel execution_model>
+struct DirSamplerImpl;
+
+template <typename V>
+concept DirSamplerRef = requires(const V &dir_sampler,
+                                 const Eigen::Vector3f &position,
+                                 const material::Material &material,
+                                 const Eigen::Vector3f &incoming_dir,
+                                 const Eigen::Vector3f &normal,
+                                 rng::TestRngStateT &rng) {
+  { dir_sampler(position, material, incoming_dir, normal, rng) }
+  ->std::common_with<DirSample>;
+};
+
+template <DirSamplerType type, ExecutionModel execution_model>
+concept DirSampler = requires {
+  typename DirSamplerSettings<type>;
+  typename DirSamplerImpl<type, execution_model>;
+
+  requires requires(DirSamplerImpl<type, execution_model> & dir_sampler,
+                    const DirSamplerSettings<type> &settings) {
+    { dir_sampler.gen(settings) }
+    ->DirSamplerRef;
+  };
+};
+
+template <DirSamplerType type, ExecutionModel execution_model>
+requires DirSampler<type, execution_model> struct DirSamplerT
+    : DirSamplerImpl<type, execution_model> {
+  using DirSamplerImpl<type, execution_model>::DirSamplerImpl;
+};
 
 template <ExecutionModel execution_model>
-class DirSamplerGenerator<execution_model, DirSamplerType::Uniform> {
+struct DirSamplerImpl<DirSamplerType::Uniform, execution_model> {
 public:
   using Settings = DirSamplerSettings<DirSamplerType::Uniform>;
 
@@ -24,12 +54,13 @@ public:
 
     HOST_DEVICE Ref(const Settings &) {}
 
+    template <rng::RngState R>
     HOST_DEVICE DirSample operator()(const Eigen::Vector3f &,
                                      const material::Material &material,
                                      const Eigen::Vector3f &normal,
-                                     const Eigen::Vector3f &,
-                                     rng::Rng &rng) const {
-      auto [v0, v1] = rng.sample_2();
+                                     const Eigen::Vector3f &, R &rng) const {
+      float v0 = rng.next();
+      float v1 = rng.next();
 
       bool need_whole_sphere = material.is_bsdf();
 
@@ -51,7 +82,7 @@ public:
 };
 
 template <ExecutionModel execution_model>
-class DirSamplerGenerator<execution_model, DirSamplerType::BRDF> {
+struct DirSamplerImpl<DirSamplerType::BRDF, execution_model> {
 public:
   using Settings = DirSamplerSettings<DirSamplerType::BRDF>;
 
@@ -61,12 +92,13 @@ public:
 
     HOST_DEVICE Ref(const Settings &) {}
 
+    template <rng::RngState R>
     HOST_DEVICE DirSample operator()(const Eigen::Vector3f &,
                                      const material::Material &material,
                                      const Eigen::Vector3f &normal,
                                      const Eigen::Vector3f &direction,
-                                     rng::Rng &rng) const {
-      return material.sample(rng, direction, normal);
+                                     R &rng) const {
+      return material.sample(direction, normal, rng);
     }
   };
 

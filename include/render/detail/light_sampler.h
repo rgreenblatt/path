@@ -1,14 +1,15 @@
 #pragma once
 
+#include "execution_model/execution_model_vector_type.h"
 #include "intersect/mesh_instance.h"
 #include "lib/binary_search.h"
-#include "execution_model/execution_model_vector_type.h"
 #include "lib/group.h"
 #include "lib/projection.h"
 #include "lib/span.h"
 #include "material/material.h"
-#include "render/light_sampler_type.h"
+#include "render/light_sampler.h"
 #include "rng/rng.h"
+#include "rng/test_rng_state_type.h"
 #include "scene/emissive_group.h"
 
 #include <Eigen/Core>
@@ -17,22 +18,55 @@
 
 namespace render {
 namespace detail {
-template <ExecutionModel execution_model, LightSamplerType type>
-class LightSamplerGenerator;
-
-struct LightSample {
-  Eigen::Vector3f direction;
-  float prob;
-};
+template <LightSamplerType type, ExecutionModel execution_model>
+struct LightSamplerImpl;
 
 template <unsigned n> struct LightSamples {
-  std::array<LightSample, n> samples;
+  std::array<DirSample, n> samples;
   unsigned num_samples;
 };
 
+template <typename V>
+concept LightSamplerRef = requires(const V &light_sampler,
+                                   const Eigen::Vector3f &position,
+                                   const material::Material &material,
+                                   const Eigen::Vector3f &incoming_dir,
+                                   const Eigen::Vector3f &normal,
+                                   rng::TestRngStateT &rng) {
+  V::max_sample_size;
+  V::performs_samples;
+
+  { light_sampler(position, material, incoming_dir, normal, rng) }
+  ->std::common_with<LightSamples<V::max_sample_size>>;
+};
+
+template <LightSamplerType type, ExecutionModel execution_model>
+concept LightSampler = requires {
+  typename LightSamplerSettings<type>;
+  typename LightSamplerImpl<type, execution_model>;
+
+  requires requires(LightSamplerImpl<type, execution_model> & light_sampler,
+                    const LightSamplerSettings<type> &settings,
+                    Span<const scene::EmissiveGroup> emissive_groups,
+                    Span<const unsigned> emissive_group_ends_per_mesh,
+                    Span<const material::Material> materials,
+                    SpanSized<const intersect::MeshInstance> mesh_instances) {
+    {
+      light_sampler.gen(settings, emissive_groups, emissive_group_ends_per_mesh,
+                        materials, mesh_instances)
+    }
+    ->LightSamplerRef;
+  };
+};
+
+template <LightSamplerType type, ExecutionModel execution_model>
+requires LightSampler<type, execution_model> struct LightSamplerT
+    : LightSamplerImpl<type, execution_model> {
+  using LightSamplerImpl<type, execution_model>::LightSamplerImpl;
+};
+
 template <ExecutionModel execution_model>
-class LightSamplerGenerator<execution_model,
-                            LightSamplerType::NoDirectLighting> {
+struct LightSamplerImpl<LightSamplerType::NoDirectLighting, execution_model> {
 public:
   using Settings = LightSamplerSettings<LightSamplerType::NoDirectLighting>;
 
@@ -42,15 +76,15 @@ public:
 
     HOST_DEVICE Ref(const Settings &) {}
 
-    HOST_DEVICE LightSamples<0> operator()(const Eigen::Vector3f &,
-                                           const material::Material &,
-                                           const Eigen::Vector3f &,
-                                           const Eigen::Vector3f &,
-                                           rng::Rng &) const {
+    static const unsigned max_sample_size = 0;
+    static const bool performs_samples = false;
+
+    template <rng::RngState R>
+    HOST_DEVICE LightSamples<max_sample_size>
+    operator()(const Eigen::Vector3f &, const material::Material &,
+               const Eigen::Vector3f &, const Eigen::Vector3f &, R &) const {
       return {{}, 0};
     }
-
-    static const bool performs_samples = false;
   };
 
   auto gen(const Settings &settings, Span<const scene::EmissiveGroup>,
@@ -61,7 +95,7 @@ public:
 };
 
 template <ExecutionModel execution_model>
-class LightSamplerGenerator<execution_model, LightSamplerType::WeightedAABB> {
+struct LightSamplerImpl<LightSamplerType::WeightedAABB, execution_model> {
 public:
   using Settings = LightSamplerSettings<LightSamplerType::WeightedAABB>;
 
@@ -73,14 +107,17 @@ public:
                     SpanSized<const float> cumulative_weights)
         : aabbs_(aabbs), cumulative_weights_(cumulative_weights) {}
 
-    HOST_DEVICE LightSamples<1> operator()(const Eigen::Vector3f &position,
-                                           const material::Material &material,
-                                           const Eigen::Vector3f &normal,
-                                           const Eigen::Vector3f &,
-                                           rng::Rng &rng) const {
+    static const unsigned max_sample_size = 1;
+    static const bool performs_samples = true;
+
+    template <rng::RngState R>
+    HOST_DEVICE LightSamples<max_sample_size>
+    operator()(const Eigen::Vector3f &position,
+               const material::Material &material, const Eigen::Vector3f &,
+               const Eigen::Vector3f &normal, R &rng) const {
       // TODO: SPEED, complexity...
       unsigned sample_idx = binary_search<float>(
-          0, cumulative_weights_.size(), rng.sample_1(), cumulative_weights_);
+          0, cumulative_weights_.size(), rng.next(), cumulative_weights_);
       assert(sample_idx < cumulative_weights_.size());
 
       const auto &aabb = aabbs_[sample_idx];
@@ -101,10 +138,12 @@ public:
               return is_min ? min_bound[axis] : max_bound[axis];
             };
             // TODO: check
-            auto point_on_aabb  = Eigen::Vector3f(get_axis(x_is_min, 0), get_axis(y_is_min, 1),
-                                  get_axis(z_is_min, 2));
+            auto point_on_aabb =
+                Eigen::Vector3f(get_axis(x_is_min, 0), get_axis(y_is_min, 1),
+                                get_axis(z_is_min, 2));
             auto world_space_direction = point_on_aabb - position;
-            auto normal_is_up_space_direction = transform * world_space_direction;
+            auto normal_is_up_space_direction =
+                transform * world_space_direction;
             auto dir = normal_is_up_space_direction.normalized().eval();
 
             float theta = std::acos(dir.z());
@@ -133,17 +172,16 @@ public:
       float region_area =
           (-std::cos(max_theta) + std::cos(min_theta)) * (max_phi - min_phi);
 
-      auto [v0, v1] = rng.sample_2();
+      float v0 = rng.next();
+      float v1 = rng.next();
 
       float phi = min_phi + (max_phi - min_phi) * v0;
-      float theta = min_theta + (max_theta - min_theta) * v0;
+      float theta = min_theta + (max_theta - min_theta) * v1;
 
-      return {std::array<LightSample, 1>{
+      return {std::array<DirSample, max_sample_size>{
                   {{find_relative_vec(normal, phi, theta), 1 / region_area}}},
               1};
     }
-
-    static const bool performs_samples = true;
 
   private:
     Span<const intersect::accel::AABB> aabbs_;

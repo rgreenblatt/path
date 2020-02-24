@@ -22,4 +22,4 @@ template <typename T> concept GetSize = requires(T &&t) {
   ->std::convertible_to<std::size_t>;
 };
 
-template <GetSize T> using GetSizeT = GetSizeImpl<T>;
+template <GetSize T> struct GetSizeT : GetSizeImpl<T> {};

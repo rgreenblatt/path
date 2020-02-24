@@ -28,9 +28,4 @@ template <typename T, typename Elem> concept GetPtr = requires(T &&t) {
 };
 
 template <typename T, typename Elem>
-requires GetPtr<T, Elem> struct GetPtrChecked {
-  using type = GetPtrImpl<T>;
-};
-
-template <typename T, typename Elem>
-using GetPtrT = typename GetPtrChecked<T, Elem>::type;
+requires GetPtr<T, Elem> struct GetPtrT : GetPtrImpl<T> {};

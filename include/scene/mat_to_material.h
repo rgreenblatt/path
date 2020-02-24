@@ -41,12 +41,13 @@ material::Material mat_to_material(const tinyobj::material_t &material) {
 
     // refractive
     return material::Material(
-        material::BRDF<material::BRDFType::DielectricRefractive>(specular, ior),
+        material::BRDFT<material::BRDFType::DielectricRefractive>(
+            {specular, ior}),
         emission);
   } else if (diffuse_non_zero && !specular_non_zero) {
     // ideal diffuse
     return material::Material(
-        material::BRDF<material::BRDFType::Diffuse>(diffuse), emission);
+        material::BRDFT<material::BRDFType::Diffuse>({diffuse}), emission);
   } else if (shininess > shininess_threshold) {
     if (diffuse_non_zero || !specular_non_zero) {
       std::cerr << "diffuse values non-zero or specular values zero for mirror "
@@ -57,10 +58,10 @@ material::Material mat_to_material(const tinyobj::material_t &material) {
 
     // ideal specular
     return material::Material(
-        material::BRDF<material::BRDFType::Mirror>(specular), emission);
+        material::BRDFT<material::BRDFType::Mirror>({specular}), emission);
   } else if (specular_non_zero && !diffuse_non_zero) {
     return material::Material(
-        material::BRDF<material::BRDFType::Glossy>(specular, shininess),
+        material::BRDFT<material::BRDFType::Glossy>({specular, shininess}),
         emission);
   } else {
     std::cerr << "specular and diffuse are both non zero (unhandled)"
