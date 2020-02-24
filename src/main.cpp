@@ -83,6 +83,8 @@ int main(int argc, char *argv[]) {
   Span<BGRA> pixels(reinterpret_cast<BGRA *>(image.bits()), width * height);
 
   render::Settings settings;
+  settings.compile_time.light_sampler_type() =
+      render::LightSamplerType::WeightedAABB;
 
   renderer.render(execution_model, pixels, *scene, samples, width, height,
                   settings, false);

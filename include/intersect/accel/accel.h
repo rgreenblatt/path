@@ -1,10 +1,10 @@
 #pragma once
 
 #include "execution_model/execution_model.h"
+#include "intersect/accel/kdtree/settings.h"
 #include "intersect/accel/s_a_heuristic_settings.h"
 #include "intersect/object.h"
 #include "lib/span.h"
-#include "intersect/accel/kdtree/settings.h"
 
 namespace intersect {
 namespace accel {

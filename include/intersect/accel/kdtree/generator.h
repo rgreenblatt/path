@@ -12,7 +12,6 @@ namespace accel {
 namespace kdtree {
 template <ExecutionModel execution_model> class Generator {
 public:
-
   Generator() = default;
 
   std::tuple<SpanSized<const KDTreeNode<AABB>>, Span<const unsigned>>

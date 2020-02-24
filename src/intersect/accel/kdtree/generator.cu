@@ -97,7 +97,7 @@ unsigned Generator<execution_model>::construct(unsigned start, unsigned end,
 }
 
 template <ExecutionModel execution_model>
-  std::tuple<SpanSized<const KDTreeNode<AABB>>, Span<const unsigned>>
+std::tuple<SpanSized<const KDTreeNode<AABB>>, Span<const unsigned>>
 Generator<execution_model>::gen(const Settings &settings,
                                 SpanSized<Bounds> bounds) {
   settings_ = settings;

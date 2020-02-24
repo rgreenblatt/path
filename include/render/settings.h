@@ -80,7 +80,9 @@ private:
 
   static constexpr AccelSettings<AccelType::KDTree> default_kd_tree_triangle = {
       {{default_kd_tree_triangle_traversal_cost,
-       default_kd_tree_triangle_intersection_cost}, false , 3}};
+        default_kd_tree_triangle_intersection_cost},
+       false,
+       3}};
 
   static constexpr float default_dir_tree_triangle_traversal_cost = 1;
   static constexpr float default_dir_tree_triangle_intersection_cost = 1;
@@ -101,8 +103,10 @@ private:
   static constexpr float default_kd_tree_mesh_intersection_cost = 1;
 
   static constexpr AccelSettings<AccelType::KDTree> default_kd_tree_mesh = {
-    {{default_kd_tree_mesh_traversal_cost,
-       default_kd_tree_mesh_intersection_cost}, false, 3}};
+      {{default_kd_tree_mesh_traversal_cost,
+        default_kd_tree_mesh_intersection_cost},
+       false,
+       3}};
 
   static constexpr float default_dir_tree_mesh_traversal_cost = 1;
   static constexpr float default_dir_tree_mesh_intersection_cost = 1;

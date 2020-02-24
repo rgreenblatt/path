@@ -1,12 +1,12 @@
 #pragma once
 
 #include "intersect/accel/accel.h"
+#include "intersect/accel/impl/kdtree_impl.h"
+#include "intersect/accel/impl/loop_all_impl.h"
 #include "intersect/impl/ray_impl.h"
 #include "intersect/impl/triangle_impl.h"
 #include "render/detail/compute_intensities.h"
 #include "rng/rng.h"
-#include "intersect/accel/impl/kdtree_impl.h"
-#include "intersect/accel/impl/loop_all_impl.h"
 
 namespace render {
 namespace detail {

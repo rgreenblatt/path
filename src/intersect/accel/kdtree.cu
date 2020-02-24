@@ -12,13 +12,15 @@ AccelImpl<AccelType::KDTree, execution_model, O>::AccelImpl() {
 
 template <ExecutionModel execution_model, Object O>
 AccelImpl<AccelType::KDTree, execution_model, O>::~AccelImpl() {
-  delete gen_;
+  if (gen_ != nullptr) {
+    delete gen_;
+  }
 }
 
 template <ExecutionModel execution_model, Object O>
 typename AccelImpl<AccelType::KDTree, execution_model, O>::Ref
 AccelImpl<AccelType::KDTree, execution_model, O>::gen(
-    const AccelSettings<AccelType::KDTree> & settings, Span<const O> objects,
+    const AccelSettings<AccelType::KDTree> &settings, Span<const O> objects,
     unsigned start, unsigned end, const AABB &aabb) {
   unsigned size = end - start;
   auto subsection = objects.slice(start, end);
@@ -34,18 +36,21 @@ AccelImpl<AccelType::KDTree, execution_model, O>::gen(
   ordered_objects_.resize(size);
 
   {
-  auto start_it = thrust::make_counting_iterator(0u);
-  thrust::copy(thrust_data.execution_policy(), start_it, start_it + size, thrust::make_permutation_iterator(local_idx_to_global_idx_.data(), permuation.data()));
+    auto start_it = thrust::make_counting_iterator(0u);
+    thrust::copy(thrust_data.execution_policy(), start_it, start_it + size,
+                 thrust::make_permutation_iterator(
+                     local_idx_to_global_idx_.data(), permuation.data()));
   }
   {
     auto start_it = thrust::make_permutation_iterator(subsection.begin(),
-        permuation.begin());
+                                                      permuation.begin());
 
-  thrust::copy(thrust_data.execution_policy(), start_it, start_it + size, 
-      ordered_objects_.data());
+    thrust::copy(thrust_data.execution_policy(), start_it, start_it + size,
+                 ordered_objects_.data());
   }
 
-  return Ref(nodes, ordered_objects_, start, permuation, local_idx_to_global_idx_, aabb);
+  return Ref(nodes, ordered_objects_, start, permuation,
+             local_idx_to_global_idx_, aabb);
 }
 
 template struct AccelImpl<AccelType::KDTree, ExecutionModel::CPU,

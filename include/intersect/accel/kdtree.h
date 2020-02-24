@@ -1,9 +1,9 @@
 #pragma once
 
-#include "intersect/accel/accel.h"
-#include "intersect/accel/kdtree/node.h"
 #include "execution_model/execution_model_vector_type.h"
 #include "execution_model/thrust_data.h"
+#include "intersect/accel/accel.h"
+#include "intersect/accel/kdtree/node.h"
 
 namespace intersect {
 namespace accel {
@@ -24,7 +24,7 @@ struct AccelImpl<AccelType::KDTree, execution_model, O> {
     Ref(SpanSized<const kdtree::KDTreeNode<AABB>> nodes, Span<const O> objects,
         unsigned offset, Span<const unsigned> global_idx_to_local_idx,
         Span<const unsigned> local_idx_to_global_idx, const AABB &aabb)
-        :nodes_(nodes), objects_(objects), offset_(offset),
+        : nodes_(nodes), objects_(objects), offset_(offset),
           global_idx_to_local_idx_(global_idx_to_local_idx),
           local_idx_to_global_idx_(local_idx_to_global_idx), aabb_(aabb) {}
 
@@ -32,9 +32,7 @@ struct AccelImpl<AccelType::KDTree, execution_model, O> {
       return objects_[global_idx_to_local_idx_[idx - offset_]];
     }
 
-    HOST_DEVICE inline const AABB &aabb() const {
-      return aabb_;
-    }
+    HOST_DEVICE inline const AABB &aabb() const { return aabb_; }
 
     constexpr static AccelType inst_type = AccelType::KDTree;
     constexpr static ExecutionModel inst_execution_model = execution_model;
@@ -60,8 +58,7 @@ struct AccelImpl<AccelType::KDTree, execution_model, O> {
 private:
   kdtree::Generator<execution_model> *gen_;
 
-  template<typename T>
-  using ExecVecT = ExecVector<execution_model, T>;
+  template <typename T> using ExecVecT = ExecVector<execution_model, T>;
 
   ExecVecT<kdtree::Bounds> bounds_;
 

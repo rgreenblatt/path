@@ -1,17 +1,17 @@
 #pragma once
 
-#include "lib/cuda/utils.h"
 #include "intersect/accel/aabb.h"
+#include "lib/cuda/utils.h"
 
 #include <Eigen/Geometry>
 
 namespace intersect {
 namespace accel {
 namespace kdtree {
-  struct Bounds {
-    AABB aabb;
-    Eigen::Vector3f center;
-  };
+struct Bounds {
+  AABB aabb;
+  Eigen::Vector3f center;
+};
 
 struct KDTreeSplit {
   unsigned left_index;
