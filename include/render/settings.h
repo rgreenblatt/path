@@ -3,6 +3,7 @@
 #include "compile_time_dispatch/one_per_instance.h"
 #include "intersect/accel/accel.h"
 #include "lib/settings.h"
+#include "render/computation_settings.h"
 #include "render/dir_sampler.h"
 #include "render/light_sampler.h"
 #include "render/term_prob.h"
@@ -61,6 +62,10 @@ private:
 
 static_assert(Setting<CompileTimeSettings>);
 
+struct GeneralSettings {
+  ComputationSettings settings;
+};
+
 // TODO: serialization???
 struct Settings {
 private:
@@ -73,93 +78,15 @@ private:
 
   using AllAccelSettings = OnePerInstance<AccelType, AccelSettings>;
 
-  static constexpr AccelSettings<AccelType::LoopAll> default_loop_all_triangle;
-
-  static constexpr float default_kd_tree_triangle_traversal_cost = 1;
-  static constexpr float default_kd_tree_triangle_intersection_cost = 1;
-
-  static constexpr AccelSettings<AccelType::KDTree> default_kd_tree_triangle = {
-      {{default_kd_tree_triangle_traversal_cost,
-        default_kd_tree_triangle_intersection_cost},
-       false,
-       3}};
-
-  static constexpr float default_dir_tree_triangle_traversal_cost = 1;
-  static constexpr float default_dir_tree_triangle_intersection_cost = 1;
-  static constexpr unsigned default_num_dir_trees_triangle = 16;
-
-  static constexpr AccelSettings<AccelType::DirTree> default_dir_tree_triangle =
-      {{default_dir_tree_triangle_traversal_cost,
-        default_dir_tree_triangle_intersection_cost},
-       default_num_dir_trees_triangle};
-
-  const AllAccelSettings default_triangle_accel = {default_loop_all_triangle,
-                                                   default_kd_tree_triangle,
-                                                   default_dir_tree_triangle};
-
-  static constexpr AccelSettings<AccelType::LoopAll> default_loop_all_mesh;
-
-  static constexpr float default_kd_tree_mesh_traversal_cost = 1;
-  static constexpr float default_kd_tree_mesh_intersection_cost = 1;
-
-  static constexpr AccelSettings<AccelType::KDTree> default_kd_tree_mesh = {
-      {{default_kd_tree_mesh_traversal_cost,
-        default_kd_tree_mesh_intersection_cost},
-       false,
-       3}};
-
-  static constexpr float default_dir_tree_mesh_traversal_cost = 1;
-  static constexpr float default_dir_tree_mesh_intersection_cost = 1;
-  static constexpr unsigned default_num_dir_trees_mesh = 16;
-
-  static constexpr AccelSettings<AccelType::DirTree> default_dir_tree_mesh = {
-      {default_dir_tree_mesh_traversal_cost,
-       default_dir_tree_mesh_intersection_cost},
-      default_num_dir_trees_mesh};
-
-  const AllAccelSettings default_mesh_accel = {
-      default_loop_all_mesh, default_kd_tree_mesh, default_dir_tree_mesh};
-
   using AllLightSamplerSettings =
       OnePerInstance<LightSamplerType, LightSamplerSettings>;
-
-  static constexpr LightSamplerSettings<LightSamplerType::NoDirectLighting>
-      default_no_direct_light;
-
-  static constexpr LightSamplerSettings<LightSamplerType::WeightedAABB>
-      default_weighted_aabb;
-
-  const AllLightSamplerSettings default_light_sampler = {
-      default_no_direct_light, default_weighted_aabb};
 
   using AllDirSamplerSettings =
       OnePerInstance<DirSamplerType, DirSamplerSettings>;
 
-  static constexpr DirSamplerSettings<DirSamplerType::Uniform>
-      default_uniform_sampler;
-
-  static constexpr DirSamplerSettings<DirSamplerType::BRDF>
-      default_brdf_sampler;
-
-  const AllDirSamplerSettings default_dir_sampler = {default_uniform_sampler,
-                                                     default_brdf_sampler};
-
   using AllTermProbSettings = OnePerInstance<TermProbType, TermProbSettings>;
 
-  static constexpr TermProbSettings<TermProbType::Constant>
-      default_uniform_term_prob = {0.1f};
-
-  static constexpr TermProbSettings<TermProbType::MultiplierNorm>
-      default_multiplier_norm_term_prob = {0.0f};
-
-  const AllTermProbSettings default_term_prob = {
-      default_uniform_term_prob, default_multiplier_norm_term_prob};
-
   using AllRngSettings = OnePerInstance<RngType, rng::RngSettings>;
-
-  static constexpr rng::RngSettings<RngType::Uniform> default_rng_uniform = {};
-
-  const AllRngSettings default_rng = {default_rng_uniform};
 
   const CompileTimeSettings default_compile_time = {
       AccelType::LoopAll,
@@ -170,19 +97,21 @@ private:
       RngType::Uniform};
 
 public:
-  AllAccelSettings triangle_accel = default_triangle_accel;
+  AllAccelSettings triangle_accel;
 
-  AllAccelSettings mesh_accel = default_mesh_accel;
+  AllAccelSettings mesh_accel;
 
-  AllLightSamplerSettings light_sampler = default_light_sampler;
+  AllLightSamplerSettings light_sampler;
 
-  AllDirSamplerSettings dir_sampler = default_dir_sampler;
+  AllDirSamplerSettings dir_sampler;
 
-  AllTermProbSettings term_prob = default_term_prob;
+  AllTermProbSettings term_prob;
 
-  AllRngSettings rng = default_rng;
+  AllRngSettings rng;
 
   CompileTimeSettings compile_time = default_compile_time;
+
+  GeneralSettings general_settings;
 };
 
 static_assert(Setting<Settings>);

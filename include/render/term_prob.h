@@ -2,15 +2,16 @@
 
 namespace render {
 // TODO: add more
-enum class TermProbType { Constant, MultiplierNorm };
+enum class TermProbType { DirectLightingOnly, Constant, MultiplierFunc };
 
 template <TermProbType type> struct TermProbSettings;
 
+template <> struct TermProbSettings<TermProbType::DirectLightingOnly> {};
+
 template <> struct TermProbSettings<TermProbType::Constant> { float prob; };
 
-template <> struct TermProbSettings<TermProbType::MultiplierNorm> {
-  // -2 to 2 (continuous)
-  // -2 is most concave, 0 is linear, and 2 is most convex
-  float convexity_scale;
+template <> struct TermProbSettings<TermProbType::MultiplierFunc> {
+  float exp = 10.0f;
+  float min_prob = 0.05f;
 };
 }; // namespace render

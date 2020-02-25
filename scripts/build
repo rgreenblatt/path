@@ -15,7 +15,7 @@ def get_directory(is_release):
     return "release" if is_release else "debug"
 
 
-def get_builder(page, lolcat, threads):
+def get_builder(page, lolcat, threads, quick_build):
     def build(is_release,
               directory,
               additional_gen_args=None,
@@ -50,6 +50,10 @@ def get_builder(page, lolcat, threads):
         gen_cmd = unbuffer_cmd + [
             "-H.", "-B" + directory, "-DCMAKE_BUILD_TYPE=" + build_type
         ] + additional_gen_args
+        if quick_build:
+            gen_cmd += ["-DQUICK_BUILD=ON", "-DFULL_BUILD=OFF"]
+        else:
+            gen_cmd += ["-DQUICK_BUILD=OFF", "-DFULL_BUILD=ON"]
 
         build_cmd = unbuffer_cmd + ["--build", directory, "-j",
                                     str(threads)] + additional_build_args
@@ -177,6 +181,14 @@ COMMANDS:
                              type=int,
                              default=multiprocessing.cpu_count(),
                              help='set num threads')
+    main_parser.add_argument('--quick-build',
+                             dest='quick_build',
+                             action='store_true',
+                             help='quick build on')
+    main_parser.add_argument('--no-quick-build',
+                             dest='quick_build',
+                             action='store_false',
+                             help='quick build off')
 
     args, unknown = main_parser.parse_known_args()
     commands = {
@@ -190,8 +202,8 @@ COMMANDS:
     }
     page = args.paginate and not args.no_pager
     try:
-        commands[args.command](get_builder(page, args.lolcat, args.threads),
-                               unknown)
+        commands[args.command](get_builder(page, args.lolcat, args.threads,
+                                           args.quick_build), unknown)
     except KeyError:
         print("{0}: '{1}' is not a command. See '{0} --help'.".format(
             name, args.command))

@@ -76,6 +76,7 @@ template <> struct AccelSettings<AccelType::KDTree> {
 };
 
 template <> struct AccelSettings<AccelType::DirTree> {
+  // TODO: this will change when dir tree is implemented
   SAHeuristicSettings s_a_heuristic_settings;
   unsigned num_dir_trees;
 

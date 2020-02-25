@@ -6,18 +6,6 @@
 namespace intersect {
 namespace accel {
 template <ExecutionModel execution_model, Object O>
-AccelImpl<AccelType::KDTree, execution_model, O>::AccelImpl() {
-  gen_ = new kdtree::Generator<execution_model>();
-}
-
-template <ExecutionModel execution_model, Object O>
-AccelImpl<AccelType::KDTree, execution_model, O>::~AccelImpl() {
-  if (gen_ != nullptr) {
-    delete gen_;
-  }
-}
-
-template <ExecutionModel execution_model, Object O>
 typename AccelImpl<AccelType::KDTree, execution_model, O>::Ref
 AccelImpl<AccelType::KDTree, execution_model, O>::gen(
     const AccelSettings<AccelType::KDTree> &settings, Span<const O> objects,
@@ -25,21 +13,23 @@ AccelImpl<AccelType::KDTree, execution_model, O>::gen(
   unsigned size = end - start;
   auto subsection = objects.slice(start, end);
 
+  bounds_.resize(size);
+
   for (unsigned i = 0; i < size; ++i) {
     const auto &aabb = BoundedT<O>::bounds(objects[i]);
     bounds_[i] = {aabb, aabb.get_max_bound() - aabb.get_min_bound()};
   }
 
-  auto [nodes, permuation] = gen_->gen(settings.generate, bounds_);
+  auto [nodes, permuation] = gen_.gen(settings.generate, bounds_);
 
-  local_idx_to_global_idx_.resize(size);
+  global_idx_to_local_idx_.resize(size);
   ordered_objects_.resize(size);
 
   {
     auto start_it = thrust::make_counting_iterator(0u);
     thrust::copy(thrust_data.execution_policy(), start_it, start_it + size,
                  thrust::make_permutation_iterator(
-                     local_idx_to_global_idx_.data(), permuation.data()));
+                     global_idx_to_local_idx_.data(), permuation.data()));
   }
   {
     auto start_it = thrust::make_permutation_iterator(subsection.begin(),
@@ -49,8 +39,8 @@ AccelImpl<AccelType::KDTree, execution_model, O>::gen(
                  ordered_objects_.data());
   }
 
-  return Ref(nodes, ordered_objects_, start, permuation,
-             local_idx_to_global_idx_, aabb);
+  return Ref(nodes, ordered_objects_, start, global_idx_to_local_idx_,
+             permuation, aabb);
 }
 
 template struct AccelImpl<AccelType::KDTree, ExecutionModel::CPU,

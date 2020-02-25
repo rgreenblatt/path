@@ -3,6 +3,8 @@
 #include "material/material.h"
 #include <tiny_obj_loader.h>
 
+#include "lib/info/debug_print.h"
+
 namespace scene {
 material::Material mat_to_material(const tinyobj::material_t &material) {
   auto to_eigen = [](const tinyobj::real_t *reals) {
@@ -31,18 +33,21 @@ material::Material mat_to_material(const tinyobj::material_t &material) {
   const float shininess_threshold = 100;
 
   if (illum == 5) {
-    if (diffuse_non_zero || !specular_non_zero) {
-      std::cerr
-          << "diffuse values non-zero or specular values zero for dielectric "
-             "refractive (unhandled)"
-          << std::endl;
-      abort();
-    }
+    /* if (diffuse_non_zero || !specular_non_zero) { */
+    /*   std::cerr */
+    /*       << "diffuse values non-zero or specular values zero for dielectric
+     * " */
+    /*          "refractive (unhandled)" */
+    /*       << std::endl; */
+    /*   abort(); */
+    /* } */
+
+    dbg(illum);
 
     // refractive
     return material::Material(
         material::BRDFT<material::BRDFType::DielectricRefractive>(
-            {specular, ior}),
+            {Eigen::Vector3f::Ones(), ior}),
         emission);
   } else if (diffuse_non_zero && !specular_non_zero) {
     // ideal diffuse
@@ -59,11 +64,12 @@ material::Material mat_to_material(const tinyobj::material_t &material) {
     // ideal specular
     return material::Material(
         material::BRDFT<material::BRDFType::Mirror>({specular}), emission);
-  } else if (specular_non_zero && !diffuse_non_zero) {
+  } else if (specular_non_zero /*&& !diffuse_non_zero*/) {
     return material::Material(
         material::BRDFT<material::BRDFType::Glossy>({specular, shininess}),
         emission);
   } else {
+    // TODO
     std::cerr << "specular and diffuse are both non zero (unhandled)"
               << std::endl;
     abort();

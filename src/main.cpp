@@ -83,11 +83,22 @@ int main(int argc, char *argv[]) {
   Span<BGRA> pixels(reinterpret_cast<BGRA *>(image.bits()), width * height);
 
   render::Settings settings;
+  settings.compile_time.dir_sampler_type() =
+      render::DirSamplerType::BRDF; // I think wrong...
   settings.compile_time.light_sampler_type() =
       render::LightSamplerType::WeightedAABB;
+  settings.compile_time.term_prob_type() =
+      render::TermProbType::DirectLightingOnly;
+  settings.compile_time.mesh_accel_type() = intersect::accel::AccelType::KDTree;
+  settings.compile_time.triangle_accel_type() = 
+    intersect::accel::AccelType::KDTree;
 
   renderer.render(execution_model, pixels, *scene, samples, width, height,
                   settings, false);
+  
+  unsigned x = 36;
+  unsigned y = 32;
+  pixels[x + y * width] = BGRA(240, 0, 0, 0);
 
   image.save(file_name.c_str());
 

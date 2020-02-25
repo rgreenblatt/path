@@ -45,8 +45,8 @@ template <accel::KDTreeRef Ref> struct IntersectableImpl<Ref> {
     thrust::optional<std::array<unsigned, 2>> start_end = thrust::nullopt;
     unsigned current_idx = 0;
 
-    while (!node_stack.empty() != 0 || start_end.has_value()) {
-      while (!start_end.has_value() && node_stack.empty() != 0) {
+    while (!node_stack.empty() || start_end.has_value()) {
+      while (!start_end.has_value() && !node_stack.empty()) {
         const auto stack_v = node_stack.pop();
 
         const auto &current_node = ref.nodes_[stack_v.node_index];
@@ -91,6 +91,8 @@ template <accel::KDTreeRef Ref> struct IntersectableImpl<Ref> {
           best = optional_min(best, append_index(intersection, i));
         }
       }
+
+      start_end = thrust::nullopt;
     }
 
     return optional_map(

@@ -47,7 +47,8 @@ public:
   }
 
 private:
-  static constexpr float normalizing_factor = 1 / (2 * M_PI);
+  // TODO: Was 2 PI just mistake?
+  static constexpr float normalizing_factor = 1 / M_PI;
 
   Eigen::Array3f normalized_diffuse_;
 };

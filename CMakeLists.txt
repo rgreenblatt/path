@@ -53,6 +53,14 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/extern/docopt.cpp")
 set(BUILD_SHARED_LIBS OFF)
 
 option(SYNTAX_ONLY "Only check syntax" OFF)
+option(QUICK_BUILD "don't instantiate all templates, don't build for the gpu"
+  OFF)
+option(FULL_BUILD "do instantiate all templates, build for the gpu"
+  OFF)
+
+if(QUICK_BUILD AND NOT FULL_BUILD)
+  add_definitions(-DQUICK_BUILD)
+endif()
 
 # qt5_wrap_cpp(UI_MAINWINDOW "${PROJECT_SOURCE_DIR}/include/ui/mainwindow.h")
 # qt5_wrap_cpp(UI_VIEW "${PROJECT_SOURCE_DIR}/include/ui/canvas.h")
@@ -72,16 +80,8 @@ macro(target_add_standard_include TARGET_NAME)
 endmacro()
 
 add_library(
-  renderer
+  intersect
   STATIC
-
-  "${PROJECT_SOURCE_DIR}/src/render/renderer.cu"
-
-  "${PROJECT_SOURCE_DIR}/src/render/detail/tone_map.cu"
-  "${PROJECT_SOURCE_DIR}/src/render/detail/compute_intensities.cu"
-  "${PROJECT_SOURCE_DIR}/src/render/detail/compute_intensities.cpp"
-  "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl.cu"
-
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/loop_all.cu"
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/dir_tree.cu"
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/kdtree.cu"
@@ -110,8 +110,44 @@ add_library(
   # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/sphere_partition.cpp"
   # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/test_splits.cu"
   )
+target_add_standard_include(intersect)
+target_link_libraries(intersect OpenMP::OpenMP_CXX Qt5::Widgets)
+
+add_library(
+  renderer
+  STATIC
+
+  "${PROJECT_SOURCE_DIR}/src/render/renderer.cu"
+
+  "${PROJECT_SOURCE_DIR}/src/render/detail/tone_map.cu"
+  "${PROJECT_SOURCE_DIR}/src/render/detail/compute_intensities.cu"
+  "${PROJECT_SOURCE_DIR}/src/render/detail/compute_intensities.cpp"
+  "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl.cu"
+
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/dir_tree_generator.cu"
+
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/compute_aabbs.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/compute_aabbs.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/construct.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/copy_to_sortable.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/dir_tree_generator_impl.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/fill_indexes.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/fill_keys.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/fill_keys.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/filter_others.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/filter_current_edges.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/find_best_edges.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/permute.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/scan_edges.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/scan_mins_maxs.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/setup.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/setup_groups.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/sort.cu"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/sphere_partition.cpp"
+  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/test_splits.cu"
+  )
 target_add_standard_include(renderer)
-target_link_libraries(renderer OpenMP::OpenMP_CXX Qt5::Widgets)
+target_link_libraries(renderer intersect OpenMP::OpenMP_CXX Qt5::Widgets)
 
 add_library(
   scenefile_compat
@@ -155,9 +191,9 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
   package_add_test(binary_search
     "${PROJECT_SOURCE_DIR}/tests/src/binary_search.cpp")
   package_add_test(projection "${PROJECT_SOURCE_DIR}/tests/src/projection.cpp")
-  # package_add_test(intersection
-  #   "${PROJECT_SOURCE_DIR}/tests/src/intersection.cu")
-  # target_link_libraries(intersection renderer)
+  package_add_test(intersection
+    "${PROJECT_SOURCE_DIR}/tests/src/intersection.cu")
+  target_link_libraries(intersection intersect)
   package_add_test(brdf "${PROJECT_SOURCE_DIR}/tests/src/brdf.cpp")
 
   add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND}

@@ -32,8 +32,11 @@ public:
                                   const Eigen::Vector3f &outgoing_dir,
                                   const Eigen::Vector3f &normal) const {
     return normalized_specular_ *
-           std::pow(reflect_over_normal(incoming_dir, normal).dot(outgoing_dir),
-                    shininess_);
+           std::pow(
+               std::max(
+                   reflect_over_normal(incoming_dir, normal).dot(outgoing_dir),
+                   0.0f),
+               shininess_);
   }
 
   template <rng::RngState R>
@@ -51,8 +54,10 @@ public:
     float phi = 2 * M_PI * v0;
     float psi = std::acos(std::pow(v1, 1 / (shininess_ + 1)));
 
-    return {find_relative_vec(reflection, phi, psi),
-            std::pow(std::cos(psi), shininess_)};
+    render::DirSample sample = {find_relative_vec(reflection, phi, psi),
+                                std::pow(std::cos(psi), shininess_)};
+
+    return sample;
   }
 
 private:

@@ -13,7 +13,7 @@ reflect_over_normal(const Eigen::Vector3f &vec, const Eigen::Vector3f &normal) {
 HOST_DEVICE inline Eigen::Vector3f
 refract_by_normal(float ior, const Eigen::Vector3f &vec,
                   const Eigen::Vector3f &normal) {
-  float cos_to_normal = vec.dot(normal);
+  float cos_to_normal = -vec.dot(normal);
 
   bool exiting_media = cos_to_normal < 0;
 

@@ -16,6 +16,8 @@ class Renderer {
 public:
   Renderer();
 
+  Renderer(const Renderer &) = delete;
+
   ~Renderer();
 
   void render(ExecutionModel execution_model, Span<BGRA> pixels,

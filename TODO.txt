@@ -6,3 +6,10 @@ Many files...
 
 Better template names in compute intensities
 Ugly types in accels
+
+TODO:
+  - make minimal scene file tests and see if/why they fail
+  - simple config loading and perf testing
+  - compare accels
+  - more sampling strategies
+  - merged brdfs

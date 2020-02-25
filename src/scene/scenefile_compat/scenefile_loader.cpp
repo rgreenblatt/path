@@ -240,6 +240,10 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
       }
 
       unsigned material_idx = shapes[s].mesh.material_ids[f] + materials_offset;
+      if (shapes[s].mesh.material_ids[f] == -1) {
+
+        std::cerr << "IDXS -1!!!" << std::endl;
+      }
 
       auto add_vertices_emissive_group = [&] {
         for (const auto &vertex : vertices) {

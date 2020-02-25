@@ -1,103 +1,84 @@
-#include "lib/span_convertable_device_vector.h"
-#include "lib/span_convertable_vector.h"
-#include "ray/detail/accel/dir_tree/dir_tree_generator.h"
-#include "ray/detail/accel/dir_tree/impl/dir_tree_lookup_ref_impl.h"
-#include "ray/detail/accel/kdtree/kdtree.h"
-#include "ray/detail/accel/kdtree/kdtree_ref_impl.h"
-#include "ray/detail/accel/loop_all.h"
-#include "ray/detail/intersection/solve.h"
+#include "boost/hana/for_each.hpp"
+#include "intersect/accel/accel.h"
+#include "intersect/accel/dir_tree.h"
+#include "intersect/accel/impl/kdtree_impl.h"
+#include "intersect/accel/impl/loop_all_impl.h"
+#include "intersect/accel/kdtree.h"
+#include "intersect/accel/loop_all.h"
+#include "intersect/impl/triangle_impl.h"
+#include "intersect/triangle.h"
+#include "lib/span.h"
 
 #include <gtest/gtest.h>
 #include <thrust/device_vector.h>
 
 #include <random>
+#include <tuple>
 
-using namespace ray::detail;
-using namespace ray::detail::accel;
+using namespace intersect;
+using namespace intersect::accel;
 
-template <typename AccelGen>
-static void test_accelerator(std::mt19937 &gen, const AccelGen &accel_gen,
-                             bool is_gpu) {
-  using Test =
-      std::tuple<Eigen::Vector3f, Eigen::Vector3f, thrust::optional<float>>;
+template <AccelType type>
+static void test_accelerator(std::mt19937 &gen,
+                             const AccelSettings<type> &settings, bool is_gpu) {
 
-  auto make_id_cube = [](const Eigen::Affine3f &transform, unsigned i) {
-    material::Material material;
-    material.ior = i;
+  using Test = std::tuple<Ray, thrust::optional<unsigned>>;
 
-    return scene::ShapeData(transform, material, scene::Shape::Cube);
-  };
+  auto run_tests = [&]<ExecutionModel execution_model>(
+                       const HostDeviceVector<Triangle> &triangles,
+                       const HostDeviceVector<Test> &test_expected) {
+    AccelT<type, execution_model, Triangle> inst;
 
-  auto get_test_runner = [](const auto &accel,
-                            SpanSized<const scene::ShapeData> shapes) {
-    return [=] __host__ __device__(const Test &test) {
-      thrust::optional<BestIntersection> best;
+    // Perhaps test partial
+    auto ref = inst.gen(settings, triangles, 0, triangles.size(), AABB());
 
-      intersection::solve(
-          accel, shapes, std::get<0>(test), std::get<1>(test), thrust::nullopt,
-          std::numeric_limits<unsigned>::max(),
-          [&](const thrust::optional<BestIntersection> &new_best) {
-            best = optional_min(best, new_best);
-
-            return false;
-          });
-
-      return optional_map(best, [=](const BestIntersection &b) {
-        return shapes[b.shape_idx].get_material().ior;
-      });
-    };
-  };
-
-  auto test = [&](const auto &accel, SpanSized<const Test> tests,
-                  SpanSized<scene::ShapeData> shapes) {
-    auto run_test = get_test_runner(accel, shapes);
-
-    HostDeviceVector<thrust::optional<float>> test_results(tests.size());
-    if (is_gpu) {
-      thrust::transform(thrust::device, tests.data(),
-                        tests.data() + tests.size(), test_results.data(),
-                        run_test);
-    } else {
-      std::transform(tests.begin(), tests.end(), test_results.begin(),
-                     run_test);
-    }
-
-    for (unsigned i = 0; i < tests.size(); ++i) {
-      auto test_val = std::get<2>(tests[i]);
-      EXPECT_EQ(test_results[i].has_value(), test_val.has_value());
-      if (test_results[i].has_value() && test_val.has_value()) {
-        EXPECT_EQ(*test_results[i], *test_val);
+    for (const auto &test : test_expected) {
+      auto [ray, expected] = test;
+      auto a = IntersectableT<decltype(ref)>::intersect(ray, ref);
+      EXPECT_EQ(a.has_value(), expected.has_value());
+      if (a.has_value() && expected.has_value()) {
+        EXPECT_EQ(a->info[0], *expected);
       }
     }
   };
 
-#if 1
+#if 0
   {
-    HostDeviceVector<scene::ShapeData> shapes = {
-        make_id_cube(Eigen::Affine3f::Identity(), 0)};
+  HostDeviceVector<Triangle> triangles = {
+      Triangle({{{0, 0, 0}, {1, 0, 0}, {0, 1, 0}}})};
+  HostDeviceVector<Test> tests = {
+      {Ray{{0.1, 0.1, -1}, {0, 0, 1}}, 0},
+      {Ray{{0.8, 0.7, -1}, {0, 0, 1}}, thrust::nullopt},
+      {Ray{{0.3, 0.1, -1}, {0, 0, 1}}, 0},
+      {Ray{{0.1, 0.8, -1}, {0, -.7, 1}}, 0},
+      {Ray{{0.1, 0.1, -1}, {0, 0, 1}}, 0},
+  };
 
-    auto accel = accel_gen(shapes);
-
-    const HostDeviceVector<Test> tests{
-        {{0, 0, 10}, {0, 0, -1}, 0},
-        {{3, 0, 10}, {0, 0, -1}, thrust::nullopt},
-        {{0.25, 0, 10}, {0, 0, -1}, 0},
-        {{0.0, 0, 10}, {0.03, -0.04, -1}, 0},
-        {{0.0, 0, 10}, {0.06, -0.04, -1}, thrust::nullopt},
-        {{0.3, 0, 10}, {0.03, -0.04, -1}, thrust::nullopt},
-        {{0.0, -0.2, 10}, {0.03, -0.04, -1}, thrust::nullopt},
-        {{0, 0, -2}, {0, 0, -1}, thrust::nullopt},
-        {{0, 0, -2}, {0, 0, 1}, 0},
-        {{5, 0, 0.2}, {-1, 0, 0}, 0},
-        {{5, 0, 0.2}, {-1, 0, -0.03}, 0},
-        {{5, 0, 0.2}, {-1, 0, 0.2}, thrust::nullopt},
-        {{5, 0, -0.7}, {-1, 0, 0.2}, 0},
-    };
-    test(accel, tests, shapes);
+  run_tests.template operator()<ExecutionModel::CPU>(triangles, tests);
   }
 #endif
 
-#if 1
+#if 0
+  {
+    HostDeviceVector<Triangle> triangles = {
+        Triangle({{{-1, 0, 0}, {1, 1, 0}, {0, 1, 0}}}),
+        Triangle({{{3, 3, 0}, {8, 9, 0}, {10, 3, 0}}}),
+    };
+
+    const HostDeviceVector<Test> tests{
+        {Ray{{0, 0.7, 10}, {0, 0, -1}}, 0},
+        {Ray{{3, 0, 10}, {0, 0, -1}}, thrust::nullopt},
+        {Ray{{0.25, 0, 10}, {0, 0, -1}}, 0},
+        {Ray{{5, 5, 10}, {0, 0, -1}}, 1},
+        {Ray{{11, 5, 10}, {0, 0, -1}}, thrust::nullopt},
+        {Ray{{4, 18, 10}, {0, -1, -1}}, 1},
+    };
+
+    run_tests.template operator()<ExecutionModel::CPU>(triangles, tests);
+  }
+#endif
+
+#if 0
   {
     HostDeviceVector<scene::ShapeData> shapes = {
         make_id_cube(Eigen::Affine3f::Identity(), 0),
@@ -127,7 +108,7 @@ static void test_accelerator(std::mt19937 &gen, const AccelGen &accel_gen,
   }
 #endif
 
-#if 1
+#if 0
   {
     HostDeviceVector<scene::ShapeData> shapes = {
         make_id_cube(Eigen::Affine3f::Identity(), 0),
@@ -162,7 +143,7 @@ static void test_accelerator(std::mt19937 &gen, const AccelGen &accel_gen,
   }
 #endif
 
-#if 1
+#if 0
   {
     HostDeviceVector<scene::ShapeData> shapes = {
         make_id_cube(Eigen::Affine3f::Identity(), 0),
@@ -201,7 +182,7 @@ static void test_accelerator(std::mt19937 &gen, const AccelGen &accel_gen,
   }
 #endif
 
-#if 1
+#if 0
   {
     HostDeviceVector<scene::ShapeData> shapes = {
         make_id_cube(Eigen::Affine3f::Identity(), 0),
@@ -246,79 +227,78 @@ static void test_accelerator(std::mt19937 &gen, const AccelGen &accel_gen,
 
 #if 1
   {
-    unsigned num_trials = 10;
-    std::uniform_int_distribution<unsigned> num_shapes_gen(1, 50);
+    unsigned num_trials = 100;
+    std::uniform_int_distribution<unsigned> num_triangles_gen(2, 100);
     std::uniform_real_distribution<float> float_gen(-1, 1);
     for (unsigned trial_idx = 0; trial_idx < num_trials; ++trial_idx) {
-      unsigned num_shapes = num_shapes_gen(gen);
+      unsigned num_triangles = num_triangles_gen(gen);
 
-      HostDeviceVector<scene::ShapeData> shapes(num_shapes);
+      HostDeviceVector<Triangle> triangles(num_triangles);
 
       auto random_vec = [&] {
         return Eigen::Vector3f{float_gen(gen), float_gen(gen), float_gen(gen)};
       };
 
-      for (unsigned i = 0; i < num_shapes; i++) {
-        shapes[i] =
-            make_id_cube(Eigen::AngleAxisf(float_gen(gen) * M_PI,
-                                           random_vec().normalized()) *
-                             Eigen::Translation3f(random_vec()) *
-                             Eigen::Affine3f(Eigen::Scaling(random_vec())),
-                         i);
+      for (unsigned i = 0; i < num_triangles; i++) {
+        triangles[i] =
+            Triangle(std::array{random_vec(), random_vec(), random_vec()});
       }
 
-      auto accel = accel_gen(shapes);
-
-      unsigned num_tests = 100;
+      unsigned num_tests = 30;
 
       HostDeviceVector<Test> tests(num_tests);
 
+      AccelT<AccelType::LoopAll, ExecutionModel::CPU, Triangle> loop_all_inst;
+
+      auto loop_all_ref =
+          loop_all_inst.gen(AccelSettings<AccelType::LoopAll>(), triangles, 0,
+                            triangles.size(), AABB());
+
       auto get_ground_truth =
-          get_test_runner(accel::LoopAll(num_shapes), shapes);
+          [&](const Ray &ray) -> thrust::optional<unsigned> {
+        auto a = IntersectableT<decltype(loop_all_ref)>::intersect(
+            ray, loop_all_ref);
+        if (a.has_value()) {
+          return a->info[0];
+        } else {
+          return thrust::nullopt;
+        }
+      };
 
       for (unsigned i = 0; i < num_tests; i++) {
         auto eye = random_vec();
         auto direction = random_vec().normalized();
-        tests[i] =
-            Test{eye, direction, get_ground_truth(Test{eye, direction, 0})};
+        Ray ray = {eye, direction};
+        tests[i] = Test{ray, get_ground_truth(ray)};
       }
 
-      test(accel, tests, shapes);
+      run_tests.template operator()<ExecutionModel::CPU>(triangles, tests);
     }
   }
 #endif
 }
 
+#if 1
 TEST(Intersection, loop_all) {
   std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
-  for (bool is_gpu : {false, true}) {
-
-    test_accelerator(
-        gen,
-        [](SpanSized<const scene::ShapeData> shapes) {
-          return accel::LoopAll(shapes.size());
-        },
-        is_gpu);
+  /* for (bool is_gpu : {false, true}) { */
+  for (bool is_gpu : {false}) {
+    test_accelerator(gen, AccelSettings<AccelType::LoopAll>(), is_gpu);
   }
 }
+#endif
 
+#if 1
 TEST(Intersection, kdtree) {
   std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
   HostDeviceVector<kdtree::KDTreeNode<AABB>> copied_nodes;
-  for (bool is_gpu : {false, true}) {
-    test_accelerator(
-        gen,
-        [&](SpanSized<scene::ShapeData> shapes) {
-          auto nodes =
-              kdtree::construct_kd_tree(shapes.data(), shapes.size(), 100, 3);
-          copied_nodes.clear();
-          copied_nodes.insert(copied_nodes.end(), nodes.begin(), nodes.end());
-          return kdtree::KDTreeRef(copied_nodes, shapes.size());
-        },
-        is_gpu);
+  for (bool is_gpu : {false /*, true*/}) {
+    test_accelerator(gen, AccelSettings<AccelType::KDTree>(), is_gpu);
   }
 }
+#endif
 
+#if 0
 TEST(Intersection, dir_tree) {
   std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
   dir_tree::DirTreeGenerator<ExecutionModel::CPU> cpu_gen;
@@ -350,3 +330,4 @@ TEST(Intersection, dir_tree) {
         is_gpu);
   }
 }
+#endif

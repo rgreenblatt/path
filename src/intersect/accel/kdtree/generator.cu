@@ -69,6 +69,7 @@ AABB Generator<execution_model>::get_bounding(unsigned start, unsigned end) {
 template <ExecutionModel execution_model>
 unsigned Generator<execution_model>::construct(unsigned start, unsigned end,
                                                unsigned depth) {
+  assert(start != end);
   if (terminate_here(start, end)) {
     auto total_bounds = get_bounding(start, end);
     unsigned index = nodes_.size();
@@ -84,7 +85,7 @@ unsigned Generator<execution_model>::construct(unsigned start, unsigned end,
   unsigned new_depth = depth + 1;
   unsigned left_index, right_index;
   left_index = construct(start, start + k, new_depth);
-  right_index = construct(start + k, end, new_depth);
+  right_index = start + k == end ? 0 : construct(start + k, end, new_depth);
   auto &left = nodes_[left_index];
   auto &right = nodes_[right_index];
 
@@ -118,6 +119,14 @@ Generator<execution_model>::gen(const Settings &settings,
   for (unsigned i = 0; i < bounds.size(); ++i) {
     indexes_[i] = i;
   }
+
+  nodes_.push_back(KDTreeNode(
+      {0, 0}, AABB{Eigen::Vector3f(std::numeric_limits<float>::max(),
+                                   std::numeric_limits<float>::max(),
+                                   std::numeric_limits<float>::max()),
+                   Eigen::Vector3f(std::numeric_limits<float>::lowest(),
+                                   std::numeric_limits<float>::lowest(),
+                                   std::numeric_limits<float>::lowest())}));
 
   construct(0, bounds.size(), 0);
 

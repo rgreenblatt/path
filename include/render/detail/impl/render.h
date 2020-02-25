@@ -12,6 +12,21 @@
 
 namespace render {
 namespace detail {
+
+struct LimitedDispatch {
+  static constexpr unsigned size = 3;
+  static constexpr std::array<CompileTimeSettings::T, size> values = {
+      {{intersect::accel::AccelType::KDTree,
+        intersect::accel::AccelType::KDTree, LightSamplerType::WeightedAABB,
+        DirSamplerType::Uniform, TermProbType::Constant, rng::RngType::Uniform},
+       {intersect::accel::AccelType::LoopAll,
+        intersect::accel::AccelType::LoopAll, LightSamplerType::WeightedAABB,
+        DirSamplerType::Uniform, TermProbType::Constant, rng::RngType::Uniform},
+       {intersect::accel::AccelType::LoopAll,
+        intersect::accel::AccelType::LoopAll,
+        LightSamplerType::NoDirectLighting, DirSamplerType::Uniform,
+        TermProbType::Constant, rng::RngType::Uniform}}};
+};
 template <ExecutionModel execution_model>
 void RendererImpl<execution_model>::render(Span<BGRA> pixels,
                                            const scene::Scene &s,
@@ -59,7 +74,14 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
     output_pixels = pixels;
   }
 
-  dispatch_value(
+  dispatch_value<
+#ifdef QUICK_BUILD
+      LimitedDispatch
+#else
+      /* CompileTimeDispatchableT<CompileTimeSettings::T> */
+#endif
+      >(
+
       [&](auto &&settings_tup) {
         // TODO: consider dispatching more generically...
         constexpr CompileTimeSettings compile_time_settings =
@@ -148,6 +170,7 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
             y_dim, max_draws_per_sample);
 
         compute_intensities(
+            settings.general_settings.settings,
             division, samples_per, x_dim, y_dim, block_size, mesh_accel_ref,
             Span<const TriRefType>{triangle_accel_refs}, light_sampler,
             dir_sampler, term_prob, rng, output_pixels, intensities_,

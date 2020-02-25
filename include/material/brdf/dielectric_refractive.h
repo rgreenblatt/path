@@ -31,7 +31,7 @@ public:
   HOST_DEVICE DeltaSample delta_sample(const Eigen::Vector3f &incoming_dir,
                                        const Eigen::Vector3f &normal,
                                        R &rng) const {
-    float cos_to_normal = incoming_dir.dot(normal);
+    float cos_to_normal = std::abs(incoming_dir.dot(normal));
     float prop_reflected = r_0_ + (1 - r_0_) * std::pow(1 - cos_to_normal, 5);
     if (rng.next() < prop_reflected) {
       // reflect

@@ -116,6 +116,10 @@ public:
     operator()(const Eigen::Vector3f &position,
                const material::Material &material, const Eigen::Vector3f &,
                const Eigen::Vector3f &normal, R &rng) const {
+      if (cumulative_weights_.size() == 0) {
+        return LightSamples<max_sample_size>{{}, 0};
+      }
+
       // TODO: SPEED, complexity...
       unsigned sample_idx = binary_search<float>(
           0, cumulative_weights_.size(), rng.next(), cumulative_weights_);

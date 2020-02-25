@@ -11,7 +11,7 @@ template <CompileTimeDispatchable T, std::size_t idx> struct Holder {
   static constexpr auto value = CompileTimeDispatchableT<T>::values[idx];
 };
 
-template <typename F, CompileTimeDispatchable T>
+template </*typename Dispatch,*/ typename F, CompileTimeDispatchable T>
 auto dispatch_value(const F &f, T value) {
   using Dispatch = CompileTimeDispatchableT<T>;
 

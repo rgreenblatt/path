@@ -1,12 +1,10 @@
 #pragma once
 
-#include "intersect/accel/accel.h"
 #include "intersect/accel/impl/kdtree_impl.h"
 #include "intersect/accel/impl/loop_all_impl.h"
 #include "intersect/impl/ray_impl.h"
 #include "intersect/impl/triangle_impl.h"
 #include "render/detail/compute_intensities.h"
-#include "rng/rng.h"
 
 namespace render {
 namespace detail {
@@ -29,11 +27,12 @@ template <intersect::accel::AccelRef MeshAccel,
           intersect::accel::AccelRef TriAccel, LightSamplerRef L,
           DirSamplerRef D, TermProbRef T, rng::RngRef R>
 HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
-    unsigned x, unsigned y, unsigned start_sample, unsigned end_sample,
-    unsigned x_dim, unsigned y_dim, unsigned, const MeshAccel &accel,
-    Span<const TriAccel> &tri_accels, const L &light_sampler,
-    const D &dir_sampler, const T &term_prob, const R &rng_ref,
-    Span<const scene::TriangleData> triangle_data,
+ unsigned x, unsigned y,
+    unsigned start_sample, unsigned end_sample,
+    const ComputationSettings &, unsigned x_dim, unsigned y_dim, unsigned,
+    const MeshAccel &accel, Span<const TriAccel> &tri_accels,
+    const L &light_sampler, const D &dir_sampler, const T &term_prob,
+    const R &rng_ref, Span<const scene::TriangleData> triangle_data,
     Span<const material::Material> materials,
     const Eigen::Affine3f &film_to_world) {
   unsigned sample_idx = start_sample;
@@ -107,11 +106,6 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
       auto brdf_val = material.brdf(ray.direction, outgoing_dir, normal);
       auto normal_v = outgoing_dir.dot(normal);
 
-      assert(brdf_val.x() >= 0);
-      assert(brdf_val.y() >= 0);
-      assert(brdf_val.z() >= 0);
-      assert(normal_v >= 0);
-
       return brdf_val * normal_v;
     };
 
@@ -129,8 +123,8 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
         }
 
         unsigned triangle_idx = light_intersection->info[0];
-        const auto &data = triangle_data[triangle_idx];
-        const auto &material = materials[data.material_idx()];
+        const auto &light_data = triangle_data[triangle_idx];
+        const auto &light_material = materials[light_data.material_idx()];
 
         assert([&] {
           unsigned mesh_idx = light_intersection->info[1];
@@ -150,7 +144,7 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
         }());
 
         // TODO: check (prob not delta needed?)
-        intensity += material.emission() * material.prob_not_delta() *
+        intensity += light_material.emission() * material.prob_not_delta() *
                      direction_multiplier(light_ray.direction) / sample.prob;
       }
 
@@ -176,24 +170,28 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
       auto [next_dir_v, prob_of_next_direction_v] =
           dir_sampler(intersection_point, material, ray.direction, normal, rng);
 
+      float prob_of_next_direction = prob_of_next_direction_v;
       next_dir = next_dir_v;
 
       assert(prob_of_next_direction_v >= 0);
-      assert(direction_multiplier(next_dir).x() >= 0);
-      assert(direction_multiplier(next_dir).y() >= 0);
-      assert(direction_multiplier(next_dir).z() >= 0);
 
-      multiplier *= direction_multiplier(next_dir) / prob_of_next_direction_v;
+      multiplier *= direction_multiplier(next_dir) / prob_of_next_direction;
     }
 
-    float this_term_prob = term_prob(multiplier);
+    auto this_term_prob = term_prob(multiplier);
 
-    if (rng.next() < this_term_prob) {
+    if (rng.next() <= this_term_prob) {
       finished = true;
       continue;
     }
 
     multiplier /= (1.0f - this_term_prob);
+
+    if (multiplier.x() < 0 || multiplier.y() < 0 || multiplier.z() < 0) {
+      // can be caused by edge cases in Phong brdf
+      finished = true;
+      continue;
+    }
 
     ray.origin = intersection_point;
     ray.direction = next_dir;

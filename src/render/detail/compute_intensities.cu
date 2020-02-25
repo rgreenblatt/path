@@ -7,6 +7,7 @@ template <intersect::accel::AccelRef MeshAccel,
           intersect::accel::AccelRef TriAccel, LightSamplerRef L,
           DirSamplerRef D, TermProbRef T, rng::RngRef R>
 __global__ void compute_intensities_global(
+    const ComputationSettings& settings,
     const WorkDivision division, unsigned x_dim, unsigned y_dim,
     unsigned samples_per, const MeshAccel mesh_accel,
     Span<const TriAccel> tri_accels, const L light_sampler,
@@ -40,7 +41,7 @@ __global__ void compute_intensities_global(
   const unsigned x = work_idx_x + block_idx_x * division.x_block_size;
   const unsigned y = work_idx_y + block_idx_y * division.y_block_size;
 
-  compute_intensities_impl(x, y, start_sample, end_sample, x_dim, y_dim,
+  compute_intensities_impl(x, y, start_sample, end_sample, settings, x_dim, y_dim,
                            samples_per, mesh_accel, tri_accels, light_sampler,
                            direction_sampler, term_prob, rng, triangle_data,
                            materials, film_to_world);
@@ -51,7 +52,9 @@ __global__ void compute_intensities_global(
 template <intersect::accel::AccelRef MeshAccel,
           intersect::accel::AccelRef TriAccel, LightSamplerRef L,
           DirSamplerRef D, TermProbRef T, rng::RngRef R>
-void compute_intensities(const WorkDivision &division, unsigned samples_per,
+void compute_intensities(
+    const ComputationSettings& settings,
+    const WorkDivision &division, unsigned samples_per,
                          unsigned x_dim, unsigned y_dim, unsigned block_size,
                          const MeshAccel &mesh_accel,
                          Span<const TriAccel> tri_accels,
@@ -67,6 +70,7 @@ void compute_intensities(const WorkDivision &division, unsigned samples_per,
                                                    division.y_block_size);
 
   compute_intensities_global<<<grid, block_size>>>(
+      settings,
       division, x_dim, y_dim, samples_per, mesh_accel, tri_accels,
       light_sampler, direction_sampler, term_prob, rng, pixels, intensities,
       triangle_data, materials, film_to_world);

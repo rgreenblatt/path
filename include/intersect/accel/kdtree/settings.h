@@ -6,13 +6,14 @@ namespace intersect {
 namespace accel {
 namespace kdtree {
 struct Settings {
-  SAHeuristicSettings s_a_heuristic;
+  SAHeuristicSettings s_a_heuristic = {1, 1};
 
   // use heuristic or just sort using centers of bounds
-  bool use_s_a_heuritic;
+  bool use_s_a_heuritic = false; // not yet implemented
 
-  // if there are fewer than this many objects in a given node, terminate
-  unsigned num_objects_terminate;
+  // if there are less than or equal to than this many objects in a given node,
+  // terminate
+  unsigned num_objects_terminate = 2;
 
   HOST_DEVICE inline bool operator==(const Settings &) const = default;
 };
