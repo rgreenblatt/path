@@ -1,5 +1,4 @@
 #include "lib/cuda/reduce.h"
-#include "lib/info/debug_print.h"
 #include "render/detail/impl/compute_intensities_impl.h"
 #include "render/detail/impl/render.h"
 
@@ -76,16 +75,17 @@ void compute_intensities(const ComputationSettings &settings,
                          Span<const material::Material> materials,
                          const Eigen::Affine3f &film_to_world) {
   unsigned block_size = division.block_size;
-  unsigned total_size = samples_per * x_dim * y_dim;
-  unsigned total_grid =
-      ceil_divide(samples_per * x_dim * y_dim, division.sample_block_size *
+  size_t total_size = size_t(samples_per) * x_dim * y_dim;
+  size_t total_items_per_block = division.sample_block_size *
                                                    division.x_block_size *
-                                                   division.y_block_size);
+                                                   division.y_block_size;
+  size_t total_grid = (total_size + total_items_per_block - 1) / total_items_per_block;
 
-  unsigned max_launch_size = 2 << 24;
 
-  unsigned num_launches = (total_size + max_launch_size - 1) / max_launch_size;
-  unsigned blocks_per = total_grid / num_launches;
+  size_t max_launch_size = 2 << 24;
+
+  size_t num_launches = (total_size + max_launch_size - 1) / max_launch_size;
+  size_t blocks_per = total_grid / num_launches;
 
   ProgressBar progress_bar(num_launches, 70);
   progress_bar.display();

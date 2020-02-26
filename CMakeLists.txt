@@ -87,28 +87,6 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/kdtree.cu"
 
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/kdtree/generator.cu"
-
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/dir_tree_generator.cu"
-
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/compute_aabbs.cpp"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/compute_aabbs.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/construct.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/copy_to_sortable.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/dir_tree_generator_impl.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/fill_indexes.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/fill_keys.cpp"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/fill_keys.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/filter_others.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/filter_current_edges.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/find_best_edges.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/permute.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/scan_edges.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/scan_mins_maxs.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/setup.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/setup_groups.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/sort.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/sphere_partition.cpp"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/test_splits.cu"
   )
 target_add_standard_include(intersect)
 target_link_libraries(intersect OpenMP::OpenMP_CXX Qt5::Widgets)
@@ -123,28 +101,6 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/render/detail/compute_intensities.cu"
   "${PROJECT_SOURCE_DIR}/src/render/detail/compute_intensities.cpp"
   "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl.cu"
-
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/dir_tree_generator.cu"
-
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/compute_aabbs.cpp"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/compute_aabbs.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/construct.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/copy_to_sortable.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/dir_tree_generator_impl.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/fill_indexes.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/fill_keys.cpp"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/fill_keys.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/filter_others.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/filter_current_edges.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/find_best_edges.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/permute.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/scan_edges.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/scan_mins_maxs.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/setup.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/setup_groups.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/sort.cu"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/sphere_partition.cpp"
-  # "${PROJECT_SOURCE_DIR}/src/ray/detail/accel/dir_tree/test_splits.cu"
   )
 target_add_standard_include(renderer)
 target_link_libraries(renderer intersect OpenMP::OpenMP_CXX Qt5::Widgets)
@@ -222,30 +178,7 @@ endif()
 
 add_executable(
   final
-  # "${UI_MAINWINDOW}"
-  # "${UI_VIEW}"
-  # "${PROJECT_SOURCE_DIR}/src/ui/mainwindow.ui"
   "${PROJECT_SOURCE_DIR}/src/main.cpp"
-  # "${PROJECT_SOURCE_DIR}/src/ui/mainwindow.cpp"
-  # "${PROJECT_SOURCE_DIR}/src/ui/canvas.cpp"
   )
-# qt5_use_modules(final Widgets)
-target_link_libraries(final Qt5::Widgets renderer docopt scenefile_compat)
+target_link_libraries(final renderer docopt_s scenefile_compat)
 target_add_standard_include(final)
-
-# add_executable(
-#   image_test
-#   "${PROJECT_SOURCE_DIR}/src/bin/image_test.cpp"
-#   "${PROJECT_SOURCE_DIR}/src/scene/cs123_scene.cpp"
-#   "${PROJECT_SOURCE_DIR}/src/cs123_compat/Scene.cpp"
-#   "${PROJECT_SOURCE_DIR}/src/cs123_compat/CS123XmlSceneParser.cpp"
-#   )
-# target_link_libraries(image_test Qt5::Widgets Qt5::Xml renderer)
-# target_add_standard_include(image_test)
-
-# add_executable(
-#   video_test
-#   "${PROJECT_SOURCE_DIR}/src/bin/video_test.cpp"
-#   )
-# target_link_libraries(video_test Qt5::Widgets Qt5::Xml renderer ${OpenCV_LIBS})
-# target_add_standard_include(video_test)

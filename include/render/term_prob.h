@@ -8,7 +8,7 @@ template <TermProbType type> struct TermProbSettings;
 
 template <> struct TermProbSettings<TermProbType::DirectLightingOnly> {};
 
-template <> struct TermProbSettings<TermProbType::Constant> { float prob; };
+template <> struct TermProbSettings<TermProbType::Constant> { float prob = 0.5f; };
 
 template <> struct TermProbSettings<TermProbType::MultiplierFunc> {
   float exp = 10.0f;

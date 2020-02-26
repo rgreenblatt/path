@@ -148,7 +148,7 @@ elseif (_CMAKE_CUDA_COMPILER_NAME MATCHES clang)
   # invalid versions of Toolkit -- compute arch internally, but it _is_ required
   # that you specify at least one.  (whereas nvcc selects a default for you if
   # not specified) (?)
-  set(__CU_FLAGS "${__CU_FLAGS} --cuda-gpu-arch=sm_75")
+  set(__CU_FLAGS "${__CU_FLAGS} --cuda-gpu-arch=sm_50 --cuda-gpu-arch=sm_60 --cuda-gpu-arch=sm_75")
 else()
   message(FATAL_ERROR "Unsupported CUDA compiler for this platform: ${CMAKE_CUDA_COMPILER}")
 endif()
