@@ -13,9 +13,10 @@ compiler. I am not providing a Makefile (the build system is CMake), but the
 "scripts/build" script (uses python) can be used to build. The script has help 
 accessible with --help. By default, builds will be done in the directories
 "release/" and "debug/". Make sure you use --release if release mode is desired.
-A binary is included. Unfortunately, it doesn't run on department machines
-with error "libomp.so" not found, but if this is installed, the binary
-should run on most linux platforms.
+A binary is included ./release/final. Unfortunately, it doesn't run on
+department machines with error "libomp.so" not found, but if this is installed,
+the binary should run on most linux platforms. If you would
+like help running the binary, email me!
 
 There are several binaries produced in this project. The "final" binary runs
 the project. This has various command line options for configuring
