@@ -70,8 +70,8 @@ static void test_accelerator(std::mt19937 &gen,
   }
 
   {
-    unsigned num_trials = 100;
-    std::uniform_int_distribution<unsigned> num_triangles_gen(2, 1000);
+    unsigned num_trials = 10;
+    std::uniform_int_distribution<unsigned> num_triangles_gen(2, 100);
     std::uniform_real_distribution<float> float_gen(-1, 1);
     for (unsigned trial_idx = 0; trial_idx < num_trials; ++trial_idx) {
       unsigned num_triangles = num_triangles_gen(gen);
@@ -87,7 +87,7 @@ static void test_accelerator(std::mt19937 &gen,
             Triangle(std::array{random_vec(), random_vec(), random_vec()});
       }
 
-      unsigned num_tests = 30;
+      unsigned num_tests = 10;
 
       HostDeviceVector<Test> tests(num_tests);
 
