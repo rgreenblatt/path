@@ -1,7 +1,7 @@
 # outputs
 
 Scenes may be found under scenes. ni = no importance sampling, ct = constant
-termination probabity
+termination probability
 
 file                            dimension    samples time  settings        device
 ----------------------------    ------------ ------- ----- ------------    -------
