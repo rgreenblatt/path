@@ -284,7 +284,9 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
       // No normals..
       if (normals[0].squaredNorm() < 1e-5) {
         auto normal =
-            (vertices[1] - vertices[0]).cross(vertices[2] - vertices[0]).eval();
+            ((vertices[1] - vertices[0]).cross(vertices[2] - vertices[0]))
+                .normalized()
+                .eval();
         for (auto &n : normals) {
           n = normal;
         }

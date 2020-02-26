@@ -89,11 +89,11 @@ private:
   using AllRngSettings = OnePerInstance<RngType, rng::RngSettings>;
 
   const CompileTimeSettings default_compile_time = {
-      AccelType::LoopAll,
-      AccelType::LoopAll,
-      LightSamplerType::NoDirectLighting,
-      DirSamplerType::Uniform,
-      TermProbType::Constant,
+      AccelType::KDTree,
+      AccelType::KDTree,
+      LightSamplerType::RandomTriangle,
+      DirSamplerType::BRDF,
+      TermProbType::MultiplierFunc,
       RngType::Uniform};
 
 public:

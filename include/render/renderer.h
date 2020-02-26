@@ -18,6 +18,8 @@ public:
 
   Renderer(const Renderer &) = delete;
 
+  Renderer(Renderer &&);
+
   ~Renderer();
 
   void render(ExecutionModel execution_model, Span<BGRA> pixels,
@@ -25,8 +27,7 @@ public:
               unsigned y_dim, const Settings &settings, bool show_times);
 
 private:
-  // needs to not be smart pointer (compiler error otherwise)
-  detail::RendererImpl<ExecutionModel::CPU> *cpu_renderer_impl_ = nullptr;
-  detail::RendererImpl<ExecutionModel::GPU> *gpu_renderer_impl_ = nullptr;
+  std::unique_ptr<detail::RendererImpl<ExecutionModel::CPU>> cpu_renderer_impl_;
+  std::unique_ptr<detail::RendererImpl<ExecutionModel::GPU>> gpu_renderer_impl_;
 };
 } // namespace render

@@ -6,6 +6,18 @@
 namespace intersect {
 namespace accel {
 template <ExecutionModel execution_model, Object O>
+AccelImpl<AccelType::KDTree, execution_model, O>::AccelImpl() {
+  gen_ = std::make_unique<kdtree::Generator<execution_model>>();
+}
+
+template <ExecutionModel execution_model, Object O>
+AccelImpl<AccelType::KDTree, execution_model, O>::~AccelImpl() = default;
+
+template <ExecutionModel execution_model, Object O>
+AccelImpl<AccelType::KDTree, execution_model, O>::AccelImpl(AccelImpl &&) =
+    default;
+
+template <ExecutionModel execution_model, Object O>
 typename AccelImpl<AccelType::KDTree, execution_model, O>::Ref
 AccelImpl<AccelType::KDTree, execution_model, O>::gen(
     const AccelSettings<AccelType::KDTree> &settings, Span<const O> objects,
@@ -20,7 +32,7 @@ AccelImpl<AccelType::KDTree, execution_model, O>::gen(
     bounds_[i] = {aabb, aabb.get_max_bound() - aabb.get_min_bound()};
   }
 
-  auto [nodes, permuation] = gen_.gen(settings.generate, bounds_);
+  auto [nodes, permuation] = gen_->gen(settings.generate, bounds_);
 
   global_idx_to_local_idx_.resize(size);
   ordered_objects_.resize(size);
@@ -32,6 +44,12 @@ AccelImpl<AccelType::KDTree, execution_model, O>::gen(
                      global_idx_to_local_idx_.data(), permuation.data()));
   }
   {
+    if constexpr (execution_model == ExecutionModel::GPU) {
+      unordered_objects_.resize(subsection.size());
+      thrust::copy(subsection.data(), subsection.data() + subsection.size(),
+                   unordered_objects_.begin());
+      subsection = unordered_objects_;
+    }
     auto start_it = thrust::make_permutation_iterator(subsection.begin(),
                                                       permuation.begin());
 

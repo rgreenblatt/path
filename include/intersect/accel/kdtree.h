@@ -4,10 +4,12 @@
 #include "execution_model/thrust_data.h"
 #include "intersect/accel/accel.h"
 #include "intersect/accel/kdtree/node.h"
-#include "intersect/accel/kdtree/generator.h"
 
 namespace intersect {
 namespace accel {
+namespace kdtree {
+template <ExecutionModel execution_model> class Generator;
+}
 template <ExecutionModel execution_model, Object O>
 struct AccelImpl<AccelType::KDTree, execution_model, O> {
   class Ref {
@@ -45,17 +47,26 @@ struct AccelImpl<AccelType::KDTree, execution_model, O> {
     friend struct IntersectableImpl<Ref>;
   };
 
+  AccelImpl();
+
+  ~AccelImpl();
+
+  AccelImpl(AccelImpl &&);
+
+  AccelImpl(const AccelImpl &) = delete;
+
   Ref gen(const AccelSettings<AccelType::KDTree> &, Span<const O>, unsigned,
           unsigned, const AABB &aabb);
 
 private:
-  kdtree::Generator<execution_model> gen_;
+  std::unique_ptr<kdtree::Generator<execution_model>> gen_;
 
   template <typename T> using ExecVecT = ExecVector<execution_model, T>;
 
-  ExecVecT<kdtree::Bounds> bounds_;
+  std::vector<kdtree::Bounds> bounds_;
 
   ExecVecT<unsigned> global_idx_to_local_idx_;
+  ExecVecT<O> unordered_objects_;
   ExecVecT<O> ordered_objects_;
 
   ThrustData<execution_model> thrust_data;

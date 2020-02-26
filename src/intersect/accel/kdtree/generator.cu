@@ -131,6 +131,8 @@ Generator<execution_model>::gen(const Settings &settings,
   construct(0, bounds.size(), 0);
 
   if constexpr (execution_model == ExecutionModel::GPU) {
+    nodes_out_.resize(nodes_.size());
+    indexes_out_.resize(indexes_.size());
     thrust::copy(nodes_.data(), nodes_.data() + nodes_.size(),
                  nodes_out_.begin());
     thrust::copy(indexes_.data(), indexes_.data() + indexes_.size(),

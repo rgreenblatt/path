@@ -1,6 +1,8 @@
 #include "render/detail/impl/compute_intensities_impl.h"
 #include "render/detail/impl/render.h"
 
+#include <cli/ProgressBar.hpp>
+
 namespace render {
 namespace detail {
 template <intersect::accel::AccelRef MeshAccel,
@@ -8,7 +10,7 @@ template <intersect::accel::AccelRef MeshAccel,
           DirSamplerRef D, TermProbRef T, rng::RngRef R>
 void compute_intensities(const ComputationSettings &settings,
                          const WorkDivision &, unsigned samples_per,
-                         unsigned x_dim, unsigned y_dim, unsigned,
+                         unsigned x_dim, unsigned y_dim,
                          const MeshAccel &mesh_accel,
                          Span<const TriAccel> tri_accels,
                          const L &light_sampler, const D &direction_sampler,
@@ -17,6 +19,9 @@ void compute_intensities(const ComputationSettings &settings,
                          Span<const scene::TriangleData> triangle_data,
                          Span<const material::Material> materials,
                          const Eigen::Affine3f &film_to_world) {
+  ProgressBar progress_bar(x_dim * y_dim, 70);
+  progress_bar.display();
+
 #ifdef NDEBUG
 #pragma omp parallel for collapse(2) schedule(dynamic, 4)
 #endif
@@ -24,12 +29,19 @@ void compute_intensities(const ComputationSettings &settings,
     for (unsigned x = 0; x < x_dim; x++) {
       pixels[x + y * x_dim] = intensity_to_bgr(
           compute_intensities_impl(
-               x, y, 0, samples_per, settings, x_dim, y_dim, samples_per,
+              x, y, 0, samples_per, settings, x_dim, y_dim, samples_per,
               mesh_accel, tri_accels, light_sampler, direction_sampler,
               term_prob, rng, triangle_data, materials, film_to_world) /
           samples_per);
+#pragma omp critical
+      {
+        ++progress_bar;
+        progress_bar.display();
+      }
     }
   }
+
+  progress_bar.done();
 }
 
 template class RendererImpl<ExecutionModel::CPU>;

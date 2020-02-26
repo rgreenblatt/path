@@ -23,7 +23,7 @@ template <intersect::accel::AccelRef MeshAccel,
           DirSamplerRef D, TermProbRef T, rng::RngRef R>
 void compute_intensities(const ComputationSettings &settings,
                          const WorkDivision &division, unsigned samples_per,
-                         unsigned x_dim, unsigned y_dim, unsigned block_size,
+                         unsigned x_dim, unsigned y_dim,
                          const MeshAccel &mesh_accel,
                          Span<const TriAccel> tri_accels,
                          const L &light_sampler, const D &direction_sampler,

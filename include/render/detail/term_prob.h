@@ -4,8 +4,6 @@
 #include "material/material.h"
 #include "render/term_prob.h"
 
-#include "lib/info/printf_dbg.h"
-
 #include <Eigen/Core>
 
 namespace render {
@@ -47,9 +45,11 @@ public:
   public:
     HOST_DEVICE Ref() = default;
 
-    HOST_DEVICE Ref(const Settings &)  {}
+    HOST_DEVICE Ref(const Settings &) {}
 
-    HOST_DEVICE float operator()(const Eigen::Array3f &) const { return std::numeric_limits<float>::infinity(); }
+    HOST_DEVICE float operator()(const Eigen::Array3f &) const {
+      return std::numeric_limits<float>::infinity();
+    }
   };
 
   auto gen(const Settings &settings) { return Ref(settings); }

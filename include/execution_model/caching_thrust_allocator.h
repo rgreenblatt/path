@@ -18,6 +18,10 @@ public:
 
   CachingThrustAllocator() {}
 
+  CachingThrustAllocator(const CachingThrustAllocator &) = delete;
+
+  CachingThrustAllocator(CachingThrustAllocator &&) = default;
+
   ~CachingThrustAllocator() {
     // free all allocations when cached_allocator goes out of scope
     free_all();

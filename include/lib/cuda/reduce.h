@@ -2,9 +2,6 @@
 
 #include <cstdint>
 
-namespace ray {
-namespace detail {
-
 #ifdef __CUDACC__
 constexpr uint32_t full_mask = 0xffffffff;
 
@@ -21,7 +18,7 @@ template <typename T, typename F>
 __inline__ __device__ T block_reduce(T val, const F &f, const T &identity_value,
                                      unsigned thread_block_index,
                                      unsigned thread_block_size) {
-  static __shared__ uint8_t shared[32]; // Shared mem for 32 partial sums
+  static __shared__ T shared[32]; // Shared mem for 32 partial sums
 
   unsigned lane = thread_block_index % warpSize;
   unsigned wid = thread_block_index / warpSize;
@@ -51,5 +48,3 @@ __inline__ __device__ bool block_reduce_cond(bool val,
       true, thread_block_index, thread_block_size);
 }
 #endif
-} // namespace detail
-} // namespace ray

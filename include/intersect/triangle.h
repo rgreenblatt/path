@@ -25,8 +25,5 @@ public:
 
 private:
   std::array<Eigen::Vector3f, 3> vertices_;
-
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 } // namespace intersect

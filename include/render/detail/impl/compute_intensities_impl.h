@@ -27,8 +27,7 @@ template <intersect::accel::AccelRef MeshAccel,
           intersect::accel::AccelRef TriAccel, LightSamplerRef L,
           DirSamplerRef D, TermProbRef T, rng::RngRef R>
 HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
- unsigned x, unsigned y,
-    unsigned start_sample, unsigned end_sample,
+    unsigned x, unsigned y, unsigned start_sample, unsigned end_sample,
     const ComputationSettings &, unsigned x_dim, unsigned y_dim, unsigned,
     const MeshAccel &accel, Span<const TriAccel> &tri_accels,
     const L &light_sampler, const D &dir_sampler, const T &term_prob,

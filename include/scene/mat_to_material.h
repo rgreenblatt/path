@@ -3,8 +3,6 @@
 #include "material/material.h"
 #include <tiny_obj_loader.h>
 
-#include "lib/info/debug_print.h"
-
 namespace scene {
 material::Material mat_to_material(const tinyobj::material_t &material) {
   auto to_eigen = [](const tinyobj::real_t *reals) {
@@ -41,8 +39,6 @@ material::Material mat_to_material(const tinyobj::material_t &material) {
     /*       << std::endl; */
     /*   abort(); */
     /* } */
-
-    dbg(illum);
 
     // refractive
     return material::Material(
