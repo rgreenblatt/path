@@ -56,17 +56,17 @@ static void test_accelerator(std::mt19937 &gen,
   };
 
   {
-  HostDeviceVector<Triangle> triangles = {
-      Triangle({{{0, 0, 0}, {1, 0, 0}, {0, 1, 0}}})};
-  HostDeviceVector<Test> tests = {
-      {Ray{{0.1, 0.1, -1}, {0, 0, 1}}, 0},
-      {Ray{{0.8, 0.7, -1}, {0, 0, 1}}, thrust::nullopt},
-      {Ray{{0.3, 0.1, -1}, {0, 0, 1}}, 0},
-      {Ray{{0.1, 0.8, -1}, {0, -.7, 1}}, 0},
-      {Ray{{0.1, 0.1, -1}, {0, 0, 1}}, 0},
-  };
+    HostDeviceVector<Triangle> triangles = {
+        Triangle({{{0, 0, 0}, {1, 0, 0}, {0, 1, 0}}})};
+    HostDeviceVector<Test> tests = {
+        {Ray{{0.1, 0.1, -1}, {0, 0, 1}}, 0},
+        {Ray{{0.8, 0.7, -1}, {0, 0, 1}}, thrust::nullopt},
+        {Ray{{0.3, 0.1, -1}, {0, 0, 1}}, 0},
+        {Ray{{0.1, 0.8, -1}, {0, -.7, 1}}, 0},
+        {Ray{{0.1, 0.1, -1}, {0, 0, 1}}, 0},
+    };
 
-  run_tests.template operator()<ExecutionModel::CPU>(triangles, tests);
+    run_tests.template operator()<ExecutionModel::CPU>(triangles, tests);
   }
 
   {

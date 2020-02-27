@@ -5,8 +5,8 @@
 
 #include <QImage>
 #include <docopt.h>
-#include <thrust/optional.h>
 #include <magic_enum.hpp>
+#include <thrust/optional.h>
 
 #include <iostream>
 #include <string>

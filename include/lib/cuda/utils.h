@@ -84,10 +84,9 @@ inline void curand_assert(curandStatus_t code, const char *file, int line) {
   }
 }
 
-#define CURAND_ERROR_CHK(ans)                                                    \
+#define CURAND_ERROR_CHK(ans)                                                  \
   { curand_assert((ans), __FILE__, __LINE__); }
 #endif
-
 
 #if 1
 #ifdef __CUDACC__

@@ -77,10 +77,9 @@ void compute_intensities(const ComputationSettings &settings,
   unsigned block_size = division.block_size;
   size_t total_size = size_t(samples_per) * x_dim * y_dim;
   size_t total_items_per_block = division.sample_block_size *
-                                                   division.x_block_size *
-                                                   division.y_block_size;
-  size_t total_grid = (total_size + total_items_per_block - 1) / total_items_per_block;
-
+                                 division.x_block_size * division.y_block_size;
+  size_t total_grid =
+      (total_size + total_items_per_block - 1) / total_items_per_block;
 
   size_t max_launch_size = 2 << 24;
 
