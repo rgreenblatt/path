@@ -53,13 +53,17 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/extern/docopt.cpp")
 set(BUILD_SHARED_LIBS OFF)
 
 option(SYNTAX_ONLY "Only check syntax" OFF)
-option(QUICK_BUILD "don't instantiate all templates, don't build for the gpu"
-  OFF)
-option(FULL_BUILD "do instantiate all templates, build for the gpu"
-  OFF)
+option(QUICK_BUILD "don't instantiate all templates" OFF)
+option(FULL_BUILD "do instantiate all templates" OFF)
+option(CPU_ONLY_BUILD "don't build for the gpu" OFF)
+option(CPU_GPU_BUILD "build for the gpu" OFF)
 
 if(QUICK_BUILD AND NOT FULL_BUILD)
   add_definitions(-DQUICK_BUILD)
+endif()
+
+if(CPU_ONLY_BUILD AND NOT CPU_GPU_BUILD)
+  add_definitions(-DCPU_ONLY_BUILD)
 endif()
 
 # qt5_wrap_cpp(UI_MAINWINDOW "${PROJECT_SOURCE_DIR}/include/ui/mainwindow.h")

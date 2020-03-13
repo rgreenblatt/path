@@ -30,12 +30,17 @@ void Renderer::render(ExecutionModel execution_model, Span<BGRA> pixels,
 
     return;
   case ExecutionModel::GPU:
+#ifdef CPU_ONLY_BUILD
+    std::cerr << "gpu can't be selected for gpu only build" << std::endl;
+    abort();
+#else
     if (gpu_renderer_impl_ == nullptr) {
       gpu_renderer_impl_ =
           std::make_unique<RendererImpl<ExecutionModel::GPU>>();
     }
 
     render(gpu_renderer_impl_);
+#endif
 
     return;
   };

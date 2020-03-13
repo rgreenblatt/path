@@ -12,17 +12,59 @@
 #include <tuple>
 
 namespace render {
+using CompileTimeSettingsFull =
+    std::tuple<intersect::accel::AccelType, intersect::accel::AccelType,
+               LightSamplerType, DirSamplerType, TermProbType, rng::RngType>;
+
+struct CompileTimeSettingsSubset : public CompileTimeSettingsFull {};
+struct CompileTimeSettingsAll : public CompileTimeSettingsFull {};
+} // namespace render
+
+template <>
+struct CompileTimeDispatchableImpl<render::CompileTimeSettingsSubset> {
+private:
+  using AccelType = intersect::accel::AccelType;
+  using RngType = rng::RngType;
+  using LightSamplerType = render::LightSamplerType;
+  using DirSamplerType = render::DirSamplerType;
+  using TermProbType = render::TermProbType;
+
+public:
+  static constexpr std::array<render::CompileTimeSettingsSubset, 3> values = {
+      {{{AccelType::KDTree, AccelType::KDTree, LightSamplerType::WeightedAABB,
+         DirSamplerType::Uniform, TermProbType::Constant,
+         rng::RngType::Uniform}},
+       {{AccelType::LoopAll, AccelType::LoopAll, LightSamplerType::WeightedAABB,
+         DirSamplerType::Uniform, TermProbType::Constant,
+         rng::RngType::Uniform}},
+       {{AccelType::LoopAll, AccelType::LoopAll,
+         LightSamplerType::NoLightSampling, DirSamplerType::Uniform,
+         TermProbType::Constant, rng::RngType::Uniform}}}};
+};
+
+static_assert(CompileTimeDispatchable<render::CompileTimeSettingsSubset>);
+
+template <>
+struct CompileTimeDispatchableImpl<render::CompileTimeSettingsAll>
+    : public CompileTimeDispatchableImpl<render::CompileTimeSettingsFull> {};
+
+namespace render {
 class CompileTimeSettings {
 public:
   using AccelType = intersect::accel::AccelType;
   using RngType = rng::RngType;
-  using T = std::tuple<AccelType, AccelType, LightSamplerType, DirSamplerType,
-                       TermProbType, RngType>;
+  using T =
+#ifdef QUICK_BUILD
+      CompileTimeSettingsSubset
+#else
+      CompileTimeSettingsFull
+#endif
+      ;
 
   constexpr CompileTimeSettings(const T &v) : values_(v) {}
 
   template <typename... Vals>
-  constexpr CompileTimeSettings(Vals &&... vals) : values_({vals...}) {}
+  constexpr CompileTimeSettings(Vals &&... vals) : values_({{vals...}}) {}
 
   constexpr AccelType triangle_accel_type() const {
     return std::get<0>(values_);
@@ -60,6 +102,7 @@ private:
   T values_;
 };
 
+static_assert(CompileTimeDispatchable<CompileTimeSettings::T>);
 static_assert(Setting<CompileTimeSettings>);
 
 struct GeneralSettings {

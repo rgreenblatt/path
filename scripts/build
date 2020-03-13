@@ -15,7 +15,7 @@ def get_directory(is_release):
     return "release" if is_release else "debug"
 
 
-def get_builder(page, lolcat, threads, quick_build):
+def get_builder(page, lolcat, threads, quick_build, cpu_only_build):
     def build(is_release,
               directory,
               additional_gen_args=None,
@@ -54,6 +54,10 @@ def get_builder(page, lolcat, threads, quick_build):
             gen_cmd += ["-DQUICK_BUILD=ON", "-DFULL_BUILD=OFF"]
         else:
             gen_cmd += ["-DQUICK_BUILD=OFF", "-DFULL_BUILD=ON"]
+        if cpu_only_build:
+            gen_cmd += ["-DCPU_ONLY_BUILD=ON", "-DCPU_GPU_BUILD=OFF"]
+        else:
+            gen_cmd += ["-DCPU_ONLY_BUILD=OFF", "-DCPU_GPU_BUILD=ON"]
 
         build_cmd = unbuffer_cmd + ["--build", directory, "-j",
                                     str(threads)] + additional_build_args
@@ -136,6 +140,7 @@ def cc_command(builder, _):
 # def check_command(builder, _):
 #     builder(False, "check", additional_gen_args=["-DSYNTAX_ONLY=ON"])
 
+
 def clean_command(builder, remaining_args):
     parser = argparse.ArgumentParser(description='clean project')
     parser.add_argument('--release', action='store_true')
@@ -149,19 +154,6 @@ def main():
     main_parser = argparse.ArgumentParser(
         description='Simple cmake wrapper',
         usage='''{} [OPTIONS] <COMMAND> [<SUBOPTIONS>]
-
-OPTIONS:
-    -p, --paginate
-    -P, --no-pager
-    -l, --lolcat
-    -j, --threads
-
-COMMANDS:
-    build
-    run
-    test
-    compile_commands
-
 '''.format(name))
     main_parser.add_argument('command', help='subcommand to run')
     main_parser.add_argument('-p',
@@ -189,6 +181,14 @@ COMMANDS:
                              dest='quick_build',
                              action='store_false',
                              help='quick build off')
+    main_parser.add_argument('--cpu-only-build',
+                             dest='cpu_only_build',
+                             action='store_true',
+                             help='only build for the cpu')
+    main_parser.add_argument('--no-cpu-only-build',
+                             dest='cpu_only_build',
+                             action='store_false',
+                             help='build for the cpu and gpu')
 
     args, unknown = main_parser.parse_known_args()
     commands = {
@@ -203,7 +203,8 @@ COMMANDS:
     page = args.paginate and not args.no_pager
     try:
         commands[args.command](get_builder(page, args.lolcat, args.threads,
-                                           args.quick_build), unknown)
+                                           args.quick_build,
+                                           args.cpu_only_build), unknown)
     except KeyError:
         print("{0}: '{1}' is not a command. See '{0} --help'.".format(
             name, args.command))

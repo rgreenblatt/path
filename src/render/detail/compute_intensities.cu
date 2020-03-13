@@ -1,3 +1,4 @@
+#ifndef CPU_ONLY_BUILD
 #include "lib/cuda/reduce.h"
 #include "render/detail/impl/compute_intensities_impl.h"
 #include "render/detail/impl/render.h"
@@ -110,3 +111,4 @@ void compute_intensities(const ComputationSettings &settings,
 template class RendererImpl<ExecutionModel::GPU>;
 } // namespace detail
 } // namespace render
+#endif
