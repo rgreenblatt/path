@@ -62,7 +62,7 @@ public:
   }
 
 private:
-  static constexpr float normalizing_factor(float shininess) {
+  HOST_DEVICE static float normalizing_factor(float shininess) {
     return float((shininess + 2) / (2 * M_PI));
   }
 
