@@ -135,7 +135,7 @@ typedef struct {
   real_t bump_multiplier;  // -bm (for bump maps only, default 1.0)
 } texture_option_t;
 
-typedef struct {
+typedef struct material_t {
   std::string name;
 
   real_t ambient[3];
@@ -196,7 +196,7 @@ typedef struct {
   std::map<std::string, std::string> unknown_parameter;
 } material_t;
 
-typedef struct {
+typedef struct tag_t {
   std::string name;
 
   std::vector<int> intValues;
@@ -212,7 +212,7 @@ typedef struct {
   int texcoord_index;
 } index_t;
 
-typedef struct {
+typedef struct mesh_t {
   std::vector<index_t> indices;
   std::vector<unsigned char> num_face_vertices;  // The number of vertices per
                                                  // face. 3 = polygon, 4 = quad,
@@ -221,13 +221,13 @@ typedef struct {
   std::vector<tag_t> tags;                       // SubD tag
 } mesh_t;
 
-typedef struct {
+typedef struct shape_t {
   std::string name;
   mesh_t mesh;
 } shape_t;
 
 // Vertex attributes
-typedef struct {
+typedef struct attrib_t {
   std::vector<real_t> vertices;   // 'v'
   std::vector<real_t> normals;    // 'vn'
   std::vector<real_t> texcoords;  // 'vt'
