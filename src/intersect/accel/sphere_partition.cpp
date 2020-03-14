@@ -1,12 +1,10 @@
-#include "ray/detail/accel/dir_tree/sphere_partition.h"
-#include "lib/span_convertable_vector.h"
+#include "intersect/accel/sphere_partition.h"
+#include "execution_model/host_device_vector.h"
 
 #include <cmath>
 
-namespace ray {
-namespace detail {
+namespace intersect {
 namespace accel {
-namespace dir_tree {
 inline float area_of_cap(float s_cap) {
   const float sin_v = std::sin(s_cap / 2);
 
@@ -66,7 +64,5 @@ template HalfSpherePartition::HalfSpherePartition(
 template HalfSpherePartition::HalfSpherePartition(
     unsigned target_num_regions,
     HostDeviceVector<ColatitudeDiv> &colatitude_divs);
-} // namespace dir_tree
 } // namespace accel
-} // namespace detail
-} // namespace ray
+} // namespace intersect

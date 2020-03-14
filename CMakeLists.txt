@@ -89,6 +89,7 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/loop_all.cu"
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/dir_tree.cu"
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/kdtree.cu"
+  "${PROJECT_SOURCE_DIR}/src/intersect/accel/sphere_partition.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/kdtree/generator.cu"
   )

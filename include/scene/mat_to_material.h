@@ -1,6 +1,7 @@
 #pragma once
 
 #include "material/material.h"
+
 #include <tiny_obj_loader.h>
 
 namespace scene {

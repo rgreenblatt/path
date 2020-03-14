@@ -68,7 +68,7 @@ static void test_accelerator(std::mt19937 &gen,
 
     run_tests.template operator()<ExecutionModel::CPU>(triangles, tests);
   }
-    
+
   const unsigned num_trials = 10;
   const unsigned num_tests = 10;
 

@@ -44,7 +44,6 @@ template <BRDFType type> concept BRDF = requires {
   }
   || !BRDFImpl<type>::has_non_delta_samples;
 
-  // any way to do this which is generic over the rng concept?
   requires requires(const BRDFImpl<type> &brdf,
                     const Eigen::Vector3f &incoming_dir,
                     const Eigen::Vector3f &normal, rng::TestRngStateT &r) {
@@ -53,7 +52,6 @@ template <BRDFType type> concept BRDF = requires {
   }
   || !BRDFImpl<type>::has_non_delta_samples;
 
-  // any way to do this which is generic over the rng concept?
   requires requires(const BRDFImpl<type> &brdf,
                     const Eigen::Vector3f &incoming_dir,
                     const Eigen::Vector3f &normal, rng::TestRngStateT &r) {
@@ -62,7 +60,6 @@ template <BRDFType type> concept BRDF = requires {
   }
   || !BRDFImpl<type>::has_delta_samples;
 
-  // any way to do this which is generic over the rng concept?
   requires requires(const BRDFImpl<type> &brdf,
                     const Eigen::Vector3f &incoming_dir,
                     const Eigen::Vector3f &normal, rng::TestRngStateT &r) {

@@ -24,8 +24,8 @@ public:
   HOST_DEVICE BRDFImpl() = default;
 
   HOST_DEVICE BRDFImpl(const Params &params)
-      : normalized_specular_(params.specular *
-                             normalizing_factor(params.shininess)),
+      : normalizing_factor_(normalizing_factor(params.shininess)),
+        normalized_specular_(normalizing_factor_),
         shininess_(params.shininess) {}
 
   HOST_DEVICE Eigen::Array3f brdf(const Eigen::Vector3f &incoming_dir,
@@ -55,7 +55,8 @@ public:
     float psi = std::acos(std::pow(v1, 1 / (shininess_ + 1)));
 
     render::DirSample sample = {find_relative_vec(reflection, phi, psi),
-                                std::pow(std::cos(psi), shininess_)};
+                                std::pow(std::cos(psi), shininess_) *
+                                    normalizing_factor_};
 
     return sample;
   }
@@ -65,6 +66,7 @@ private:
     return float((shininess + 2) / (2 * M_PI));
   }
 
+  float normalizing_factor_;
   Eigen::Array3f normalized_specular_;
   float shininess_;
 };

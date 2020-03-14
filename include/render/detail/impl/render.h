@@ -18,10 +18,10 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
                                            unsigned samples_per, unsigned x_dim,
                                            unsigned y_dim,
                                            const Settings &settings, bool) {
-  if (samples_per > std::numeric_limits<uint16_t>::max()) {
-    std::cerr << "more samples than allowed" << std::endl;
-    return;
-  }
+  /* if (samples_per > std::numeric_limits<uint16_t>::max()) { */
+  /*   std::cerr << "more samples than allowed" << std::endl; */
+  /*   return; */
+  /* } */
 
   unsigned block_size = 256;
   unsigned target_work_per_thread = 4;

@@ -43,7 +43,8 @@ public:
     float phi = 2 * M_PI * v0;
     float theta = std::asin(std::sqrt(v1));
 
-    return {find_relative_vec(normal, phi, theta), std::cos(theta)};
+    return {find_relative_vec(normal, phi, theta),
+            std::cos(theta) * normalizing_factor};
   }
 
 private:

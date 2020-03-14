@@ -1,7 +1,6 @@
 #pragma once
 
 #include "lib/cuda/utils.h"
-#include "lib/host_device_vector.h"
 #include "lib/span.h"
 
 #include <Eigen/Core>
@@ -10,10 +9,8 @@
 #include <tuple>
 #include <vector>
 
-namespace ray {
-namespace detail {
+namespace intersect {
 namespace accel {
-namespace dir_tree {
 // TODO test!!!
 class HalfSpherePartition {
 public:
@@ -78,7 +75,5 @@ private:
   float colatitude_inverse_interval_;
   SpanSized<const ColatitudeDiv> colatitude_divs_;
 };
-} // namespace dir_tree
 } // namespace accel
-} // namespace detail
-} // namespace ray
+} // namespace intersect
