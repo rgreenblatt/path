@@ -68,9 +68,11 @@ static void test_accelerator(std::mt19937 &gen,
 
     run_tests.template operator()<ExecutionModel::CPU>(triangles, tests);
   }
+    
+  const unsigned num_trials = 10;
+  const unsigned num_tests = 10;
 
   {
-    unsigned num_trials = 10;
     std::uniform_int_distribution<unsigned> num_triangles_gen(2, 100);
     std::uniform_real_distribution<float> float_gen(-1, 1);
     for (unsigned trial_idx = 0; trial_idx < num_trials; ++trial_idx) {
@@ -86,8 +88,6 @@ static void test_accelerator(std::mt19937 &gen,
         triangles[i] =
             Triangle(std::array{random_vec(), random_vec(), random_vec()});
       }
-
-      unsigned num_tests = 10;
 
       HostDeviceVector<Test> tests(num_tests);
 
@@ -138,37 +138,3 @@ TEST(Intersection, kdtree) {
     test_accelerator(gen, AccelSettings<AccelType::KDTree>(), is_gpu);
   }
 }
-
-#if 0
-TEST(Intersection, dir_tree) {
-  std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
-  dir_tree::DirTreeGenerator<ExecutionModel::CPU> cpu_gen;
-  /* dir_tree::DirTreeGenerator<ExecutionModel::GPU> gpu_gen; */
-  /* for (bool is_gpu : {false, true}) { */
-  for (bool is_gpu : {false}) {
-    test_accelerator(
-        gen,
-        [&](SpanSized<scene::ShapeData> shapes) {
-          Eigen::Vector3f min_bound(std::numeric_limits<float>::max(),
-                                    std::numeric_limits<float>::max(),
-                                    std::numeric_limits<float>::max());
-          Eigen::Vector3f max_bound(std::numeric_limits<float>::lowest(),
-                                    std::numeric_limits<float>::lowest(),
-                                    std::numeric_limits<float>::lowest());
-
-          for (const auto &shape : shapes) {
-            auto [min_bound_new, max_bound_new] =
-                ray::detail::accel::get_transformed_bounds(
-                    shape.get_transform());
-            min_bound = min_bound.cwiseMin(min_bound_new);
-            max_bound = max_bound.cwiseMax(max_bound_new);
-          }
-
-          auto lookup =
-              cpu_gen.generate(shapes, 4, min_bound, max_bound, false);
-          return dir_tree::DirTreeLookupRef(lookup);
-        },
-        is_gpu);
-  }
-}
-#endif
