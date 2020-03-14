@@ -32,7 +32,7 @@ add_compile_options("$<$<CONFIG:RELEASE>:-Ofast;-march=native;-DNDEBUG>")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcuda-ptxas '-w'")
 set(CUDA_EXTRA_DEBUG_ARGS
   "-O0 -Xcuda-ptxas '-O0' -Xcuda-ptxas '--allow-expensive-optimizations=false'")
-set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} ${PTXAS_DEBUG_ARGS}")
+set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} ${CUDA_EXTRA_DEBUG_ARGS}")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
