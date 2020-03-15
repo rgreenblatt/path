@@ -44,20 +44,19 @@ public:
     if (value == this_value) {
       return f(item_);
     } else {
-      if (size == 1) {
+      if constexpr (std::is_same_v<decltype(next), std::tuple<>>) {
         std::cerr << "dispatch value not found" << std::endl;
         abort(); // maybe don't abort?
+      } else {
+        return next.visit(f, value);
       }
-      return next.visit(f, value);
     }
   }
 
 private:
   ItemType item_;
 
-  struct NoneType {};
-
-  std::conditional_t<idx + 1 == size, NoneType,
+  std::conditional_t<idx + 1 == size, std::tuple<>,
                      OnePerInstance<T, TypeOver, idx + 1>>
       next;
 };

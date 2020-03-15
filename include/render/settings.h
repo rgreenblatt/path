@@ -46,6 +46,23 @@ template <>
 struct CompileTimeDispatchableImpl<render::CompileTimeSettingsAll>
     : public CompileTimeDispatchableImpl<render::CompileTimeSettingsFull> {};
 
+namespace cereal {
+template <class Archive, Enum T>
+inline std::string save_minimal(Archive const &, T const &enum_v) {
+  return std::string(magic_enum::enum_name(enum_v));
+}
+
+template <class Archive, Enum T>
+inline void load_minimal(Archive const &, T &enum_v, const std::string &s) {
+  auto val_op = magic_enum::enum_cast<T>(s);
+  if (val_op.has_value()) {
+    enum_v = val_op.value();
+  } else {
+    std::cerr << "failed to load enum with string: " << s << std::endl;
+  }
+}
+} // namespace cereal
+
 namespace render {
 class CompileTimeSettings {
 public:
@@ -159,11 +176,24 @@ public:
   GeneralSettings general_settings;
 
   template <class Archive> void serialize(Archive &archive) {
-    archive(
-        cereal::make_nvp("triangle_accel", compile_time.triangle_accel_type()));
-    triangle_accel.visit(
-        [&](auto &item) { cereal::make_nvp("triangle_accel_settings", item); },
-        compile_time.triangle_accel_type());
+    auto serialize_item = [&](const auto &name, auto &type, auto &settings) {
+      archive(cereal::make_nvp(name, type));
+      settings.visit(
+          [&](auto &item) {
+            archive(cereal::make_nvp(std::string(name) + "_settings", item));
+          },
+          type);
+    };
+
+    serialize_item("triangle_accel", compile_time.triangle_accel_type(),
+                   triangle_accel);
+    serialize_item("mesh_accel", compile_time.mesh_accel_type(), mesh_accel);
+    serialize_item("light_sampler", compile_time.light_sampler_type(),
+                   light_sampler);
+    serialize_item("dir_sampler", compile_time.dir_sampler_type(), dir_sampler);
+    serialize_item("term_prob", compile_time.term_prob_type(), term_prob);
+    serialize_item("rng", compile_time.rng_type(), rng);
+    archive(CEREAL_NVP(general_settings));
   }
 };
 

@@ -5,7 +5,7 @@ set(CMAKE_QT_COMPILER clang++)
 set(CMAKE_CUDA_COMPILER clang++)
 
 cmake_policy(SET CMP0048 NEW)
-project(final VERSION 0.1 LANGUAGES CUDA CXX)
+project(path VERSION 0.1 LANGUAGES CUDA CXX)
 
 cmake_minimum_required(VERSION 3.10)
 
@@ -185,8 +185,8 @@ if(BUILD_BENCHMARKS OR CMAKE_EXPORT_COMPILE_COMMANDS)
 endif()
 
 add_executable(
-  final
+  path
   "${PROJECT_SOURCE_DIR}/src/main.cpp"
   )
-target_link_libraries(final renderer docopt_s scenefile_compat)
-target_add_standard_include(final)
+target_link_libraries(path renderer docopt_s scenefile_compat)
+target_add_standard_include(path)

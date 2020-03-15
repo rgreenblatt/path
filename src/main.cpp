@@ -8,18 +8,18 @@
 #include <magic_enum.hpp>
 #include <thrust/optional.h>
 
+#include <fstream>
 #include <iostream>
-#include <sstream>
 #include <string>
+
+#include "lib/info/debug_print.h"
 
 static const char USAGE[] =
     R"(Path
 
     Usage:
       path <scene_file> [-g | --gpu] [--width=<pixels>] [--height=<pixels>]
-        [--samples=<count>] [--file=<file_name>] [--uniform | --brdf]
-        [--random-triangle | --no-light-sampling | --weighted-aabb]
-        [--m-func-term-prob | --const-term-prob | --direct-only ]
+        [--samples=<count>] [--output=<file_name>] [--config-file=<file_name>]
       path (-h | --help)
 
     Options:
@@ -28,25 +28,9 @@ static const char USAGE[] =
       --width=<pixels>      Width in pixels [default: 1024]
       --height=<pixels>     Height in pixels [default: 1024]
       --samples=<count>     Samples per pixel [default: 128]
-      --file=<file_name>    File name [default: out.png]
-
-      --uniform             Uniform direction sampling
-      --brdf                BRDF direction sampling (default)
-
-      --random-triangle     Sample lights by randomly selecting an emissive
-                            triangle weighting by the product of the surface
-                            area and intensity of the triangle (default)
-      --no-light-sampling   No direct lighting event splitting
-      --weighted-aabb       Sample lights using light axis aligned bounding
-                            boxs (incorrect (biased) and worse than random
-                            triangle sampling)
-
-      --m-func-term-prob    Term probability is a function of the multiplier
-                            (default)
-      --const-term-prob     Constant term probability
-      --direct-only         Terminate after 1 iteration to just show
-                            direct lighting (same as a constant
-                            term probability with value 1)
+      --output=<file_name>  File name [default: out.png]
+      --config=<file_name>  Config file name. If no file is specified, default
+                            settings will be used.
 )";
 
 int main(int argc, char *argv[]) {
@@ -68,8 +52,8 @@ int main(int argc, char *argv[]) {
   const unsigned width = get_unpack_arg("--width").asLong();
   const unsigned height = get_unpack_arg("--height").asLong();
   const unsigned samples = get_unpack_arg("--samples").asLong();
-  const std::string scene_file_name = get_unpack_arg("<scene_file>").asString();
-  const std::string file_name = get_unpack_arg("--file").asString();
+  const auto scene_file_name = get_unpack_arg("<scene_file>").asString();
+  const auto output_file_name = get_unpack_arg("--output").asString();
 
   if (using_gpu) {
     int n_devices;
@@ -105,47 +89,27 @@ int main(int argc, char *argv[]) {
 
   Span<BGRA> pixels(reinterpret_cast<BGRA *>(image.bits()), width * height);
 
-  using namespace magic_enum::ostream_operators;
-
   render::Settings settings;
-  settings.compile_time.dir_sampler_type() =
-      get_unpack_arg("--uniform").asBool() ? render::DirSamplerType::Uniform
-                                           : render::DirSamplerType::BRDF;
-  settings.compile_time.light_sampler_type() =
-      get_unpack_arg("--weighted-aabb").asBool()
-          ? render::LightSamplerType::WeightedAABB
-          : (get_unpack_arg("--no-light-sampling").asBool()
-                 ? render::LightSamplerType::NoLightSampling
-                 : render::LightSamplerType::RandomTriangle);
-  settings.compile_time.term_prob_type() =
-      get_unpack_arg("--direct-only").asBool()
-          ? render::TermProbType::DirectLightingOnly
-          : (get_unpack_arg("--const-term-prob").asBool()
-                 ? render::TermProbType::Constant
-                 : render::TermProbType::MultiplierFunc);
-  settings.compile_time.mesh_accel_type() = intersect::accel::AccelType::KDTree;
-  settings.compile_time.triangle_accel_type() =
-      intersect::accel::AccelType::KDTree;
 
-  std::cout << "Direction sampling: "
-            << settings.compile_time.dir_sampler_type() << std::endl;
-  std::cout << "Light sampling: " << settings.compile_time.light_sampler_type()
-            << std::endl;
-  std::cout << "Term prob: " << settings.compile_time.term_prob_type()
-            << std::endl;
-  std::cout << "Rng: " << settings.compile_time.rng_type() << std::endl;
+  auto config_file_name = get_unpack_arg("--config-file");
+  if (config_file_name) {
+    dbg(config_file_name.asString());
+    std::ifstream i(config_file_name.asString(), std::ifstream::binary);
+    cereal::YAMLInputArchive archive(i);
+    archive(settings);
+  }
 
   std::ostringstream os;
   {
     cereal::YAMLOutputArchive archive(os);
     archive(CEREAL_NVP(settings));
   }
-  std::cout << "output=\n" << os.str() << std::endl;
+  std::cout << os.str() << std::endl;
 
   renderer.render(execution_model, pixels, *scene, samples, width, height,
                   settings, false);
 
-  image.save(file_name.c_str());
+  image.save(output_file_name.c_str());
 
   return 0;
 }
