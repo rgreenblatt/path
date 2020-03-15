@@ -196,7 +196,7 @@ def main():
         "run": run_command,
         "test": test_command,
         "bench": bench_command,
-        "compile_command": cc_command,
+        "compile_commands": cc_command,
         # "check": check_command,
         "clean": clean_command,
     }
