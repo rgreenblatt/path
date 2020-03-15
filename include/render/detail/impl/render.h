@@ -147,11 +147,12 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
             settings.rng.template get_item<rng_type>(), samples_per, x_dim,
             y_dim, max_draws_per_sample);
 
-        compute_intensities(
-            settings.general_settings.settings, division, samples_per, x_dim,
-            y_dim, mesh_accel_ref, Span<const TriRefType>{triangle_accel_refs},
-            light_sampler, dir_sampler, term_prob, rng, output_pixels,
-            intensities_, triangle_data, materials, s.film_to_world());
+        compute_intensities(settings.general_settings.computation_settings,
+                            division, samples_per, x_dim, y_dim, mesh_accel_ref,
+                            Span<const TriRefType>{triangle_accel_refs},
+                            light_sampler, dir_sampler, term_prob, rng,
+                            output_pixels, intensities_, triangle_data,
+                            materials, s.film_to_world());
       },
       settings.compile_time.values());
 

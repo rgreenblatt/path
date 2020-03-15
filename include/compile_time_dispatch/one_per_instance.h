@@ -2,6 +2,8 @@
 
 #include "compile_time_dispatch/compile_time_dispatch.h"
 
+#include <iostream>
+
 template <CompileTimeDispatchable T, template <T> class TypeOver,
           unsigned idx = 0>
 class OnePerInstance {
@@ -35,6 +37,18 @@ public:
     } else {
       static_assert(size != 1, "dispatch value not found");
       return next.template get_item<value>();
+    }
+  }
+
+  template <typename F> auto visit(const F &f, const T &value) {
+    if (value == this_value) {
+      return f(item_);
+    } else {
+      if (size == 1) {
+        std::cerr << "dispatch value not found" << std::endl;
+        abort(); // maybe don't abort?
+      }
+      return next.visit(f, value);
     }
   }
 

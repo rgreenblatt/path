@@ -72,7 +72,7 @@ template <> struct AccelSettings<AccelType::LoopAll> : EmptySettings {
 
 template <> struct AccelSettings<AccelType::KDTree> {
   kdtree::Settings generation_settings;
-  
+
   template <class Archive> void serialize(Archive &archive) {
     archive(CEREAL_NVP(generation_settings));
   }

@@ -1,14 +1,14 @@
 #pragma once
 
-#include "lib/settings.h"
 #include "execution_model/execution_model.h"
 #include "lib/cuda/utils.h"
+#include "lib/settings.h"
 
 #include <array>
 #include <concepts>
 
 namespace rng {
-enum class RngType { Uniform, Halton/*, Sobel*/ };
+enum class RngType { Uniform, Halton /*, Sobel*/ };
 
 template <RngType type, ExecutionModel execution_model> struct RngImpl;
 

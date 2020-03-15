@@ -9,6 +9,7 @@
 #include <thrust/optional.h>
 
 #include <iostream>
+#include <sstream>
 #include <string>
 
 static const char USAGE[] =
@@ -132,8 +133,14 @@ int main(int argc, char *argv[]) {
             << std::endl;
   std::cout << "Term prob: " << settings.compile_time.term_prob_type()
             << std::endl;
-  std::cout << "Rng: " << settings.compile_time.rng_type()
-            << std::endl;
+  std::cout << "Rng: " << settings.compile_time.rng_type() << std::endl;
+
+  std::ostringstream os;
+  {
+    cereal::YAMLOutputArchive archive(os);
+    archive(CEREAL_NVP(settings));
+  }
+  std::cout << "output=\n" << os.str() << std::endl;
 
   renderer.render(execution_model, pixels, *scene, samples, width, height,
                   settings, false);
