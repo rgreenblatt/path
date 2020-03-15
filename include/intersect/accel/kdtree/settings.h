@@ -15,6 +15,11 @@ struct Settings {
   // terminate
   unsigned num_objects_terminate = 2;
 
+  template <class Archive> void serialize(Archive &archive) {
+    archive(CEREAL_NVP(s_a_heuristic), CEREAL_NVP(use_s_a_heuritic),
+            CEREAL_NVP(num_objects_terminate));
+  }
+
   HOST_DEVICE inline bool operator==(const Settings &) const = default;
 };
 

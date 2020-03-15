@@ -10,3 +10,6 @@
 [submodule "extern/docopt.cpp"]
 	path = extern/docopt.cpp
 	url = https://github.com/docopt/docopt.cpp
+[submodule "extern/yaml-cpp"]
+	path = extern/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp

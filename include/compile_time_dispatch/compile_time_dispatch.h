@@ -17,6 +17,9 @@
 template <typename T> struct CompileTimeDispatchableImpl;
 
 template <typename T> concept CompileTimeDispatchable = requires {
+  std::equality_comparable<T>;
+  std::totally_ordered<T>;
+
   typename CompileTimeDispatchableImpl<T>;
   StdArraySpecialization<decltype(CompileTimeDispatchableImpl<T>::values)>;
   typename decltype(CompileTimeDispatchableImpl<T>::values)::value_type;

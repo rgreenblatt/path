@@ -2,6 +2,7 @@
 
 #include "execution_model/execution_model.h"
 #include "lib/projection.h"
+#include "lib/settings.h"
 #include "material/material.h"
 #include "render/dir_sampler.h"
 #include "rng/rng.h"
@@ -28,6 +29,7 @@ concept DirSamplerRef = requires(const V &dir_sampler,
 template <DirSamplerType type, ExecutionModel execution_model>
 concept DirSampler = requires {
   typename DirSamplerSettings<type>;
+  Setting<DirSamplerSettings<type>>;
   typename DirSamplerImpl<type, execution_model>;
 
   requires requires(DirSamplerImpl<type, execution_model> & dir_sampler,

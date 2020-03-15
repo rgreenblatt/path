@@ -41,11 +41,12 @@ template <AccelType type, ExecutionModel execution_model, typename O>
 concept Accel = requires {
   Object<O>;
   typename AccelImpl<type, execution_model, O>;
-  std::default_initializable<AccelImpl<type, execution_model, O>>;
+  std::semiregular<AccelImpl<type, execution_model, O>>;
 
   // Settings type is the same for each execution model and object
   typename AccelSettings<type>;
   Setting<AccelSettings<type>>;
+  std::equality_comparable<AccelSettings<type>>;
 
   // generation
   requires requires(AccelImpl<type, execution_model, O> & accel,
@@ -64,21 +65,25 @@ requires Accel<accel_type, execution_model, O> struct AccelChecked {
 template <AccelType type, ExecutionModel execution_model, Object O>
 using AccelT = typename AccelChecked<type, execution_model, O>::type;
 
-template <> struct AccelSettings<AccelType::LoopAll> {
+template <> struct AccelSettings<AccelType::LoopAll> : EmptySettings {
   HOST_DEVICE inline bool
   operator==(const AccelSettings<AccelType::LoopAll> &) const = default;
 };
 
 template <> struct AccelSettings<AccelType::KDTree> {
-  kdtree::Settings generate;
+  kdtree::Settings generation_settings;
+  
+  template <class Archive> void serialize(Archive &archive) {
+    archive(CEREAL_NVP(generation_settings));
+  }
 
   HOST_DEVICE inline bool operator==(const AccelSettings &) const = default;
 };
 
-template <> struct AccelSettings<AccelType::DirTree> {
+template <> struct AccelSettings<AccelType::DirTree> : EmptySettings {
   // TODO: this will change when dir tree is implemented
-  SAHeuristicSettings s_a_heuristic_settings;
-  unsigned num_dir_trees;
+  /* SAHeuristicSettings s_a_heuristic_settings; */
+  /* unsigned num_dir_trees; */
 
   HOST_DEVICE inline bool operator==(const AccelSettings &) const = default;
 };

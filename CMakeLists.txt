@@ -49,6 +49,7 @@ find_package(OpenMP REQUIRED)
 # find_package(OpenCV REQUIRED)
 find_package(Threads REQUIRED)
 add_subdirectory("${PROJECT_SOURCE_DIR}/extern/docopt.cpp")
+add_subdirectory("${PROJECT_SOURCE_DIR}/extern/yaml-cpp")
 
 set(BUILD_SHARED_LIBS OFF)
 
@@ -94,7 +95,7 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/kdtree/generator.cu"
   )
 target_add_standard_include(intersect)
-target_link_libraries(intersect OpenMP::OpenMP_CXX Qt5::Widgets)
+target_link_libraries(intersect OpenMP::OpenMP_CXX Qt5::Widgets yaml-cpp)
 
 add_library(
   renderer
@@ -109,7 +110,7 @@ add_library(
   )
 target_add_standard_include(renderer)
 target_link_libraries(renderer intersect OpenMP::OpenMP_CXX Qt5::Widgets
-  -lcurand)
+  yaml-cpp -lcurand)
 
 add_library(
   scenefile_compat
@@ -120,7 +121,8 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/scene/scenefile_compat/scenefile_loader.cpp"
   )
 target_add_standard_include(scenefile_compat)
-target_link_libraries(scenefile_compat OpenMP::OpenMP_CXX Qt5::Widgets Qt5::Xml)
+target_link_libraries(scenefile_compat OpenMP::OpenMP_CXX Qt5::Widgets Qt5::Xml
+  yaml-cpp)
 
 if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
   enable_testing()

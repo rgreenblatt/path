@@ -11,6 +11,10 @@ struct SAHeuristicSettings {
   float traversal_cost;
   float intersection_cost;
 
+  template <class Archive> void serialize(Archive &archive) {
+    archive(CEREAL_NVP(traversal_cost), CEREAL_NVP(intersection_cost));
+  }
+
   HOST_DEVICE inline bool
   operator==(const SAHeuristicSettings &) const = default;
 };

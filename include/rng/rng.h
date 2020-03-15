@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lib/settings.h"
 #include "execution_model/execution_model.h"
 #include "lib/cuda/utils.h"
 
@@ -13,9 +14,12 @@ template <RngType type, ExecutionModel execution_model> struct RngImpl;
 
 template <RngType type> struct RngSettings;
 
-template <> struct RngSettings<RngType::Uniform> {};
-/* template <> struct RngSettings<RngType::Sobel> {}; */
-template <> struct RngSettings<RngType::Halton> {};
+template <> struct RngSettings<RngType::Uniform> : EmptySettings {};
+/* template <> struct RngSettings<RngType::Sobel> : EmptySettings {}; */
+template <> struct RngSettings<RngType::Halton> : EmptySettings {};
+
+static_assert(Setting<RngSettings<RngType::Uniform>>);
+static_assert(Setting<RngSettings<RngType::Halton>>);
 
 template <typename State> concept RngState = requires(State &state) {
   std::default_initializable<State>;

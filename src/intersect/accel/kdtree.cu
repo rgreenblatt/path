@@ -32,7 +32,7 @@ AccelImpl<AccelType::KDTree, execution_model, O>::gen(
     bounds_[i] = {aabb, aabb.get_max_bound() - aabb.get_min_bound()};
   }
 
-  auto [nodes, permuation] = gen_->gen(settings.generate, bounds_);
+  auto [nodes, permuation] = gen_->gen(settings.generation_settings, bounds_);
 
   global_idx_to_local_idx_.resize(size);
   ordered_objects_.resize(size);

@@ -96,6 +96,15 @@ public:
 
   constexpr const T &values() const { return values_; }
 
+  template <class Archive> void serialize(Archive &archive) {
+    archive(cereal::make_nvp("triangle_accel_type", triangle_accel_type()),
+            cereal::make_nvp("mesh_accel_type", mesh_accel_type()),
+            cereal::make_nvp("light_sampler_type", light_sampler_type()),
+            cereal::make_nvp("dir_sampler_type", dir_sampler_type()),
+            cereal::make_nvp("term_prob_type", term_prob_type()),
+            cereal::make_nvp("rng_type", rng_type()));
+  }
+
 private:
   T values_;
 };
@@ -104,8 +113,14 @@ static_assert(CompileTimeDispatchable<CompileTimeSettings::T>);
 static_assert(Setting<CompileTimeSettings>);
 
 struct GeneralSettings {
-  ComputationSettings settings;
+  ComputationSettings computation_settings;
+
+  template <class Archive> void serialize(Archive &archive) {
+    archive(CEREAL_NVP(computation_settings));
+  }
 };
+
+static_assert(Setting<GeneralSettings>);
 
 // TODO: serialization???
 struct Settings {
@@ -153,6 +168,12 @@ public:
   CompileTimeSettings compile_time = default_compile_time;
 
   GeneralSettings general_settings;
+
+  template <class Archive> void serialize(Archive &archive) {
+    archive(cereal::make_nvp(
+        "triangle_accel_loop_all",
+        triangle_accel.template get_item<AccelType::LoopAll>()));
+  }
 };
 
 static_assert(Setting<Settings>);
