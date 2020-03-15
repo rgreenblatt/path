@@ -14,6 +14,8 @@
 #include "render/detail/term_prob.h"
 #include "render/settings.h"
 #include "rng/uniform.h"
+/* #include "rng/sobel.h" */
+#include "rng/halton.h"
 #include "scene/scene.h"
 
 #include <map>

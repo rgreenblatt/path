@@ -65,4 +65,7 @@ struct RngImpl<RngType::Uniform, execution_model> {
     return Ref(samples_per, x_dim, y_dim);
   }
 };
+
+static_assert(Rng<RngType::Uniform, ExecutionModel::GPU>);
+static_assert(Rng<RngType::Uniform, ExecutionModel::CPU>);
 } // namespace rng

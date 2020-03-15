@@ -108,7 +108,8 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl.cu"
   )
 target_add_standard_include(renderer)
-target_link_libraries(renderer intersect OpenMP::OpenMP_CXX Qt5::Widgets)
+target_link_libraries(renderer intersect OpenMP::OpenMP_CXX Qt5::Widgets
+  -lcurand)
 
 add_library(
   scenefile_compat

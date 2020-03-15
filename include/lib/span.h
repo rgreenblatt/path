@@ -66,6 +66,8 @@ public:
     if constexpr (use_size) {
       assert(end <= size_);
     }
+      
+    assert(start <= end);
 
     return {ptr_ + start, end - start};
   }

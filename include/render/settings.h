@@ -37,12 +37,6 @@ public:
       {{AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
         DirSamplerType::BRDF, TermProbType::MultiplierFunc,
         rng::RngType::Uniform}},
-      {{AccelType::KDTree, AccelType::KDTree, LightSamplerType::NoLightSampling,
-        DirSamplerType::Uniform, TermProbType::MultiplierFunc,
-        rng::RngType::Uniform}},
-      {{AccelType::KDTree, AccelType::KDTree, LightSamplerType::NoLightSampling,
-        DirSamplerType::BRDF, TermProbType::MultiplierFunc,
-        rng::RngType::Uniform}},
   }};
 };
 

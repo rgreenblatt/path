@@ -3,7 +3,6 @@
 #include "execution_model/execution_model.h"
 #include "execution_model/vector_type.h"
 
-// Ideally this would be a "real" trait (see lib/trait.h)
 namespace execution_model {
 namespace detail {
 template <ExecutionModel execution_model, typename T> struct exec_vector;

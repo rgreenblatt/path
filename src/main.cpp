@@ -132,6 +132,8 @@ int main(int argc, char *argv[]) {
             << std::endl;
   std::cout << "Term prob: " << settings.compile_time.term_prob_type()
             << std::endl;
+  std::cout << "Rng: " << settings.compile_time.rng_type()
+            << std::endl;
 
   renderer.render(execution_model, pixels, *scene, samples, width, height,
                   settings, false);

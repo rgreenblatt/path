@@ -7,11 +7,15 @@
 #include <concepts>
 
 namespace rng {
-enum class RngType { Uniform /*,Halton, Sobel*/ };
+enum class RngType { Uniform, Halton/*, Sobel*/ };
 
 template <RngType type, ExecutionModel execution_model> struct RngImpl;
 
 template <RngType type> struct RngSettings;
+
+template <> struct RngSettings<RngType::Uniform> {};
+/* template <> struct RngSettings<RngType::Sobel> {}; */
+template <> struct RngSettings<RngType::Halton> {};
 
 template <typename State> concept RngState = requires(State &state) {
   std::default_initializable<State>;
@@ -46,8 +50,6 @@ template <RngType type, ExecutionModel execution_model> concept Rng = requires {
     ->std::common_with<typename RngImpl<type, execution_model>::Ref>;
   };
 };
-
-template <> struct RngSettings<RngType::Uniform> {};
 
 template <RngType type, ExecutionModel execution_model>
 requires Rng<type, execution_model> struct RngT
