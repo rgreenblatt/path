@@ -11,15 +11,12 @@ template <CompileTimeDispatchable T, std::size_t idx> struct Holder {
   static constexpr auto value = CompileTimeDispatchableT<T>::values[idx];
 };
 
-template<typename>
-struct Printer;
-
 template <typename F, CompileTimeDispatchable T>
 auto dispatch_value(const F &f, T value) {
   using Dispatch = CompileTimeDispatchableT<T>;
 
   static_assert(Dispatch::size != 0);
-    
+
   using ValT = std::decay_t<decltype(Dispatch::values[0])>;
 
   auto get_result =

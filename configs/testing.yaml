@@ -25,7 +25,7 @@ settings:
   term_prob_settings:
     exp: 10
     min_prob: 0.05000000074505806
-  rng: Halton
+  rng: Sobel
   rng_settings:
     {}
   general_settings:

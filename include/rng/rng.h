@@ -8,14 +8,14 @@
 #include <concepts>
 
 namespace rng {
-enum class RngType { Uniform, Halton /*, Sobel*/ };
+enum class RngType { Uniform, Halton, Sobel };
 
 template <RngType type, ExecutionModel execution_model> struct RngImpl;
 
 template <RngType type> struct RngSettings;
 
 template <> struct RngSettings<RngType::Uniform> : EmptySettings {};
-/* template <> struct RngSettings<RngType::Sobel> : EmptySettings {}; */
+template <> struct RngSettings<RngType::Sobel> : EmptySettings {};
 template <> struct RngSettings<RngType::Halton> : EmptySettings {};
 
 static_assert(Setting<RngSettings<RngType::Uniform>>);

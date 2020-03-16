@@ -34,8 +34,7 @@ requires SequenceGen<SGE<execution_model>> struct RngFromSequenceGen {
         assert(dim_ < ref_->dimension_bound_);
         assert(sample_ < ref_->samples_per_);
 
-        float out =
-            ref_->vals_[sample_ * ref_->dimension_bound_ + sample_];
+        float out = ref_->vals_[sample_ * ref_->dimension_bound_ + sample_];
 
         dim_++;
 

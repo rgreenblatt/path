@@ -4,12 +4,9 @@
 
 namespace render {
 // TODO: add more
-enum class TermProbType { DirectLightingOnly, Constant, MultiplierFunc };
+enum class TermProbType { Constant, MultiplierFunc };
 
 template <TermProbType type> struct TermProbSettings;
-
-template <>
-struct TermProbSettings<TermProbType::DirectLightingOnly> : EmptySettings {};
 
 template <> struct TermProbSettings<TermProbType::Constant> {
   float prob = 0.5f;
@@ -28,7 +25,6 @@ template <> struct TermProbSettings<TermProbType::MultiplierFunc> {
   }
 };
 
-static_assert(Setting<TermProbSettings<TermProbType::DirectLightingOnly>>);
 static_assert(Setting<TermProbSettings<TermProbType::Constant>>);
 static_assert(Setting<TermProbSettings<TermProbType::MultiplierFunc>>);
 }; // namespace render

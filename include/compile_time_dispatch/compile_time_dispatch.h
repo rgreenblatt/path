@@ -33,6 +33,7 @@ template <Enum T> struct CompileTimeDispatchableImpl<T> {
   static constexpr auto values = magic_enum::enum_values<T>();
 };
 
+#if 0
 template <CompileTimeDispatchable... Types>
 struct CompileTimeDispatchableImpl<std::tuple<Types...>> {
 private:
@@ -53,6 +54,7 @@ public:
         })));
   }();
 };
+#endif
 
 template <CompileTimeDispatchable T>
 struct CompileTimeDispatchableT : CompileTimeDispatchableImpl<T> {

@@ -33,16 +33,14 @@ private:
 public:
   static constexpr std::array<render::CompileTimeSettingsSubset, 3> values = {{
       {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
-        DirSamplerType::BRDF, TermProbType::MultiplierFunc,
-        rng::RngType::Uniform},
+       DirSamplerType::BRDF, TermProbType::MultiplierFunc,
+       rng::RngType::Uniform},
       {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
-        DirSamplerType::BRDF, TermProbType::MultiplierFunc,
-        rng::RngType::Halton},
+       DirSamplerType::BRDF, TermProbType::MultiplierFunc, rng::RngType::Sobel},
   }};
 };
 
 static_assert(CompileTimeDispatchable<render::CompileTimeSettingsSubset>);
-
 
 namespace cereal {
 template <class Archive, Enum T>
@@ -66,13 +64,7 @@ class CompileTimeSettings {
 public:
   using AccelType = intersect::accel::AccelType;
   using RngType = rng::RngType;
-  using T =
-#ifdef QUICK_BUILD
-      CompileTimeSettingsSubset
-#else
-      CompileTimeSettingsFull
-#endif
-      ;
+  using T = CompileTimeSettingsSubset;
 
   constexpr CompileTimeSettings(const T &v) : values_(v) {}
 
@@ -114,8 +106,6 @@ public:
 private:
   T values_;
 };
-
-static_assert(CompileTimeDispatchable<CompileTimeSettings::T>);
 
 struct GeneralSettings {
   ComputationSettings computation_settings;

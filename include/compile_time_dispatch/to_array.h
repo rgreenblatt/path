@@ -1,6 +1,5 @@
 #pragma once
 
-#include <boost/hana/ext/std/array.hpp>
 #include <boost/hana/unpack.hpp>
 
 #include <array>

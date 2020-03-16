@@ -37,25 +37,6 @@ requires TermProb<type, execution_model> struct TermProbT
 };
 
 template <ExecutionModel execution_model>
-struct TermProbImpl<TermProbType::DirectLightingOnly, execution_model> {
-public:
-  using Settings = TermProbSettings<TermProbType::DirectLightingOnly>;
-
-  class Ref {
-  public:
-    HOST_DEVICE Ref() = default;
-
-    HOST_DEVICE Ref(const Settings &) {}
-
-    HOST_DEVICE float operator()(const Eigen::Array3f &) const {
-      return std::numeric_limits<float>::infinity();
-    }
-  };
-
-  auto gen(const Settings &settings) { return Ref(settings); }
-};
-
-template <ExecutionModel execution_model>
 struct TermProbImpl<TermProbType::Constant, execution_model> {
 public:
   using Settings = TermProbSettings<TermProbType::Constant>;
