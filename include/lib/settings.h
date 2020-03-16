@@ -1,8 +1,11 @@
 #pragma once
 
-#include <concepts>
+#include "lib/cuda/utils.h"
 
+// TODO: fix needing to include this here
 #include <cereal-yaml/archives/yaml.hpp>
+
+#include <concepts>
 
 template <typename T>
 concept Setting = requires(const T &data, cereal::YAMLInputArchive &archive) {

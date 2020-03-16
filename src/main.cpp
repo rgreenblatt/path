@@ -1,4 +1,3 @@
-#include "lib/cuda/utils.h"
 #include "render/renderer.h"
 #include "render/settings.h"
 #include "scene/scenefile_compat/scenefile_loader.h"

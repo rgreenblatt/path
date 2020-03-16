@@ -7,8 +7,6 @@
 #include "render/settings.h"
 #include "scene/scene.h"
 
-#include <variant>
-
 namespace render {
 namespace detail {
 template <ExecutionModel execution_model> class RendererImpl;
