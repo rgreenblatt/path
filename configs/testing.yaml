@@ -1,0 +1,33 @@
+settings:
+  triangle_accel: KDTree
+  triangle_accel_settings:
+    generation_settings:
+      s_a_heuristic:
+        traversal_cost: 1
+        intersection_cost: 1
+      use_s_a_heuritic: false
+      num_objects_terminate: 2
+  mesh_accel: KDTree
+  mesh_accel_settings:
+    generation_settings:
+      s_a_heuristic:
+        traversal_cost: 1
+        intersection_cost: 1
+      use_s_a_heuritic: false
+      num_objects_terminate: 2
+  light_sampler: RandomTriangle
+  light_sampler_settings:
+    {}
+  dir_sampler: BRDF
+  dir_sampler_settings:
+    {}
+  term_prob: MultiplierFunc
+  term_prob_settings:
+    exp: 10
+    min_prob: 0.05000000074505806
+  rng: Halton
+  rng_settings:
+    {}
+  general_settings:
+    computation_settings:
+      {}

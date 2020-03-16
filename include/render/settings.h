@@ -16,8 +16,9 @@ using CompileTimeSettingsFull =
     std::tuple<intersect::accel::AccelType, intersect::accel::AccelType,
                LightSamplerType, DirSamplerType, TermProbType, rng::RngType>;
 
-struct CompileTimeSettingsSubset : public CompileTimeSettingsFull {};
-struct CompileTimeSettingsAll : public CompileTimeSettingsFull {};
+struct CompileTimeSettingsSubset : public CompileTimeSettingsFull {
+  using CompileTimeSettingsFull::CompileTimeSettingsFull;
+};
 } // namespace render
 
 template <>
@@ -30,21 +31,18 @@ private:
   using TermProbType = render::TermProbType;
 
 public:
-  static constexpr std::array<render::CompileTimeSettingsSubset, 5> values = {{
-      {{AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
-        DirSamplerType::Uniform, TermProbType::MultiplierFunc,
-        rng::RngType::Uniform}},
-      {{AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
+  static constexpr std::array<render::CompileTimeSettingsSubset, 3> values = {{
+      {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
         DirSamplerType::BRDF, TermProbType::MultiplierFunc,
-        rng::RngType::Uniform}},
+        rng::RngType::Uniform},
+      {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
+        DirSamplerType::BRDF, TermProbType::MultiplierFunc,
+        rng::RngType::Halton},
   }};
 };
 
 static_assert(CompileTimeDispatchable<render::CompileTimeSettingsSubset>);
 
-template <>
-struct CompileTimeDispatchableImpl<render::CompileTimeSettingsAll>
-    : public CompileTimeDispatchableImpl<render::CompileTimeSettingsFull> {};
 
 namespace cereal {
 template <class Archive, Enum T>
@@ -79,7 +77,7 @@ public:
   constexpr CompileTimeSettings(const T &v) : values_(v) {}
 
   template <typename... Vals>
-  constexpr CompileTimeSettings(Vals &&... vals) : values_({{vals...}}) {}
+  constexpr CompileTimeSettings(Vals &&... vals) : values_({vals...}) {}
 
   constexpr AccelType triangle_accel_type() const {
     return std::get<0>(values_);

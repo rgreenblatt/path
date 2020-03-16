@@ -12,8 +12,6 @@
 #include <iostream>
 #include <string>
 
-#include "lib/info/debug_print.h"
-
 static const char USAGE[] =
     R"(Path
 
@@ -93,7 +91,6 @@ int main(int argc, char *argv[]) {
 
   auto config_file_name = get_unpack_arg("--config-file");
   if (config_file_name) {
-    dbg(config_file_name.asString());
     std::ifstream i(config_file_name.asString(), std::ifstream::binary);
     cereal::YAMLInputArchive archive(i);
     archive(settings);
@@ -106,8 +103,8 @@ int main(int argc, char *argv[]) {
   }
   std::cout << os.str() << std::endl;
 
-  renderer.render(execution_model, pixels, *scene, samples, width, height,
-                  settings, false);
+  renderer.render(execution_model, pixels, thrust::nullopt, thrust::nullopt,
+                  *scene, samples, width, height, settings, false);
 
   image.save(output_file_name.c_str());
 

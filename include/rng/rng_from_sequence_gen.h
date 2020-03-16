@@ -4,6 +4,8 @@
 #include "lib/span.h"
 #include "rng/rng.h"
 
+#include "lib/info/printf_dbg.h"
+
 namespace rng {
 template <typename SG>
 concept SequenceGen = requires(SG &state, unsigned dimension, unsigned count) {
@@ -25,16 +27,21 @@ requires SequenceGen<SGE<execution_model>> struct RngFromSequenceGen {
     struct State {
       HOST_DEVICE State() = default;
 
-      HOST_DEVICE State(unsigned sample_idx, Ref *ref)
+      HOST_DEVICE State(unsigned sample_idx, const Ref *ref)
           : dim_(0), sample_(sample_idx), ref_(ref) {}
 
       HOST_DEVICE inline float next() {
+        assert(dim_ < ref_->dimension_bound_);
+        assert(sample_ < ref_->samples_per_);
+
         float out =
-            ref_->next_vals_[sample_ * ref_->dimension_bound_ + sample_];
+            ref_->vals_[sample_ * ref_->dimension_bound_ + sample_];
 
         dim_++;
 
         if (dim_ >= ref_->dimension_bound_) {
+          printf_dbg("over dim bound");
+          printf_dbg(sample_);
           sample_ += ref_->samples_per_;
           dim_ = 0;
 
@@ -50,7 +57,7 @@ requires SequenceGen<SGE<execution_model>> struct RngFromSequenceGen {
     private:
       unsigned dim_;
       unsigned sample_;
-      Ref *ref_;
+      const Ref *ref_;
     };
 
     HOST_DEVICE Ref() {}

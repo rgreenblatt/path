@@ -12,6 +12,46 @@
 #include <random>
 
 namespace rng {
+namespace sobel_detail {
+template <ExecutionModel execution_model> struct SobelSequenceGen {
+  Span<const float> operator()(unsigned dimension_bound, unsigned count) {
+    unsigned size = dimension_bound * count;
+    f_working_mem_.resize(size);
+    u_working_mem_.resize(size);
+    vals_.resize(size);
+
+    Span<float> f_working_mem = f_working_mem_;
+    Span<unsigned> u_working_mem = u_working_mem_;
+    Span<float> vals = vals_;
+
+    assert(dimension_bound + 1 < primes.size());
+
+    // SPEED: memory could be reused more efficiently/tiling...
+    auto start_it = thrust::make_counting_iterator(0u);
+    thrust::for_each(thrust_data_.execution_policy(), start_it,
+                     start_it + count, [=] HOST_DEVICE(unsigned i) {
+                       const unsigned start = i * dimension_bound;
+                       const unsigned end = (i + 1) * dimension_bound;
+                       halton(i, f_working_mem.slice(start, end),
+                              u_working_mem.slice(start, end),
+                              vals.slice(start, end));
+                     });
+
+    return vals_;
+  }
+
+  using Settings = rng::RngSettings<RngType::Sobel>;
+
+  void init(const Settings &) {}
+
+private:
+  ThrustData<execution_model> thrust_data_;
+
+  ExecVector<execution_model, float> f_working_mem_;
+  ExecVector<execution_model, unsigned> u_working_mem_;
+  ExecVector<execution_model, float> vals_;
+};
+}
 template <ExecutionModel execution_model>
 struct RngImpl<RngType::Sobel, execution_model> {
   struct Ref {

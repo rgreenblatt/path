@@ -11,11 +11,16 @@ template <CompileTimeDispatchable T, std::size_t idx> struct Holder {
   static constexpr auto value = CompileTimeDispatchableT<T>::values[idx];
 };
 
+template<typename>
+struct Printer;
+
 template <typename F, CompileTimeDispatchable T>
 auto dispatch_value(const F &f, T value) {
   using Dispatch = CompileTimeDispatchableT<T>;
 
   static_assert(Dispatch::size != 0);
+    
+  using ValT = std::decay_t<decltype(Dispatch::values[0])>;
 
   auto get_result =
       petra::make_sequential_table<Dispatch::size - 1>([&](auto &&i) {
@@ -26,12 +31,12 @@ auto dispatch_value(const F &f, T value) {
         } else {
           constexpr std::size_t index = std::decay_t<decltype(i)>::value;
 
-          return f(Holder<T, index>{});
+          return f(Holder<ValT, index>{});
         }
       });
 
-  const static std::map<T, std::size_t> lookup = [] {
-    std::map<T, std::size_t> lookup;
+  const static auto lookup = [] {
+    std::map<ValT, std::size_t> lookup;
 
     static_assert(Dispatch::size == Dispatch::values.size());
     for (std::size_t i = 0; i < Dispatch::size; i++) {
