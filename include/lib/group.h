@@ -3,9 +3,11 @@
 #include "lib/cuda/utils.h"
 #include "lib/span.h"
 
+#include <concepts>
 #include <tuple>
 
-template <std::integral T>
+template <typename T>
+requires std::integral<T> || std::floating_point<T>
 HOST_DEVICE inline T get_previous(unsigned i, Span<const T> vals) {
   return i == 0 ? T(0) : vals[i - 1];
 }

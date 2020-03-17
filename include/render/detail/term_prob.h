@@ -12,9 +12,9 @@ template <TermProbType type, ExecutionModel execution_model>
 struct TermProbImpl;
 
 template <typename V>
-concept TermProbRef = requires(const V &term_prob,
+concept TermProbRef = requires(const V &term_prob, const unsigned &iters,
                                const Eigen::Array3f &multiplier) {
-  { term_prob(multiplier) }
+  { term_prob(iters, multiplier) }
   ->std::convertible_to<float>;
 };
 
@@ -47,7 +47,9 @@ public:
 
     HOST_DEVICE Ref(const Settings &settings) : prob_(settings.prob) {}
 
-    HOST_DEVICE float operator()(const Eigen::Array3f &) const { return prob_; }
+    HOST_DEVICE float operator()(unsigned, const Eigen::Array3f &) const {
+      return prob_;
+    }
 
   private:
     float prob_;
@@ -68,7 +70,8 @@ public:
     HOST_DEVICE Ref(const Settings &settings)
         : exp(settings.exp), min_prob(settings.min_prob) {}
 
-    HOST_DEVICE float operator()(const Eigen::Array3f &multiplier) const {
+    HOST_DEVICE float operator()(unsigned,
+                                 const Eigen::Array3f &multiplier) const {
       // normalization (clamp to deal with cases where multiplier may be
       // negative)
       float squared_norm = std::clamp(
@@ -83,6 +86,32 @@ public:
   private:
     float exp;
     float min_prob;
+  };
+
+  auto gen(const Settings &settings) { return Ref(settings); }
+};
+
+template <ExecutionModel execution_model>
+struct TermProbImpl<TermProbType::NIters, execution_model> {
+public:
+  using Settings = TermProbSettings<TermProbType::NIters>;
+
+  class Ref {
+  public:
+    HOST_DEVICE Ref() = default;
+
+    HOST_DEVICE Ref(const Settings &settings) : iters_(settings.iters) {}
+
+    HOST_DEVICE float operator()(unsigned iters, const Eigen::Array3f &) const {
+      if (iters >= iters_) {
+        return 1.0f;
+      } else {
+        return 0.0f;
+      }
+    }
+
+  private:
+    unsigned iters_;
   };
 
   auto gen(const Settings &settings) { return Ref(settings); }

@@ -107,6 +107,11 @@ int main(int argc, char *argv[]) {
   renderer.render(execution_model, pixels, thrust::nullopt, thrust::nullopt,
                   *scene, samples, width, height, settings, false);
 
+  unsigned x = 25;
+  unsigned y = 35;
+
+  pixels[x + y * width] = BGRA(255, 0, 0, 0);
+
   image.save(output_file_name.c_str());
 
   return 0;

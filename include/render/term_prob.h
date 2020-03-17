@@ -4,7 +4,7 @@
 
 namespace render {
 // TODO: add more
-enum class TermProbType { Constant, MultiplierFunc };
+enum class TermProbType { Constant, NIters, MultiplierFunc };
 
 template <TermProbType type> struct TermProbSettings;
 
@@ -25,6 +25,15 @@ template <> struct TermProbSettings<TermProbType::MultiplierFunc> {
   }
 };
 
+template <> struct TermProbSettings<TermProbType::NIters> {
+  unsigned iters = 1;
+
+  template <class Archive> void serialize(Archive &archive) {
+    archive(CEREAL_NVP(iters));
+  }
+};
+
 static_assert(Setting<TermProbSettings<TermProbType::Constant>>);
 static_assert(Setting<TermProbSettings<TermProbType::MultiplierFunc>>);
+static_assert(Setting<TermProbSettings<TermProbType::NIters>>);
 }; // namespace render

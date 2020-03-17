@@ -9,7 +9,6 @@ template <> struct IntersectableImpl<Triangle> {
   template <typename... T>
   static HOST_DEVICE inline IntersectionOp<std::array<unsigned, 0>>
   intersect(const Ray &ray, const Triangle &triangle, T...) {
-    // mostly the same as TA code
     static constexpr float float_epsilon = 1e-4f;
 
     const auto &vertices = triangle.vertices();

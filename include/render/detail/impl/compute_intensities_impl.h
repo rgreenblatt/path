@@ -40,6 +40,7 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
 
   intersect::Ray ray;
   Eigen::Array3f multiplier;
+  unsigned iters;
 
   typename R::State rng;
 
@@ -49,6 +50,7 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
     if (finished) {
       multiplier = Eigen::Vector3f::Ones();
       rng = rng_ref.get_generator(sample_idx, x, y);
+      iters = 0;
 
       float x_offset = rng.next();
       float y_offset = rng.next();
@@ -102,8 +104,15 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
 
     auto direction_multiplier =
         [&](const Eigen::Vector3f &outgoing_dir) -> Eigen::Array3f {
-      auto brdf_val = material.brdf(ray.direction, outgoing_dir, normal);
       auto normal_v = outgoing_dir.dot(normal);
+#if 0
+      if (normal_v <= 0.f) {
+        return Eigen::Vector3f::Zero(); // TODO: better handling
+      }
+#else
+      assert(normal_v >= 0.f);
+#endif
+      auto brdf_val = material.brdf(ray.direction, outgoing_dir, normal);
 
       return brdf_val * normal_v;
     };
@@ -114,6 +123,12 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
                                          ray.direction, normal, rng);
       for (unsigned i = 0; i < samples.num_samples; i++) {
         const auto &sample = samples.samples[i];
+
+        // TODO: BSDF case
+        if (sample.direction.dot(normal) <= 0.f) {
+          continue;
+        }
+
         intersect::Ray light_ray{intersection_point, sample.direction};
 
         auto light_intersection = get_intersection(light_ray);
@@ -142,9 +157,12 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
                      light_intersection->intersection_dist;
         }());
 
+        auto multiplier =
+            material.brdf(ray.direction, light_ray.direction, normal);
+
         // TODO: check (prob not delta needed?)
         intensity += light_material.emission() * material.prob_not_delta() *
-                     direction_multiplier(light_ray.direction) / sample.prob;
+                     multiplier / sample.prob;
       }
 
       return intensity;
@@ -177,7 +195,7 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
       multiplier *= direction_multiplier(next_dir) / prob_of_next_direction;
     }
 
-    auto this_term_prob = term_prob(multiplier);
+    auto this_term_prob = term_prob(iters, multiplier);
 
     if (rng.next() <= this_term_prob) {
       finished = true;
@@ -194,6 +212,7 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
 
     ray.origin = intersection_point;
     ray.direction = next_dir;
+    iters++;
   }
 
   return intensity;
