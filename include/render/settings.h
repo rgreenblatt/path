@@ -31,12 +31,29 @@ private:
   using TermProbType = render::TermProbType;
 
 public:
-  static constexpr std::array<render::CompileTimeSettingsSubset, 3> values = {{
+  static constexpr std::array<render::CompileTimeSettingsSubset, 8> values = {{
       {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
        DirSamplerType::BRDF, TermProbType::MultiplierFunc,
        rng::RngType::Uniform},
       {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
        DirSamplerType::BRDF, TermProbType::MultiplierFunc, rng::RngType::Sobel},
+      {AccelType::KDTree, AccelType::KDTree, LightSamplerType::NoLightSampling,
+       DirSamplerType::BRDF, TermProbType::MultiplierFunc,
+       rng::RngType::Uniform},
+      {AccelType::KDTree, AccelType::KDTree, LightSamplerType::NoLightSampling,
+       DirSamplerType::BRDF, TermProbType::MultiplierFunc, rng::RngType::Sobel},
+      {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
+       DirSamplerType::Uniform, TermProbType::MultiplierFunc,
+       rng::RngType::Uniform},
+      {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
+       DirSamplerType::Uniform, TermProbType::MultiplierFunc,
+       rng::RngType::Sobel},
+      {AccelType::KDTree, AccelType::KDTree, LightSamplerType::NoLightSampling,
+       DirSamplerType::Uniform, TermProbType::MultiplierFunc,
+       rng::RngType::Uniform},
+      {AccelType::KDTree, AccelType::KDTree, LightSamplerType::NoLightSampling,
+       DirSamplerType::Uniform, TermProbType::MultiplierFunc,
+       rng::RngType::Sobel},
   }};
 };
 

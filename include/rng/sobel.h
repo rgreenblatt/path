@@ -49,24 +49,34 @@ template <ExecutionModel execution_model> struct SobelSequenceGen {
 
       auto start_it = thrust::make_counting_iterator(0u);
 
+      unsigned val_size = dimension_bound * count;
+
+      vals_.resize(val_size);
+
       // SPEED: horrific efficiency...
-      thrust::transform(start_it, start_it + dimension_bound * count,
-                        vals_.begin(), [=] HOST_DEVICE(unsigned i) {
+      thrust::transform(
+          start_it, start_it + val_size, vals_.begin(),
+          // TODO: lambda bug with default capture???
+          [=] HOST_DEVICE(unsigned i) {
+            unsigned dimension = i % dimension_bound;
+            unsigned offset = i / dimension_bound;
+            curandStateScrambledSobol32 state;
+            auto vectors_32_v = vectors_32.data() + vector_size * dimension;
+            auto scramble_const = scramble_constants_32[dimension];
 #ifdef __CUDA_ARCH__
-                          unsigned dimension = i % dimension_bound;
-                          unsigned offset = i / dimension_bound;
-                          curandStateScrambledSobol32 state;
-                          curand_init(
-                              vectors_32.data() + vector_size * dimension,
-                              scramble_constants_32[dimension], offset, &state);
+            curand_init(vectors_32_v, scramble_const, offset, &state);
 
-                          return curand_uniform(&state);
+            return curand_uniform(&state);
 #else
-                          assert(false);
+            (void)offset;
+            (void)state;
+            (void)vectors_32_v;
+            (void)scramble_const;
+            assert(false);
 
-                          return i;
+            return i;
 #endif
-                        });
+          });
 
       return vals_;
     }

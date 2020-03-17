@@ -26,12 +26,14 @@ add_compile_options(-Wno-deprecated-anon-enum-enum-conversion)
 
 add_compile_options(-fconstexpr-steps=80000000)
 add_compile_options("$<$<COMPILE_LANGUAGE:CUDA>:-std=c++2a>")
-add_compile_options("$<$<CONFIG:RELEASE>:-Ofast;-march=native;-DNDEBUG>")
+set(RELEASE_ARGS "-Ofast;-march=native;-DNDEBUG")
+add_compile_options("$<$<CONFIG:RELEASE>:${RELEASE_ARGS}>")
+add_compile_options("$<$<CONFIG:RELWITHDEBINFO>:${RELEASE_ARGS}>")
 
 # TODO: convert to generator...
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcuda-ptxas '-w'")
 set(CUDA_EXTRA_DEBUG_ARGS
-  "-O0 -Xcuda-ptxas '-O0' -Xcuda-ptxas '--allow-expensive-optimizations=false'")
+  "-O0 -Xcuda-ptxas '--allow-expensive-optimizations=false'")
 set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} ${CUDA_EXTRA_DEBUG_ARGS}")
 
 set(CMAKE_CXX_STANDARD 20)

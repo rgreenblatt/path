@@ -136,7 +136,7 @@ void RendererImpl<execution_model>::render(
             settings.term_prob.template get_item<term_prob_type>());
 
         // TODO
-        const unsigned max_draws_per_sample = 100;
+        const unsigned max_draws_per_sample = 128;
 
         auto rng = rngs_.template get_item<rng_type>().gen(
             settings.rng.template get_item<rng_type>(), samples_per, x_dim,

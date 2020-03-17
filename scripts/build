@@ -38,7 +38,7 @@ def get_builder(page, lolcat, threads, cpu_only_build):
             elif command_exists("more"):
                 extra_cmds.append(["more"])
 
-        build_type = "Release" if is_release else "Debug"
+        build_type = "RelWithDebInfo" if is_release else "Debug"
 
         unbuffer_cmd = [
             "unbuffer", "cmake"

@@ -8,7 +8,9 @@
 #include <map>
 
 template <CompileTimeDispatchable T, std::size_t idx> struct Holder {
-  static constexpr auto value = CompileTimeDispatchableT<T>::values[idx];
+  static_assert(idx < CompileTimeDispatchableT<T>::values.size());
+  static constexpr auto value =
+      std::get<idx>(CompileTimeDispatchableT<T>::values);
 };
 
 template <typename F, CompileTimeDispatchable T>
@@ -19,18 +21,22 @@ auto dispatch_value(const F &f, T value) {
 
   using ValT = std::decay_t<decltype(Dispatch::values[0])>;
 
-  auto get_result =
-      petra::make_sequential_table<Dispatch::size - 1>([&](auto &&i) {
-        using PetraT = decltype(i);
-        if constexpr (petra::utilities::is_error_type<PetraT>()) {
-          std::cerr << "invalid dispatch value!" << std::endl;
-          abort();
-        } else {
-          constexpr std::size_t index = std::decay_t<decltype(i)>::value;
-
-          return f(Holder<ValT, index>{});
-        }
-      });
+  // Petra bug...
+  auto get_result = petra::make_sequential_table<Dispatch::size>([&](auto &&i) {
+    using PetraT = decltype(i);
+    if constexpr (petra::utilities::is_error_type<PetraT>()) {
+      std::cerr << "Internal dispatch error (petra err)" << std::endl;
+      abort();
+    } else {
+      constexpr std::size_t index = std::decay_t<decltype(i)>::value;
+      if constexpr (index >= Dispatch::size) {
+        std::cerr << "Internal dispatch error (index over)" << std::endl;
+        abort();
+      } else {
+        return f(Holder<ValT, index>{});
+      }
+    }
+  });
 
   const static auto lookup = [] {
     std::map<ValT, std::size_t> lookup;
@@ -39,6 +45,9 @@ auto dispatch_value(const F &f, T value) {
     for (std::size_t i = 0; i < Dispatch::size; i++) {
       lookup.insert(std::pair{Dispatch::values[i], i});
     }
+
+    // fails if not all dispatch values are unique
+    assert(lookup.size() == Dispatch::size);
 
     return lookup;
   }();

@@ -18,14 +18,14 @@ settings:
   light_sampler: RandomTriangle
   light_sampler_settings:
     {}
-  dir_sampler: BRDF
+  dir_sampler: Uniform
   dir_sampler_settings:
     {}
   term_prob: MultiplierFunc
   term_prob_settings:
-    exp: 10
+    exp: 3             # TODO: tune
     min_prob: 0.05000000074505806
-  rng: Sobel
+  rng: Uniform
   rng_settings:
     {}
   general_settings:

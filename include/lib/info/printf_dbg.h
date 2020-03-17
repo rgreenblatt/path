@@ -58,7 +58,7 @@ HOST_DEVICE inline auto debug_value(Iter format_iter, const T &val) {
   } else if constexpr (std::is_same<typename std::decay_t<T>, char *>::value) {
     return handle_vals("%s\n", 1, val);
   } else if constexpr (std::is_pointer_v<T>) {
-    return handle_vals("%p\n", 1, reinterpret_cast<void *>(val));
+    return handle_vals("%p\n", 1, reinterpret_cast<const void *>(val));
   } else if constexpr (std::is_same<typename std::decay_t<T>, uint8_t>::value) {
     return handle_vals("%u\n", 1, val);
   } else if constexpr (std::is_same<typename std::decay_t<T>, float>::value) {
