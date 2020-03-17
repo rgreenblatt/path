@@ -23,8 +23,8 @@ settings:
     {}
   term_prob: MultiplierFunc
   term_prob_settings:
-    exp: 3             # TODO: tune
-    min_prob: 0.05000000074505806
+    exp: 1
+    min_prob: 0.05
   rng: Uniform
   rng_settings:
     {}
