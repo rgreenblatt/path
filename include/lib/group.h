@@ -7,8 +7,8 @@
 #include <tuple>
 
 template <typename T>
-requires std::integral<T> || std::floating_point<T>
-HOST_DEVICE inline T get_previous(unsigned i, Span<const T> vals) {
+    requires std::integral<T> || std::floating_point<T> HOST_DEVICE inline T
+                                 get_previous(unsigned i, Span<const T> vals) {
   return i == 0 ? T(0) : vals[i - 1];
 }
 

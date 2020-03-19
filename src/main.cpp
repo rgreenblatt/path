@@ -11,8 +11,6 @@
 #include <iostream>
 #include <string>
 
-#include "lib/info/debug_print.h"
-
 static const char USAGE[] =
     R"(Path
 
