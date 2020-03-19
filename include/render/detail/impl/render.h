@@ -13,11 +13,11 @@
 namespace render {
 namespace detail {
 template <ExecutionModel execution_model>
-void RendererImpl<execution_model>::render(
-    Span<BGRA> pixels, thrust::optional<Span<Eigen::Array3f>> intensities,
-    thrust::optional<Span<Eigen::Array3f>> variances, const scene::Scene &s,
-    unsigned samples_per, unsigned x_dim, unsigned y_dim,
-    const Settings &settings, bool) {
+void RendererImpl<execution_model>::render(Span<BGRA> pixels,
+                                           const scene::Scene &s,
+                                           unsigned samples_per, unsigned x_dim,
+                                           unsigned y_dim,
+                                           const Settings &settings, bool) {
   unsigned block_size = 256;
   unsigned target_work_per_thread = 4;
 

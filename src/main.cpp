@@ -102,8 +102,8 @@ int main(int argc, char *argv[]) {
   }
   std::cout << os.str() << std::endl;
 
-  renderer.render(execution_model, pixels, thrust::nullopt, thrust::nullopt,
-                  *scene, samples, width, height, settings, false);
+  renderer.render(execution_model, pixels, *scene, samples, width, height,
+                  settings, false);
 
   unsigned x = 25;
   unsigned y = 35;
