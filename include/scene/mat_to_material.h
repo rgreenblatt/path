@@ -67,8 +67,7 @@ material::Material mat_to_material(const tinyobj::material_t &material) {
         emission);
   } else {
     // TODO
-    std::cerr << "specular and diffuse are both non zero (unhandled)"
-              << std::endl;
+    std::cerr << "unhandled material settings" << std::endl;
     abort();
   }
 }

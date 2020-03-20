@@ -100,9 +100,10 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/render/renderer.cu"
 
   "${PROJECT_SOURCE_DIR}/src/render/detail/tone_map.cu"
-  "${PROJECT_SOURCE_DIR}/src/render/detail/compute_intensities.cu"
-  "${PROJECT_SOURCE_DIR}/src/render/detail/compute_intensities.cpp"
+  "${PROJECT_SOURCE_DIR}/src/render/detail/intensities.cu"
+  "${PROJECT_SOURCE_DIR}/src/render/detail/intensities.cpp"
   "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl.cu"
+  "${PROJECT_SOURCE_DIR}/src/render/detail/divide_work.cpp"
   )
 target_add_standard_include(renderer)
 target_link_libraries(renderer intersect OpenMP::OpenMP_CXX Qt5::Widgets

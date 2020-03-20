@@ -21,16 +21,14 @@ namespace detail {
 template <intersect::accel::AccelRef MeshAccel,
           intersect::accel::AccelRef TriAccel, LightSamplerRef L,
           DirSamplerRef D, TermProbRef T, rng::RngRef R>
-void compute_intensities(const ComputationSettings &settings,
-                         const WorkDivision &division, unsigned samples_per,
-                         unsigned x_dim, unsigned y_dim,
-                         const MeshAccel &mesh_accel,
-                         Span<const TriAccel> tri_accels,
-                         const L &light_sampler, const D &direction_sampler,
-                         const T &term_prob, const R &rng, Span<BGRA> pixels,
-                         Span<Eigen::Array3f> intensities,
-                         Span<const scene::TriangleData> triangle_data,
-                         Span<const material::Material> materials,
-                         const Eigen::Affine3f &film_to_world);
+void intensities(const ComputationSettings &settings,
+                 const WorkDivision &division, unsigned samples_per,
+                 unsigned x_dim, unsigned y_dim, const MeshAccel &mesh_accel,
+                 Span<const TriAccel> tri_accels, const L &light_sampler,
+                 const D &direction_sampler, const T &term_prob, const R &rng,
+                 Span<BGRA> pixels, Span<Eigen::Array3f> intensities,
+                 Span<const scene::TriangleData> triangle_data,
+                 Span<const material::Material> materials,
+                 const Eigen::Affine3f &film_to_world);
 }
 } // namespace render

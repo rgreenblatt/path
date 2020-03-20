@@ -4,7 +4,7 @@
 #include "intersect/accel/impl/loop_all_impl.h"
 #include "intersect/impl/ray_impl.h"
 #include "intersect/impl/triangle_impl.h"
-#include "render/detail/compute_intensities.h"
+#include "render/detail/intensities.h"
 
 namespace render {
 namespace detail {
@@ -26,7 +26,7 @@ initial_ray(float x, float y, unsigned x_dim, unsigned y_dim,
 template <intersect::accel::AccelRef MeshAccel,
           intersect::accel::AccelRef TriAccel, LightSamplerRef L,
           DirSamplerRef D, TermProbRef T, rng::RngRef R>
-HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
+HOST_DEVICE inline Eigen::Array3f intensities_impl(
     unsigned x, unsigned y, unsigned start_sample, unsigned end_sample,
     const ComputationSettings &, unsigned x_dim, unsigned y_dim, unsigned,
     const MeshAccel &accel, Span<const TriAccel> &tri_accels,
@@ -102,21 +102,6 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
          data.get_normal(mesh_space_intersection_point, triangle))
             .normalized();
 
-    auto direction_multiplier =
-        [&](const Eigen::Vector3f &outgoing_dir) -> Eigen::Array3f {
-      auto normal_v = outgoing_dir.dot(normal);
-#if 0
-      if (normal_v <= 0.f) {
-        return Eigen::Vector3f::Zero(); // TODO: better handling
-      }
-#else
-      assert(normal_v >= 0.f);
-#endif
-      auto brdf_val = material.brdf(ray.direction, outgoing_dir, normal);
-
-      return brdf_val * normal_v;
-    };
-
     auto compute_direct_lighting = [&]() -> Eigen::Array3f {
       Eigen::Array3f intensity = Eigen::Array3f::Zero();
       const auto samples = light_sampler(intersection_point, material,
@@ -184,6 +169,8 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
 
       multiplier *= m;
     } else {
+      // SPEED: there are advantages to having the sampler compute the
+      // multiplier (for instance, the brdf/normal value may cancel)
       auto [next_dir_v, prob_of_next_direction_v] =
           dir_sampler(intersection_point, material, ray.direction, normal, rng);
 
@@ -191,6 +178,22 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
       next_dir = next_dir_v;
 
       assert(prob_of_next_direction_v >= 0);
+
+      auto direction_multiplier =
+          [&](const Eigen::Vector3f &outgoing_dir) -> Eigen::Array3f {
+        auto normal_v = outgoing_dir.dot(normal);
+
+        // TODO: BSDF case
+        assert(normal_v >= 0.f);
+
+        auto brdf_val = material.brdf(ray.direction, outgoing_dir, normal);
+
+        assert(brdf_val.x() >= 0.0f);
+        assert(brdf_val.y() >= 0.0f);
+        assert(brdf_val.z() >= 0.0f);
+
+        return (brdf_val * normal_v).eval();
+      };
 
       multiplier *= direction_multiplier(next_dir) / prob_of_next_direction;
     }
@@ -204,11 +207,9 @@ HOST_DEVICE inline Eigen::Array3f compute_intensities_impl(
 
     multiplier /= (1.0f - this_term_prob);
 
-    if (multiplier.x() < 0 || multiplier.y() < 0 || multiplier.z() < 0) {
-      // can be caused by edge cases in Phong brdf
-      finished = true;
-      continue;
-    }
+    assert(multiplier.x() >= 0.0f);
+    assert(multiplier.y() >= 0.0f);
+    assert(multiplier.z() >= 0.0f);
 
     ray.origin = intersection_point;
     ray.direction = next_dir;

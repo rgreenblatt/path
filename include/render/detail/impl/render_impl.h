@@ -5,8 +5,8 @@
 #include "intersect/impl/ray_impl.h"
 #include "intersect/impl/triangle_impl.h"
 #include "lib/group.h"
-#include "render/detail/compute_intensities.h"
 #include "render/detail/divide_work.h"
+#include "render/detail/intensities.h"
 #include "render/detail/renderer_impl.h"
 #include "render/detail/tone_map.h"
 
@@ -18,10 +18,10 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
                                            unsigned samples_per, unsigned x_dim,
                                            unsigned y_dim,
                                            const Settings &settings, bool) {
-  unsigned block_size = 256;
+  unsigned target_block_size = 256;
   unsigned target_work_per_thread = 4;
 
-  auto division = divide_work(samples_per, x_dim, y_dim, block_size,
+  auto division = divide_work(samples_per, x_dim, y_dim, target_block_size,
                               target_work_per_thread);
 
   Span<const scene::TriangleData> triangle_data;
@@ -142,12 +142,11 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
             settings.rng.template get_item<rng_type>(), samples_per, x_dim,
             y_dim, max_draws_per_sample);
 
-        compute_intensities(settings.general_settings.computation_settings,
-                            division, samples_per, x_dim, y_dim, mesh_accel_ref,
-                            Span<const TriRefType>{triangle_accel_refs},
-                            light_sampler, dir_sampler, term_prob, rng,
-                            output_pixels, intensities_, triangle_data,
-                            materials, s.film_to_world());
+        intensities(settings.general_settings.computation_settings, division,
+                    samples_per, x_dim, y_dim, mesh_accel_ref,
+                    Span<const TriRefType>{triangle_accel_refs}, light_sampler,
+                    dir_sampler, term_prob, rng, output_pixels, intensities_,
+                    triangle_data, materials, s.film_to_world());
       },
       settings.compile_time.values());
 
