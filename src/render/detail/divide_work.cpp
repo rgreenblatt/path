@@ -27,10 +27,12 @@ WorkDivision divide_work(unsigned samples_per, unsigned x_dim, unsigned y_dim) {
 
   static_assert(x_block_size_thread * y_block_size_thread == block_size);
 
-  constexpr unsigned target_samples_per_thread = 4;
+  // SPEED: tune?
+  // SPEED: Maybe it would be better to always just use thread???
+  constexpr unsigned target_samples_per_thread = 8;
   constexpr unsigned warp_size = 32;
-  constexpr unsigned half_target_samples_per_thread =
-      std::max(target_samples_per_thread / 2, 1u);
+  /* constexpr unsigned half_target_samples_per_thread = */
+  /*     std::max(target_samples_per_thread / 2, 1u); */
 
   static_assert(block_size % warp_size == 0);
 
@@ -45,13 +47,13 @@ WorkDivision divide_work(unsigned samples_per, unsigned x_dim, unsigned y_dim) {
   
   // This is going to have poor performance for large numbers of samples and
   // very few pixels
-  if (samples_per >= block_size * half_target_samples_per_thread) {
+  if (samples_per >= block_size * target_samples_per_thread) {
     sample_reduction_strategy = ReductionStrategy::Block;
     unsigned new_samples_per = make_divisable(samples_per, block_size);
     samples_per_thread = new_samples_per / block_size;
     x_block_size = 1;
     y_block_size = 1;
-  } else if (samples_per >= warp_size * half_target_samples_per_thread) {
+  } else if (samples_per >= warp_size * target_samples_per_thread) {
     sample_reduction_strategy = ReductionStrategy::Warp;
     unsigned new_samples_per = make_divisable(samples_per, warp_size);
     samples_per_thread = new_samples_per / warp_size;

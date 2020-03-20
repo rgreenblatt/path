@@ -15,8 +15,7 @@ mtllib cornell-diffuse.mtl
 v  -0.99  0.00  -1.04 
 v   1.00  0.00  -1.04
 v   1.00  1.99  -1.04
-v  -1.02  1.99  -1.04
 
 g light
 usemtl light
-f -4 -3 -2 -1
+f -3 -2 -1

@@ -1,5 +1,5 @@
 #ifndef CPU_ONLY_BUILD
-#include "lib/cuda/reduce.h"
+#include "lib/cuda/reduce.cuh"
 #include "render/detail/impl/intensities_impl.h"
 #include "render/detail/impl/render_impl.h"
 
@@ -73,6 +73,8 @@ intensities_global(const ComputationSettings &settings, unsigned start_blocks,
   switch (division.sample_reduction_strategy) {
   case ReductionStrategy::Block:
     compute_bgras(
+        // SPEED: Block reduce isn't cheap, maybe it would be better to always
+        // use at most a warp?
         [&](const float v) {
           return block_reduce(v, add, 0.0f, thread_idx, block_dim);
         },

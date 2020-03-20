@@ -31,19 +31,26 @@ private:
   using TermProbType = render::TermProbType;
 
 public:
-  static constexpr std::array<render::CompileTimeSettingsSubset, 4> values = {{
+  static constexpr std::array<render::CompileTimeSettingsSubset, 8> values = {{
       {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
        DirSamplerType::BRDF, TermProbType::MultiplierFunc,
        rng::RngType::Uniform},
       {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
-       DirSamplerType::BRDF, TermProbType::NIters,
-       rng::RngType::Uniform},
+       DirSamplerType::BRDF, TermProbType::NIters, rng::RngType::Uniform},
       {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
-       DirSamplerType::Uniform, TermProbType::NIters,
-       rng::RngType::Uniform},
+       DirSamplerType::Uniform, TermProbType::NIters, rng::RngType::Uniform},
       {AccelType::KDTree, AccelType::KDTree, LightSamplerType::NoLightSampling,
-       DirSamplerType::Uniform, TermProbType::NIters,
+       DirSamplerType::Uniform, TermProbType::NIters, rng::RngType::Uniform},
+      {AccelType::LoopAll, AccelType::LoopAll, LightSamplerType::RandomTriangle,
+       DirSamplerType::BRDF, TermProbType::MultiplierFunc,
        rng::RngType::Uniform},
+      {AccelType::LoopAll, AccelType::LoopAll, LightSamplerType::RandomTriangle,
+       DirSamplerType::BRDF, TermProbType::NIters, rng::RngType::Uniform},
+      {AccelType::LoopAll, AccelType::LoopAll, LightSamplerType::RandomTriangle,
+       DirSamplerType::Uniform, TermProbType::NIters, rng::RngType::Uniform},
+      {AccelType::LoopAll, AccelType::LoopAll,
+       LightSamplerType::NoLightSampling, DirSamplerType::Uniform,
+       TermProbType::NIters, rng::RngType::Uniform},
   }};
 };
 

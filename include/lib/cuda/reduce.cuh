@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#ifdef __CUDACC__
+#ifdef __CUDACC__ // To avoid issues with the language server
 constexpr uint32_t full_mask = 0xffffffff;
 
 template <typename T, typename F>
