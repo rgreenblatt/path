@@ -31,9 +31,18 @@ private:
   using TermProbType = render::TermProbType;
 
 public:
-  static constexpr std::array<render::CompileTimeSettingsSubset, 2> values = {{
+  static constexpr std::array<render::CompileTimeSettingsSubset, 4> values = {{
       {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
        DirSamplerType::BRDF, TermProbType::MultiplierFunc,
+       rng::RngType::Uniform},
+      {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
+       DirSamplerType::BRDF, TermProbType::NIters,
+       rng::RngType::Uniform},
+      {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
+       DirSamplerType::Uniform, TermProbType::NIters,
+       rng::RngType::Uniform},
+      {AccelType::KDTree, AccelType::KDTree, LightSamplerType::NoLightSampling,
+       DirSamplerType::Uniform, TermProbType::NIters,
        rng::RngType::Uniform},
   }};
 };
@@ -53,6 +62,7 @@ inline void load_minimal(Archive const &, T &enum_v, const std::string &s) {
     enum_v = val_op.value();
   } else {
     std::cerr << "failed to load enum with string: " << s << std::endl;
+    abort();
   }
 }
 } // namespace cereal

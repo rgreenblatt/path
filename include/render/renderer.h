@@ -23,7 +23,7 @@ public:
   ~Renderer();
 
   void render(ExecutionModel execution_model, Span<BGRA> pixels,
-              const scene::Scene &s, unsigned samples_per, unsigned x_dim,
+              const scene::Scene &s, unsigned &samples_per, unsigned x_dim,
               unsigned y_dim, const Settings &settings,
               bool show_times = false);
 

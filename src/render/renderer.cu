@@ -11,7 +11,7 @@ Renderer::~Renderer() = default;
 Renderer::Renderer(Renderer &&) = default;
 
 void Renderer::render(ExecutionModel execution_model, Span<BGRA> pixels,
-                      const scene::Scene &s, unsigned samples_per,
+                      const scene::Scene &s, unsigned &samples_per,
                       unsigned x_dim, unsigned y_dim, const Settings &settings,
                       bool show_times) {
   auto render = [&](const auto &renderer) {

@@ -15,19 +15,25 @@ static const char USAGE[] =
     R"(Path
 
     Usage:
-      path <scene_file> [-g | --gpu] [--width=<pixels>] [--height=<pixels>]
+      path <scene_file> [--width=<pixels>] [--height=<pixels>]
         [--samples=<count>] [--output=<file_name>] [--config-file=<file_name>]
+        [-g | --gpu] [--profile-samples] [--samples-min=<min>]
+        [--samples-max=<max>]
       path (-h | --help)
 
     Options:
       -h --help             Show this screen.
-      -g --gpu              Use gpu
       --width=<pixels>      Width in pixels [default: 1024]
       --height=<pixels>     Height in pixels [default: 1024]
       --samples=<count>     Samples per pixel [default: 128]
       --output=<file_name>  File name [default: out.png]
       --config=<file_name>  Config file name. If no file is specified, default
                             settings will be used.
+      -g --gpu              Use gpu
+      --profile-samples     Run sample profiling (compute mean absolute pixel
+                            error and time)
+      --samples-min=<min>   Min samples for profiling [default: 1]
+      --samples-max=<max>   Max samples for profiling [default: 4096]
 )";
 
 int main(int argc, char *argv[]) {
@@ -102,13 +108,15 @@ int main(int argc, char *argv[]) {
   }
   std::cout << os.str() << std::endl;
 
-  renderer.render(execution_model, pixels, *scene, samples, width, height,
+  unsigned updated_samples = samples;
+
+  renderer.render(execution_model, pixels, *scene, updated_samples, width, height,
                   settings, false);
 
-  unsigned x = 25;
-  unsigned y = 35;
-
-  pixels[x + y * width] = BGRA(255, 0, 0, 0);
+  if (updated_samples != samples) {
+    std::cout << "samples changed from " << samples << " to " << updated_samples
+              << std::endl;
+  }
 
   image.save(output_file_name.c_str());
 

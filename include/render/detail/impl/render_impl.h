@@ -15,14 +15,16 @@ namespace detail {
 template <ExecutionModel execution_model>
 void RendererImpl<execution_model>::render(Span<BGRA> pixels,
                                            const scene::Scene &s,
-                                           unsigned samples_per, unsigned x_dim,
+                                           unsigned &samples_per, unsigned x_dim,
                                            unsigned y_dim,
                                            const Settings &settings, bool) {
-  unsigned target_block_size = 256;
-  unsigned target_work_per_thread = 4;
+  auto division = divide_work(samples_per, x_dim, y_dim);
 
-  auto division = divide_work(samples_per, x_dim, y_dim, target_block_size,
-                              target_work_per_thread);
+  if (execution_model == ExecutionModel::GPU) {
+    samples_per = (division.num_sample_blocks * division.block_size *
+                   division.samples_per_thread) /
+                  (division.x_block_size * division.y_block_size);
+  }
 
   Span<const scene::TriangleData> triangle_data;
   Span<const material::Material> materials;
