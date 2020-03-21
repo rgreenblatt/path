@@ -93,7 +93,7 @@ intensities_global(const ComputationSettings &settings, unsigned start_blocks,
 template <intersect::accel::AccelRef MeshAccel,
           intersect::accel::AccelRef TriAccel, LightSamplerRef L,
           DirSamplerRef D, TermProbRef T, rng::RngRef R>
-void intensities(const ComputationSettings &settings,
+void intensities(const ComputationSettings &settings, bool show_progress,
                  const WorkDivision &division, unsigned samples_per,
                  unsigned x_dim, unsigned y_dim, const MeshAccel &mesh_accel,
                  Span<const TriAccel> tri_accels, const L &light_sampler,
@@ -117,7 +117,9 @@ void intensities(const ComputationSettings &settings,
   size_t blocks_per = total_grid / num_launches;
 
   ProgressBar progress_bar(num_launches, 70);
-  progress_bar.display();
+  if (show_progress) {
+    progress_bar.display();
+  }
 
   for (unsigned i = 0; i < num_launches; i++) {
     unsigned start = i * blocks_per;
@@ -130,11 +132,15 @@ void intensities(const ComputationSettings &settings,
 
     CUDA_ERROR_CHK(cudaDeviceSynchronize());
 
-    ++progress_bar;
-    progress_bar.display();
+    if (show_progress) {
+      ++progress_bar;
+      progress_bar.display();
+    }
   }
 
-  progress_bar.done();
+  if (show_progress) {
+    progress_bar.done();
+  }
 }
 
 template class RendererImpl<ExecutionModel::GPU>;

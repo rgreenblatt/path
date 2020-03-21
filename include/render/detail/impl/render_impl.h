@@ -15,9 +15,10 @@ namespace detail {
 template <ExecutionModel execution_model>
 void RendererImpl<execution_model>::render(Span<BGRA> pixels,
                                            const scene::Scene &s,
-                                           unsigned &samples_per, unsigned x_dim,
-                                           unsigned y_dim,
-                                           const Settings &settings, bool) {
+                                           unsigned &samples_per,
+                                           unsigned x_dim, unsigned y_dim,
+                                           const Settings &settings,
+                                           bool show_progress, bool) {
   auto division = divide_work(samples_per, x_dim, y_dim);
 
   if (execution_model == ExecutionModel::GPU) {
@@ -144,11 +145,11 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
             settings.rng.template get_item<rng_type>(), samples_per, x_dim,
             y_dim, max_draws_per_sample);
 
-        intensities(settings.general_settings.computation_settings, division,
-                    samples_per, x_dim, y_dim, mesh_accel_ref,
-                    Span<const TriRefType>{triangle_accel_refs}, light_sampler,
-                    dir_sampler, term_prob, rng, output_pixels, intensities_,
-                    triangle_data, materials, s.film_to_world());
+        intensities(settings.general_settings.computation_settings,
+                    show_progress, division, samples_per, x_dim, y_dim,
+                    mesh_accel_ref, Span<const TriRefType>{triangle_accel_refs},
+                    light_sampler, dir_sampler, term_prob, rng, output_pixels,
+                    intensities_, triangle_data, materials, s.film_to_world());
       },
       settings.compile_time.values());
 

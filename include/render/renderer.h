@@ -25,7 +25,7 @@ public:
   void render(ExecutionModel execution_model, Span<BGRA> pixels,
               const scene::Scene &s, unsigned &samples_per, unsigned x_dim,
               unsigned y_dim, const Settings &settings,
-              bool show_times = false);
+              bool progress_bar = false, bool show_times = false);
 
 private:
   std::unique_ptr<detail::RendererImpl<ExecutionModel::CPU>> cpu_renderer_impl_;

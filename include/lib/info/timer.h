@@ -5,12 +5,14 @@ class Timer {
 public:
   Timer() { start = std::chrono::high_resolution_clock::now(); }
 
+  double elapsed() {
+    return std::chrono::duration_cast<std::chrono::duration<double>>(
+               std::chrono::high_resolution_clock::now() - start)
+        .count();
+  }
+
   void report(const std::string &name) {
-    std::cout << name << ": "
-              << std::chrono::duration_cast<std::chrono::duration<double>>(
-                     std::chrono::high_resolution_clock::now() - start)
-                     .count()
-              << std::endl;
+    std::cout << name << ": " << elapsed() << std::endl;
   }
 
 private:

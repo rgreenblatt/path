@@ -13,10 +13,10 @@ Renderer::Renderer(Renderer &&) = default;
 void Renderer::render(ExecutionModel execution_model, Span<BGRA> pixels,
                       const scene::Scene &s, unsigned &samples_per,
                       unsigned x_dim, unsigned y_dim, const Settings &settings,
-                      bool show_times) {
+                      bool show_progress, bool show_times) {
   auto render = [&](const auto &renderer) {
     renderer->render(pixels, s, samples_per, x_dim, y_dim, settings,
-                     show_times);
+                     show_progress, show_times);
   };
 
   switch (execution_model) {

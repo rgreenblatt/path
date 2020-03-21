@@ -21,7 +21,7 @@ namespace detail {
 template <intersect::accel::AccelRef MeshAccel,
           intersect::accel::AccelRef TriAccel, LightSamplerRef L,
           DirSamplerRef D, TermProbRef T, rng::RngRef R>
-void intensities(const ComputationSettings &settings,
+void intensities(const ComputationSettings &settings, bool show_progress,
                  const WorkDivision &division, unsigned samples_per,
                  unsigned x_dim, unsigned y_dim, const MeshAccel &mesh_accel,
                  Span<const TriAccel> tri_accels, const L &light_sampler,

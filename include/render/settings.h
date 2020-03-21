@@ -48,9 +48,8 @@ public:
        DirSamplerType::BRDF, TermProbType::NIters, rng::RngType::Uniform},
       {AccelType::LoopAll, AccelType::LoopAll, LightSamplerType::RandomTriangle,
        DirSamplerType::Uniform, TermProbType::NIters, rng::RngType::Uniform},
-      {AccelType::LoopAll, AccelType::LoopAll,
-       LightSamplerType::NoLightSampling, DirSamplerType::Uniform,
-       TermProbType::NIters, rng::RngType::Uniform},
+      {AccelType::LoopAll, AccelType::LoopAll, LightSamplerType::NoLightSampling,
+       DirSamplerType::Uniform, TermProbType::NIters, rng::RngType::Uniform},
   }};
 };
 

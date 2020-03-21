@@ -1,8 +1,10 @@
+#include "lib/info/timer.h"
 #include "render/renderer.h"
 #include "render/settings.h"
 #include "scene/scenefile_compat/scenefile_loader.h"
 
 #include <QImage>
+#include <boost/lexical_cast.hpp>
 #include <docopt.h>
 #include <magic_enum.hpp>
 #include <thrust/optional.h>
@@ -11,6 +13,9 @@
 #include <iostream>
 #include <string>
 
+#include "lib/info/debug_print.h"
+
+// In retrospect, I don't really like docopt...
 static const char USAGE[] =
     R"(Path
 
@@ -18,7 +23,7 @@ static const char USAGE[] =
       path <scene_file> [--width=<pixels>] [--height=<pixels>]
         [--samples=<count>] [--output=<file_name>] [--config-file=<file_name>]
         [-g | --gpu] [--profile-samples] [--samples-min=<min>]
-        [--samples-max=<max>]
+        [--samples-max=<max>] [--bench] [--bench-budget=<time>]
       path (-h | --help)
 
     Options:
@@ -30,10 +35,15 @@ static const char USAGE[] =
       --config=<file_name>  Config file name. If no file is specified, default
                             settings will be used.
       -g --gpu              Use gpu
+
       --profile-samples     Run sample profiling (compute mean absolute pixel
                             error and time)
       --samples-min=<min>   Min samples for profiling [default: 1]
       --samples-max=<max>   Max samples for profiling [default: 4096]
+
+      --bench               Warm up and then run multiple times and report 
+                            statistics
+      --bench-budget=<time> Approximate time in seconds for bench [default: 5.0]
 )";
 
 int main(int argc, char *argv[]) {
@@ -110,8 +120,55 @@ int main(int argc, char *argv[]) {
 
   unsigned updated_samples = samples;
 
-  renderer.render(execution_model, pixels, *scene, updated_samples, width, height,
-                  settings, false);
+  auto render = [&](bool show_progress, bool show_times) {
+    renderer.render(execution_model, pixels, *scene, updated_samples, width,
+                    height, settings, show_progress, show_times);
+  };
+
+  if (get_unpack_arg("--bench").asBool()) {
+    const unsigned warmup_iters = 2;
+    
+    Timer total_warm_up;
+
+    auto b_render = [&] {
+      render(false, false);
+    };
+
+    b_render();
+
+    Timer warmup_time;
+
+    for (unsigned i = 0; i < warmup_iters; i++) {
+      b_render();
+    }
+
+    float time_per = warmup_time.elapsed() / warmup_iters;
+
+    unsigned iters = unsigned(std::ceil(
+        std::max(0.f, boost::lexical_cast<float>(
+                          get_unpack_arg("--bench-budget").asString()) /
+                          time_per)));
+
+    if (iters < 3) {
+      std::cerr << "Note that only " << iters
+                << " iter(s) can be run with the current budget" << std::endl;
+    }
+
+    float mean_time = 0.f;
+
+    for (unsigned i = 0; i < iters; ++i) {
+      Timer render_timer;
+      b_render();
+      mean_time += render_timer.elapsed();
+    }
+
+    mean_time /= iters;
+
+    std::cout << "mean: " << mean_time << std::endl;
+
+  } else {
+    render(true, false);
+  }
 
   if (updated_samples != samples) {
     std::cout << "samples changed from " << samples << " to " << updated_samples

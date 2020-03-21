@@ -27,7 +27,7 @@ template <ExecutionModel execution_model> class RendererImpl {
 public:
   void render(Span<BGRA> pixels, const scene::Scene &s, unsigned &samples_per,
               unsigned x_dim, unsigned y_dim, const Settings &settings,
-              bool show_times);
+              bool show_progress, bool show_times);
 
   RendererImpl();
 

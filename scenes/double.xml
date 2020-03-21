@@ -9,7 +9,7 @@
     <transblock>
       <translate x="0" y="0" z="0"/>
       <rotate x="0" y="0" z="1" angle="0"/>
-      <object type="primitive" name="mesh" filename="models/one-face.obj"> </object>
+      <object type="primitive" name="mesh" filename="models/double.obj"> </object>
     </transblock>
   </object>
 </scenefile>
