@@ -35,25 +35,44 @@ public:
       {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
        DirSamplerType::BRDF, TermProbType::MultiplierFunc,
        rng::RngType::Uniform},
-      {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
-       DirSamplerType::BRDF, TermProbType::NIters, rng::RngType::Uniform},
-      {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
-       DirSamplerType::Uniform, TermProbType::NIters, rng::RngType::Uniform},
       {AccelType::KDTree, AccelType::KDTree, LightSamplerType::NoLightSampling,
-       DirSamplerType::Uniform, TermProbType::NIters, rng::RngType::Uniform},
-      {AccelType::LoopAll, AccelType::LoopAll, LightSamplerType::RandomTriangle,
        DirSamplerType::BRDF, TermProbType::MultiplierFunc,
        rng::RngType::Uniform},
-      {AccelType::LoopAll, AccelType::LoopAll, LightSamplerType::RandomTriangle,
-       DirSamplerType::BRDF, TermProbType::NIters, rng::RngType::Uniform},
-      {AccelType::LoopAll, AccelType::LoopAll, LightSamplerType::RandomTriangle,
-       DirSamplerType::Uniform, TermProbType::NIters, rng::RngType::Uniform},
-      {AccelType::LoopAll, AccelType::LoopAll, LightSamplerType::NoLightSampling,
-       DirSamplerType::Uniform, TermProbType::NIters, rng::RngType::Uniform},
+      {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
+       DirSamplerType::BRDF, TermProbType::NIters,
+       rng::RngType::Uniform},
+      {AccelType::KDTree, AccelType::KDTree, LightSamplerType::NoLightSampling,
+       DirSamplerType::BRDF, TermProbType::NIters,
+       rng::RngType::Uniform},
+      {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
+       DirSamplerType::Uniform, TermProbType::MultiplierFunc,
+       rng::RngType::Uniform},
+      {AccelType::KDTree, AccelType::KDTree, LightSamplerType::NoLightSampling,
+       DirSamplerType::Uniform, TermProbType::MultiplierFunc,
+       rng::RngType::Uniform},
+      {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
+       DirSamplerType::Uniform, TermProbType::NIters,
+       rng::RngType::Uniform},
+      {AccelType::KDTree, AccelType::KDTree, LightSamplerType::NoLightSampling,
+       DirSamplerType::Uniform, TermProbType::NIters,
+       rng::RngType::Uniform},
   }};
 };
 
 static_assert(CompileTimeDispatchable<render::CompileTimeSettingsSubset>);
+// All values are unique
+static_assert([] {
+  auto values =
+      CompileTimeDispatchableImpl<render::CompileTimeSettingsSubset>::values;
+
+  size_t num_values = values.size();
+
+  std::sort(values.begin(), values.end());
+  auto unique_iter = std::unique(values.begin(), values.end());
+  size_t num_unique_values = std::distance(values.begin(), unique_iter);
+
+  return num_unique_values == num_values;
+}());
 
 namespace cereal {
 template <class Archive, Enum T>
