@@ -15,15 +15,15 @@ settings:
         intersection_cost: 1
       use_s_a_heuritic: false
       num_objects_terminate: 2
-  light_sampler: NoLightSampling
+  light_sampler: RandomTriangle
   light_sampler_settings:
     {}
-  dir_sampler: Uniform
+  dir_sampler: BRDF
   dir_sampler_settings:
     {}
   term_prob: NIters
   term_prob_settings:
-    iters: 5
+    iters: 4
     # exp: 5
     # min_prob: 0.05
   rng: Uniform

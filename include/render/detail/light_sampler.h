@@ -116,9 +116,10 @@ public:
 
     template <rng::RngState R>
     HOST_DEVICE LightSamples<max_sample_size>
-    operator()(const Eigen::Vector3f &position, const material::Material &,
-               const Eigen::Vector3f &, const Eigen::Vector3f &normal,
+    operator()(const Eigen::Vector3f &position, const material::Material &mat,
+               const Eigen::Vector3f &incoming_dir, const Eigen::Vector3f &normal,
                R &rng) const {
+#if 1
       if (cumulative_weights_.size() == 0) {
         return LightSamples<max_sample_size>{{}, 0};
       }
@@ -162,9 +163,13 @@ public:
           std::abs(normal.dot(direction) * triangle_normal.dot(direction)) /
           direction_unnormalized.squaredNorm();
 
-      return {std::array<DirSample, max_sample_size>{
-                  {{direction, prob_this_triangle / weight}}},
-              1};
+      DirSample sample = {direction, prob_this_triangle / weight};
+#else
+      DirSample sample = mat.sample(incoming_dir, normal, rng);
+      sample.prob /= sample.direction.dot(normal);
+#endif
+
+      return {std::array<DirSample, max_sample_size>{sample}, 1};
     }
 
   private:
