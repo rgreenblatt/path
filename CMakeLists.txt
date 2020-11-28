@@ -7,7 +7,7 @@ set(CMAKE_CUDA_COMPILER clang++)
 cmake_policy(SET CMP0048 NEW)
 project(path VERSION 0.1 LANGUAGES CUDA CXX)
 
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.18)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -15,9 +15,9 @@ set(CMAKE_AUTOUIC ON)
 
 # set(CMAKE_VERBOSE_MAKEFILE TRUE)
 
-add_compile_options(-Wall -Wextra -fsized-deallocation -stdlib=libstdc++ -g)
+add_compile_options(-Wall -Wextra -fsized-deallocation -stdlib=libstdc++ -g -UNDEBUG)
 
-# am I in too deep?
+# unfortunately required with c++20
 add_compile_options(-isystem ${CMAKE_SOURCE_DIR}/system/include/)
 
 # required for Eigen
@@ -26,7 +26,8 @@ add_compile_options(-Wno-deprecated-anon-enum-enum-conversion)
 
 add_compile_options(-fconstexpr-steps=80000000)
 add_compile_options("$<$<COMPILE_LANGUAGE:CUDA>:-std=c++2a>")
-set(RELEASE_ARGS "-Ofast;-march=native;-DNDEBUG")
+# set(RELEASE_ARGS "-Ofast;-march=native;-DNDEBUG")
+set(RELEASE_ARGS "-Ofast;-march=native")
 add_compile_options("$<$<CONFIG:RELEASE>:${RELEASE_ARGS}>")
 add_compile_options("$<$<CONFIG:RELWITHDEBINFO>:${RELEASE_ARGS}>")
 
@@ -34,7 +35,12 @@ add_compile_options("$<$<CONFIG:RELWITHDEBINFO>:${RELEASE_ARGS}>")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcuda-ptxas '-w'")
 set(CUDA_EXTRA_DEBUG_ARGS
   "-O0 -Xcuda-ptxas '--allow-expensive-optimizations=false'")
+# set(CUDA_EXTRA_DEBUG_ARGS
+#   "${CUDA_EXTRA_DEBUG_ARGS} -fsanitize=address,undefined")
 set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} ${CUDA_EXTRA_DEBUG_ARGS}")
+
+# set(CMAKE_CXX_FLAGS_DEBUG
+#   "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address,undefined")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -76,7 +82,7 @@ macro(target_add_standard_include TARGET_NAME)
     "${PROJECT_SOURCE_DIR}/system/include/"
     "${PROJECT_SOURCE_DIR}/extern/eigen/"
     "${PROJECT_SOURCE_DIR}/extern/include/"
-    "/usr/local/cuda/include/"
+    "/opt/cuda/include/"
     "${QT5_INCLUDE_DIR}")
 endmacro()
 

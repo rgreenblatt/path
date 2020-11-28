@@ -15,6 +15,7 @@ TEST(Projection, find_rotate_vector_to_vector) {
     EXPECT_NEAR(transformed.z(), normalized_target.z(), 1e-6f);
   };
 
+  check({0, 0, 1}, {0, 0, 1});
   check({0, 0, 1}, {0, 0, -1});
   check({0, 1, 1}, {0, 0, 1});
   check({1, 0, 1}, {0, 0, 1});

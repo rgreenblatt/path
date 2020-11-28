@@ -5,6 +5,7 @@ import subprocess
 import multiprocessing
 import shutil
 import os
+import sys
 
 
 def command_exists(cmd):
@@ -18,7 +19,7 @@ def get_directory(is_release, forced):
     return "release" if is_release else "debug"
 
 
-def get_builder(page, lolcat, threads, cpu_only_build):
+def get_builder(page, lolcat, threads, cpu_only_build, cuda_archs):
     def build(is_release,
               directory,
               additional_gen_args=None,
@@ -51,7 +52,8 @@ def get_builder(page, lolcat, threads, cpu_only_build):
             additional_build_args = []
 
         gen_cmd = unbuffer_cmd + [
-            "-H.", "-B" + directory, "-DCMAKE_BUILD_TYPE=" + build_type
+            "-H.", "-B" + directory, "-DCMAKE_BUILD_TYPE=" + build_type,
+            "-DCMAKE_CUDA_ARCHITECTURES=" + cuda_archs
         ] + additional_gen_args
         if cpu_only_build:
             gen_cmd += ["-DCPU_ONLY_BUILD=ON", "-DCPU_GPU_BUILD=OFF"]
@@ -140,7 +142,7 @@ def cc_command(builder, _, forced_directory):
 #     builder(False, "check", additional_gen_args=["-DSYNTAX_ONLY=ON"])
 
 
-def clean_command(builder, remaining_args, forced_directory):
+def clean_command(_builder, remaining_args, forced_directory):
     parser = argparse.ArgumentParser(description='clean project')
     parser.add_argument('--release', action='store_true')
     args = parser.parse_args(remaining_args)
@@ -155,6 +157,9 @@ def main():
         usage='''{} [OPTIONS] <COMMAND> [<SUBOPTIONS>]
 '''.format(name))
     main_parser.add_argument('command', help='subcommand to run')
+    main_parser.add_argument('--cuda-archs',
+                             default='75',
+                             help='cuda architectures to build')
     main_parser.add_argument('-p',
                              '--paginate',
                              action='store_true',
@@ -194,12 +199,14 @@ def main():
     }
     page = args.paginate and not args.no_pager
     try:
-        commands[args.command](get_builder(page, args.lolcat, args.threads,
-                                           args.cpu_only_build), unknown, args.directory)
+        cmd = commands[args.command]
     except KeyError:
         print("{0}: '{1}' is not a command. See '{0} --help'.".format(
             name, args.command))
-        exit(1)
+        sys.exit(1)
+    cmd(
+        get_builder(page, args.lolcat, args.threads, args.cpu_only_build,
+                    args.cuda_archs), unknown, args.directory)
 
 
 if __name__ == "__main__":

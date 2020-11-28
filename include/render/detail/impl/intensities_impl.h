@@ -6,6 +6,8 @@
 #include "intersect/impl/triangle_impl.h"
 #include "render/detail/intensities.h"
 
+#include "lib/info/printf_dbg.h"
+
 namespace render {
 namespace detail {
 HOST_DEVICE inline intersect::Ray
@@ -137,9 +139,20 @@ HOST_DEVICE inline Eigen::Array3f intensities_impl(
               intersect::IntersectableT<intersect::Triangle>::intersect(
                   light_ray, triangle);
 
-          return intersection.has_value() &&
-                 intersection->intersection_dist ==
-                     light_intersection->intersection_dist;
+          bool out = intersection.has_value() &&
+                     abs(intersection->intersection_dist -
+                         light_intersection->intersection_dist) < 1e-7f ;
+          if (!out) {
+            printf_dbg(intersection.has_value());
+            printf_dbg(intersection->intersection_dist);
+            printf_dbg(light_intersection->intersection_dist);
+            printf_dbg((intersection->intersection_dist -
+                       light_intersection->intersection_dist)*1.0e15f);
+            printf_dbg(intersection->intersection_dist ==
+                       light_intersection->intersection_dist);
+          }
+
+          return out;
         }());
 
         auto multiplier =
