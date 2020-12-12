@@ -1,15 +1,12 @@
-[submodule "eigen"]
-	path = extern/eigen
-	url = https://github.com/rgreenblatt/eigen
 [submodule "googletest"]
 	path = extern/googletest
 	url = https://github.com/google/googletest
 [submodule "benchmark"]
 	path = extern/benchmark
 	url = https://github.com/google/benchmark
-[submodule "extern/docopt.cpp"]
+[submodule "docopt.cpp"]
 	path = extern/docopt.cpp
 	url = https://github.com/docopt/docopt.cpp
-[submodule "extern/yaml-cpp"]
+[submodule "yaml-cpp"]
 	path = extern/yaml-cpp
 	url = https://github.com/jbeder/yaml-cpp
