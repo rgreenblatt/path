@@ -25,7 +25,6 @@ add_compile_options(-Wno-deprecated-copy)
 add_compile_options(-Wno-deprecated-anon-enum-enum-conversion)
 
 add_compile_options(-fconstexpr-steps=80000000)
-add_compile_options("$<$<COMPILE_LANGUAGE:CUDA>:-std=c++2a>")
 # I think -ffast-math is enabled by -Ofast, but the documentation isn't
 # perfectly clear (certainly most options of -ffast-math are enabled by
 # -Ofast, but I'm not sure about the cuda specific ones)
@@ -33,11 +32,16 @@ set(RELEASE_ARGS "-Ofast;-ffast-math;-march=native;-DNDEBUG")
 # set(RELEASE_ARGS "-O3;-UNDEBUG")
 add_compile_options("$<$<CONFIG:RELEASE>:${RELEASE_ARGS}>")
 add_compile_options("$<$<CONFIG:RELWITHDEBINFO>:${RELEASE_ARGS}>")
+add_compile_options("$<$<CONFIG:DEBUG>:-ftrapv>")
 
 # TODO: convert to generator...
+# disable ptxas warnings
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcuda-ptxas '-w'")
-set(CUDA_EXTRA_DEBUG_ARGS
-  "-O0 -Xcuda-ptxas '--allow-expensive-optimizations=false'")
+
+# theoretical this should reduce compile times, but it doesn't
+# set(CUDA_EXTRA_DEBUG_ARGS
+#   "-O0 -Xcuda-ptxas '--allow-expensive-optimizations=false'")
+
 # set(CUDA_EXTRA_DEBUG_ARGS
 #   "${CUDA_EXTRA_DEBUG_ARGS} -fsanitize=address,undefined")
 set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} ${CUDA_EXTRA_DEBUG_ARGS}")
