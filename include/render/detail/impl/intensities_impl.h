@@ -190,10 +190,7 @@ HOST_DEVICE inline Eigen::Array3f intensities_impl(
 
       auto direction_multiplier =
           [&](const Eigen::Vector3f &outgoing_dir) -> Eigen::Array3f {
-        auto normal_v = outgoing_dir.dot(normal);
-
-        // TODO: BSDF case
-        assert(normal_v >= 0.f);
+        auto normal_v = abs(outgoing_dir.dot(normal));
 
         auto brdf_val = material.brdf(ray.direction, outgoing_dir, normal);
 

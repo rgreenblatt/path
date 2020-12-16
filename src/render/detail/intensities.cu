@@ -102,18 +102,12 @@ void intensities(const ComputationSettings &settings, bool show_progress,
                  Span<const scene::TriangleData> triangle_data,
                  Span<const material::Material> materials,
                  const Eigen::Affine3f &film_to_world) {
-  unsigned block_size = division.block_size;
+  size_t total_grid = division.num_sample_blocks * division.num_x_blocks *
+                      division.num_y_blocks;
 
-  size_t total_size = size_t(samples_per) * x_dim * y_dim;
-  size_t total_items_per_block = division.samples_per_thread * block_size;
-  assert(total_size >= total_items_per_block);
-  assert(total_size % total_items_per_block == 0);
-  size_t total_grid =
-      (total_size + total_items_per_block - 1) / total_items_per_block;
+  size_t max_launch_size = (2 << 24) / division.block_size;
 
-  size_t max_launch_size = 2 << 24;
-
-  size_t num_launches = (total_size + max_launch_size - 1) / max_launch_size;
+  size_t num_launches = ceil_divide(total_grid, max_launch_size);
   size_t blocks_per = total_grid / num_launches;
 
   ProgressBar progress_bar(num_launches, 70);
@@ -125,7 +119,8 @@ void intensities(const ComputationSettings &settings, bool show_progress,
     unsigned start = i * blocks_per;
     unsigned end = std::min((i + 1) * blocks_per, total_grid);
     unsigned grid = end - start;
-    intensities_global<<<grid, block_size>>>(
+
+    intensities_global<<<grid, division.block_size>>>(
         settings, start, division, x_dim, y_dim, samples_per, mesh_accel,
         tri_accels, light_sampler, direction_sampler, term_prob, rng, pixels,
         intensities, triangle_data, materials, film_to_world);
