@@ -4,8 +4,10 @@
 #include "intersect/transformed_object.h"
 #include "lib/binary_search.h"
 #include "lib/group.h"
+#include "lib/optional.h"
 #include "lib/projection.h"
 #include "lib/span.h"
+#include "lib/vector_group.h"
 #include "material/material.h"
 #include "render/light_sampler.h"
 #include "rng/rng.h"
@@ -21,13 +23,28 @@ namespace detail {
 template <LightSamplerType type, ExecutionModel execution_model>
 struct LightSamplerImpl;
 
+struct TriangleID {
+  unsigned mesh_idx;
+  unsigned triangle_idx;
+
+  constexpr bool operator==(const TriangleID &other) const {
+    return mesh_idx == other.mesh_idx && triangle_idx == other.triangle_idx;
+  }
+};
+
+struct LightSample {
+  DirSample dir_sample;
+  TriangleID id;
+};
+
 template <unsigned n> struct LightSamples {
-  std::array<DirSample, n> samples;
+  std::array<LightSample, n> samples;
   unsigned num_samples;
 };
 
 template <typename V>
 concept LightSamplerRef = requires(const V &light_sampler,
+                                   const TriangleID current_triangle,
                                    const Eigen::Vector3f &position,
                                    const material::Material &material,
                                    const Eigen::Vector3f &incoming_dir,
@@ -36,7 +53,10 @@ concept LightSamplerRef = requires(const V &light_sampler,
   V::max_sample_size;
   V::performs_samples;
 
-  { light_sampler(position, material, incoming_dir, normal, rng) }
+  {
+    light_sampler(current_triangle, position, material, incoming_dir, normal,
+                  rng)
+  }
   ->std::common_with<LightSamples<V::max_sample_size>>;
 };
 
@@ -83,8 +103,9 @@ public:
 
     template <rng::RngState R>
     HOST_DEVICE LightSamples<max_sample_size>
-    operator()(const Eigen::Vector3f &, const material::Material &,
-               const Eigen::Vector3f &, const Eigen::Vector3f &, R &) const {
+    operator()(const TriangleID, const Eigen::Vector3f &,
+               const material::Material &, const Eigen::Vector3f &,
+               const Eigen::Vector3f &, R &) const {
       return {{}, 0};
     }
   };
@@ -97,8 +118,67 @@ public:
   }
 };
 
+constexpr std::tuple<thrust::optional<unsigned>, float>
+search_avoid(const float target, SpanSized<const float> values,
+             Span<const TriangleID> ids, const TriangleID skip_id,
+             const unsigned binary_search_threshold) {
+  auto search_loop = [&](const auto &get_value, const float search_target) {
+    thrust::optional<unsigned> solution;
+    for (unsigned i = 0; i < values.size(); ++i) {
+      if (get_value(i) >= search_target) {
+        solution = i;
+        break;
+      }
+    }
+
+    return solution;
+  };
+
+  auto run =
+      [&](const auto &search) -> std::tuple<thrust::optional<unsigned>, float> {
+    auto original_solution_op =
+        search([&](const unsigned i) { return values[i]; }, target);
+    assert(original_solution_op.has_value());
+
+    unsigned original_solution = *original_solution_op;
+
+    if (ids[original_solution] != skip_id) {
+      return {original_solution_op, 1.0f};
+    }
+
+    const float scale = 1.0f - get_size<float>(original_solution, values);
+    const float rescaled_target = target * scale;
+
+    // possible optimizations (guess, etc)
+    return {search(
+                [&](const unsigned i) {
+                  float value = values[i];
+                  if (i >= original_solution) {
+                    value -= values[original_solution];
+                  }
+                  return value;
+                },
+                rescaled_target),
+            scale};
+  };
+
+  if (values.size() < binary_search_threshold) {
+    return run(search_loop);
+  } else {
+    // binary search
+    // UNIMPLEMENTED...
+    assert(false);
+
+    return run(search_loop); // TODO
+  }
+}
+
 template <ExecutionModel execution_model>
 struct LightSamplerImpl<LightSamplerType::RandomTriangle, execution_model> {
+private:
+  template <template <typename> class VecT>
+  using GroupItems = VectorGroup<VecT, intersect::Triangle, float, TriangleID>;
+
 public:
   using Settings = LightSamplerSettings<LightSamplerType::RandomTriangle>;
 
@@ -106,27 +186,31 @@ public:
   public:
     HOST_DEVICE Ref() = default;
 
-    // SPEED: don't store triangles in here, use indices?
-    HOST_DEVICE Ref(const Settings &, Span<const intersect::Triangle> triangles,
-                    SpanSized<const float> cumulative_weights)
-        : triangles_(triangles), cumulative_weights_(cumulative_weights) {}
-
     static constexpr unsigned max_sample_size = 1;
     static constexpr bool performs_samples = true;
 
     template <rng::RngState R>
     HOST_DEVICE LightSamples<max_sample_size>
-    operator()(const Eigen::Vector3f &position, const material::Material &mat,
-               const Eigen::Vector3f &incoming_dir, const Eigen::Vector3f &normal,
-               R &rng) const {
-#if 1
+    operator()(const TriangleID current_triangle,
+               const Eigen::Vector3f &position,
+               const material::Material & /*mat*/,
+               const Eigen::Vector3f & /*incoming_dir*/,
+               const Eigen::Vector3f &normal, R &rng) const {
       if (cumulative_weights_.size() == 0) {
         return LightSamples<max_sample_size>{{}, 0};
       }
+      const float search_value = rng.next();
+      const auto [sample_idx_op, scale] =
+          search_avoid(search_value, cumulative_weights_, ids_,
+                       current_triangle, binary_search_threshold_);
 
-      // TODO: SPEED, complexity...
-      unsigned sample_idx = binary_search<float>(
-          0, cumulative_weights_.size(), rng.next(), cumulative_weights_);
+      if (!sample_idx_op.has_value()) {
+        return LightSamples<max_sample_size>{{}, 0};
+      }
+
+      const unsigned sample_idx = *sample_idx_op;
+
+      // TODO: SPEED, complexity, ...
       assert(sample_idx < cumulative_weights_.size());
 
       const auto &triangle = triangles_[sample_idx];
@@ -142,39 +226,58 @@ public:
       const auto &vertices = triangle.vertices();
 
       // SPEED: cache vecs?
-      auto vec0 = vertices[1] - vertices[0];
-      auto vec1 = vertices[2] - vertices[0];
+      const auto vec0 = vertices[1] - vertices[0];
+      const auto vec1 = vertices[2] - vertices[0];
 
-      Eigen::Vector3f point = vertices[0] + vec0 * weight0 + vec1 * weight1;
+      const Eigen::Vector3f point =
+          vertices[0] + vec0 * weight0 + vec1 * weight1;
 
-      Eigen::Vector3f direction_unnormalized = point - position;
-      Eigen::Vector3f direction = direction_unnormalized.normalized();
+      const Eigen::Vector3f direction_unnormalized = point - position;
+      const Eigen::Vector3f direction = direction_unnormalized.normalized();
 
       // SPEED: cache normal?
       // scaled by area
-      Eigen::Vector3f triangle_normal =
+      const Eigen::Vector3f triangle_normal =
           0.5 * ((vertices[1] - vertices[0]).cross(vertices[2] - vertices[0]));
 
-      float prob_this_triangle =
-          cumulative_weights_[sample_idx] -
-          get_previous<const float>(sample_idx, cumulative_weights_);
+      const float prob_this_triangle =
+          get_size<float>(sample_idx, cumulative_weights_);
 
-      float weight =
-          std::abs(normal.dot(direction) * triangle_normal.dot(direction)) /
-          direction_unnormalized.squaredNorm();
+      const float this_normal_product = abs(normal.dot(direction));
+      const float other_normal_product = abs(triangle_normal.dot(direction));
 
-      DirSample sample = {direction, prob_this_triangle / weight};
-#else
-      DirSample sample = mat.sample(incoming_dir, normal, rng);
-      sample.prob /= sample.direction.dot(normal);
-#endif
+      // Probably should be removed...
+      if (this_normal_product < 1e-8 && other_normal_product < 1e-8) {
+        return LightSamples<max_sample_size>{{}, 0};
+      }
 
-      return {std::array<DirSample, max_sample_size>{sample}, 1};
+      const float weight = this_normal_product * other_normal_product /
+                           direction_unnormalized.squaredNorm();
+
+      const DirSample sample = {direction, prob_this_triangle * scale / weight};
+      const TriangleID id = ids_[sample_idx];
+
+      return {std::array<LightSample, max_sample_size>{LightSample{sample, id}},
+              1};
     }
 
   private:
+    // SPEED: don't store triangles in here, use indices instead?
+    // would requre applying transformation.
+    HOST_DEVICE Ref(const Settings &settings,
+                    Span<const intersect::Triangle> triangles,
+                    SpanSized<const float> cumulative_weights,
+                    SpanSized<const TriangleID> ids)
+        : binary_search_threshold_(settings.binary_search_threshold),
+          triangles_(triangles), cumulative_weights_(cumulative_weights),
+          ids_(ids) {}
+
+    friend struct LightSamplerImpl;
+
+    unsigned binary_search_threshold_;
     Span<const intersect::Triangle> triangles_;
     SpanSized<const float> cumulative_weights_;
+    Span<const TriangleID> ids_;
   };
 
   auto gen(const Settings &settings,
@@ -183,10 +286,11 @@ public:
            Span<const material::Material> materials,
            SpanSized<const intersect::TransformedObject> transformed_objects,
            Span<const intersect::Triangle> triangles) {
-    std::vector<float> cumulative_weights;
-    std::vector<intersect::Triangle> transformed_triangles;
+    GroupItems<HostVector> items;
     float cumulative_weight = 0.0f;
-    for (const auto &transformed_object : transformed_objects) {
+    for (unsigned mesh_idx = 0; mesh_idx < transformed_objects.size();
+         ++mesh_idx) {
+      const auto &transformed_object = transformed_objects[mesh_idx];
       auto [start, end] = group_start_end(transformed_object.idx(),
                                           emissive_group_ends_per_mesh);
       for (unsigned i = start; i < end; i++) {
@@ -212,36 +316,28 @@ public:
 
           cumulative_weight +=
               surface_area * materials[group.material_idx].emission().sum();
-          cumulative_weights.push_back(cumulative_weight);
-          transformed_triangles.push_back(transformed_triangle);
+          items.push_back_all(transformed_triangle, cumulative_weight,
+                              {mesh_idx, triangle_idx});
         }
       }
     }
 
     // normalize
-    for (auto &weight : cumulative_weights) {
+    for (auto &weight : items.get<1>()) {
       weight /= cumulative_weight;
     }
+    items.copy_to_other(items_);
 
-    unsigned size = transformed_triangles.size();
+    assert(items.size() == items_.size());
 
-    triangles_.resize(size);
-    cumulative_weights_.resize(size);
-
-    thrust::copy(transformed_triangles.data(),
-                 transformed_triangles.data() + size, triangles_.begin());
-
-    thrust::copy(cumulative_weights.data(), cumulative_weights.data() + size,
-                 cumulative_weights_.begin());
-
-    return Ref(settings, triangles_, cumulative_weights_);
+    return Ref(settings, items_.template get<0>(), items_.template get<1>(),
+               items_.template get<2>());
   }
 
 private:
   template <typename T> using ExecVecT = ExecVector<execution_model, T>;
 
-  ExecVecT<intersect::Triangle> triangles_; // in world space
-  ExecVecT<float> cumulative_weights_;
+  GroupItems<ExecVecT> items_;
 };
 } // namespace detail
 } // namespace render

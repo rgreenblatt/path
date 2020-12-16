@@ -12,6 +12,13 @@ template <typename T>
   return i == 0 ? T(0) : vals[i - 1];
 }
 
+template <typename T>
+    requires std::integral<T> ||
+    std::floating_point<T> HOST_DEVICE inline T get_size(unsigned i,
+                                                         Span<const T> vals) {
+  return vals[i] - get_previous(i, vals);
+}
+
 HOST_DEVICE inline unsigned get_previous(unsigned i,
                                          Span<const unsigned> vals) {
   return get_previous<unsigned>(i, vals);
@@ -19,7 +26,7 @@ HOST_DEVICE inline unsigned get_previous(unsigned i,
 
 HOST_DEVICE inline unsigned group_size(unsigned i,
                                        Span<const unsigned> groups) {
-  return groups[i] - get_previous(i, groups);
+  return get_size<unsigned>(i, groups);
 }
 
 HOST_DEVICE inline std::tuple<unsigned, unsigned>

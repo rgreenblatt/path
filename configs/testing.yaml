@@ -17,7 +17,7 @@ settings:
       num_objects_terminate: 2
   light_sampler: RandomTriangle
   light_sampler_settings:
-    {}
+    binary_search_threshold: 2147483648
   dir_sampler: BRDF
   dir_sampler_settings:
     {}

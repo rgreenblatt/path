@@ -55,5 +55,15 @@ inline void curand_assert(curandStatus_t code, const char *file, int line) {
   }
 }
 
+// never output 1.f (for consistancy with std::uniform_real_distribution)
+template <typename T> __device__ inline float patched_curand_uniform(T *state) {
+  const float out = curand_uniform(state);
+  if (out == 1.0f) {
+    return 0.0f;
+  } else {
+    return out;
+  }
+}
+
 #define CURAND_ERROR_CHK(ans)                                                  \
   { curand_assert((ans), __FILE__, __LINE__); }

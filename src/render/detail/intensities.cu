@@ -1,4 +1,4 @@
-#ifndef CPU_ONLY_BUILD
+#ifndef CPU_ONLY
 #include "lib/cuda/reduce.cuh"
 #include "render/detail/impl/intensities_impl.h"
 #include "render/detail/impl/render_impl.h"

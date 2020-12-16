@@ -15,7 +15,7 @@ set(CMAKE_AUTOUIC ON)
 
 # set(CMAKE_VERBOSE_MAKEFILE TRUE)
 
-add_compile_options(-Wall -Wextra -fsized-deallocation -stdlib=libstdc++ -g -UNDEBUG)
+add_compile_options(-Wall -Wextra -fsized-deallocation -stdlib=libstdc++ -g)
 
 # unfortunately required with c++20
 add_compile_options(-isystem ${CMAKE_SOURCE_DIR}/system/include/)
@@ -26,8 +26,11 @@ add_compile_options(-Wno-deprecated-anon-enum-enum-conversion)
 
 add_compile_options(-fconstexpr-steps=80000000)
 add_compile_options("$<$<COMPILE_LANGUAGE:CUDA>:-std=c++2a>")
-# set(RELEASE_ARGS "-Ofast;-march=native;-DNDEBUG")
-set(RELEASE_ARGS "-Ofast;-march=native")
+# I think -ffast-math is enabled by -Ofast, but the documentation isn't
+# perfectly clear (certainly most options of -ffast-math are enabled by
+# -Ofast, but I'm not sure about the cuda specific ones)
+set(RELEASE_ARGS "-Ofast;-ffast-math;-march=native;-DNDEBUG")
+# set(RELEASE_ARGS "-O3;-UNDEBUG")
 add_compile_options("$<$<CONFIG:RELEASE>:${RELEASE_ARGS}>")
 add_compile_options("$<$<CONFIG:RELWITHDEBINFO>:${RELEASE_ARGS}>")
 
@@ -62,11 +65,11 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/extern/yaml-cpp")
 set(BUILD_SHARED_LIBS OFF)
 
 option(SYNTAX_ONLY "Only check syntax" OFF)
-option(CPU_ONLY_BUILD "don't build for the gpu" OFF)
-option(CPU_GPU_BUILD "build for the gpu" OFF)
+option(CPU_ONLY "don't build for the gpu" OFF)
+option(CPU_GPU "build for the gpu" OFF)
 
-if(CPU_ONLY_BUILD AND NOT CPU_GPU_BUILD)
-  add_definitions(-DCPU_ONLY_BUILD)
+if(CPU_ONLY AND NOT CPU_GPU)
+  add_definitions(-DCPU_ONLY)
 endif()
 
 # qt5_wrap_cpp(UI_MAINWINDOW "${PROJECT_SOURCE_DIR}/include/ui/mainwindow.h")
@@ -181,7 +184,8 @@ if(BUILD_BENCHMARKS OR CMAKE_EXPORT_COMPILE_COMMANDS)
   endmacro()
 
   package_add_bench(scan "${PROJECT_SOURCE_DIR}/benchmarks/src/scan.cu")
-  package_add_bench(sort "${PROJECT_SOURCE_DIR}/benchmarks/src/sort.cu")
+  # sometimes there are some issues with cub and warp intrinsics with sorting
+  # package_add_bench(sort "${PROJECT_SOURCE_DIR}/benchmarks/src/sort.cu")
 
   add_custom_target(bench COMMAND ${CMAKE_CTEST_COMMAND}
     DEPENDS "${BENCH_LIST}")

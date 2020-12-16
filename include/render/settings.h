@@ -31,19 +31,22 @@ private:
   using TermProbType = render::TermProbType;
 
 public:
-  static constexpr std::array<render::CompileTimeSettingsSubset, 8> values = {{
+  static constexpr std::array<render::CompileTimeSettingsSubset, 2> values = {{
+#if 0
       {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
        DirSamplerType::BRDF, TermProbType::MultiplierFunc,
        rng::RngType::Uniform},
       {AccelType::KDTree, AccelType::KDTree, LightSamplerType::NoLightSampling,
        DirSamplerType::BRDF, TermProbType::MultiplierFunc,
        rng::RngType::Uniform},
+#endif
       {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
        DirSamplerType::BRDF, TermProbType::NIters,
        rng::RngType::Uniform},
       {AccelType::KDTree, AccelType::KDTree, LightSamplerType::NoLightSampling,
        DirSamplerType::BRDF, TermProbType::NIters,
        rng::RngType::Uniform},
+#if 0
       {AccelType::KDTree, AccelType::KDTree, LightSamplerType::RandomTriangle,
        DirSamplerType::Uniform, TermProbType::MultiplierFunc,
        rng::RngType::Uniform},
@@ -56,6 +59,7 @@ public:
       {AccelType::KDTree, AccelType::KDTree, LightSamplerType::NoLightSampling,
        DirSamplerType::Uniform, TermProbType::NIters,
        rng::RngType::Uniform},
+#endif
   }};
 };
 

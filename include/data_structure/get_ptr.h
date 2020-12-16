@@ -1,23 +1,18 @@
 #pragma once
 
-#include "lib/concepts.h"
+#include "data_structure/detail/vector_like.h"
 
-#include <thrust/device_vector.h>
-
-#include <array>
 #include <concepts>
-#include <vector>
 
 template <typename T> struct GetPtrImpl;
 
-template <typename T>
-    requires StdArraySpecialization<T> ||
-    SpecializationOf<T, std::vector> struct GetPtrImpl<T> {
+template <detail::ArrayOrVector T>
+     struct GetPtrImpl<T> {
   static auto get(T &&v) { return v.data(); }
 };
 
-template <typename T>
-requires SpecializationOf<T, thrust::device_vector> struct GetPtrImpl<T> {
+template <detail::DeviceVector T>
+struct GetPtrImpl<T> {
   static auto get(T &&t) { return thrust::raw_pointer_cast(t.data()); }
 };
 

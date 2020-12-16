@@ -5,11 +5,12 @@
 
 #include <concepts>
 
-template <typename Vec> concept Vector = requires(Vec &v) {
+template <typename Vec>
+concept Vector = requires(Vec &v, typename Vec::value_type x) {
   std::movable<Vec>;
   typename Vec::value_type;
   v.resize(unsigned());
-  v.resize(unsigned(), Vec::value_type);
+  v.resize(unsigned(), x);
   typename GetPtrT<Vec, typename Vec::value_type>;
   GetPtr<GetPtrT<Vec, typename Vec::value_type>, Vec>;
   typename GetSizeT<Vec>;

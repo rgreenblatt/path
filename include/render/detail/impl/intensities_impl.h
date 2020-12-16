@@ -6,8 +6,6 @@
 #include "intersect/impl/triangle_impl.h"
 #include "render/detail/intensities.h"
 
-#include "lib/info/printf_dbg.h"
-
 namespace render {
 namespace detail {
 HOST_DEVICE inline intersect::Ray
@@ -106,61 +104,59 @@ HOST_DEVICE inline Eigen::Array3f intensities_impl(
 
     auto compute_direct_lighting = [&]() -> Eigen::Array3f {
       Eigen::Array3f intensity = Eigen::Array3f::Zero();
-      const auto samples = light_sampler(intersection_point, material,
-                                         ray.direction, normal, rng);
+      const auto samples =
+          light_sampler(TriangleID{mesh_idx, triangle_idx}, intersection_point,
+                        material, ray.direction, normal, rng);
       for (unsigned i = 0; i < samples.num_samples; i++) {
-        const auto &sample = samples.samples[i];
+        const auto &[dir_sample, id] = samples.samples[i];
 
         // TODO: BSDF case
-        if (sample.direction.dot(normal) <= 0.f) {
+        if (dir_sample.direction.dot(normal) <= 0.f) {
           continue;
         }
 
-        intersect::Ray light_ray{intersection_point, sample.direction};
+        intersect::Ray light_ray{intersection_point, dir_sample.direction};
 
         auto light_intersection = get_intersection(light_ray);
         if (!light_intersection.has_value()) {
           continue;
         }
 
-        unsigned triangle_idx = light_intersection->info[0];
-        const auto &light_data = triangle_data[triangle_idx];
+        const unsigned light_triangle_idx = light_intersection->info[0];
+        const unsigned light_mesh_idx = light_intersection->info[1];
+
+        if (TriangleID{light_mesh_idx, light_triangle_idx} != id) {
+          continue;
+        }
+
+        const auto &light_data = triangle_data[light_triangle_idx];
         const auto &light_material = materials[light_data.material_idx()];
 
+        // avoid issues due to compiler optimization inconsistancy with numerics
+        // (fma and some other stuff enabled by -Ofast)
+#ifndef __CUDA_ARCH__
         assert([&] {
-          unsigned mesh_idx = light_intersection->info[1];
-
-          const auto &mesh = accel.get(mesh_idx);
+          const auto &mesh = accel.get(light_mesh_idx);
 
           const intersect::Triangle &triangle =
-              tri_accels[mesh.idx()].get(triangle_idx);
+              tri_accels[mesh.idx()].get(light_triangle_idx);
 
           auto intersection =
               intersect::IntersectableT<intersect::Triangle>::intersect(
                   light_ray, triangle);
 
-          bool out = intersection.has_value() &&
-                     abs(intersection->intersection_dist -
-                         light_intersection->intersection_dist) < 1e-7f ;
-          if (!out) {
-            printf_dbg(intersection.has_value());
-            printf_dbg(intersection->intersection_dist);
-            printf_dbg(light_intersection->intersection_dist);
-            printf_dbg((intersection->intersection_dist -
-                       light_intersection->intersection_dist)*1.0e15f);
-            printf_dbg(intersection->intersection_dist ==
-                       light_intersection->intersection_dist);
-          }
-
-          return out;
+          return intersection.has_value() &&
+                 intersection->intersection_dist ==
+                     light_intersection->intersection_dist;
         }());
+#endif
 
-        auto multiplier =
+        const auto light_multiplier =
             material.brdf(ray.direction, light_ray.direction, normal);
 
         // TODO: check (prob not delta needed?)
         intensity += light_material.emission() * material.prob_not_delta() *
-                     multiplier / sample.prob;
+                     light_multiplier / dir_sample.prob;
       }
 
       return intensity;

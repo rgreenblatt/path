@@ -6,6 +6,8 @@ gpu_out.png
 .pool_command_history.txt
 debug/
 release/
+debug_cpu_only/
+release_cpu_only/
 cpu_video
 gpu_video
 # Prerequisites

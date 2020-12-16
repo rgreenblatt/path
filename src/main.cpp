@@ -24,6 +24,7 @@ static const char USAGE[] =
         [--samples=<count>] [--output=<file_name>] [--config-file=<file_name>]
         [-g | --gpu] [--profile-samples] [--samples-min=<min>]
         [--samples-max=<max>] [--bench] [--bench-budget=<time>]
+        [--disable-progress]
       path (-h | --help)
 
     Options:
@@ -44,6 +45,7 @@ static const char USAGE[] =
       --bench               Warm up and then run multiple times and report 
                             statistics
       --bench-budget=<time> Approximate time in seconds for bench [default: 5.0]
+      --disable-progress         Disable progress bar
 )";
 
 int main(int argc, char *argv[]) {
@@ -67,6 +69,7 @@ int main(int argc, char *argv[]) {
   const unsigned samples = get_unpack_arg("--samples").asLong();
   const auto scene_file_name = get_unpack_arg("<scene_file>").asString();
   const auto output_file_name = get_unpack_arg("--output").asString();
+  const bool disable_progress = get_unpack_arg("--disable-progress").asBool();
 
   if (using_gpu) {
     int n_devices;
@@ -122,17 +125,16 @@ int main(int argc, char *argv[]) {
 
   auto render = [&](bool show_progress, bool show_times) {
     renderer.render(execution_model, pixels, *scene, updated_samples, width,
-                    height, settings, show_progress, show_times);
+                    height, settings, show_progress && !disable_progress,
+                    show_times);
   };
 
   if (get_unpack_arg("--bench").asBool()) {
     const unsigned warmup_iters = 2;
-    
+
     Timer total_warm_up;
 
-    auto b_render = [&] {
-      render(false, false);
-    };
+    auto b_render = [&] { render(false, false); };
 
     b_render();
 

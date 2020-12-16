@@ -24,7 +24,7 @@ struct RngImpl<RngType::Uniform, execution_model> {
 
       HOST_DEVICE inline float next() {
         if constexpr (execution_model == ExecutionModel::GPU) {
-          return curand_uniform(&state_);
+          return patched_curand_uniform(&state_);
         } else {
           return dist_(state_);
         }

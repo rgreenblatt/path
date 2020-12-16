@@ -1,18 +1,12 @@
 #pragma once
 
-#include "lib/concepts.h"
+#include "data_structure/detail/vector_like.h"
 
-#include <thrust/device_vector.h>
-
-#include <array>
 #include <concepts>
-#include <vector>
 
 template <typename T> struct GetSizeImpl;
 
-template <typename T>
-    requires StdArraySpecialization<T> || SpecializationOf<T, std::vector> ||
-    SpecializationOf<T, thrust::device_vector> struct GetSizeImpl<T> {
+template <detail::VectorLike T>  struct GetSizeImpl<T> {
   static auto get(T &&v) { return v.size(); }
 };
 

@@ -6,6 +6,8 @@
 #include "render/dir_sample.h"
 #include "rng/rng.h"
 
+#include "lib/info/printf_dbg.h"
+
 #include <Eigen/Core>
 
 namespace material {
@@ -43,8 +45,18 @@ public:
     float phi = 2 * M_PI * v0;
     float theta = std::asin(std::sqrt(v1));
 
-    return {find_relative_vec(normal, phi, theta),
-            std::cos(theta) * normalizing_factor};
+    /* float prob = std::sqrt(1 - v1) * normalizing_factor; */
+    float prob = std::cos(theta) * normalizing_factor;
+    if (prob < 0.) {
+      printf_dbg(prob);
+      printf_dbg(theta);
+      printf_dbg(v0);
+      printf_dbg(v1 == 1.0f);
+      printf_dbg(std::cos(theta));
+      printf_dbg(normalizing_factor);
+    }
+
+    return {find_relative_vec(normal, phi, theta), prob};
   }
 
 private:

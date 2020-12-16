@@ -1,5 +1,6 @@
 #pragma once
 
+#include "data_structure/vector.h"
 #include "lib/cuda/utils.h"
 
 #include <thrust/device_vector.h>
@@ -18,3 +19,4 @@ struct uninitialized_allocator : thrust::device_allocator<T> {
 template <typename T>
 using DeviceVector =
     thrust::device_vector<T, device_vector::detail::uninitialized_allocator<T>>;
+static_assert(Vector<DeviceVector<int>>);

@@ -30,8 +30,7 @@ void Renderer::render(ExecutionModel execution_model, Span<BGRA> pixels,
 
     return;
   case ExecutionModel::GPU:
-#ifdef CPU_ONLY_BUILD
-    static_assert(false);
+#ifdef CPU_ONLY
     std::cerr << "gpu can't be selected for cpu only build" << std::endl;
     abort();
 #else

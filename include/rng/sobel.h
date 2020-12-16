@@ -66,7 +66,7 @@ template <ExecutionModel execution_model> struct SobelSequenceGen {
 #ifdef __CUDA_ARCH__
             curand_init(vectors_32_v, scramble_const, offset, &state);
 
-            return curand_uniform(&state);
+            return patched_curand_uniform(&state);
 #else
             (void)offset;
             (void)state;
