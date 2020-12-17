@@ -7,53 +7,6 @@
 #include "lib/info/printf_dbg.h"
 
 namespace intersect {
-
-static HOST_DEVICE inline IntersectionOp<std::array<unsigned, 0>>
-triangle_intersect_debug(const Ray &ray, const Triangle &triangle) {
-  static constexpr float float_epsilon = 1e-4f;
-
-  const auto &vertices = triangle.vertices();
-
-  Eigen::Vector3f edge1 = vertices[1] - vertices[0];
-  Eigen::Vector3f edge2 = vertices[2] - vertices[0];
-
-  printf_dbg(edge1);
-  printf_dbg(edge2);
-
-  Eigen::Vector3f h = ray.direction.cross(edge2);
-  float a = edge1.dot(h);
-
-  printf_dbg(h);
-  printf_dbg(a);
-
-  if (std::abs(a) < float_epsilon) {
-    return thrust::nullopt;
-  }
-  float f = 1.f / a;
-  Eigen::Vector3f s = ray.origin - vertices[0];
-  printf_dbg(s);
-  float u = f * printf_dbg(s.dot(h));
-  printf_dbg(f);
-  printf_dbg(u);
-  if (u < 0.f || u > 1.f) {
-    return thrust::nullopt;
-  }
-  Eigen::Vector3f q = s.cross(edge1);
-  float v = f * ray.direction.dot(q);
-  printf_dbg(q);
-  printf_dbg(v);
-  if (v < 0.f || u + v > 1.f) {
-    return thrust::nullopt;
-  }
-  float t = f * edge2.dot(q);
-  printf_dbg(t);
-  if (t > float_epsilon) {
-    return Intersection<std::array<unsigned, 0>>{t, std::array<unsigned, 0>{}};
-  } else {
-    return thrust::nullopt;
-  }
-}
-
 template <> struct IntersectableImpl<Triangle> {
   template <typename... T>
   static HOST_DEVICE inline IntersectionOp<std::array<unsigned, 0>>
