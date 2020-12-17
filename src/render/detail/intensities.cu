@@ -61,6 +61,11 @@ intensities_global(const ComputationSettings &settings, unsigned start_blocks,
   auto compute_bgras = [&](const auto &reduce_func, unsigned idx) {
     Eigen::Array3f totals;
     for (unsigned axis = 0; axis < 3; axis++) {
+      // work around code gen bug...
+      volatile bool undefined_garbage = false;
+      if (undefined_garbage) {
+        printf("%f\n", intensity[axis]);
+      }
       totals[axis] = reduce_func(intensity[axis]);
     }
     if (idx == 0) {

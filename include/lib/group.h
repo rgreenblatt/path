@@ -19,11 +19,6 @@ template <typename T>
   return vals[i] - get_previous(i, vals);
 }
 
-HOST_DEVICE inline unsigned get_previous(unsigned i,
-                                         Span<const unsigned> vals) {
-  return get_previous<unsigned>(i, vals);
-}
-
 HOST_DEVICE inline unsigned group_size(unsigned i,
                                        Span<const unsigned> groups) {
   return get_size<unsigned>(i, groups);

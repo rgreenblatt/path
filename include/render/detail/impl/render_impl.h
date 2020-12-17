@@ -99,8 +99,8 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
           if (!ref_set[i]) {
             const auto &aabb = s.mesh_aabbs()[i];
             cpu_refs[i] = triangle_accels.add(
-                s.triangles(), get_previous(i, s.mesh_ends()), s.mesh_ends()[i],
-                aabb, specific_settings, s.mesh_paths()[i]);
+                s.triangles(), get_previous<unsigned>(i, s.mesh_ends()),
+                s.mesh_ends()[i], aabb, specific_settings, s.mesh_paths()[i]);
           }
         }
 
