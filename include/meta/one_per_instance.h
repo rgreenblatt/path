@@ -1,62 +1,58 @@
 #pragma once
 
-#include "compile_time_dispatch/compile_time_dispatch.h"
+#include "meta/all_values.h"
+#include "meta/sequential_look_up.h"
 
 #include <iostream>
 
-template <CompileTimeDispatchable T, template <T> class TypeOver,
-          unsigned idx = 0>
+template <AllValuesEnumerable T, template <T> class TypeOver>
 class OnePerInstance {
+private:
+  static constexpr auto values = AllValues<T>;
+  static constexpr unsigned size = AllValues<T>.size();
+
+  template<std::size_t...i>
+  static constexpr auto items_helper(std::integer_sequence<std::size_t, i...>) {
+    return std::tuple<TypeOver<values[i]>...>{};
+  }
+
 public:
+  using Items =
+      decltype(OnePerInstance::items_helper(std::make_index_sequence<size>{}));
+
   OnePerInstance(){};
 
-  template <typename First, typename... Rest>
-  OnePerInstance(const First &first, const Rest &... rest)
-      : item_(first), next(rest...) {}
-
-  static constexpr unsigned size = CompileTimeDispatchableT<T>::size;
-
-  static_assert(size != 0);
-
-  static constexpr T this_value = CompileTimeDispatchableT<T>::values[idx];
-
-  using ItemType = TypeOver<this_value>;
+  OnePerInstance(const Items &items) : items_(items){};
 
   template <T value> const auto &get_item() const {
-    if constexpr (value == this_value) {
-      return item_;
-    } else {
-      static_assert(size != 1, "dispatch value not found");
-      return next.template get_item<value>();
-    }
+    constexpr unsigned idx = OnePerInstance::get_idx(value);
+
+    return std::get<idx>(items_);
   }
 
   template <T value> auto &get_item() {
-    if constexpr (value == this_value) {
-      return item_;
-    } else {
-      static_assert(size != 1, "dispatch value not found");
-      return next.template get_item<value>();
-    }
+    constexpr unsigned idx = OnePerInstance::get_idx(value);
+
+    return std::get<idx>(items_);
   }
 
   template <typename F> auto visit(const F &f, const T &value) {
-    if (value == this_value) {
-      return f(item_);
-    } else {
-      if constexpr (std::is_same_v<decltype(next), std::tuple<>>) {
-        std::cerr << "dispatch value not found" << std::endl;
-        abort(); // maybe don't abort?
-      } else {
-        return next.visit(f, value);
-      }
-    }
+    unsigned idx = OnePerInstance::get_idx(value);
+    return sequential_look_up<size>(idx, [&](auto idx) {
+      return f(std::get<decltype(idx)::value>(items_));
+    });
   }
 
 private:
-  ItemType item_;
-
-  std::conditional_t<idx + 1 == size, std::tuple<>,
-                     OnePerInstance<T, TypeOver, idx + 1>>
-      next;
+  static constexpr unsigned get_idx(const T& value) {
+    for (unsigned i = 0; i < size; ++i) {
+      if (values[i] == value) {
+        return i;
+      }
+    }
+    std::cerr << "failed to lookup value" << std::endl;
+    assert(false);
+    abort();
+  }
+  Items items_;
 };

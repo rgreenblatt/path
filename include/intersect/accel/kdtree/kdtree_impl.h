@@ -1,5 +1,6 @@
 #pragma once
 
+#include "intersect/accel/add_idx.h"
 #include "intersect/accel/kdtree/kdtree.h"
 #include "lib/stack.h"
 
@@ -55,7 +56,7 @@ Ref::IntersectableRef<O>::intersect(const Ray &ray) const {
           (!best.has_value() ||
            best->intersection_dist > *bounding_intersection)) {
         current_node.case_split_or_data(
-            [&](const accel::kdtree::KDTreeSplit &split) {
+            [&](const KDTreeSplit &split) {
               const uint8_t axis = stack_v.depth % 3;
               const auto intersection_point =
                   ray.origin[axis] +
@@ -86,7 +87,7 @@ Ref::IntersectableRef<O>::intersect(const Ray &ray) const {
         // would it be better to enforce the same ordering everywhere somehow?
         unsigned global_idx = ref.local_idx_to_global_idx_[idx];
         auto intersection = objects[global_idx].intersect(ray);
-        best = optional_min(best, append_index(intersection, global_idx));
+        best = optional_min(best, add_idx(intersection, global_idx));
       }
     }
 

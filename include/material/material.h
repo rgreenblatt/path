@@ -68,7 +68,7 @@ struct Material {
   HOST_DEVICE float prob_not_delta() const { return 1.0f - prob_delta(); }
 
   template <rng::RngState R> HOST_DEVICE bool delta_prob_check(R &rng) const {
-    return visit([&](const auto &v) -> bool {
+    return brdf.visit([&](const auto &v) -> bool {
       using T = std::decay_t<decltype(v)>;
       if constexpr (T::has_non_delta_samples && !T::has_delta_samples) {
         return false;
@@ -84,7 +84,7 @@ struct Material {
   HOST_DEVICE DeltaSample delta_sample(const Eigen::Vector3f &incoming_dir,
                                        const Eigen::Vector3f &normal,
                                        R &rng) const {
-    return visit([&](const auto &v) -> DeltaSample {
+    return brdf.visit([&](const auto &v) -> DeltaSample {
       if constexpr (std::decay_t<decltype(v)>::has_delta_samples) {
         return v.delta_sample(incoming_dir, normal, rng);
       } else {
@@ -98,7 +98,7 @@ struct Material {
   HOST_DEVICE render::DirSample sample(const Eigen::Vector3f &incoming_dir,
                                        const Eigen::Vector3f &normal,
                                        R &rng) const {
-    return visit([&](const auto &v) -> render::DirSample {
+    return brdf.visit([&](const auto &v) -> render::DirSample {
       if constexpr (std::decay_t<decltype(v)>::has_non_delta_samples) {
         return v.sample(incoming_dir, normal, rng);
       } else {

@@ -1,4 +1,4 @@
-#include "data_structure/copyable.h"
+#include "data_structure/copyable_to_vec.h"
 #include "execution_model/vector_type.h"
 #include "lib/cuda/reduce.cuh"
 #include "lib/span.h"
@@ -47,7 +47,7 @@ TEST(Reduce, sum) {
       std::generate(vals.begin(), vals.end(), [&]() { return dist(gen); });
 
       DeviceVector<T> gpu_vals;
-      copy_to(vals, gpu_vals);
+      copy_to_vec(vals, gpu_vals);
 
       DeviceVector<T> out_gpu_vals(n_blocks);
 
@@ -64,7 +64,7 @@ TEST(Reduce, sum) {
 
       std::vector<T> actual;
 
-      copy_to(out_gpu_vals, actual);
+      copy_to_vec(out_gpu_vals, actual);
 
       check_equality(expected, actual);
     }

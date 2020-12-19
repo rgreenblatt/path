@@ -1,13 +1,11 @@
 #include "boost/hana/for_each.hpp"
+#include "intersect/accel/enum_accel/enum_accel.h"
+#include "intersect/accel/enum_accel/enum_accel_impl.h"
 #include "intersect/accel/accel.h"
-#include "intersect/accel/dir_tree.h"
-#include "intersect/accel/impl/kdtree_impl.h"
-#include "intersect/accel/impl/loop_all_impl.h"
-#include "intersect/accel/kdtree.h"
-#include "intersect/accel/loop_all.h"
 #include "intersect/impl/triangle_impl.h"
 #include "intersect/triangle.h"
 #include "lib/span.h"
+#include "lib/optional.h"
 
 #include <gtest/gtest.h>
 #include <thrust/device_vector.h>
@@ -17,22 +15,24 @@
 
 using namespace intersect;
 using namespace intersect::accel;
+using namespace intersect::accel::enum_accel;
 
 template <AccelType type>
-static void test_accelerator(std::mt19937 &gen,
-                             const AccelSettings<type> &settings, bool is_gpu) {
+static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
+                             bool is_gpu) {
 
   using Test = std::tuple<Ray, thrust::optional<unsigned>>;
 
   auto run_tests = [&]<ExecutionModel execution_model>(
                        const HostDeviceVector<Triangle> &triangles,
                        const HostDeviceVector<Test> &test_expected) {
-    AccelT<type, execution_model, Triangle> inst;
+    EnumAccel<type, execution_model> inst;
 
     // Perhaps test partial
-    auto ref = inst.gen(settings, triangles, 0, triangles.size(), AABB());
+    auto ref = inst.template gen<Triangle>(settings, triangles, AABB());
 
     HostDeviceVector<thrust::optional<unsigned>> results(test_expected.size());
+    Span<const Triangle> triangles_span = triangles;
 
     ThrustData<execution_model> data;
 
@@ -41,8 +41,9 @@ static void test_accelerator(std::mt19937 &gen,
         test_expected.data() + test_expected.size(), results.data(),
         [=] __host__ __device__(const auto &test) {
           auto [ray, _] = test;
-          auto a = IntersectableT<decltype(ref)>::intersect(ray, ref);
-          return optional_map(a, [](const auto &v) { return v.info[0]; });
+          auto a = ref.get_intersectable(triangles_span).intersect(ray);
+          return optional_map(
+              a, [](const auto &v) { return std::get<0>(v.info); });
         });
 
     for (unsigned i = 0; i < test_expected.size(); i++) {
@@ -91,18 +92,17 @@ static void test_accelerator(std::mt19937 &gen,
 
       HostDeviceVector<Test> tests(num_tests);
 
-      AccelT<AccelType::LoopAll, ExecutionModel::CPU, Triangle> loop_all_inst;
+      EnumAccel<AccelType::LoopAll, ExecutionModel::CPU> loop_all_inst;
 
-      auto loop_all_ref =
-          loop_all_inst.gen(AccelSettings<AccelType::LoopAll>(), triangles, 0,
-                            triangles.size(), AABB());
+      auto loop_all_ref = loop_all_inst.template gen<Triangle>(
+          Settings<AccelType::LoopAll>(), triangles, AABB());
 
       auto get_ground_truth =
           [&](const Ray &ray) -> thrust::optional<unsigned> {
-        auto a = IntersectableT<decltype(loop_all_ref)>::intersect(
-            ray, loop_all_ref);
+        auto a =
+            loop_all_ref.get_intersectable<Triangle>(triangles).intersect(ray);
         if (a.has_value()) {
-          return a->info[0];
+          return std::get<0>(a->info);
         } else {
           return thrust::nullopt;
         }
@@ -124,17 +124,18 @@ static void test_accelerator(std::mt19937 &gen,
   }
 }
 
+// This test is checking loop_all against loop_all, but it is included for
+// completeness
 TEST(Intersection, loop_all) {
   std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
   for (bool is_gpu : {false, true}) {
-    test_accelerator(gen, AccelSettings<AccelType::LoopAll>(), is_gpu);
+    test_accelerator(gen, Settings<AccelType::LoopAll>(), is_gpu);
   }
 }
 
 TEST(Intersection, kdtree) {
   std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
-  HostDeviceVector<kdtree::KDTreeNode<AABB>> copied_nodes;
   for (bool is_gpu : {false, true}) {
-    test_accelerator(gen, AccelSettings<AccelType::KDTree>(), is_gpu);
+    test_accelerator(gen, Settings<AccelType::KDTree>(), is_gpu);
   }
 }

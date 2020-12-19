@@ -96,7 +96,6 @@ endmacro()
 add_library(
   intersect
   STATIC
-  "${PROJECT_SOURCE_DIR}/src/intersect/accel/loop_all/loop_all.cu"
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/dir_tree/dir_tree.cu"
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/kdtree/kdtree.cu"
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/sphere_partition.cpp"
@@ -104,7 +103,7 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/kdtree/generator.cu"
   )
 target_add_standard_include(intersect)
-target_link_libraries(intersect OpenMP::OpenMP_CXX Qt5::Widgets yaml-cpp)
+target_link_libraries(intersect OpenMP::OpenMP_CXX yaml-cpp)
 
 add_library(
   renderer
@@ -131,8 +130,7 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/scene/scenefile_compat/scenefile_loader.cpp"
   )
 target_add_standard_include(scenefile_compat)
-target_link_libraries(scenefile_compat OpenMP::OpenMP_CXX Qt5::Widgets Qt5::Xml
-  yaml-cpp)
+target_link_libraries(scenefile_compat Qt5::Xml yaml-cpp)
 
 if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
   enable_testing()

@@ -1,4 +1,4 @@
-#include "data_structure/copyable.h"
+#include "data_structure/copyable_to_vec.h"
 #include "data_structure/vector.h"
 #include "lib/span.h"
 #include "meta/concepts.h"
@@ -37,12 +37,12 @@ public:
   SpanSized<FirstType> operator[](unsigned i) { return data_[i]; }
 
   template <template <typename> class OtherVecT>
-  requires(... &&Copyable<VecT<T>, OtherVecT<T>>) void copy_to_other(
+  requires(... &&CopyableToVec<VecT<T>, OtherVecT<T>>) void copy_to_other(
       VectorGroup<OtherVecT, T...> &other) const {
     boost::hana::for_each(
         boost::hana::zip(data_, other.as_ptr_tuple()), [](const auto &item) {
           boost::hana::unpack(item, [](const auto &this_data, auto other_data) {
-            copy_to(this_data, *other_data);
+            copy_to_vec(this_data, *other_data);
           });
         });
   }

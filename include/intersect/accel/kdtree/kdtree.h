@@ -45,8 +45,8 @@ private:
   Span<const unsigned> local_idx_to_global_idx_;
   AABB aabb_;
 };
-
 } // namespace detail
+
 template <ExecutionModel execution_model> class KDTree {
 public:
   // need to implementated when Generator is defined
@@ -65,12 +65,12 @@ public:
       bounds_[i] = {aabb, aabb.max_bound - aabb.min_bound};
     }
 
-    auto [nodes, permuation] = gen_->gen(settings, bounds_);
-
-    return Ref(nodes, permuation, aabb);
+    return gen_internal(settings, aabb);
   }
 
 private:
+  detail::Ref gen_internal(const Settings &settings, const AABB& aabb);
+
   // PIMPL
   class Generator;
 

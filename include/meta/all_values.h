@@ -18,23 +18,20 @@
 #include <type_traits>
 #include <utility>
 
-namespace detail {
 template <typename T> struct AllValuesImpl;
-}
 
 template <typename T> concept AllValuesEnumerable = requires {
   requires std::equality_comparable<T>;
   requires std::totally_ordered<T>;
 
-  typename detail::AllValuesImpl<T>;
-  requires StdArrayOfType<decltype(detail::AllValuesImpl<T>::values), T>;
+  typename AllValuesImpl<T>;
+  requires StdArrayOfType<decltype(AllValuesImpl<T>::values), T>;
 };
 
 template <AllValuesEnumerable T>
-constexpr auto AllValues = detail::AllValuesImpl<T>::values;
+constexpr auto AllValues = AllValuesImpl<T>::values;
 
 // implementations...
-namespace detail {
 template <Enum T> struct AllValuesImpl<T> {
   static constexpr auto values = magic_enum::enum_values<T>();
 };
@@ -75,4 +72,3 @@ public:
         });
   }();
 };
-} // namespace detail

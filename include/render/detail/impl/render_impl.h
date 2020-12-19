@@ -1,7 +1,6 @@
 #pragma once
 
-#include "compile_time_dispatch/dispatch_value.h"
-#include "intersect/accel/loop_all.h"
+#include "meta/dispatch_value.h"
 #include "intersect/impl/ray_impl.h"
 #include "intersect/impl/triangle_impl.h"
 #include "lib/group.h"
@@ -9,6 +8,9 @@
 #include "render/detail/intensities.h"
 #include "render/detail/renderer_impl.h"
 #include "render/detail/tone_map.h"
+#include "intersect/impl/triangle_impl.h"
+#include "intersect/impl/ray_impl.h"
+#include "intersect/accel/enum_accel/enum_accel_impl.h"
 
 namespace render {
 namespace detail {
@@ -63,60 +65,15 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
         constexpr CompileTimeSettings compile_time_settings =
             std::decay_t<decltype(settings_tup)>::value;
 
-        constexpr auto triangle_accel_type =
-            compile_time_settings.triangle_accel_type();
+        constexpr auto flat_accel_type =
+            compile_time_settings.flat_accel_type();
 
-        auto &triangle_accels =
-            stored_triangle_accels_.template get_item<triangle_accel_type>();
-
-        using Triangle = intersect::Triangle;
-        using TriAccel = intersect::accel::AccelT<triangle_accel_type,
-                                                  execution_model, Triangle>;
-        using TriRefType = typename TriAccel::Ref;
-
-        unsigned num_meshs = s.mesh_paths().size();
-
-        triangle_accels.reset();
-
-        std::vector<TriRefType> cpu_refs(num_meshs);
-        std::vector<uint8_t> ref_set(num_meshs, 0);
-
-        auto specific_settings =
-            settings.triangle_accel.template get_item<triangle_accel_type>();
-
-        for (unsigned i = 0; i < num_meshs; i++) {
-          auto ref_op =
-              triangle_accels.query(s.mesh_paths()[i], specific_settings);
-          if (ref_op.has_value()) {
-            cpu_refs[i] = *ref_op;
-            ref_set[i] = true;
-          }
-        }
-
-        assert(s.mesh_aabbs().size() == num_meshs);
-
-        for (unsigned i = 0; i < num_meshs; i++) {
-          if (!ref_set[i]) {
-            const auto &aabb = s.mesh_aabbs()[i];
-            cpu_refs[i] = triangle_accels.add(
-                s.triangles(), get_previous<unsigned>(i, s.mesh_ends()),
-                s.mesh_ends()[i], aabb, specific_settings, s.mesh_paths()[i]);
-          }
-        }
-
-        ExecVecT<TriRefType> triangle_accel_refs(cpu_refs.begin(),
-                                                 cpu_refs.end());
-
-        constexpr auto mesh_accel_type =
-            compile_time_settings.mesh_accel_type();
-
-        unsigned num_mesh_instances = s.transformed_objects().size();
-
-        auto mesh_accel_ref =
-            mesh_accel_.template get_item<mesh_accel_type>().gen(
-                settings.mesh_accel.template get_item<mesh_accel_type>(),
-                s.transformed_objects(), 0, num_mesh_instances,
-                s.overall_aabb());
+        auto scene_ref =
+            stored_scene_generators_.template get_item<flat_accel_type>().gen(
+                intersectable_scene::flat_triangle::Settings<
+                    intersect::accel::enum_accel::Settings<flat_accel_type>>{
+                    settings.flat_accel.template get_item<flat_accel_type>()},
+                s);
 
         constexpr auto light_sampler_type =
             compile_time_settings.light_sampler_type();
@@ -129,7 +86,8 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
             light_samplers_.template get_item<light_sampler_type>().gen(
                 settings.light_sampler.template get_item<light_sampler_type>(),
                 s.emissive_groups(), s.emissive_group_ends_per_mesh(),
-                s.materials(), s.transformed_objects(), s.triangles());
+                s.materials(), s.transformed_mesh_objects(),
+                s.transformed_mesh_idxs(), s.triangles());
 
         auto dir_sampler =
             dir_samplers_.template get_item<dir_sampler_type>().gen(
@@ -145,11 +103,10 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
             settings.rng.template get_item<rng_type>(), samples_per, x_dim,
             y_dim, max_draws_per_sample);
 
-        intensities(settings.general_settings,
-                    show_progress, division, samples_per, x_dim, y_dim,
-                    mesh_accel_ref, Span<const TriRefType>{triangle_accel_refs},
-                    light_sampler, dir_sampler, term_prob, rng, output_pixels,
-                    intensities_, triangle_data, materials, s.film_to_world());
+        intensities(settings.general_settings, show_progress, division,
+                    samples_per, x_dim, y_dim, scene_ref, light_sampler,
+                    dir_sampler, term_prob, rng, output_pixels, intensities_,
+                    s.film_to_world());
       },
       settings.compile_time.values());
 

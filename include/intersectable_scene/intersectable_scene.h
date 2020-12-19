@@ -6,16 +6,17 @@
 
 #include <concepts>
 
-namespace intersect {
+namespace intersectable_scene {
 template <typename T>
-concept IntersectableScene = requires(const T &t, const Ray &ray) {
-  requires Object<T>;
+concept IntersectableScene = requires(const T &t, const intersect::Ray &ray) {
+  requires intersect::Object<T>;
 
-  requires requires(const Intersection<typename T::InfoType> &intersection) {
-    { t.get_normal(intersection) }
+  requires requires(
+      const intersect::Intersection<typename T::InfoType> &intersection) {
+    { t.get_normal(intersection, ray) }
     ->std::convertible_to<Eigen::Vector3f>;
     { t.get_material(intersection) }
-    ->std::convertible_to<const material::Material &>;
+    ->std::same_as<const material::Material&>;
   };
 };
-} // namespace intersect
+} // namespace intersectable_scene

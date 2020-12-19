@@ -10,14 +10,11 @@ namespace accel {
 namespace loop_all {
 namespace detail {
 // In this case, the Ref type doesn't depend on the ExecutionModel
-class Ref {
-public:
-  // TODO: why is this constructor needed...
-  HOST_DEVICE Ref() {}
+struct Ref {
+  unsigned size;
+  AABB aabb;
 
-  Ref(const AABB &aabb) : aabb_(aabb) {}
-
-  constexpr inline const AABB &bounds() const { return aabb_; }
+  constexpr inline const AABB &bounds() const { return aabb; }
 
   template <Object O> struct IntersectableRef {
     Span<const O> objects;
@@ -25,7 +22,7 @@ public:
 
     using InfoType = std::tuple<unsigned, typename O::InfoType>;
 
-    constexpr inline IntersectionOp<InfoType> intersect(const Ray &ray) const;
+    HOST_DEVICE inline IntersectionOp<InfoType> intersect(const Ray &ray) const;
 
     constexpr inline const AABB &bounds() const { return ref.bounds(); }
   };
@@ -35,16 +32,15 @@ public:
   get_intersectable(Span<const O> objects) const {
     return {objects, *this};
   }
-
-private:
-  AABB aabb_;
 };
 } // namespace detail
 
 template <ExecutionModel execution_model> struct LoopAll {
   template <typename B>
-  detail::Ref gen(const Settings &settings, SpanSized<const B> objects,
-          const AABB &aabb);
+  detail::Ref gen(const Settings &, SpanSized<const B> objects,
+                  const AABB &aabb) {
+    return detail::Ref{static_cast<unsigned>(objects.size()), aabb};
+  }
 };
 
 template <ExecutionModel exec>

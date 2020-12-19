@@ -1,3 +1,5 @@
+#pragma once
+
 #include "lib/settings.h"
 
 namespace intersect {

@@ -54,9 +54,10 @@ public:
           const AABB &aabb);
 };
 
+// I think dir tree might be triangle only in practice...
 template <ExecutionModel exec>
-struct DirTreeIsAccel
-    : BoolWrapper<ObjectSpecificAccel<DirTree<exec>, Settings, Triangle>> {};
+struct DirTreeIsAccel : BoolWrapper<BoundsOnlyAccel<DirTree<exec>, Settings>> {
+};
 
 static_assert(PredicateForAllValues<ExecutionModel>::value<DirTreeIsAccel>);
 } // namespace dir_tree

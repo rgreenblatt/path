@@ -1,4 +1,4 @@
-#include "lib/enum.h"
+#include "meta/enum.h"
 #include <magic_enum.hpp>
 
 template <Enum E, E type, typename... T>

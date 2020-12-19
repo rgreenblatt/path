@@ -19,6 +19,10 @@ public:
     return vertices_;
   }
 
+  HOST_DEVICE inline Triangle transform(const Eigen::Affine3f& t) const {
+    return {{t * vertices_[0], t * vertices_[1], t * vertices_[2]}};
+  }
+
   template <typename T> 
   HOST_DEVICE inline T interpolate_values(const Eigen::Vector3f &point,
                                           const std::array<T, 3> &data) const;

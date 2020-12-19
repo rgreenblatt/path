@@ -8,19 +8,15 @@
 
 namespace render {
 namespace detail {
-template <intersect::accel::AccelRef MeshAccel,
-          intersect::accel::AccelRef TriAccel, LightSamplerRef L,
+template <intersectable_scene::IntersectableScene Scene, LightSamplerRef L,
           DirSamplerRef D, TermProbRef T, rng::RngRef R>
 __global__ void
 intensities_global(const GeneralSettings &settings, unsigned start_blocks,
                    const WorkDivision division, unsigned x_dim, unsigned y_dim,
-                   unsigned samples_per, const MeshAccel mesh_accel,
-                   Span<const TriAccel> tri_accels, const L light_sampler,
-                   const D direction_sampler, const T term_prob, const R rng,
-                   Span<BGRA> bgras, Span<Eigen::Array3f>,
-                   Span<const scene::TriangleData> triangle_data,
-                   Span<const material::Material> materials,
-                   const Eigen::Affine3f film_to_world) {
+                   unsigned samples_per, const Scene &scene,
+                   const L light_sampler, const D direction_sampler,
+                   const T term_prob, const R rng, Span<BGRA> bgras,
+                   Span<Eigen::Array3f>, const Eigen::Affine3f film_to_world) {
   assert(division.num_sample_blocks == 1);
 
   const unsigned block_idx = blockIdx.x + start_blocks;
@@ -53,8 +49,8 @@ intensities_global(const GeneralSettings &settings, unsigned start_blocks,
 
   auto intensity =
       intensities_impl(x, y, start_sample, end_sample, settings, x_dim, y_dim,
-                       mesh_accel, tri_accels, light_sampler, direction_sampler,
-                       term_prob, rng, triangle_data, materials, film_to_world);
+                       scene, light_sampler, direction_sampler,
+                       term_prob, rng,  film_to_world);
 
   // below reduction assumes this is the case
   assert(division.num_sample_blocks == 1);
@@ -96,17 +92,14 @@ intensities_global(const GeneralSettings &settings, unsigned start_blocks,
   }
 }
 
-template <intersect::accel::AccelRef MeshAccel,
-          intersect::accel::AccelRef TriAccel, LightSamplerRef L,
+template <intersectable_scene::IntersectableScene Scene, LightSamplerRef L,
           DirSamplerRef D, TermProbRef T, rng::RngRef R>
 void intensities(const GeneralSettings &settings, bool show_progress,
                  const WorkDivision &division, unsigned samples_per,
-                 unsigned x_dim, unsigned y_dim, const MeshAccel &mesh_accel,
-                 Span<const TriAccel> tri_accels, const L &light_sampler,
-                 const D &direction_sampler, const T &term_prob, const R &rng,
-                 Span<BGRA> pixels, Span<Eigen::Array3f> intensities,
-                 Span<const scene::TriangleData> triangle_data,
-                 Span<const material::Material> materials,
+                 unsigned x_dim, unsigned y_dim, const Scene &scene,
+                 const L &light_sampler, const D &direction_sampler,
+                 const T &term_prob, const R &rng, Span<BGRA> pixels,
+                 Span<Eigen::Array3f> intensities,
                  const Eigen::Affine3f &film_to_world) {
   size_t total_grid = division.num_sample_blocks * division.num_x_blocks *
                       division.num_y_blocks;
@@ -127,9 +120,9 @@ void intensities(const GeneralSettings &settings, bool show_progress,
     unsigned grid = end - start;
 
     intensities_global<<<grid, division.block_size>>>(
-        settings, start, division, x_dim, y_dim, samples_per, mesh_accel,
-        tri_accels, light_sampler, direction_sampler, term_prob, rng, pixels,
-        intensities, triangle_data, materials, film_to_world);
+        settings, start, division, x_dim, y_dim, samples_per, scene,
+         light_sampler, direction_sampler, term_prob, rng, pixels,
+        intensities,  film_to_world);
 
     CUDA_ERROR_CHK(cudaDeviceSynchronize());
 
