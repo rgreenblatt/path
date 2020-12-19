@@ -131,12 +131,13 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
 
   auto add_mesh_instance = [&](unsigned idx,
                                const intersect::accel::AABB &aabb) {
-    auto transformed_aabb = aabb.transform(transform);
-    scene_v.transformed_objects_.push_back({idx, transform, transformed_aabb});
+    intersect::TransformedObject obj{transform, aabb};
+    scene_v.transformed_mesh_idxs_.push_back(idx);
     overall_max_b_transformed_ =
-        overall_max_b_transformed_.cwiseMax(transformed_aabb.get_max_bound());
+        overall_max_b_transformed_.cwiseMax(obj.bounds().max_bound);
     overall_min_b_transformed_ =
-        overall_min_b_transformed_.cwiseMin(transformed_aabb.get_min_bound());
+        overall_min_b_transformed_.cwiseMin(obj.bounds().min_bound);
+    scene_v.transformed_mesh_objects_.push_back(obj);
   };
 
   auto map_it = loaded_meshes_.find(absolute_path);
@@ -160,7 +161,7 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
   for (const auto &m : mesh_materials) {
     auto material = mat_to_material(m);
 
-    is_emissive.push_back(material.emission().matrix().squaredNorm() > 1e-9f);
+    is_emissive.push_back(material.emission.matrix().squaredNorm() > 1e-9f);
 
     scene_v.materials_.push_back(material);
   }

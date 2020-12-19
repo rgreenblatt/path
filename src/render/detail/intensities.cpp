@@ -8,7 +8,7 @@ namespace detail {
 template <intersect::accel::AccelRef MeshAccel,
           intersect::accel::AccelRef TriAccel, LightSamplerRef L,
           DirSamplerRef D, TermProbRef T, rng::RngRef R>
-void intensities(const ComputationSettings &settings, bool show_progress,
+void intensities(const GeneralSettings &settings, bool show_progress,
                  const WorkDivision &, unsigned samples_per, unsigned x_dim,
                  unsigned y_dim, const MeshAccel &mesh_accel,
                  Span<const TriAccel> tri_accels, const L &light_sampler,
@@ -29,7 +29,7 @@ void intensities(const ComputationSettings &settings, bool show_progress,
     for (unsigned x = 0; x < x_dim; x++) {
       pixels[x + y * x_dim] = intensity_to_bgr(
           intensities_impl(x, y, 0, samples_per, settings, x_dim, y_dim,
-                           samples_per, mesh_accel, tri_accels, light_sampler,
+                           mesh_accel, tri_accels, light_sampler,
                            direction_sampler, term_prob, rng, triangle_data,
                            materials, film_to_world) /
           samples_per);

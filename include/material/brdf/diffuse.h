@@ -9,7 +9,7 @@
 #include <Eigen/Core>
 
 namespace material {
-template <> struct BRDFImpl<BRDFType::Diffuse> {
+class DiffuseBRDF {
 public:
   static constexpr bool has_delta_samples = false;
   static constexpr bool has_non_delta_samples = true;
@@ -19,9 +19,9 @@ public:
     Eigen::Array3f diffuse;
   };
 
-  HOST_DEVICE BRDFImpl() = default;
+  HOST_DEVICE DiffuseBRDF() = default;
 
-  HOST_DEVICE BRDFImpl(const Params &params)
+  HOST_DEVICE DiffuseBRDF(const Params &params)
       : normalized_diffuse_(params.diffuse * normalizing_factor) {}
 
   HOST_DEVICE Eigen::Array3f brdf(const Eigen::Vector3f &,
@@ -54,4 +54,6 @@ private:
 
   Eigen::Array3f normalized_diffuse_;
 };
+
+static_assert(BRDF<DiffuseBRDF>);
 } // namespace material

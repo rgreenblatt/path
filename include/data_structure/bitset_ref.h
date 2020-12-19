@@ -2,10 +2,9 @@
 
 #include "data_structure/get_size.h"
 #include "lib/bit_utils.h"
-#include "lib/concepts.h"
+#include "meta/concepts.h"
 #include "lib/span.h"
 
-#include <concepts>
 #include <cstdint>
 
 template <std::integral Block> class BitsetRef {

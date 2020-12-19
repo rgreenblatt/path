@@ -1,8 +1,12 @@
 #pragma once
 
 #include "execution_model/caching_thrust_allocator.h"
+#include "meta/predicate_for_all_values.h"
 
 #include <thrust/execution_policy.h>
+
+#include <concepts>
+
 class Stream {
 public:
   Stream() { cudaStreamCreate(&stream_v_); }
@@ -29,12 +33,6 @@ public:
     }
   }
 
-  ThrustData(const ThrustData &) = delete;
-
-  ThrustData(ThrustData &&) = default;
-
-  ~ThrustData() = default;
-
   auto execution_policy() {
     if constexpr (execution_model == ExecutionModel::GPU) {
       return thrust::cuda::par(alloc).on(stream_v->stream_v());
@@ -49,3 +47,8 @@ private:
       stream_v;
   CachingThrustAllocator<execution_model> alloc;
 };
+
+template<ExecutionModel exec>
+struct ThrustDataMovable : BoolWrapper<std::movable<ThrustData<exec>>> {};
+
+static_assert(PredicateForAllValues<ExecutionModel>::value<ThrustDataMovable>);

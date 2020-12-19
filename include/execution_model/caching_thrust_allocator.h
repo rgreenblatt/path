@@ -2,11 +2,13 @@
 
 #include "execution_model/execution_model.h"
 #include "lib/cuda/utils.h"
+#include "meta/predicate_for_all_values.h"
 
 #include <thrust/host_vector.h>
 #include <thrust/system/cuda/execution_policy.h>
 #include <thrust/system/cuda/vector.h>
 
+#include <concepts>
 #include <iostream>
 #include <map>
 
@@ -19,8 +21,10 @@ public:
   CachingThrustAllocator() {}
 
   CachingThrustAllocator(const CachingThrustAllocator &) = delete;
-
+  
+  // maybe check that default is correct?
   CachingThrustAllocator(CachingThrustAllocator &&) = default;
+  CachingThrustAllocator &operator=(CachingThrustAllocator &&) = default;
 
   ~CachingThrustAllocator() {
     // free all allocations when cached_allocator goes out of scope
@@ -105,3 +109,10 @@ private:
     }
   }
 };
+
+template <ExecutionModel exec>
+struct CachingThrustAllocatorMovable
+    : BoolWrapper<std::movable<CachingThrustAllocator<exec>>> {};
+
+static_assert(PredicateForAllValues<ExecutionModel>::value<
+              CachingThrustAllocatorMovable>);

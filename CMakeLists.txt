@@ -96,9 +96,9 @@ endmacro()
 add_library(
   intersect
   STATIC
-  "${PROJECT_SOURCE_DIR}/src/intersect/accel/loop_all.cu"
-  "${PROJECT_SOURCE_DIR}/src/intersect/accel/dir_tree.cu"
-  "${PROJECT_SOURCE_DIR}/src/intersect/accel/kdtree.cu"
+  "${PROJECT_SOURCE_DIR}/src/intersect/accel/loop_all/loop_all.cu"
+  "${PROJECT_SOURCE_DIR}/src/intersect/accel/dir_tree/dir_tree.cu"
+  "${PROJECT_SOURCE_DIR}/src/intersect/accel/kdtree/kdtree.cu"
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/sphere_partition.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/kdtree/generator.cu"

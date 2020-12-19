@@ -1,23 +1,20 @@
 #pragma once
 
 #include "intersect/accel/aabb.h"
-#include "lib/concepts.h"
 
 #include <concepts>
 
 namespace intersect {
-template <typename T> struct BoundedImpl;
-
-template <typename Impl, typename T>
-concept BoundedChecker = requires(const T &t) {
-  { BoundedImpl<T>::bounds(t) }
-  ->std::convertible_to<accel::AABB>;
+template <typename T>
+concept Bounded = requires(const T &t) {
+  { t.bounds() } ->std::convertible_to<accel::AABB>;
 };
 
-template <typename T> concept Bounded = requires(const T &t) {
-  typename BoundedImpl<T>;
-  BoundedChecker<BoundedImpl<T>, T>;
+struct MockBounded {
+  HOST_DEVICE accel::AABB bounds() const {
+    return {Eigen::Vector3f::Zero(), Eigen::Vector3f::Zero()};
+  }
 };
 
-template <Bounded T> using BoundedT = BoundedImpl<T>;
+static_assert(Bounded<accel::AABB>);
 } // namespace intersect

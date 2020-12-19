@@ -8,7 +8,7 @@
 #include <Eigen/Core>
 
 namespace material {
-template <> struct BRDFImpl<BRDFType::Mirror> {
+struct MirrorBRDF {
 public:
   static constexpr bool has_delta_samples = true;
   static constexpr bool has_non_delta_samples = false;
@@ -18,9 +18,9 @@ public:
     Eigen::Array3f specular;
   };
 
-  HOST_DEVICE BRDFImpl() = default;
+  HOST_DEVICE MirrorBRDF() = default;
 
-  HOST_DEVICE BRDFImpl(const Params &params) : specular_(params.specular) {}
+  HOST_DEVICE MirrorBRDF(const Params &params) : specular_(params.specular) {}
 
   template <rng::RngState R>
   HOST_DEVICE DeltaSample delta_sample(const Eigen::Vector3f &incoming_dir,
@@ -32,4 +32,6 @@ public:
 private:
   Eigen::Array3f specular_;
 };
+
+static_assert(BRDF<MirrorBRDF>);
 } // namespace material

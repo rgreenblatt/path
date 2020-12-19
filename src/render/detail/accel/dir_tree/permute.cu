@@ -57,8 +57,8 @@ void DirTreeGeneratorImpl<execution_model>::permute() {
         bool is_min = !bool(index % 2);
 
         const auto &aabb = aabbs[index / 2].aabb;
-        const auto &min_b = aabb.get_min_bound();
-        const auto &max_b = aabb.get_max_bound();
+        const auto &min_b = aabb.min_bound;
+        const auto &max_b = aabb.max_bound;
 
         other_mins[k] = min_b[other_axis];
         other_maxs[k] = max_b[other_axis];
@@ -101,8 +101,8 @@ void DirTreeGeneratorImpl<execution_model>::permute() {
       unsigned num_shapes = num_shapes_;
       return [=] __host__ __device__(unsigned k, unsigned index) {
         const auto &aabb = aabbs[index];
-        const auto &mins = aabb.aabb.get_min_bound();
-        const auto &maxs = aabb.aabb.get_max_bound();
+        const auto &mins = aabb.aabb.min_bound;
+        const auto &maxs = aabb.aabb.max_bound;
         x_mins[k] = mins.x();
         y_mins[k] = mins.y();
         z_mins[k] = mins.z();

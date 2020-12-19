@@ -2,36 +2,22 @@
 
 #include "intersect/intersection.h"
 #include "intersect/ray.h"
-#include "intersect/triangle.h"
-#include "lib/concepts.h"
-#include "lib/span.h"
 
 #include <concepts>
 
 namespace intersect {
-template <typename T> struct IntersectableImpl;
-
-// needs to be separate to avoid error for some reason
-template <typename Impl, typename T>
-concept IntersectableChecker = requires(const Ray &ray, const T &t,
-                                        Span<const Triangle> dummy) {
-  { Impl::intersect(ray, t, dummy) }
-  ->SpecializationOf<IntersectionOp>;
+template <typename T>
+concept Intersectable = requires(const T &t, const Ray &ray) {
+  typename T::InfoType;
+  { t.intersect(ray) }
+  ->std::convertible_to<IntersectionOp<typename T::InfoType>>;
 };
 
-template <typename T> concept Intersectable = requires {
-  typename IntersectableImpl<T>;
-  IntersectableChecker<IntersectableImpl<T>, T>;
-};
+struct MockIntersectable {
+  using InfoType = std::tuple<>;
 
-#if 1
-template <typename T> struct IntersectableT : IntersectableImpl<T> {
-  template <typename... Vals>
-  using Intersection = std::decay_t<decltype(
-      IntersectableT::intersect(std::declval<const Ray &>(),
-                                std::declval<const T &>(),
-                                std::declval<Vals>()...)
-          ->info)>;
+  constexpr IntersectionOp<InfoType> intersect(const Ray&) const {
+    return thrust::nullopt;
+  }
 };
-#endif
-} // namespace intersect
+}

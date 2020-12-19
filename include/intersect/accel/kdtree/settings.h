@@ -1,6 +1,7 @@
 #pragma once
 
 #include "intersect/accel/s_a_heuristic_settings.h"
+#include "lib/settings.h"
 
 namespace intersect {
 namespace accel {
@@ -20,7 +21,7 @@ struct Settings {
             CEREAL_NVP(num_objects_terminate));
   }
 
-  HOST_DEVICE inline bool operator==(const Settings &) const = default;
+  constexpr inline bool operator==(const Settings &) const = default;
 };
 
 static_assert(Setting<Settings>);

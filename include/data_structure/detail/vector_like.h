@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lib/concepts.h"
+#include "meta/concepts.h"
 
 #include <thrust/device_vector.h>
 

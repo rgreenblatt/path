@@ -3,10 +3,13 @@
 namespace intersect {
 namespace accel {
 namespace kdtree {
+using namespace detail;
+
 // inspired by https://www.geeksforgeeks.org/quickselect-algorithm/
 template <ExecutionModel execution_model>
-unsigned Generator<execution_model>::partition(unsigned start, unsigned end,
-                                               uint8_t axis) {
+unsigned KDTree<execution_model>::Generator::partition(unsigned start,
+                                                       unsigned end,
+                                                       uint8_t axis) {
   // TODO: check start vs end
   float x = bounds_[end].center[axis];
   size_t i = start;
@@ -25,8 +28,8 @@ unsigned Generator<execution_model>::partition(unsigned start, unsigned end,
 
 // inspired by https://www.geeksforgeeks.org/quickselect-algorithm/
 template <ExecutionModel execution_model>
-void Generator<execution_model>::kth_smallest(size_t start, size_t end,
-                                              size_t k, uint8_t axis) {
+void KDTree<execution_model>::Generator::kth_smallest(size_t start, size_t end,
+                                                      size_t k, uint8_t axis) {
   // Partition the array around last
   // element and get position of pivot
   // element in sorted array
@@ -49,13 +52,15 @@ void Generator<execution_model>::kth_smallest(size_t start, size_t end,
 }
 
 template <ExecutionModel execution_model>
-bool Generator<execution_model>::terminate_here(unsigned start, unsigned end) {
+bool KDTree<execution_model>::Generator::terminate_here(unsigned start,
+                                                        unsigned end) {
   return end - start <= settings_.num_objects_terminate;
   /* || settings_.use_s_a_heuritic */ // not yet supported
 }
 
 template <ExecutionModel execution_model>
-AABB Generator<execution_model>::get_bounding(unsigned start, unsigned end) {
+AABB KDTree<execution_model>::Generator::get_bounding(unsigned start,
+                                                      unsigned end) {
   assert(start != end);
 
   AABB out = bounds_[start].aabb;
@@ -67,8 +72,9 @@ AABB Generator<execution_model>::get_bounding(unsigned start, unsigned end) {
 }
 
 template <ExecutionModel execution_model>
-unsigned Generator<execution_model>::construct(unsigned start, unsigned end,
-                                               unsigned depth) {
+unsigned KDTree<execution_model>::Generator::construct(unsigned start,
+                                                       unsigned end,
+                                                       unsigned depth) {
   assert(start != end);
   if (terminate_here(start, end)) {
     auto total_bounds = get_bounding(start, end);
@@ -99,8 +105,8 @@ unsigned Generator<execution_model>::construct(unsigned start, unsigned end,
 
 template <ExecutionModel execution_model>
 std::tuple<SpanSized<const KDTreeNode<AABB>>, Span<const unsigned>>
-Generator<execution_model>::gen(const Settings &settings,
-                                SpanSized<Bounds> bounds) {
+KDTree<execution_model>::Generator::gen(const Settings &settings,
+                                        SpanSized<Bounds> bounds) {
   settings_ = settings;
   settings_.num_objects_terminate =
       std::max(settings_.num_objects_terminate, 1u);
@@ -144,8 +150,8 @@ Generator<execution_model>::gen(const Settings &settings,
   }
 }
 
-template class Generator<ExecutionModel::CPU>;
-template class Generator<ExecutionModel::GPU>;
+template class KDTree<ExecutionModel::CPU>::Generator;
+template class KDTree<ExecutionModel::GPU>::Generator;
 } // namespace kdtree
 } // namespace accel
 } // namespace intersect

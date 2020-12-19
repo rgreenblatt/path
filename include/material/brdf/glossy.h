@@ -10,7 +10,7 @@
 #include <Eigen/Core>
 
 namespace material {
-template <> struct BRDFImpl<BRDFType::Glossy> {
+struct GlossyBRDF {
 public:
   static constexpr bool has_delta_samples = false;
   static constexpr bool has_non_delta_samples = true;
@@ -21,9 +21,9 @@ public:
     float shininess;
   };
 
-  HOST_DEVICE BRDFImpl() = default;
+  HOST_DEVICE GlossyBRDF() = default;
 
-  HOST_DEVICE BRDFImpl(const Params &params)
+  HOST_DEVICE GlossyBRDF(const Params &params)
       : normalizing_factor_(normalizing_factor(params.shininess)),
         normalized_specular_(normalizing_factor_),
         shininess_(params.shininess) {}
@@ -70,4 +70,6 @@ private:
   Eigen::Array3f normalized_specular_;
   float shininess_;
 };
+
+static_assert(BRDF<GlossyBRDF>);
 } // namespace material

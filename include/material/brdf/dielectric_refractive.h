@@ -8,7 +8,7 @@
 #include <Eigen/Core>
 
 namespace material {
-template <> struct BRDFImpl<BRDFType::DielectricRefractive> {
+class DielectricRefractiveBRDF {
 public:
   static constexpr bool has_delta_samples = true;
   static constexpr bool has_non_delta_samples = false;
@@ -19,9 +19,9 @@ public:
     float ior;
   };
 
-  HOST_DEVICE BRDFImpl() = default;
+  HOST_DEVICE DielectricRefractiveBRDF() = default;
 
-  HOST_DEVICE BRDFImpl(const Params &params)
+  HOST_DEVICE DielectricRefractiveBRDF(const Params &params)
       : specular_(params.specular), ior_(params.ior) {
     r_0_ = (ior_ - 1) / (ior_ + 1);
     r_0_ *= r_0_;
@@ -46,4 +46,6 @@ private:
   float ior_;
   float r_0_;
 };
+
+static_assert(BRDF<DielectricRefractiveBRDF>);
 } // namespace material

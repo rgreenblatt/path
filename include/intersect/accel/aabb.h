@@ -39,36 +39,28 @@ get_transformed_bounds(const Eigen::Affine3f &transform,
 
   return {min_transformed_bound, max_transformed_bound};
 }
-class AABB {
-public:
-  HOST_DEVICE
-  AABB() {}
+struct AABB {
+  Eigen::Vector3f min_bound;
+  Eigen::Vector3f max_bound;
 
-  HOST_DEVICE
-  AABB(const Eigen::Vector3f &min_bound, const Eigen::Vector3f &max_bound)
-      : min_bound_(min_bound), max_bound_(max_bound) {}
+  // implementing bounded
+  HOST_DEVICE inline const AABB& bounds() const {
+    return *this;
+  }
 
   HOST_DEVICE inline AABB transform(const Eigen::Affine3f &transform) const {
-    auto [min, max] = get_transformed_bounds(transform, min_bound_, max_bound_);
+    auto [min, max] = get_transformed_bounds(transform, min_bound, max_bound);
 
     return {min, max};
   }
 
   HOST_DEVICE inline AABB union_other(const AABB &other) const {
-    return {min_bound_.cwiseMin(other.get_min_bound()),
-            max_bound_.cwiseMax(other.get_max_bound())};
-  }
-
-  HOST_DEVICE const Eigen::Vector3f &get_min_bound() const {
-    return min_bound_;
-  }
-
-  HOST_DEVICE const Eigen::Vector3f &get_max_bound() const {
-    return max_bound_;
+    return {min_bound.cwiseMin(other.min_bound),
+            max_bound.cwiseMax(other.max_bound)};
   }
 
   HOST_DEVICE float surface_area() const {
-    auto dims = (max_bound_ - min_bound_).eval();
+    auto dims = (max_bound - min_bound).eval();
     return 2 *
            (dims.x() * dims.y() + dims.z() * dims.y() + dims.z() * dims.x());
   }
@@ -77,8 +69,8 @@ public:
   HOST_DEVICE thrust::optional<float>
   solveBoundingIntersection(const Eigen::Vector3f &point,
                             const Eigen::Vector3f &inv_direction) const {
-    auto t_0 = (min_bound_ - point).cwiseProduct(inv_direction).eval();
-    auto t_1 = (max_bound_ - point).cwiseProduct(inv_direction).eval();
+    auto t_0 = (min_bound - point).cwiseProduct(inv_direction).eval();
+    auto t_1 = (max_bound - point).cwiseProduct(inv_direction).eval();
     auto t_min = t_0.cwiseMin(t_1);
     auto t_max = t_0.cwiseMax(t_1);
 
@@ -95,17 +87,13 @@ public:
   friend std::ostream &operator<<(std::ostream &s, const AABB &v) {
     s << "min bound: "
       << "\n"
-      << v.min_bound_ << "\n"
+      << v.min_bound << "\n"
       << "max bound: "
       << "\n"
-      << v.max_bound_ << "\n";
+      << v.max_bound << "\n";
 
     return s;
   }
-
-private:
-  Eigen::Vector3f min_bound_;
-  Eigen::Vector3f max_bound_;
 };
 } // namespace accel
 } // namespace intersect

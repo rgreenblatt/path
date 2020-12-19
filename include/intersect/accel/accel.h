@@ -8,84 +8,46 @@
 
 namespace intersect {
 namespace accel {
-enum class AccelType {
-  LoopAll,
-  KDTree,
-  DirTree,
+template <typename V, typename O>
+concept AccelIntersectableRef = requires(const V &accel_ref) {
+  requires Object<V>;
+  requires std::same_as<typename V::InfoType,
+                        std::tuple<unsigned, typename O::InfoType>>;
 };
 
-template <AccelType type, ExecutionModel execution_model, Object O>
-struct AccelImpl;
+template <typename V, typename O>
+concept AccelRef = requires(const V &accel_ref, Span<const O> objects) {
+  requires Object<O>;
 
-template <AccelType type> struct AccelSettings;
-
-template <typename V> concept AccelRef = requires {
-  Object<V>;
-
-  typename V::InstO;
-  V::inst_type;
-  V::inst_execution_model;
-
-  // indexing (for the reference)
-  requires requires(const V &accel_ref, unsigned idx) {
-    { accel_ref.get(idx) }
-    ->std::convertible_to<typename V::InstO>;
-  };
+  { accel_ref.get_intersectable(objects) } ->
+  AccelIntersectableRef<O>;
 };
 
-template <typename V, AccelType type>
-concept AccelRefOfType = AccelRef<V> &&type == V::inst_type;
-
-// why can't I use Object O? (concept cannot have associated constraints)
-template <AccelType type, ExecutionModel execution_model, typename O>
-concept Accel = requires {
-  Object<O>;
-  typename AccelImpl<type, execution_model, O>;
-  std::semiregular<AccelImpl<type, execution_model, O>>;
-
-  // Settings type is the same for each execution model and object
-  typename AccelSettings<type>;
-  Setting<AccelSettings<type>>;
-  std::equality_comparable<AccelSettings<type>>;
+namespace detail {
+// Settings type is the same for each object, so we don't use an associated type
+template <typename T, typename Settings, typename O, typename B>
+concept GeneralAccel = requires {
+  requires Bounded<B>;
+  requires std::default_initializable<T>;
+  requires std::movable<T>;
+  requires Setting<Settings>;
 
   // generation
-  requires requires(AccelImpl<type, execution_model, O> & accel,
-                    const AccelSettings<type> &settings, Span<const O> objects,
-                    unsigned start, unsigned end, const AABB &aabb) {
-    { accel.gen(settings, objects, start, end, aabb) }
-    ->AccelRefOfType<type>;
+  requires requires(T & accel, const Settings &settings,
+      SpanSized<const O> objects, const AABB &aabb) {
+    { accel.gen(settings, objects, aabb) }
+    ->AccelRef<O>;
   };
 };
+} // namespace detail
 
-template <AccelType accel_type, ExecutionModel execution_model, Object O>
-requires Accel<accel_type, execution_model, O> struct AccelChecked {
-  using type = AccelImpl<accel_type, execution_model, O>;
-};
+// Accel which only uses bounds and which works on any objects/bounds on input
+// We test the concepts on Mocks, but they should work for anything
+template <typename T, typename Settings>
+concept BoundsOnlyAccel =
+    detail::GeneralAccel<T, Settings, MockObject, MockBounded>;
 
-template <AccelType type, ExecutionModel execution_model, Object O>
-using AccelT = typename AccelChecked<type, execution_model, O>::type;
-
-template <> struct AccelSettings<AccelType::LoopAll> : EmptySettings {
-  HOST_DEVICE inline bool
-  operator==(const AccelSettings<AccelType::LoopAll> &) const = default;
-};
-
-template <> struct AccelSettings<AccelType::KDTree> {
-  kdtree::Settings generation_settings;
-
-  template <class Archive> void serialize(Archive &archive) {
-    archive(CEREAL_NVP(generation_settings));
-  }
-
-  HOST_DEVICE inline bool operator==(const AccelSettings &) const = default;
-};
-
-template <> struct AccelSettings<AccelType::DirTree> : EmptySettings {
-  // TODO: this will change when dir tree is implemented
-  /* SAHeuristicSettings s_a_heuristic_settings; */
-  /* unsigned num_dir_trees; */
-
-  HOST_DEVICE inline bool operator==(const AccelSettings &) const = default;
-};
+template <typename T, typename Settings, typename O>
+concept ObjectSpecificAccel = detail::GeneralAccel<T, Settings, O, O>;
 } // namespace accel
 } // namespace intersect

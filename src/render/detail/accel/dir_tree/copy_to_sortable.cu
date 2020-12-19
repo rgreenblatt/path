@@ -30,10 +30,10 @@ void DirTreeGeneratorImpl<execution_model>::copy_to_sortable() {
         double z_max_offset = z_max_offsets[offset_idx];
 
         Eigen::Vector3d min_v =
-            aabbs[idx].aabb.get_min_bound().cast<double>() + offset;
+            aabbs[idx].aabb.min_bound.cast<double>() + offset;
         Eigen::Vector3d max_v =
-            aabbs[idx].aabb.get_max_bound().cast<double>() + offset;
-        double z_max_v = z_max_offset - aabbs[idx].aabb.get_max_bound().z();
+            aabbs[idx].aabb.max_bound.cast<double>() + offset;
+        double z_max_v = z_max_offset - aabbs[idx].aabb.max_bound.z();
 
         unsigned min_edge_index = 2 * idx;
         unsigned max_edge_index = 2 * idx + 1;

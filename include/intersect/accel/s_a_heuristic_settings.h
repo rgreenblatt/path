@@ -1,6 +1,5 @@
 #pragma once
 
-#include "lib/cuda/utils.h"
 #include "lib/settings.h"
 
 #include <compare>
@@ -15,8 +14,7 @@ struct SAHeuristicSettings {
     archive(CEREAL_NVP(traversal_cost), CEREAL_NVP(intersection_cost));
   }
 
-  HOST_DEVICE inline bool
-  operator==(const SAHeuristicSettings &) const = default;
+  constexpr inline bool operator==(const SAHeuristicSettings &) const = default;
 };
 
 static_assert(Setting<SAHeuristicSettings>);

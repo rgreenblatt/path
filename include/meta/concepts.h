@@ -21,4 +21,9 @@ struct is_std_array<std::array<T, N>> : std::true_type {};
 template <typename V>
 concept StdArraySpecialization = is_std_array<std::decay_t<V>>::value;
 
-template<typename...> concept TrueConcept = true;
+template <typename V, typename T>
+concept StdArrayOfType = requires {
+  requires is_std_array<std::decay_t<V>>::value;
+  typename std::decay_t<V>::value_type;
+  requires std::same_as<typename std::decay_t<V>::value_type, T>;
+};

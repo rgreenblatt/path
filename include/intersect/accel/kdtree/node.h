@@ -8,6 +8,7 @@
 namespace intersect {
 namespace accel {
 namespace kdtree {
+namespace detail {
 struct Bounds {
   AABB aabb;
   Eigen::Vector3f center;
@@ -73,6 +74,7 @@ private:
   KDTreeSplit split_;
   std::array<unsigned, 2> data_;
 };
+} // namespace detail
 } // namespace kdtree
 } // namespace accel
 } // namespace intersect

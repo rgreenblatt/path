@@ -1,19 +1,18 @@
 #pragma once
 
+#include "execution_model/execution_model_vector_type.h"
 #include "intersect/accel/accel.h"
-#include "intersect/accel/dir_tree/settings.h"
-#include "intersect/accel/s_a_heuristic_settings.h"
-#include "intersect/triangle.h"
+#include "intersect/accel/loop_all/settings.h"
 #include "meta/predicate_for_all_values.h"
 
 namespace intersect {
 namespace accel {
-namespace dir_tree {
+namespace loop_all {
 namespace detail {
-// In this case, the Ref type doesn't depend on the ExecutionModel (at least
-// not yet...)
+// In this case, the Ref type doesn't depend on the ExecutionModel
 class Ref {
 public:
+  // TODO: why is this constructor needed...
   HOST_DEVICE Ref() {}
 
   Ref(const AABB &aabb) : aabb_(aabb) {}
@@ -26,12 +25,7 @@ public:
 
     using InfoType = std::tuple<unsigned, typename O::InfoType>;
 
-    constexpr inline IntersectionOp<InfoType> intersect(const Ray &) const {
-      // TODO: write and move to impl
-      assert(false);
-
-      return thrust::nullopt;
-    }
+    constexpr inline IntersectionOp<InfoType> intersect(const Ray &ray) const;
 
     constexpr inline const AABB &bounds() const { return ref.bounds(); }
   };
@@ -47,18 +41,17 @@ private:
 };
 } // namespace detail
 
-template <ExecutionModel execution_model> class DirTree {
-public:
-  template <Bounded B>
+template <ExecutionModel execution_model> struct LoopAll {
+  template <typename B>
   detail::Ref gen(const Settings &settings, SpanSized<const B> objects,
           const AABB &aabb);
 };
 
 template <ExecutionModel exec>
-struct DirTreeIsAccel
-    : BoolWrapper<ObjectSpecificAccel<DirTree<exec>, Settings, Triangle>> {};
+struct LoopAllIsAccel : BoolWrapper<BoundsOnlyAccel<LoopAll<exec>, Settings>> {
+};
 
-static_assert(PredicateForAllValues<ExecutionModel>::value<DirTreeIsAccel>);
-} // namespace dir_tree
+static_assert(PredicateForAllValues<ExecutionModel>::value<LoopAllIsAccel>);
+} // namespace loop_all
 } // namespace accel
 } // namespace intersect

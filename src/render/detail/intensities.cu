@@ -1,5 +1,6 @@
 #ifndef CPU_ONLY
 #include "lib/cuda/reduce.cuh"
+#include "lib/utils.h"
 #include "render/detail/impl/intensities_impl.h"
 #include "render/detail/impl/render_impl.h"
 
@@ -11,7 +12,7 @@ template <intersect::accel::AccelRef MeshAccel,
           intersect::accel::AccelRef TriAccel, LightSamplerRef L,
           DirSamplerRef D, TermProbRef T, rng::RngRef R>
 __global__ void
-intensities_global(const ComputationSettings &settings, unsigned start_blocks,
+intensities_global(const GeneralSettings &settings, unsigned start_blocks,
                    const WorkDivision division, unsigned x_dim, unsigned y_dim,
                    unsigned samples_per, const MeshAccel mesh_accel,
                    Span<const TriAccel> tri_accels, const L light_sampler,
@@ -50,10 +51,10 @@ intensities_global(const ComputationSettings &settings, unsigned start_blocks,
     return;
   }
 
-  auto intensity = intensities_impl(
-      x, y, start_sample, end_sample, settings, x_dim, y_dim, samples_per,
-      mesh_accel, tri_accels, light_sampler, direction_sampler, term_prob, rng,
-      triangle_data, materials, film_to_world);
+  auto intensity =
+      intensities_impl(x, y, start_sample, end_sample, settings, x_dim, y_dim,
+                       mesh_accel, tri_accels, light_sampler, direction_sampler,
+                       term_prob, rng, triangle_data, materials, film_to_world);
 
   // below reduction assumes this is the case
   assert(division.num_sample_blocks == 1);
@@ -98,7 +99,7 @@ intensities_global(const ComputationSettings &settings, unsigned start_blocks,
 template <intersect::accel::AccelRef MeshAccel,
           intersect::accel::AccelRef TriAccel, LightSamplerRef L,
           DirSamplerRef D, TermProbRef T, rng::RngRef R>
-void intensities(const ComputationSettings &settings, bool show_progress,
+void intensities(const GeneralSettings &settings, bool show_progress,
                  const WorkDivision &division, unsigned samples_per,
                  unsigned x_dim, unsigned y_dim, const MeshAccel &mesh_accel,
                  Span<const TriAccel> tri_accels, const L &light_sampler,

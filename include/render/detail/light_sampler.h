@@ -243,16 +243,9 @@ public:
       const float prob_this_triangle =
           get_size<float>(sample_idx, cumulative_weights_);
 
-      const float this_normal_product = abs(normal.dot(direction));
-      const float other_normal_product = abs(triangle_normal.dot(direction));
-
-      // Probably should be removed...
-      if (this_normal_product < 1e-8 && other_normal_product < 1e-8) {
-        return LightSamples<max_sample_size>{{}, 0};
-      }
-
-      const float weight = this_normal_product * other_normal_product /
-                           direction_unnormalized.squaredNorm();
+      const float weight =
+          abs(normal.dot(direction) * triangle_normal.dot(direction)) /
+          direction_unnormalized.squaredNorm();
 
       const DirSample sample = {direction, prob_this_triangle * scale / weight};
       const TriangleID id = ids_[sample_idx];

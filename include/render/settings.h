@@ -3,7 +3,7 @@
 #include "compile_time_dispatch/one_per_instance.h"
 #include "intersect/accel/accel.h"
 #include "lib/settings.h"
-#include "render/computation_settings.h"
+#include "render/general_settings.h"
 #include "render/dir_sampler.h"
 #include "render/light_sampler.h"
 #include "render/term_prob.h"
@@ -141,19 +141,8 @@ private:
   T values_;
 };
 
-struct GeneralSettings {
-  ComputationSettings computation_settings;
-
-  template <class Archive> void serialize(Archive &archive) {
-    archive(CEREAL_NVP(computation_settings));
-  }
-};
-
-static_assert(Setting<GeneralSettings>);
-
 struct Settings {
 private:
-  // default should be pretty reasonable...
   using AccelType = intersect::accel::AccelType;
   using RngType = rng::RngType;
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "intersect/accel/impl/kdtree_impl.h"
-#include "intersect/accel/impl/loop_all_impl.h"
+#include "intersect/accel/kdtree/kdtree_impl.h"
+#include "intersect/accel/loop_all/loop_all_impl.h"
 #include "intersect/impl/ray_impl.h"
 #include "intersect/impl/triangle_impl.h"
 #include "render/detail/intensities.h"
@@ -28,7 +28,7 @@ template <intersect::accel::AccelRef MeshAccel,
           DirSamplerRef D, TermProbRef T, rng::RngRef R>
 HOST_DEVICE inline Eigen::Array3f intensities_impl(
     unsigned x, unsigned y, unsigned start_sample, unsigned end_sample,
-    const ComputationSettings &, unsigned x_dim, unsigned y_dim, unsigned,
+    const GeneralSettings &settings, unsigned x_dim, unsigned y_dim, 
     const MeshAccel &accel, Span<const TriAccel> &tri_accels,
     const L &light_sampler, const D &dir_sampler, const T &term_prob,
     const R &rng_ref, Span<const scene::TriangleData> triangle_data,
@@ -82,25 +82,52 @@ HOST_DEVICE inline Eigen::Array3f intensities_impl(
     const auto &data = triangle_data[triangle_idx];
     const auto &material = materials[data.material_idx()];
 
-    if (!L::performs_samples || count_emission) {
-      intensity += multiplier * material.emission(); // TODO: check
-    }
+    const auto &mesh = accel.get(mesh_idx);
+
+    const intersect::Triangle &triangle =
+        tri_accels[mesh.idx()].get(triangle_idx);
 
     Eigen::Vector3f intersection_point =
         next_intersection->intersection_dist * ray.direction + ray.origin;
 
-    const auto &mesh = accel.get(mesh_idx);
-
     Eigen::Vector3f mesh_space_intersection_point =
         mesh.world_to_object() * intersection_point;
-
-    const intersect::Triangle &triangle =
-        tri_accels[mesh.idx()].get(triangle_idx);
 
     Eigen::Vector3f normal =
         (mesh.object_to_world() *
          data.get_normal(mesh_space_intersection_point, triangle))
             .normalized();
+
+    auto is_back_intersection = [&](const intersect::Ray &ray,
+                                    const intersect::Triangle &triangle) {
+      // basically a copy of triangle intersection, a bit gross...
+      // probably can be optimized away by the compiler (because this is
+      // repeated computation)
+      const auto &vertices = triangle.vertices();
+
+      volatile bool undefined_garbage = false;
+      if (undefined_garbage) {
+        for (int i = 0; i < 3; ++i) {
+          for (int j = 0; j < 3; ++j) {
+            printf("%f", vertices[i][j]);
+          }
+        }
+      }
+
+      Eigen::Vector3f edge1 = vertices[1] - vertices[0];
+      Eigen::Vector3f edge2 = vertices[2] - vertices[0];
+
+      Eigen::Vector3f h = ray.direction.cross(edge2);
+      float a = edge1.dot(h);
+
+      return a < 0.;
+    };
+
+    auto include_lighting = [&](const intersect::Ray &ray,
+                                const intersect::Triangle &triangle) {
+      return !settings.back_cull_emission ||
+             !is_back_intersection(ray, triangle);
+    };
 
     auto compute_direct_lighting = [&]() -> Eigen::Array3f {
       Eigen::Array3f intensity = Eigen::Array3f::Zero();
@@ -132,35 +159,30 @@ HOST_DEVICE inline Eigen::Array3f intensities_impl(
         const auto &light_data = triangle_data[light_triangle_idx];
         const auto &light_material = materials[light_data.material_idx()];
 
-        // avoid issues due to compiler optimization inconsistancy with numerics
-        // (fma and some other stuff enabled by -Ofast)
-#ifndef __CUDA_ARCH__
-        assert([&] {
-          const auto &mesh = accel.get(light_mesh_idx);
 
-          const intersect::Triangle &triangle =
-              tri_accels[mesh.idx()].get(light_triangle_idx);
+        const auto &light_mesh = accel.get(light_mesh_idx);
 
-          auto intersection =
-              intersect::IntersectableT<intersect::Triangle>::intersect(
-                  light_ray, triangle);
+        const intersect::Triangle &light_triangle =
+            tri_accels[light_mesh.idx()].get(light_triangle_idx);
 
-          return intersection.has_value() &&
-                 intersection->intersection_dist ==
-                     light_intersection->intersection_dist;
-        }());
-#endif
+        if (!include_lighting(light_ray, light_triangle)) {
+          continue;
+        }
 
         const auto light_multiplier =
-            material.brdf(ray.direction, light_ray.direction, normal);
+            material.evaluate_brdf(ray.direction, light_ray.direction, normal);
 
-        // TODO: check (prob not delta needed?)
         intensity += light_material.emission() * material.prob_not_delta() *
                      light_multiplier / dir_sample.prob;
       }
 
       return intensity;
     };
+
+    if ((!L::performs_samples || count_emission) &&
+        include_lighting(ray, triangle)) {
+      intensity += multiplier * material.emission();
+    }
 
     if (material.has_non_delta_samples()) {
       intensity += multiplier * compute_direct_lighting();
@@ -192,7 +214,7 @@ HOST_DEVICE inline Eigen::Array3f intensities_impl(
           [&](const Eigen::Vector3f &outgoing_dir) -> Eigen::Array3f {
         auto normal_v = abs(outgoing_dir.dot(normal));
 
-        auto brdf_val = material.brdf(ray.direction, outgoing_dir, normal);
+        auto brdf_val = material.evaluate_brdf(ray.direction, outgoing_dir, normal);
 
         assert(brdf_val.x() >= 0.0f);
         assert(brdf_val.y() >= 0.0f);

@@ -1,11 +1,16 @@
 #pragma once
 
+#include "material/brdf/dielectric_refractive.h"
+#include "material/brdf/diffuse.h"
+#include "material/brdf/glossy.h"
+#include "material/brdf/mirror.h"
 #include "material/material.h"
 
 #include <tiny_obj_loader.h>
 
 namespace scene {
 material::Material mat_to_material(const tinyobj::material_t &material) {
+  using namespace material;
   auto to_eigen = [](const tinyobj::real_t *reals) {
     return Eigen::Array3f(reals[0], reals[1], reals[2]);
   };
@@ -23,7 +28,7 @@ material::Material mat_to_material(const tinyobj::material_t &material) {
     abort();
   }
 
-  const float epsilon = 1e-8; // for checking if component is zero;
+  constexpr float epsilon = 1e-8; // for checking if component is zero;
 
   bool diffuse_non_zero = diffuse.matrix().squaredNorm() > epsilon;
   bool specular_non_zero = specular.matrix().squaredNorm() > epsilon;
@@ -42,14 +47,12 @@ material::Material mat_to_material(const tinyobj::material_t &material) {
     /* } */
 
     // refractive
-    return material::Material(
-        material::BRDFT<material::BRDFType::DielectricRefractive>(
-            {Eigen::Vector3f::Ones(), ior}),
-        emission);
+    return Material{EnumBRDF::create<BRDFType::DielectricRefractive>(
+                        {{Eigen::Vector3f::Ones(), ior}}),
+                    emission};
   } else if (diffuse_non_zero && !specular_non_zero) {
     // ideal diffuse
-    return material::Material(
-        material::BRDFT<material::BRDFType::Diffuse>({diffuse}), emission);
+    return Material{EnumBRDF::create<BRDFType::Diffuse>({{diffuse}}), emission};
   } else if (shininess > shininess_threshold) {
     if (diffuse_non_zero || !specular_non_zero) {
       std::cerr << "diffuse values non-zero or specular values zero for mirror "
@@ -59,12 +62,11 @@ material::Material mat_to_material(const tinyobj::material_t &material) {
     }
 
     // ideal specular
-    return material::Material(
-        material::BRDFT<material::BRDFType::Mirror>({specular}), emission);
+    return Material{EnumBRDF::create<BRDFType::Diffuse>({{specular}}),
+                    emission};
   } else if (specular_non_zero /*&& !diffuse_non_zero*/) {
-    return material::Material(
-        material::BRDFT<material::BRDFType::Glossy>({specular, shininess}),
-        emission);
+    return Material{EnumBRDF::create<BRDFType::Glossy>({{specular, shininess}}),
+                    emission};
   } else {
     // TODO
     std::cerr << "unhandled material settings" << std::endl;

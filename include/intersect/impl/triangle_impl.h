@@ -4,63 +4,53 @@
 #include "intersect/intersectable.h"
 #include "intersect/triangle.h"
 
-#include "lib/info/printf_dbg.h"
-
 namespace intersect {
-template <> struct IntersectableImpl<Triangle> {
-  template <typename... T>
-  static HOST_DEVICE inline IntersectionOp<std::array<unsigned, 0>>
-  intersect(const Ray &ray, const Triangle &triangle, T...) {
-    static constexpr float float_epsilon = 1e-4f;
+HOST_DEVICE inline IntersectionOp<Triangle::InfoType>
+Triangle::intersect(const Ray &ray) const {
+  Eigen::Vector3f edge1 = vertices_[1] - vertices_[0];
+  Eigen::Vector3f edge2 = vertices_[2] - vertices_[0];
 
-    const auto &vertices = triangle.vertices();
+  Eigen::Vector3f h = ray.direction.cross(edge2);
+  float a = edge1.dot(h);
 
-    Eigen::Vector3f edge1 = vertices[1] - vertices[0];
-    Eigen::Vector3f edge2 = vertices[2] - vertices[0];
+  constexpr float float_epsilon = 1e-6f;
 
-    Eigen::Vector3f h = ray.direction.cross(edge2);
-    float a = edge1.dot(h);
-
-    if (std::abs(a) < float_epsilon) {
-      return thrust::nullopt;
-    }
-    float f = 1.f / a;
-    Eigen::Vector3f s = ray.origin - vertices[0];
-    float u = f * s.dot(h);
-    if (u < 0.f || u > 1.f) {
-      return thrust::nullopt;
-    }
-    Eigen::Vector3f q = s.cross(edge1);
-    float v = f * ray.direction.dot(q);
-    if (v < 0.f || u + v > 1.f) {
-      return thrust::nullopt;
-    }
-    float t = f * edge2.dot(q);
-    if (t > float_epsilon) {
-      return Intersection<std::array<unsigned, 0>>{t,
-                                                   std::array<unsigned, 0>{}};
-    } else {
-      return thrust::nullopt;
-    }
+  if (std::abs(a) < float_epsilon) {
+    return thrust::nullopt;
   }
-};
-
-template <> struct BoundedImpl<Triangle> {
-  static HOST_DEVICE inline accel::AABB bounds(const Triangle &triangle) {
-    Eigen::Vector3f min_b(std::numeric_limits<float>::max(),
-                          std::numeric_limits<float>::max(),
-                          std::numeric_limits<float>::max());
-    Eigen::Vector3f max_b(std::numeric_limits<float>::lowest(),
-                          std::numeric_limits<float>::lowest(),
-                          std::numeric_limits<float>::lowest());
-    for (const auto &vertex : triangle.vertices()) {
-      min_b = min_b.cwiseMin(vertex);
-      max_b = max_b.cwiseMax(vertex);
-    }
-
-    return {min_b, max_b};
+  float f = 1.f / a;
+  Eigen::Vector3f s = ray.origin - vertices_[0];
+  float u = f * s.dot(h);
+  if (u < 0.f || u > 1.f) {
+    return thrust::nullopt;
   }
-};
+  Eigen::Vector3f q = s.cross(edge1);
+  float v = f * ray.direction.dot(q);
+  if (v < 0.f || u + v > 1.f) {
+    return thrust::nullopt;
+  }
+  float t = f * edge2.dot(q);
+  if (t > float_epsilon) {
+    return Intersection<InfoType>{t, a > 0.f, std::tuple<>{}};
+  } else {
+    return thrust::nullopt;
+  }
+}
+
+HOST_DEVICE inline accel::AABB Triangle::bounds() const {
+  Eigen::Vector3f min_b(std::numeric_limits<float>::max(),
+                        std::numeric_limits<float>::max(),
+                        std::numeric_limits<float>::max());
+  Eigen::Vector3f max_b(std::numeric_limits<float>::lowest(),
+                        std::numeric_limits<float>::lowest(),
+                        std::numeric_limits<float>::lowest());
+  for (const auto &vertex : vertices_) {
+    min_b = min_b.cwiseMin(vertex);
+    max_b = max_b.cwiseMax(vertex);
+  }
+
+  return {min_b, max_b};
+}
 
 template <typename T>
 HOST_DEVICE inline T

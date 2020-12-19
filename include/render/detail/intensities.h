@@ -6,7 +6,7 @@
 #include "lib/bgra.h"
 #include "lib/span.h"
 #include "material/material.h"
-#include "render/computation_settings.h"
+#include "render/general_settings.h"
 #include "render/detail/dir_sampler.h"
 #include "render/detail/divide_work.h"
 #include "render/detail/light_sampler.h"
@@ -21,7 +21,7 @@ namespace detail {
 template <intersect::accel::AccelRef MeshAccel,
           intersect::accel::AccelRef TriAccel, LightSamplerRef L,
           DirSamplerRef D, TermProbRef T, rng::RngRef R>
-void intensities(const ComputationSettings &settings, bool show_progress,
+void intensities(const GeneralSettings &settings, bool show_progress,
                  const WorkDivision &division, unsigned samples_per,
                  unsigned x_dim, unsigned y_dim, const MeshAccel &mesh_accel,
                  Span<const TriAccel> tri_accels, const L &light_sampler,
