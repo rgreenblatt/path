@@ -33,7 +33,7 @@ private:
 
 public:
   // compile times don't change much from small constant values to 1...
-  static constexpr std::array<render::CompileTimeSettingsSubset, 8> values = {{
+  static constexpr std::array<render::CompileTimeSettingsSubset, 6> values = {{
       {AccelType::KDTree, LightSamplerType::RandomTriangle,
        DirSamplerType::BRDF, TermProbType::MultiplierFunc,
        rng::RngType::Uniform},
@@ -41,19 +41,15 @@ public:
        DirSamplerType::BRDF, TermProbType::MultiplierFunc,
        rng::RngType::Uniform},
       {AccelType::KDTree, LightSamplerType::RandomTriangle,
+       DirSamplerType::BRDF, TermProbType::Constant,
+       rng::RngType::Uniform},
+      {AccelType::KDTree, LightSamplerType::NoLightSampling,
+       DirSamplerType::BRDF, TermProbType::Constant,
+       rng::RngType::Uniform},
+      {AccelType::KDTree, LightSamplerType::RandomTriangle,
        DirSamplerType::BRDF, TermProbType::NIters, rng::RngType::Uniform},
       {AccelType::KDTree, LightSamplerType::NoLightSampling,
        DirSamplerType::BRDF, TermProbType::NIters, rng::RngType::Uniform},
-      {AccelType::KDTree, LightSamplerType::RandomTriangle,
-       DirSamplerType::Uniform, TermProbType::MultiplierFunc,
-       rng::RngType::Uniform},
-      {AccelType::KDTree, LightSamplerType::NoLightSampling,
-       DirSamplerType::Uniform, TermProbType::MultiplierFunc,
-       rng::RngType::Uniform},
-      {AccelType::KDTree, LightSamplerType::RandomTriangle,
-       DirSamplerType::Uniform, TermProbType::NIters, rng::RngType::Uniform},
-      {AccelType::KDTree, LightSamplerType::NoLightSampling,
-       DirSamplerType::Uniform, TermProbType::NIters, rng::RngType::Uniform},
   }};
 };
 
