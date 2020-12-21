@@ -14,9 +14,8 @@ settings:
     {}
   term_prob: MultiplierFunc
   term_prob_settings:
-    # iters: 4
-    exp: 1
-    min_prob: 0.1
+    exp: 5
+    min_prob: 0.2
   rng: Uniform
   rng_settings:
     {}
