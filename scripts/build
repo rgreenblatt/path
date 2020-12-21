@@ -182,8 +182,9 @@ def clean_command(_builder, remaining_args, forced_directory):
 
 
 def format_command(**_):
-    pass
-
+    subprocess.run(
+        ['bash', '-c', 'clang-format -i $(fd -e cu -e cpp -e h -e cuh)'],
+        check=True)
 
 
 def main():
