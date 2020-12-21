@@ -285,7 +285,6 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
       intersect::Triangle triangle{vertices};
 
       std::array<Eigen::Vector3f, 3> normals;
-      // No normals..
       for (size_t v = 0; v < fv; v++) {
         normals[v] = optional_unwrap_or_else(normals_op[v],
                                              [&] { return triangle.normal(); });
