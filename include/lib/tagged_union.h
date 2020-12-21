@@ -1,57 +1,150 @@
 #pragma once
 
-#include "meta/enum.h"
+#include "meta/all_values.h"
+#include "meta/concepts.h"
+#include "meta/get_idx.h"
+#include "meta/sequential_look_up.h"
 
+#include <boost/hana/fold_left.hpp>
+#include <boost/hana/unpack.hpp>
 #include <magic_enum.hpp>
 
-#include <variant>
+#include <concepts>
+#include <type_traits>
 
-#if 0
-// gross patched_visit which is actually constexpr by avoiding exception...
-template <typename Visitor, typename... Variants>
-constexpr decltype(auto) patched_visit(Visitor &&visitor,
-                                       Variants &&...variants) {
-  assert((... && !variants.valueless_by_exception()));
+// This really should just use std::variant internally (which would make this
+// muchhhhh less painful), but due to clang bugs and bugs in libstdc++, that
+// isn't possible with constexpr
+//
+// Also, there isn't a version of std::visit(std::variant) which is constexpr
+// (but that can be worked around...)
 
-  using Res =
-      std::invoke_result_t<Visitor,
-                           decltype(std::get<0>(std::declval<Variants>()))...>;
+namespace detail {
+template <typename... Rest> union VariadicUnion;
 
-  using Tag = std::__detail::__variant::__deduce_visit_result<Res>;
+template <> union VariadicUnion<> {};
 
-  return std::__do_visit<Tag>(std::forward<Visitor>(visitor),
-                              std::forward<Variants>(variants)...);
-}
-#endif
+template <typename First, typename... Rest>
+union VariadicUnion<First, Rest...> {
+public:
+  constexpr VariadicUnion() : first_{} {}
+
+  template <std::size_t idx, typename... Args>
+  requires(idx <=
+           sizeof...(Rest)) constexpr VariadicUnion(std::in_place_index_t<idx>,
+                                                    Args &&...args)
+      : rest_(std::in_place_index_t<idx - 1>{}, std::forward<Args>(args)...) {}
+
+  template <typename... Args>
+  constexpr VariadicUnion(std::in_place_index_t<std::size_t(0)>, Args &&...args)
+      : first_{std::forward<Args>(args)...} {}
+
+private:
+  First first_;
+  VariadicUnion<Rest...> rest_;
+
+  friend struct access;
+};
+
+struct access {
+  template <std::size_t idx, SpecializationOf<VariadicUnion> UnionType>
+  static constexpr auto &&get_at_idx(UnionType &&v) {
+    if constexpr (idx == 0) {
+      return v.first_;
+    } else {
+      return get_at_idx<idx - 1>(std::forward<UnionType>(v));
+    }
+  }
+};
+} // namespace detail
+
+template <AllValuesEnumerable E, E tag_in> struct Tag {
+  static constexpr E tag = tag_in;
+};
 
 // uses variant under the hood
-template <Enum E, std::movable... T>
-requires(magic_enum::enum_count<E>() == sizeof...(T)) class TaggedUnion {
+template <AllValuesEnumerable E, std::movable... T>
+requires(AllValues<E>.size() == sizeof...(T) && sizeof...(T) > 0 &&
+         sizeof...(T) <
+             std::numeric_limits<unsigned>::max()) class TaggedUnion {
+private:
+  static constexpr auto values = AllValues<E>;
+
+  template <E tag> using Tag = Tag<E, tag>;
+
+  using ac = detail::access;
+
+  template <E type> using Type = __type_pack_element<get_idx(type), T...>;
+
+  template <DecaysTo<TaggedUnion> First, DecaysTo<TaggedUnion>... Rest,
+            typename F>
+  static constexpr decltype(auto) visit_n(F &&f, First &&first,
+                                          Rest &&...rest) {
+    assert(((first.idx_ == rest.idx_) && ... && true));
+    return sequential_look_up<values.size()>(first.idx_, [&](auto value) {
+      constexpr unsigned idx = decltype(value)::value;
+      return f(ac::get_at_idx<idx>(first.union_),
+               ac::get_at_idx<idx>(rest.union_)...);
+    });
+  }
+
 public:
-  TaggedUnion() {}
+  template <E tag, typename... Args>
+  requires(std::constructible_from<Type<tag>, Args...>) constexpr TaggedUnion(
+      Tag<tag>, Args &&...args)
+      : idx_(get_idx(tag)), union_(std::in_place_index_t<get_idx(tag)>{},
+                                   std::forward<Args>(args)...) {}
 
-  template <E type>
-  static TaggedUnion
-  create(__type_pack_element<magic_enum::enum_integer(type), T...> value) {
-    TaggedUnion out;
-    out.var_ = std::variant<T...>{
-        std::in_place_index<magic_enum::enum_integer(type)>, std::move(value)};
+  template <E tag>
+  constexpr TaggedUnion(Tag<tag>, Type<tag> &&value)
+      : idx_(get_idx(tag)), union_(std::in_place_index_t<get_idx(tag)>{},
+                                   std::forward<Type<tag>>(value)) {}
 
-    return out;
+  constexpr TaggedUnion() : TaggedUnion(Tag<values[0]>{}) {}
+
+  constexpr TaggedUnion(TaggedUnion &&other) : idx_(other.idx_) {
+    visit_n([](auto &&l, auto &&r) { l = std::move(r); }, *this,
+            std::forward<TaggedUnion>(other));
   }
 
-  constexpr E type() const {
-    return magic_enum::enum_value<E>(var_.index());
+  constexpr TaggedUnion(const TaggedUnion &other) : idx_(other.idx_) {
+    visit_n([](auto &&l, auto &&r) { l = r; }, *this, other);
   }
 
-  template<typename F>
-  constexpr decltype(auto) visit(F&& f) const {
-    return std::visit(std::forward<F>(f), var_);
+  constexpr TaggedUnion &operator=(const TaggedUnion &other) {
+    if (this != &other) {
+      idx_ = other.idx_;
+      visit_n([](auto &&l, auto &&r) { l = r; }, *this, other);
+    }
+    return *this;
   }
 
-  template<typename F>
-  constexpr decltype(auto) visit(F&& f) {
-    return std::visit(std::forward<F>(f), var_);
+  constexpr TaggedUnion &operator=(TaggedUnion &&other) {
+    if (this != &other) {
+      idx_ = other.idx_;
+      visit_n([](auto &&l, auto &&r) { l = std::move(r); }, *this,
+              std::forward<TaggedUnion>(other));
+    }
+    return *this;
+  }
+
+  template <E type> constexpr static TaggedUnion create(Type<type> &&value) {
+    return TaggedUnion(Tag<type>{}, std::forward<Type<type>>(value));
+  }
+
+  template <E type, typename... Args>
+  constexpr static TaggedUnion create(Args &&...args) {
+    return TaggedUnion(Tag<type>{}, std::forward<Args>(args)...);
+  }
+
+  constexpr E type() const { return values[idx_]; }
+
+  template <typename F> constexpr decltype(auto) visit(F &&f) const {
+    return visit_n(std::forward<F>(f), *this);
+  }
+
+  template <typename F> constexpr decltype(auto) visit(F &&f) {
+    return visit_n(std::forward<F>(f), *this);
   }
 
   template <typename F> constexpr decltype(auto) visit_indexed(F &&f) {
@@ -62,9 +155,40 @@ public:
     return visit([&](auto &&v) { return f(type(), v); });
   }
 
-  constexpr auto operator<=>(const TaggedUnion &other) requires( ...
-      &&std::totally_ordered<T>) { var_ <=> other.var_; }
+  constexpr auto operator<=>(const TaggedUnion &other) const
+      requires(... &&std::totally_ordered<T>) {
+    if (idx_ != other.idx_) {
+      return idx_ <=> other.idx_;
+    }
+
+    return visit_n([](const auto &l, const auto &r) { return l <=> r; }, *this,
+                   other);
+  }
 
 private:
-  std::variant<T...> var_;
+  unsigned idx_;
+  detail::VariadicUnion<T...> union_;
+};
+
+template <Enum E, AllValuesEnumerable... Types>
+struct AllValuesImpl<TaggedUnion<E, Types...>> {
+private:
+  static constexpr unsigned num_elements = sizeof...(Types);
+
+  using T = TaggedUnion<E, Types...>;
+
+public:
+  static constexpr auto values = [] {
+    return boost::hana::fold_left(
+        std::make_index_sequence<num_elements>(), std::array<T, 0>{},
+        [](auto arr, auto idx) {
+          const auto &values = AllValues<__type_pack_element<idx, T>>;
+          std::array<T, values.size()> out_values;
+          for (int i = 0; i < values.size(); ++i) {
+            out_values[i] = T::T<magic_enum::enum_value<E>(idx)>(values[i]);
+          }
+
+          return std::tuple_cat(arr, out_values);
+        });
+  }();
 };

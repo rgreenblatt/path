@@ -41,9 +41,9 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
         test_expected.data() + test_expected.size(), results.data(),
         [=] __host__ __device__(const auto &test) {
           auto [ray, _] = test;
-          auto a = ref.get_intersectable(triangles_span).intersect(ray);
+          auto a = ref.intersect_objects(ray, triangles_span);
           return optional_map(
-              a, [](const auto &v) { return std::get<0>(v.info); });
+              a, [](const auto &v) { return v.info.idx; });
         });
 
     for (unsigned i = 0; i < test_expected.size(); i++) {
@@ -99,10 +99,9 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
 
       auto get_ground_truth =
           [&](const Ray &ray) -> thrust::optional<unsigned> {
-        auto a =
-            loop_all_ref.get_intersectable<Triangle>(triangles).intersect(ray);
+        auto a = loop_all_ref.intersect_objects<Triangle>(ray, triangles);
         if (a.has_value()) {
-          return std::get<0>(a->info);
+          return a->info.idx;
         } else {
           return thrust::nullopt;
         }

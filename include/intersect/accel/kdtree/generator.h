@@ -2,15 +2,16 @@
 
 #include "execution_model/execution_model_vector_type.h"
 #include "intersect/accel/aabb.h"
+#include "intersect/accel/kdtree/kdtree.h"
 #include "intersect/accel/kdtree/node.h"
 #include "intersect/accel/kdtree/settings.h"
-#include "intersect/accel/kdtree/kdtree.h"
 #include "lib/span.h"
 
 namespace intersect {
 namespace accel {
 namespace kdtree {
-template <ExecutionModel execution_model> class KDTree<execution_model>::Generator {
+template <ExecutionModel execution_model>
+class KDTree<execution_model>::Generator {
 public:
   Generator() = default;
 

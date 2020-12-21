@@ -25,8 +25,8 @@ HOST_DEVICE inline Eigen::Array3f
 intensities_impl(unsigned x, unsigned y, unsigned start_sample,
                  unsigned end_sample, const GeneralSettings &settings,
                  unsigned x_dim, unsigned y_dim, const Scene &scene,
-                 const L &light_sampler,
-                 const D &dir_sampler, const T &term_prob, const R &rng_ref,
+                 const L &light_sampler, const D &dir_sampler,
+                 const T &term_prob, const R &rng_ref,
                  const Eigen::Affine3f &film_to_world) {
   unsigned sample_idx = start_sample;
   bool finished = true;
@@ -65,11 +65,10 @@ intensities_impl(unsigned x, unsigned y, unsigned start_sample,
       continue;
     }
 
-    const auto& next_intersection = *next_intersection_op;
+    const auto &next_intersection = *next_intersection_op;
 
-    auto include_lighting = [&](const auto& intersection) {
-      return !settings.back_cull_emission ||
-             !intersection.is_back_intersection;
+    auto include_lighting = [&](const auto &intersection) {
+      return !settings.back_cull_emission || !intersection.is_back_intersection;
     };
 
     const auto &material = scene.get_material(next_intersection);
@@ -78,7 +77,6 @@ intensities_impl(unsigned x, unsigned y, unsigned start_sample,
         include_lighting(next_intersection)) {
       intensity += multiplier * material.emission;
     }
-
 
     Eigen::Vector3f normal = scene.get_normal(next_intersection, ray);
 
@@ -103,7 +101,7 @@ intensities_impl(unsigned x, unsigned y, unsigned start_sample,
           continue;
         }
 
-        const auto& light_intersection = *light_intersection_op;
+        const auto &light_intersection = *light_intersection_op;
 
         // TODO: verify this behaves as expected...
         if (abs(light_intersection.intersection_dist - expected_distance) >
@@ -111,14 +109,14 @@ intensities_impl(unsigned x, unsigned y, unsigned start_sample,
           continue;
         }
 
-        const auto &light_material = scene.get_material(light_intersection);
-
         if (!include_lighting(light_intersection)) {
           continue;
         }
 
         const auto light_multiplier =
             material.evaluate_brdf(ray.direction, light_ray.direction, normal);
+
+        const auto &light_material = scene.get_material(light_intersection);
 
         intensity += light_material.emission * material.prob_not_delta() *
                      light_multiplier / dir_sample.prob;
@@ -157,7 +155,8 @@ intensities_impl(unsigned x, unsigned y, unsigned start_sample,
           [&](const Eigen::Vector3f &outgoing_dir) -> Eigen::Array3f {
         auto normal_v = abs(outgoing_dir.dot(normal));
 
-        auto brdf_val = material.evaluate_brdf(ray.direction, outgoing_dir, normal);
+        auto brdf_val =
+            material.evaluate_brdf(ray.direction, outgoing_dir, normal);
 
         assert(brdf_val.x() >= 0.0f);
         assert(brdf_val.y() >= 0.0f);

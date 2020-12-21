@@ -9,18 +9,21 @@
 
 namespace intersect {
 namespace accel {
-template <typename V, typename O>
-concept AccelIntersectableRef =
-    Object<V> &&std::same_as<typename V::InfoType,
-                             std::tuple<unsigned, typename O::InfoType>>;
+template <typename T> struct IdxHolder {
+  unsigned idx;
+  T value;
+};
+
+template<Object O>
+using AccelRet = IntersectionOp<IdxHolder<typename O::InfoType>>;
 
 template <typename V, typename O>
-concept AccelRef = requires(const V &accel_ref, Span<const O> objects) {
+concept AccelRef = requires(const V &accel_ref, const Ray &ray,
+                            Span<const O> objects) {
   requires Object<O>;
   requires std::copyable<V>;
 
-  { accel_ref.get_intersectable(objects) } ->
-  AccelIntersectableRef<O>;
+  { accel_ref.intersect_objects(ray, objects) } -> DecaysTo<AccelRet<O>>;
 };
 
 namespace detail {

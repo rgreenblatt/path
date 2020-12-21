@@ -9,11 +9,11 @@ namespace accel {
 namespace kdtree {
 namespace detail {
 template <Object O>
-HOST_DEVICE inline IntersectionOp<typename Ref::IntersectableRef<O>::InfoType>
-Ref::IntersectableRef<O>::intersect(const Ray &ray) const {
-  IntersectionOp<InfoType> best;
+HOST_DEVICE inline AccelRet<O>
+Ref::intersect_objects(const intersect::Ray &ray, Span<const O> objects) const {
+  AccelRet<O> best;
 
-  if (ref.nodes_.size() == 0) {
+  if (nodes_.size() == 0) {
     return thrust::nullopt;
   }
 
@@ -37,7 +37,7 @@ Ref::IntersectableRef<O>::intersect(const Ray &ray) const {
   };
 
   Stack<StackData, 64> node_stack;
-  node_stack.push(StackData{unsigned(ref.nodes_.size() - 1u), 0u});
+  node_stack.push(StackData{unsigned(nodes_.size() - 1u), 0u});
 
   thrust::optional<std::array<unsigned, 2>> start_end = thrust::nullopt;
   unsigned current_idx = 0;
@@ -46,7 +46,7 @@ Ref::IntersectableRef<O>::intersect(const Ray &ray) const {
     while (!start_end.has_value() && !node_stack.empty()) {
       const auto stack_v = node_stack.pop();
 
-      const auto &current_node = ref.nodes_[stack_v.node_index];
+      const auto &current_node = nodes_[stack_v.node_index];
 
       auto bounding_intersection =
           current_node.get_contents().solveBoundingIntersection(ray.origin,
@@ -85,7 +85,7 @@ Ref::IntersectableRef<O>::intersect(const Ray &ray) const {
       for (unsigned idx = (*start_end)[0]; idx < (*start_end)[1]; idx++) {
         // TODO: SPEED 
         // would it be better to enforce the same ordering everywhere somehow?
-        unsigned global_idx = ref.local_idx_to_global_idx_[idx];
+        unsigned global_idx = local_idx_to_global_idx_[idx];
         auto intersection = objects[global_idx].intersect(ray);
         best = optional_min(best, add_idx(intersection, global_idx));
       }

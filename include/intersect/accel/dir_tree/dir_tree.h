@@ -20,26 +20,13 @@ public:
 
   constexpr inline const AABB &bounds() const { return aabb_; }
 
-  template <Object O> struct IntersectableRef {
-    Span<const O> objects;
-    const Ref &ref;
-
-    using InfoType = std::tuple<unsigned, typename O::InfoType>;
-
-    constexpr inline IntersectionOp<InfoType> intersect(const Ray &) const {
-      // TODO: write and move to impl
-      assert(false);
-
-      return thrust::nullopt;
-    }
-
-    constexpr inline const AABB &bounds() const { return ref.bounds(); }
-  };
-
   template <Object O>
-  constexpr inline IntersectableRef<O>
-  get_intersectable(Span<const O> objects) const {
-    return {objects, *this};
+  HOST_DEVICE inline AccelRet<O> intersect_objects(const intersect::Ray &,
+                                                   Span<const O>) const {
+    // TODO
+    assert(false);
+
+    return thrust::nullopt;
   }
 
 private:
@@ -51,7 +38,7 @@ template <ExecutionModel execution_model> class DirTree {
 public:
   template <Bounded B>
   detail::Ref gen(const Settings &settings, SpanSized<const B> objects,
-          const AABB &aabb);
+                  const AABB &aabb);
 };
 
 // I think dir tree might be triangle only in practice...

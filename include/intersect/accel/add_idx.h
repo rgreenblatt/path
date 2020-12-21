@@ -2,14 +2,15 @@
 
 #include "intersect/intersection.h"
 #include "lib/optional.h"
+#include "intersect/accel/accel.h"
 
 namespace intersect {
 namespace accel {
 template <typename T>
-HOST_DEVICE inline IntersectionOp<std::tuple<unsigned, T>>
+HOST_DEVICE inline IntersectionOp<IdxHolder<T>>
 add_idx(const IntersectionOp<T> &i, unsigned idx) {
   return optional_map(i, [&](const auto &v) {
-    return v.map_info([&](const T &v) -> std::tuple<unsigned, T> {
+    return v.map_info([&](const T &v) -> IdxHolder<T> {
       return {idx, v};
     });
   });

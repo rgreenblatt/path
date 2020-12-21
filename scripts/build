@@ -181,6 +181,11 @@ def clean_command(_builder, remaining_args, forced_directory):
                   ignore_errors=True)
 
 
+def format_command(**_):
+    pass
+
+
+
 def main():
     name = "build"
 
@@ -220,6 +225,7 @@ def main():
         "compile_commands": cc_command,
         # "check": check_command,
         "clean": clean_command,
+        "format": format_command,
     }
     page = args.paginate and not args.no_pager
     try:

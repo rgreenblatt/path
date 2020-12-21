@@ -1,5 +1,7 @@
 #include "intersect/accel/kdtree/generator.h"
 
+#include "lib/info/debug_print.h"
+
 namespace intersect {
 namespace accel {
 namespace kdtree {
@@ -143,6 +145,8 @@ KDTree<execution_model>::Generator::gen(const Settings &settings,
                  nodes_out_.begin());
     thrust::copy(indexes_.data(), indexes_.data() + indexes_.size(),
                  indexes_out_.begin());
+
+    dbg("copying to GPU");
 
     return {nodes_out_, indexes_out_};
   } else {

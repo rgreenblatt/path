@@ -27,6 +27,11 @@ struct Material {
   EnumBRDF brdf;
   Eigen::Array3f emission;
 
+  HOST_DEVICE Material() {}
+
+  HOST_DEVICE Material(EnumBRDF brdf, Eigen::Array3f emission)
+      : brdf(brdf), emission(emission) {}
+
   HOST_DEVICE bool has_non_delta_samples() const {
     return brdf.visit([](const auto &v) {
       return std::decay_t<decltype(v)>::has_non_delta_samples;

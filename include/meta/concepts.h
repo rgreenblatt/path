@@ -2,6 +2,7 @@
 
 #include <array>
 #include <type_traits>
+#include <concepts>
 
 template <class T, template <typename...> class Template>
 struct is_specialization : std::false_type {};
@@ -27,3 +28,6 @@ concept StdArrayOfType = requires {
   typename std::decay_t<V>::value_type;
   requires std::same_as<typename std::decay_t<V>::value_type, T>;
 };
+
+template<typename From, typename To>
+concept DecaysTo = std::same_as<std::decay_t<From>, To>;

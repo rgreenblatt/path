@@ -4,6 +4,7 @@
 #include "intersect/ray.h"
 
 #include <thrust/optional.h>
+#include <compare>
 
 namespace intersect {
 template <typename InfoType> struct Intersection {
@@ -25,7 +26,7 @@ template <typename InfoType> struct Intersection {
 
 template <typename InfoType>
 HOST_DEVICE inline auto operator<=>(const Intersection<InfoType> &lhs,
-                                    const Intersection<InfoType> &rhs) {
+                                  const Intersection<InfoType> &rhs) {
   return lhs.intersection_dist <=> rhs.intersection_dist;
 }
 

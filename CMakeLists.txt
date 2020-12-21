@@ -15,7 +15,11 @@ set(CMAKE_AUTOUIC ON)
 
 # set(CMAKE_VERBOSE_MAKEFILE TRUE)
 
-add_compile_options(-Wall -Wextra -fsized-deallocation -stdlib=libstdc++ -g)
+add_compile_options(-Wall -Wextra -fsized-deallocation -g)
+
+# use libc++ for this project and submodules
+# set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -stdlib=libc++")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 
 # unfortunately required with c++20
 add_compile_options(-isystem ${CMAKE_SOURCE_DIR}/system/include/)
@@ -24,7 +28,7 @@ add_compile_options(-isystem ${CMAKE_SOURCE_DIR}/system/include/)
 add_compile_options(-Wno-deprecated-copy)
 add_compile_options(-Wno-deprecated-anon-enum-enum-conversion)
 
-add_compile_options(-fconstexpr-steps=80000000)
+add_compile_options(-fconstexpr-steps=80000000 -fbracket-depth=512)
 # I think -ffast-math is enabled by -Ofast, but the documentation isn't
 # perfectly clear (certainly most options of -ffast-math are enabled by
 # -Ofast, but I'm not sure about the cuda specific ones)
@@ -36,7 +40,7 @@ add_compile_options("$<$<CONFIG:DEBUG>:-ftrapv>")
 
 # TODO: convert to generator...
 # disable ptxas warnings
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcuda-ptxas '-w'")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcuda-ptxas '-w' -g")
 
 # theoretical this should reduce compile times, but it doesn't
 # set(CUDA_EXTRA_DEBUG_ARGS

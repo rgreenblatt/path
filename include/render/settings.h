@@ -35,28 +35,28 @@ private:
 public:
   // compile times don't change much from small constant values to 1...
   static constexpr std::array<render::CompileTimeSettingsSubset, 8> values = {{
-      {AccelType::KDTree,  LightSamplerType::RandomTriangle,
+      {AccelType::LoopAll,  LightSamplerType::RandomTriangle,
        DirSamplerType::BRDF, TermProbType::MultiplierFunc,
        rng::RngType::Uniform},
-      {AccelType::KDTree,  LightSamplerType::NoLightSampling,
+      {AccelType::LoopAll,  LightSamplerType::NoLightSampling,
        DirSamplerType::BRDF, TermProbType::MultiplierFunc,
        rng::RngType::Uniform},
-      {AccelType::KDTree,  LightSamplerType::RandomTriangle,
+      {AccelType::LoopAll,  LightSamplerType::RandomTriangle,
        DirSamplerType::BRDF, TermProbType::NIters,
        rng::RngType::Uniform},
-      {AccelType::KDTree,  LightSamplerType::NoLightSampling,
+      {AccelType::LoopAll,  LightSamplerType::NoLightSampling,
        DirSamplerType::BRDF, TermProbType::NIters,
        rng::RngType::Uniform},
-      {AccelType::KDTree,  LightSamplerType::RandomTriangle,
+      {AccelType::LoopAll,  LightSamplerType::RandomTriangle,
        DirSamplerType::Uniform, TermProbType::MultiplierFunc,
        rng::RngType::Uniform},
-      {AccelType::KDTree,  LightSamplerType::NoLightSampling,
+      {AccelType::LoopAll,  LightSamplerType::NoLightSampling,
        DirSamplerType::Uniform, TermProbType::MultiplierFunc,
        rng::RngType::Uniform},
-      {AccelType::KDTree,  LightSamplerType::RandomTriangle,
+      {AccelType::LoopAll,  LightSamplerType::RandomTriangle,
        DirSamplerType::Uniform, TermProbType::NIters,
        rng::RngType::Uniform},
-      {AccelType::KDTree,  LightSamplerType::NoLightSampling,
+      {AccelType::LoopAll,  LightSamplerType::NoLightSampling,
        DirSamplerType::Uniform, TermProbType::NIters,
        rng::RngType::Uniform},
   }};
@@ -66,14 +66,15 @@ static_assert(AllValuesEnumerable<render::CompileTimeSettingsSubset>);
 // All values are unique
 static_assert([] {
   auto values = AllValues<render::CompileTimeSettingsSubset>;
+  for (unsigned i = 0; i < values.size(); ++i) {
+    for (unsigned j = 0; j < i; ++j) {
+      if (values[i] == values[j]) {
+        return false;
+      }
+    }
+  }
 
-  size_t num_values = values.size();
-
-  std::sort(values.begin(), values.end());
-  auto unique_iter = std::unique(values.begin(), values.end());
-  size_t num_unique_values = std::distance(values.begin(), unique_iter);
-
-  return num_unique_values == num_values;
+  return true;
 }());
 
 namespace cereal {

@@ -5,11 +5,11 @@
 #include <type_traits>
 
 template <unsigned size, typename F>
-auto sequential_look_up(unsigned index, F &&f) {
+constexpr decltype(auto) sequential_look_up(unsigned index, F &&f) {
   if (index >= size) {
-    std::cerr << "Error: index too large for lookup" << std::endl;
     assert(false);
-    abort();
+    __builtin_unreachable();
+    index = size - 1;
   }
 
   if constexpr (size == 1) {

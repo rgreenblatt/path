@@ -23,22 +23,9 @@ public:
 
   constexpr inline const AABB &bounds() const { return aabb_; }
 
-  template <Object O> struct IntersectableRef {
-    Span<const O> objects;
-    const Ref &ref;
-
-    using InfoType = std::tuple<unsigned, typename O::InfoType>;
-
-    HOST_DEVICE inline IntersectionOp<InfoType> intersect(const Ray &ray) const;
-
-    constexpr inline const AABB &bounds() const { return ref.bounds(); }
-  };
-
   template <Object O>
-  constexpr inline IntersectableRef<O>
-  get_intersectable(Span<const O> objects) const {
-    return {objects, *this};
-  }
+  HOST_DEVICE inline AccelRet<O>
+  intersect_objects(const intersect::Ray &ray, Span<const O> objects) const;
 
 private:
   SpanSized<const KDTreeNode<AABB>> nodes_;
@@ -61,7 +48,7 @@ public:
     bounds_.resize(objects.size());
 
     for (unsigned i = 0; i < objects.size(); ++i) {
-      auto aabb = objects[i].bounds();
+      auto &&aabb = objects[i].bounds();
       bounds_[i] = {aabb, aabb.max_bound - aabb.min_bound};
     }
 

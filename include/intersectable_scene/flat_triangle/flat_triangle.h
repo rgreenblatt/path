@@ -5,9 +5,9 @@
 #include "execution_model/execution_model_vector_type.h"
 #include "intersect/accel/accel.h"
 #include "intersect/triangle.h"
+#include "intersectable_scene/flat_triangle/settings.h"
 #include "intersectable_scene/intersectable_scene.h"
 #include "intersectable_scene/triangle_generator.h"
-#include "intersectable_scene/flat_triangle/settings.h"
 #include "lib/cuda/utils.h"
 #include "lib/group.h"
 #include "scene/scene.h"
@@ -25,10 +25,10 @@ template <intersect::accel::AccelRef<intersect::Triangle> Accel> struct Ref {
     return accel.bounds();
   }
 
-  using InfoType = std::tuple<unsigned, intersect::Triangle::InfoType>;
+  using InfoType = intersect::accel::IdxHolder<intersect::Triangle::InfoType>;
 
   HOST_DEVICE inline auto intersect(const intersect::Ray &ray) const {
-    return accel.get_intersectable(triangles).intersect(ray);
+    return accel.intersect_objects(ray, triangles);
   }
 
   using Intersection = intersect::Intersection<InfoType>;
@@ -36,13 +36,13 @@ template <intersect::accel::AccelRef<intersect::Triangle> Accel> struct Ref {
   HOST_DEVICE inline Eigen::Vector3f
   get_normal(const Intersection &intersection,
              const intersect::Ray &ray) const {
-    auto [triangle_idx, triangle_info] = intersection.info;
+    unsigned triangle_idx = intersection.info.idx;
 
     return triangle_data[triangle_idx].get_normal(
         intersection.intersection_point(ray), triangles[triangle_idx]);
   }
 
-  HOST_DEVICE inline const material::Material&
+  HOST_DEVICE inline const material::Material &
   get_material(const Intersection &intersection) const {
     auto [triangle_idx, triangle_info] = intersection.info;
 
@@ -56,7 +56,7 @@ template <
         Accel>
 class Generator {
 public:
-  Generator() {};
+  Generator(){};
 
   using Settings = Settings<AccelSettings>;
 
@@ -87,8 +87,8 @@ public:
     auto accel_ref = accel_.template gen<intersect::Triangle>(
         settings.accel_settings, host_triangles_, scene.overall_aabb());
 
-    return Ref<decltype(accel_ref)>{accel_ref, triangles_, triangle_data_,
-                                    materials_};
+    return Ref<std::decay_t<decltype(accel_ref)>>{accel_ref, triangles_,
+                                                  triangle_data_, materials_};
   }
 
 private:

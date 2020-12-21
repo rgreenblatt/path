@@ -11,9 +11,9 @@ namespace detail {
 template <intersectable_scene::IntersectableScene Scene, LightSamplerRef L,
           DirSamplerRef D, TermProbRef T, rng::RngRef R>
 __global__ void
-intensities_global(const GeneralSettings &settings, unsigned start_blocks,
+intensities_global(const GeneralSettings settings, unsigned start_blocks,
                    const WorkDivision division, unsigned x_dim, unsigned y_dim,
-                   unsigned samples_per, const Scene &scene,
+                   unsigned samples_per, const Scene scene,
                    const L light_sampler, const D direction_sampler,
                    const T term_prob, const R rng, Span<BGRA> bgras,
                    Span<Eigen::Array3f>, const Eigen::Affine3f film_to_world) {
@@ -121,8 +121,8 @@ void intensities(const GeneralSettings &settings, bool show_progress,
 
     intensities_global<<<grid, division.block_size>>>(
         settings, start, division, x_dim, y_dim, samples_per, scene,
-         light_sampler, direction_sampler, term_prob, rng, pixels,
-        intensities,  film_to_world);
+        light_sampler, direction_sampler, term_prob, rng, pixels, intensities,
+        film_to_world);
 
     CUDA_ERROR_CHK(cudaDeviceSynchronize());
 

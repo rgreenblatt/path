@@ -146,8 +146,7 @@ public:
 
     template <rng::RngState R>
     HOST_DEVICE LightSamples<max_sample_size>
-    operator()(
-               const Eigen::Vector3f &position,
+    operator()(const Eigen::Vector3f &position,
                const material::Material & /*mat*/,
                const Eigen::Vector3f & /*incoming_dir*/,
                const Eigen::Vector3f &normal, R &rng) const {
@@ -219,7 +218,7 @@ public:
                     Span<const intersect::Triangle> triangles,
                     SpanSized<const float> cumulative_weights)
         : binary_search_threshold_(settings.binary_search_threshold),
-          triangles_(triangles), cumulative_weights_(cumulative_weights){}
+          triangles_(triangles), cumulative_weights_(cumulative_weights) {}
 
     friend struct LightSamplerImpl;
 
