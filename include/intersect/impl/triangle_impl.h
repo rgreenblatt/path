@@ -31,7 +31,8 @@ Triangle::intersect(const Ray &ray) const {
   }
   float t = f * edge2.dot(q);
   if (t > float_epsilon) {
-    return Intersection<InfoType>{t, a > 0.f, InfoType{}};
+    bool is_back_intersection = a < 0.f;
+    return Intersection<InfoType>{t, is_back_intersection, InfoType{}};
   } else {
     return nullopt_value;
   }
