@@ -104,8 +104,8 @@ intensities_impl(unsigned x, unsigned y, unsigned start_sample,
         const auto &light_intersection = *light_intersection_op;
 
         // TODO: verify this behaves as expected...
-        if (abs(light_intersection.intersection_dist - expected_distance) >
-            1e-8) {
+        if (std::abs(light_intersection.intersection_dist - expected_distance)
+            > 1e-6) {
           continue;
         }
 
@@ -153,7 +153,7 @@ intensities_impl(unsigned x, unsigned y, unsigned start_sample,
 
       auto direction_multiplier =
           [&](const Eigen::Vector3f &outgoing_dir) -> Eigen::Array3f {
-        auto normal_v = abs(outgoing_dir.dot(normal));
+        auto normal_v = std::abs(outgoing_dir.dot(normal));
 
         auto brdf_val =
             material.evaluate_brdf(ray.direction, outgoing_dir, normal);

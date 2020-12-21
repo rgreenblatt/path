@@ -197,7 +197,7 @@ public:
           get_size<float>(sample_idx, cumulative_weights_);
 
       const float normal_weight =
-          abs(normal.dot(direction) * triangle_normal.dot(direction));
+          std::abs(normal.dot(direction) * triangle_normal.dot(direction));
 
       // case where we sample from the current triangle (or a parallel triangle)
       if (normal_weight < 1e-8) {

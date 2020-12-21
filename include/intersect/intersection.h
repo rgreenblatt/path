@@ -4,6 +4,7 @@
 #include "lib/cuda/utils.h"
 
 #include <compare>
+#include <cmath>
 #include <thrust/optional.h>
 
 namespace intersect {
@@ -13,7 +14,7 @@ template <typename InfoType> struct Intersection {
   InfoType info;
 
   HOST_DEVICE Eigen::Vector3f intersection_point(const Ray &ray) const {
-    assert(abs(ray.direction.norm() - 1.f) < 1e-6); // TODO (fix)
+    assert(std::abs(ray.direction.norm() - 1.f) < 1e-6); // TODO (fix)
     return ray.origin + ray.direction * intersection_dist;
   }
 
