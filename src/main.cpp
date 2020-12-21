@@ -1,4 +1,5 @@
 #include "lib/info/timer.h"
+#include "lib/optional.h"
 #include "render/renderer.h"
 #include "render/settings.h"
 #include "scene/scenefile_compat/scenefile_loader.h"
@@ -7,7 +8,6 @@
 #include <boost/lexical_cast.hpp>
 #include <docopt.h>
 #include <magic_enum.hpp>
-#include <thrust/optional.h>
 
 #include <fstream>
 #include <iostream>

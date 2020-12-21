@@ -2,10 +2,10 @@
 
 #include "intersect/ray.h"
 #include "lib/cuda/utils.h"
+#include "lib/optional.h"
 
 #include <compare>
 #include <cmath>
-#include <thrust/optional.h>
 
 namespace intersect {
 template <typename InfoType> struct Intersection {
@@ -31,5 +31,5 @@ HOST_DEVICE inline auto operator<=>(const Intersection<InfoType> &lhs,
 }
 
 template <typename InfoType>
-using IntersectionOp = thrust::optional<Intersection<InfoType>>;
+using IntersectionOp = Optional<Intersection<InfoType>>;
 } // namespace intersect

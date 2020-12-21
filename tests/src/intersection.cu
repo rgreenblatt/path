@@ -21,7 +21,7 @@ template <AccelType type>
 static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
                              bool is_gpu) {
 
-  using Test = std::tuple<Ray, thrust::optional<unsigned>>;
+  using Test = std::tuple<Ray, Optional<unsigned>>;
 
   auto run_tests = [&]<ExecutionModel execution_model>(
                        const HostDeviceVector<Triangle> &triangles,
@@ -31,7 +31,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
     // Perhaps test partial
     auto ref = inst.template gen<Triangle>(settings, triangles, AABB());
 
-    HostDeviceVector<thrust::optional<unsigned>> results(test_expected.size());
+    HostDeviceVector<Optional<unsigned>> results(test_expected.size());
     Span<const Triangle> triangles_span = triangles;
 
     ThrustData<execution_model> data;
@@ -57,10 +57,10 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
 
   {
     HostDeviceVector<Triangle> triangles = {
-        Triangle({{{0, 0, 0}, {1, 0, 0}, {0, 1, 0}}})};
+        Triangle{{{{0, 0, 0}, {1, 0, 0}, {0, 1, 0}}}}};
     HostDeviceVector<Test> tests = {
         {Ray{{0.1, 0.1, -1}, {0, 0, 1}}, 0},
-        {Ray{{0.8, 0.7, -1}, {0, 0, 1}}, thrust::nullopt},
+        {Ray{{0.8, 0.7, -1}, {0, 0, 1}}, nullopt_value},
         {Ray{{0.3, 0.1, -1}, {0, 0, 1}}, 0},
         {Ray{{0.1, 0.8, -1}, {0, -.7, 1}}, 0},
         {Ray{{0.1, 0.1, -1}, {0, 0, 1}}, 0},
@@ -86,7 +86,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
 
       for (unsigned i = 0; i < num_triangles; i++) {
         triangles[i] =
-            Triangle(std::array{random_vec(), random_vec(), random_vec()});
+            Triangle{{random_vec(), random_vec(), random_vec()}};
       }
 
       HostDeviceVector<Test> tests(num_tests);
@@ -97,12 +97,12 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
           Settings<AccelType::LoopAll>(), triangles, AABB());
 
       auto get_ground_truth =
-          [&](const Ray &ray) -> thrust::optional<unsigned> {
+          [&](const Ray &ray) -> Optional<unsigned> {
         auto a = loop_all_ref.intersect_objects<Triangle>(ray, triangles);
         if (a.has_value()) {
           return a->info.idx;
         } else {
-          return thrust::nullopt;
+          return nullopt_value;
         }
       };
 
@@ -122,8 +122,6 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
   }
 }
 
-// This test is checking loop_all against loop_all, but it is included for
-// completeness
 TEST(Intersection, loop_all) {
   std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
   for (bool is_gpu : {false, true}) {

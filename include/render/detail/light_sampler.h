@@ -106,10 +106,10 @@ public:
   }
 };
 
-constexpr thrust::optional<unsigned>
+constexpr Optional<unsigned>
 search(const float target, SpanSized<const float> values,
        const unsigned binary_search_threshold) {
-  thrust::optional<unsigned> solution;
+  Optional<unsigned> solution;
 
   if (values.size() < binary_search_threshold) {
     for (unsigned i = 0; i < values.size(); ++i) {
@@ -176,7 +176,7 @@ public:
         weight1 = 1 - weight1;
       }
 
-      const auto &vertices = triangle.vertices();
+      const auto &vertices = triangle.vertices;
 
       // SPEED: cache vecs?
       const auto vec0 = vertices[1] - vertices[0];
@@ -189,9 +189,7 @@ public:
       const Eigen::Vector3f direction = direction_unnormalized.normalized();
 
       // SPEED: cache normal?
-      // scaled by area
-      const Eigen::Vector3f triangle_normal =
-          0.5 * ((vertices[1] - vertices[0]).cross(vertices[2] - vertices[0]));
+      const Eigen::Vector3f triangle_normal = triangle.normal_scaled_by_area();
 
       const float prob_this_triangle =
           get_size<float>(sample_idx, cumulative_weights_);
@@ -247,21 +245,12 @@ public:
         const auto &transform = transformed_object.object_to_world();
         for (unsigned triangle_idx = group.start_idx;
              triangle_idx < group.end_idx; triangle_idx++) {
-          // weight is proportional to intensity and volume
-          //
-          const auto &triangle = triangles[triangle_idx];
-          const auto &orig_vertices = triangle.vertices();
-          intersect::Triangle transformed_triangle = {
-              {transform * orig_vertices[0], transform * orig_vertices[1],
-               transform * orig_vertices[2]}};
-          const auto &vertices = transformed_triangle.vertices();
+          // weight is proportional to intensity and surface area
+          auto transformed_triangle =
+              triangles[triangle_idx].transform(transform);
 
-          Eigen::Vector3f edge_0 = vertices[1] - vertices[0];
-          Eigen::Vector3f edge_1 = vertices[2] - vertices[0];
-
-          float cos_between = edge_0.normalized().dot(edge_1.normalized());
-          float surface_area = edge_0.norm() * edge_1.norm() *
-                               std::sqrt(1 - cos_between * cos_between);
+          float surface_area =
+              transformed_triangle.normal_scaled_by_area().norm();
 
           cumulative_weight +=
               surface_area * materials[group.material_idx].emission.sum();
@@ -275,8 +264,6 @@ public:
       weight /= cumulative_weight;
     }
     items.copy_to_other(items_);
-
-    assert(items.size() == items_.size());
 
     return Ref(settings, items_.template get<0>(), items_.template get<1>());
   }

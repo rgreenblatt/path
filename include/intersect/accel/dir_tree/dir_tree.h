@@ -26,7 +26,7 @@ public:
     // TODO
     assert(false);
 
-    return thrust::nullopt;
+    return nullopt_value;
   }
 
 private:

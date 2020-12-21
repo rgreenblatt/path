@@ -13,7 +13,7 @@ template <typename SolveIndex>
 inline HOST_DEVICE void
 DirTreeLookupRef::operator()(const Eigen::Vector3f &world_space_direction,
                              const Eigen::Vector3f &world_space_eye,
-                             const thrust::optional<BestIntersection> &best,
+                             const Optional<BestIntersection> &best,
                              const SolveIndex &solve_index) const {
   // TODO: consider removing "flipped" output
   const auto &[tree_b, flipped] = lookup_.getDirTree(world_space_direction);
@@ -22,7 +22,7 @@ DirTreeLookupRef::operator()(const Eigen::Vector3f &world_space_direction,
       apply_projective_vec(world_space_direction, tree.transform());
   const auto transformed_eye =
       apply_projective_point(world_space_eye, tree.transform());
-  thrust::optional<DirTreeNode::StartEnd> start_end;
+  Optional<DirTreeNode::StartEnd> start_end;
 
   struct IndexBound {
     float bound;
@@ -214,7 +214,7 @@ DirTreeLookupRef::operator()(const Eigen::Vector3f &world_space_direction,
     traversal_values[0] = diff_z * x_change_respect_to_z + transformed_eye.x();
     traversal_values[1] = diff_z * y_change_respect_to_z + transformed_eye.y();
 
-    start_end = thrust::nullopt;
+    start_end = nullopt_value;
 
     start_z = final_z;
   }

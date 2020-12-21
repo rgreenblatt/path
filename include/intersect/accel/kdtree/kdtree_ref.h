@@ -22,7 +22,7 @@ public:
   inline HOST_DEVICE void
   operator()(const Eigen::Vector3f &world_space_direction,
              const Eigen::Vector3f &world_space_eye,
-             const thrust::optional<BestIntersection> &best,
+             const Optional<BestIntersection> &best,
              const SolveIndex &solve_index) const;
 
 private:

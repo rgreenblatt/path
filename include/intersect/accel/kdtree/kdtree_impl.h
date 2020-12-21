@@ -14,7 +14,7 @@ Ref::intersect_objects(const intersect::Ray &ray, Span<const O> objects) const {
   AccelRet<O> best;
 
   if (nodes_.size() == 0) {
-    return thrust::nullopt;
+    return nullopt_value;
   }
 
   // TODO: how important is this...
@@ -39,7 +39,7 @@ Ref::intersect_objects(const intersect::Ray &ray, Span<const O> objects) const {
   Stack<StackData, 64> node_stack;
   node_stack.push(StackData{unsigned(nodes_.size() - 1u), 0u});
 
-  thrust::optional<std::array<unsigned, 2>> start_end = thrust::nullopt;
+  Optional<std::array<unsigned, 2>> start_end = nullopt_value;
   unsigned current_idx = 0;
 
   while (!node_stack.empty() || start_end.has_value()) {
@@ -75,7 +75,7 @@ Ref::intersect_objects(const intersect::Ray &ray, Span<const O> objects) const {
               node_stack.push(StackData{first, new_depth});
             },
             [&](const std::array<unsigned, 2> &data) {
-              start_end = thrust::make_optional(data);
+              start_end = create_optional(data);
               current_idx = data[0];
             });
       }
@@ -91,7 +91,7 @@ Ref::intersect_objects(const intersect::Ray &ray, Span<const O> objects) const {
       }
     }
 
-    start_end = thrust::nullopt;
+    start_end = nullopt_value;
   }
 
   // convert to global index...

@@ -17,8 +17,8 @@ template <> struct TermProbSettings<TermProbType::Constant> {
 };
 
 template <> struct TermProbSettings<TermProbType::MultiplierFunc> {
-  float exp = 10.0f;
-  float min_prob = 0.05f;
+  float exp = 5.0f;
+  float min_prob = 0.2f;
 
   template <class Archive> void serialize(Archive &archive) {
     archive(CEREAL_NVP(exp), CEREAL_NVP(min_prob));

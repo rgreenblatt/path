@@ -17,17 +17,17 @@
       }
     }
 
-    thrust::optional<RefType> query(const std::string &mesh_identifier,
+    Optional<RefType> query(const std::string &mesh_identifier,
                                     const Settings &new_settings) {
       auto it = existing_triangle_accel_vals_.find(mesh_identifier);
       if (it == existing_triangle_accel_vals_.end()) {
-        return thrust::nullopt;
+        return nullopt_value;
       }
 
       auto [index, settings] = it->second;
 
       if (settings != new_settings) {
-        return thrust::nullopt;
+        return nullopt_value;
       }
 
       free_indexes_.erase(index);

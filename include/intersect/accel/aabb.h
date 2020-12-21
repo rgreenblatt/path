@@ -1,9 +1,9 @@
 #pragma once
 
 #include "lib/cuda/utils.h"
+#include "lib/optional.h"
 
 #include <Eigen/Geometry>
-#include <thrust/optional.h>
 
 #include <iostream>
 
@@ -64,7 +64,7 @@ struct AABB {
   }
 
   // needs to be inline
-  HOST_DEVICE thrust::optional<float>
+  HOST_DEVICE Optional<float>
   solveBoundingIntersection(const Eigen::Vector3f &point,
                             const Eigen::Vector3f &inv_direction) const {
     auto t_0 = (min_bound - point).cwiseProduct(inv_direction).eval();
@@ -78,7 +78,7 @@ struct AABB {
     if (max_of_min <= min_of_max) {
       return max_of_min;
     } else {
-      return thrust::nullopt;
+      return nullopt_value;
     }
   }
 

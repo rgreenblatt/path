@@ -19,7 +19,7 @@ struct MockIntersectable {
   using InfoType = std::tuple<>;
 
   constexpr IntersectionOp<InfoType> intersect(const Ray &) const {
-    return thrust::nullopt;
+    return nullopt_value;
   }
 };
 } // namespace intersect

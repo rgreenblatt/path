@@ -1,6 +1,7 @@
 #include "scene/scenefile_compat/scenefile_loader.h"
 #include "lib/group.h"
 #include "lib/utils.h"
+#include "lib/optional.h"
 #include "scene/camera.h"
 #include "scene/mat_to_material.h"
 #include "scene/scene.h"
@@ -18,7 +19,7 @@
 
 namespace scene {
 namespace scenefile_compat {
-thrust::optional<Scene> ScenefileLoader::load_scene(const std::string &filename,
+Optional<Scene> ScenefileLoader::load_scene(const std::string &filename,
                                                     float width_height_ratio) {
   loaded_meshes_.clear();
 
@@ -27,7 +28,7 @@ thrust::optional<Scene> ScenefileLoader::load_scene(const std::string &filename,
 
   CS123XmlSceneParser parser(filename);
   if (!parser.parse()) {
-    return thrust::nullopt;
+    return nullopt_value;
   }
   CS123SceneCameraData cameraData;
   parser.get_camera_data(cameraData);
@@ -46,14 +47,14 @@ thrust::optional<Scene> ScenefileLoader::load_scene(const std::string &filename,
   for (int i = 0, size = parser.get_num_lights(); i < size; ++i) {
     parser.get_light_data(i, light_data);
     if (!add_light(scene_v, light_data)) {
-      return thrust::nullopt;
+      return nullopt_value;
     }
   }
 
   QFileInfo info(filename.c_str());
   std::string dir = info.path().toStdString();
   if (!parse_tree(scene_v, *parser.get_root_node(), dir + "/")) {
-    return thrust::nullopt;
+    return nullopt_value;
   }
 
   scene_v.overall_aabb_ = {overall_min_b_transformed_,
@@ -203,7 +204,7 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
       }
 
       std::array<Eigen::Vector3f, 3> vertices;
-      std::array<Eigen::Vector3f, 3> normals;
+      std::array<Optional<Eigen::Vector3f>, 3> normals_op;
       for (size_t v = 0; v < fv; v++) {
         tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
         tinyobj::real_t vx = attrib.vertices[3 * idx.vertex_index + 0];
@@ -212,6 +213,7 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
         tinyobj::real_t nx;
         tinyobj::real_t ny;
         tinyobj::real_t nz;
+        // TODO: current texture not supported...
         tinyobj::real_t tx;
         tinyobj::real_t ty;
 
@@ -219,11 +221,9 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
           nx = attrib.normals[3 * idx.normal_index + 0];
           ny = attrib.normals[3 * idx.normal_index + 1];
           nz = attrib.normals[3 * idx.normal_index + 2];
-        } else {
-          nx = 0;
-          ny = 0;
-          nz = 0;
+          normals_op[v] = Eigen::Vector3f(nx, ny, nz).normalized();
         }
+
         if (idx.texcoord_index != -1) {
           tx = attrib.texcoords[2 * idx.texcoord_index + 0];
           ty = attrib.texcoords[2 * idx.texcoord_index + 1];
@@ -237,13 +237,13 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
         max_b = max_b.cwiseMax(vertex);
 
         vertices[v] = vertex;
-        normals[v] = Eigen::Vector3f(nx, ny, nz).normalized();
       }
 
       unsigned material_idx = shapes[s].mesh.material_ids[f] + materials_offset;
       if (shapes[s].mesh.material_ids[f] == -1) {
-
         std::cerr << "IDXS -1!!!" << std::endl;
+        assert(false);
+        abort();
       }
 
       auto add_vertices_emissive_group = [&] {
@@ -282,18 +282,16 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
         adding_to_emissive_group = false;
       }
 
+      intersect::Triangle triangle{vertices};
+
+      std::array<Eigen::Vector3f, 3> normals;
       // No normals..
-      if (normals[0].squaredNorm() < 1e-5) {
-        auto normal =
-            ((vertices[1] - vertices[0]).cross(vertices[2] - vertices[0]))
-                .normalized()
-                .eval();
-        for (auto &n : normals) {
-          n = normal;
-        }
+      for (size_t v = 0; v < fv; v++) {
+        normals[v] = optional_unwrap_or_else(normals_op[v],
+                                             [&] { return triangle.normal(); });
       }
 
-      scene_v.triangles_.push_back({vertices});
+      scene_v.triangles_.push_back(triangle);
       scene_v.triangle_data_.push_back({normals, material_idx});
 
       index_offset += fv;

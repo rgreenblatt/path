@@ -7,8 +7,8 @@
 #include "material/material.h"
 #include "scene/emissive_group.h"
 #include "scene/triangle_data.h"
+#include "lib/optional.h"
 
-#include <thrust/optional.h>
 #include <tiny_obj_loader.h>
 
 #include <vector>
