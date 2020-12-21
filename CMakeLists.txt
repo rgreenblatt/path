@@ -192,6 +192,7 @@ if(BUILD_BENCHMARKS OR CMAKE_EXPORT_COMPILE_COMMANDS)
 
   package_add_bench(scan "${PROJECT_SOURCE_DIR}/benchmarks/src/scan.cu")
   # sometimes there are some issues with cub and warp intrinsics with sorting
+  # (on clang)
   # package_add_bench(sort "${PROJECT_SOURCE_DIR}/benchmarks/src/sort.cu")
 
   add_custom_target(bench COMMAND ${CMAKE_CTEST_COMMAND}
