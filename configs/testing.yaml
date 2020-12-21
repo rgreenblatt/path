@@ -24,4 +24,3 @@ settings:
     computation_settings:
       {}
     back_cull_emission: false
-
