@@ -1,10 +1,10 @@
 #pragma once
 
-#include "meta/one_per_instance.h"
 #include "execution_model/execution_model_vector_type.h"
 #include "execution_model/thrust_data.h"
 #include "intersect/accel/enum_accel/enum_accel.h"
 #include "lib/bgra.h"
+#include "meta/one_per_instance.h"
 #include "render/detail/dir_sampler.h"
 #include "render/detail/light_sampler.h"
 #include "render/detail/term_prob.h"
@@ -34,7 +34,7 @@ private:
   template <typename T> using SharedVecT = SharedVector<execution_model, T>;
 
   // TODO: consider eventually freeing...
-  
+
   using AccelType = intersect::accel::enum_accel::AccelType;
 
   template <AccelType type>
@@ -45,7 +45,6 @@ private:
 
   OnePerInstance<AccelType, IntersectableSceneGenerator>
       stored_scene_generators_;
-
 
   template <LightSamplerType type>
   using LightSamplerT = LightSamplerT<type, execution_model>;

@@ -48,7 +48,7 @@ private:
   CachingThrustAllocator<execution_model> alloc;
 };
 
-template<ExecutionModel exec>
+template <ExecutionModel exec>
 struct ThrustDataMovable : BoolWrapper<std::movable<ThrustData<exec>>> {};
 
 static_assert(PredicateForAllValues<ExecutionModel>::value<ThrustDataMovable>);

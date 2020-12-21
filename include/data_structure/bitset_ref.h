@@ -2,8 +2,8 @@
 
 #include "data_structure/get_size.h"
 #include "lib/bit_utils.h"
-#include "meta/concepts.h"
 #include "lib/span.h"
+#include "meta/concepts.h"
 
 #include <cstdint>
 

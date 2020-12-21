@@ -5,12 +5,12 @@
 #include "meta/to_array.h"
 
 #include <boost/hana/cartesian_product.hpp>
-#include <boost/hana/ext/std/tuple.hpp>
 #include <boost/hana/ext/std/array.hpp>
+#include <boost/hana/ext/std/tuple.hpp>
 #include <magic_enum.hpp>
 
-#include <tuple>
 #include <concepts>
+#include <tuple>
 
 template <typename T> struct AllValuesImpl;
 

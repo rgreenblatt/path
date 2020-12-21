@@ -44,9 +44,7 @@ struct AABB {
   Eigen::Vector3f max_bound;
 
   // implementing bounded
-  HOST_DEVICE inline const AABB& bounds() const {
-    return *this;
-  }
+  HOST_DEVICE inline const AABB &bounds() const { return *this; }
 
   HOST_DEVICE inline AABB transform(const Eigen::Affine3f &transform) const {
     auto [min, max] = get_transformed_bounds(transform, min_bound, max_bound);

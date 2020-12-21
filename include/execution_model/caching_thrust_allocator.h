@@ -21,7 +21,7 @@ public:
   CachingThrustAllocator() {}
 
   CachingThrustAllocator(const CachingThrustAllocator &) = delete;
-  
+
   // maybe check that default is correct?
   CachingThrustAllocator(CachingThrustAllocator &&) = default;
   CachingThrustAllocator &operator=(CachingThrustAllocator &&) = default;

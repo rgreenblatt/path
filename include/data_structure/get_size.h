@@ -6,7 +6,7 @@
 
 template <typename T> struct GetSizeImpl;
 
-template <detail::VectorLike T>  struct GetSizeImpl<T> {
+template <detail::VectorLike T> struct GetSizeImpl<T> {
   static auto get(T &&v) { return v.size(); }
 };
 

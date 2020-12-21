@@ -28,7 +28,7 @@ constexpr size_t copy_in_n_times(Iter format_iter, std::string_view s,
 template <typename Iter, typename T>
 HOST_DEVICE inline auto debug_value(Iter format_iter, const T &val) {
   auto handle_vals = [&](std::string_view format, size_t times,
-                         const auto &... vals) {
+                         const auto &...vals) {
     const size_t format_size = copy_in_n_times(format_iter, format, times);
 
     return std::make_tuple(format_size, std::make_tuple(vals...));
@@ -110,7 +110,7 @@ HOST_DEVICE inline auto debug_print(std::string_view file_name, int line_number,
       debug_value(format_buffer.begin() + initial_format.size(), val);
   *(format_buffer.data() + (initial_format.size() + format_len)) = '\0';
   std::apply(
-      [&](const auto &... additional) {
+      [&](const auto &...additional) {
         printf(format_buffer.data(), to_remove < 0 ? "" : "..",
                file_name.data(), line_number, func.data(), var_name.data(),
                additional...);

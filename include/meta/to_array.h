@@ -6,5 +6,5 @@
 
 template <typename Vals> constexpr auto to_array(const Vals &vals) {
   return boost::hana::unpack(vals,
-                             [](auto &&... x) { return std::array{x...}; });
+                             [](auto &&...x) { return std::array{x...}; });
 }

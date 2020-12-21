@@ -9,7 +9,7 @@
 #include <type_traits>
 #include <utility>
 
-// useful utility for the above 
+// useful utility for the above
 template <bool v> using BoolWrapper = std::integral_constant<bool, v>;
 
 // apply predicate to all values and return true if it holds for all of them

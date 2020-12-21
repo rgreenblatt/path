@@ -83,7 +83,7 @@ Ref::intersect_objects(const intersect::Ray &ray, Span<const O> objects) const {
 
     if (start_end.has_value()) {
       for (unsigned idx = (*start_end)[0]; idx < (*start_end)[1]; idx++) {
-        // TODO: SPEED 
+        // TODO: SPEED
         // would it be better to enforce the same ordering everywhere somehow?
         unsigned global_idx = local_idx_to_global_idx_[idx];
         auto intersection = objects[global_idx].intersect(ray);

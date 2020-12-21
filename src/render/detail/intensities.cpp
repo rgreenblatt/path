@@ -8,11 +8,10 @@ namespace detail {
 template <intersectable_scene::IntersectableScene Scene, LightSamplerRef L,
           DirSamplerRef D, TermProbRef T, rng::RngRef R>
 void intensities(const GeneralSettings &settings, bool show_progress,
-                 const WorkDivision &, unsigned samples_per,
-                 unsigned x_dim, unsigned y_dim, const Scene &scene,
-                 const L &light_sampler, const D &direction_sampler,
-                 const T &term_prob, const R &rng, Span<BGRA> pixels,
-                 Span<Eigen::Array3f>,
+                 const WorkDivision &, unsigned samples_per, unsigned x_dim,
+                 unsigned y_dim, const Scene &scene, const L &light_sampler,
+                 const D &direction_sampler, const T &term_prob, const R &rng,
+                 Span<BGRA> pixels, Span<Eigen::Array3f>,
                  const Eigen::Affine3f &film_to_world) {
   ProgressBar progress_bar(x_dim * y_dim, 70);
   if (show_progress) {

@@ -44,7 +44,7 @@ WorkDivision divide_work(unsigned samples_per, unsigned x_dim, unsigned y_dim) {
   unsigned samples_per_thread;
   unsigned x_block_size;
   unsigned y_block_size;
-  
+
   // This is going to have poor performance for large numbers of samples and
   // very few pixels
   if (samples_per >= block_size * target_samples_per_thread) {

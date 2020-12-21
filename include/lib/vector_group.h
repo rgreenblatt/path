@@ -10,7 +10,7 @@
 
 // useful for a struct of vecs which all have the same size
 template <template <typename> class VecT, typename... T>
-requires(... &&Vector<VecT<T>>) class VectorGroup  {
+requires(... &&Vector<VecT<T>>) class VectorGroup {
 public:
   static_assert(sizeof...(T) > 0);
   using FirstType = __type_pack_element<0, T...>;

@@ -1,16 +1,14 @@
 #pragma once
 
-#include "meta/dispatch_value.h"
+#include "intersect/accel/enum_accel/enum_accel_impl.h"
 #include "intersect/impl/ray_impl.h"
 #include "intersect/impl/triangle_impl.h"
 #include "lib/group.h"
+#include "meta/dispatch_value.h"
 #include "render/detail/divide_work.h"
 #include "render/detail/intensities.h"
 #include "render/detail/renderer_impl.h"
 #include "render/detail/tone_map.h"
-#include "intersect/impl/triangle_impl.h"
-#include "intersect/impl/ray_impl.h"
-#include "intersect/accel/enum_accel/enum_accel_impl.h"
 
 namespace render {
 namespace detail {

@@ -11,10 +11,9 @@ template <>
 struct LightSamplerSettings<LightSamplerType::NoLightSampling> : EmptySettings {
 };
 
-template <>
-struct LightSamplerSettings<LightSamplerType::RandomTriangle> {
+template <> struct LightSamplerSettings<LightSamplerType::RandomTriangle> {
   unsigned binary_search_threshold = std::numeric_limits<unsigned>::max();
-  
+
   template <class Archive> void serialize(Archive &archive) {
     archive(CEREAL_NVP(binary_search_threshold));
   }

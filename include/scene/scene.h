@@ -41,7 +41,6 @@ public:
     return transformed_mesh_idxs_;
   }
 
-
   SpanSized<const Triangle> triangles() const { return triangles_; }
 
   SpanSized<const TriangleData> triangle_data() const { return triangle_data_; }

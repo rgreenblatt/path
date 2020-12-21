@@ -1,11 +1,11 @@
 #include "boost/hana/for_each.hpp"
+#include "intersect/accel/accel.h"
 #include "intersect/accel/enum_accel/enum_accel.h"
 #include "intersect/accel/enum_accel/enum_accel_impl.h"
-#include "intersect/accel/accel.h"
 #include "intersect/impl/triangle_impl.h"
 #include "intersect/triangle.h"
-#include "lib/span.h"
 #include "lib/optional.h"
+#include "lib/span.h"
 
 #include <gtest/gtest.h>
 #include <thrust/device_vector.h>
@@ -42,8 +42,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
         [=] __host__ __device__(const auto &test) {
           auto [ray, _] = test;
           auto a = ref.intersect_objects(ray, triangles_span);
-          return optional_map(
-              a, [](const auto &v) { return v.info.idx; });
+          return optional_map(a, [](const auto &v) { return v.info.idx; });
         });
 
     for (unsigned i = 0; i < test_expected.size(); i++) {

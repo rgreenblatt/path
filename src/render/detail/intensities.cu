@@ -47,10 +47,9 @@ intensities_global(const GeneralSettings settings, unsigned start_blocks,
     return;
   }
 
-  auto intensity =
-      intensities_impl(x, y, start_sample, end_sample, settings, x_dim, y_dim,
-                       scene, light_sampler, direction_sampler,
-                       term_prob, rng,  film_to_world);
+  auto intensity = intensities_impl(
+      x, y, start_sample, end_sample, settings, x_dim, y_dim, scene,
+      light_sampler, direction_sampler, term_prob, rng, film_to_world);
 
   // below reduction assumes this is the case
   assert(division.num_sample_blocks == 1);

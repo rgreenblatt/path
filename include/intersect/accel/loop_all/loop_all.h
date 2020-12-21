@@ -17,8 +17,8 @@ struct Ref {
   constexpr inline const AABB &bounds() const { return aabb; }
 
   template <Object O>
-  HOST_DEVICE inline AccelRet<O>
-  intersect_objects(const intersect::Ray &ray, Span<const O> objects) const;
+  HOST_DEVICE inline AccelRet<O> intersect_objects(const intersect::Ray &ray,
+                                                   Span<const O> objects) const;
 };
 } // namespace detail
 

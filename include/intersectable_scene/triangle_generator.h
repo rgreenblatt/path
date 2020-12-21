@@ -14,6 +14,7 @@ concept TriangleGenerator = requires(T &gen, const Settings &settings,
   requires std::movable<T>;
   requires Setting<Settings>;
 
-  { gen.gen(settings, scene) } -> IntersectableScene;
+  { gen.gen(settings, scene) }
+  ->IntersectableScene;
 };
 } // namespace intersectable_scene

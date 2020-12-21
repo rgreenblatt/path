@@ -1,10 +1,10 @@
 #pragma once
 
-#include "lib/cuda/utils.h"
 #include "intersect/ray.h"
+#include "lib/cuda/utils.h"
 
-#include <thrust/optional.h>
 #include <compare>
+#include <thrust/optional.h>
 
 namespace intersect {
 template <typename InfoType> struct Intersection {
@@ -17,8 +17,7 @@ template <typename InfoType> struct Intersection {
     return ray.origin + ray.direction * intersection_dist;
   }
 
-  template<typename F>
-  HOST_DEVICE auto map_info(F&& f) const {
+  template <typename F> HOST_DEVICE auto map_info(F &&f) const {
     return Intersection<std::decay_t<decltype(f(info))>>{
         intersection_dist, is_back_intersection, f(info)};
   }
@@ -26,7 +25,7 @@ template <typename InfoType> struct Intersection {
 
 template <typename InfoType>
 HOST_DEVICE inline auto operator<=>(const Intersection<InfoType> &lhs,
-                                  const Intersection<InfoType> &rhs) {
+                                    const Intersection<InfoType> &rhs) {
   return lhs.intersection_dist <=> rhs.intersection_dist;
 }
 

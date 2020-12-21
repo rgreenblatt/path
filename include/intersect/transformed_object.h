@@ -29,7 +29,8 @@ private:
   };
 
   static_assert(Object<IntersectableRef<MockObject>>);
-public: 
+
+public:
   HOST_DEVICE TransformedObject() {}
 
   // this object should have the same AABB as the one used to generate the
@@ -47,11 +48,12 @@ public:
   HOST_DEVICE inline const Eigen::Affine3f &world_to_object() const {
     return world_to_object_;
   }
-  
+
   HOST_DEVICE inline const accel::AABB &bounds() const { return aabb_; }
 
-  template<typename O>
-  HOST_DEVICE inline IntersectableRef<O> get_intersectable(const O& object) const {
+  template <typename O>
+  HOST_DEVICE inline IntersectableRef<O>
+  get_intersectable(const O &object) const {
     return {object, *this};
   }
 

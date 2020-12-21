@@ -227,13 +227,14 @@ public:
     SpanSized<const float> cumulative_weights_;
   };
 
-  auto gen(const Settings &settings,
-           Span<const scene::EmissiveGroup> emissive_groups,
-           Span<const unsigned> emissive_group_ends_per_mesh,
-           Span<const material::Material> materials,
-           SpanSized<const intersect::TransformedObject> transformed_mesh_objects,
-           Span<const unsigned> transformed_mesh_idxs,
-           Span<const intersect::Triangle> triangles) {
+  auto
+  gen(const Settings &settings,
+      Span<const scene::EmissiveGroup> emissive_groups,
+      Span<const unsigned> emissive_group_ends_per_mesh,
+      Span<const material::Material> materials,
+      SpanSized<const intersect::TransformedObject> transformed_mesh_objects,
+      Span<const unsigned> transformed_mesh_idxs,
+      Span<const intersect::Triangle> triangles) {
     GroupItems<HostVector> items;
     float cumulative_weight = 0.0f;
     for (unsigned object_idx = 0; object_idx < transformed_mesh_objects.size();

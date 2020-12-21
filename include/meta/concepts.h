@@ -1,8 +1,8 @@
 #pragma once
 
 #include <array>
-#include <type_traits>
 #include <concepts>
+#include <type_traits>
 
 template <class T, template <typename...> class Template>
 struct is_specialization : std::false_type {};
@@ -22,12 +22,11 @@ struct is_std_array<std::array<T, N>> : std::true_type {};
 template <typename V>
 concept StdArraySpecialization = is_std_array<std::decay_t<V>>::value;
 
-template <typename V, typename T>
-concept StdArrayOfType = requires {
+template <typename V, typename T> concept StdArrayOfType = requires {
   requires is_std_array<std::decay_t<V>>::value;
   typename std::decay_t<V>::value_type;
   requires std::same_as<typename std::decay_t<V>::value_type, T>;
 };
 
-template<typename From, typename To>
+template <typename From, typename To>
 concept DecaysTo = std::same_as<std::decay_t<From>, To>;

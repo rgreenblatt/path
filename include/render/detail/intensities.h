@@ -3,11 +3,11 @@
 #include "intersectable_scene/intersectable_scene.h"
 #include "lib/bgra.h"
 #include "lib/span.h"
-#include "render/general_settings.h"
 #include "render/detail/dir_sampler.h"
 #include "render/detail/divide_work.h"
 #include "render/detail/light_sampler.h"
 #include "render/detail/term_prob.h"
+#include "render/general_settings.h"
 #include "rng/rng.h"
 
 #include <Eigen/Geometry>
@@ -24,5 +24,5 @@ void intensities(const GeneralSettings &settings, bool show_progress,
                  const T &term_prob, const R &rng, Span<BGRA> pixels,
                  Span<Eigen::Array3f> intensities,
                  const Eigen::Affine3f &film_to_world);
-}
+} // namespace detail
 } // namespace render

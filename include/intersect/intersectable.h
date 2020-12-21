@@ -18,8 +18,8 @@ concept Intersectable = requires(const T &t, const Ray &ray) {
 struct MockIntersectable {
   using InfoType = std::tuple<>;
 
-  constexpr IntersectionOp<InfoType> intersect(const Ray&) const {
+  constexpr IntersectionOp<InfoType> intersect(const Ray &) const {
     return thrust::nullopt;
   }
 };
-}
+} // namespace intersect

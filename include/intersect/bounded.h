@@ -6,9 +6,9 @@
 #include <concepts>
 
 namespace intersect {
-template <typename T>
-concept Bounded = requires(const T &t) {
-  { t.bounds() } ->DecaysTo<accel::AABB>;
+template <typename T> concept Bounded = requires(const T &t) {
+  { t.bounds() }
+  ->DecaysTo<accel::AABB>;
 };
 
 struct MockBounded {

@@ -24,8 +24,8 @@ public:
   constexpr inline const AABB &bounds() const { return aabb_; }
 
   template <Object O>
-  HOST_DEVICE inline AccelRet<O>
-  intersect_objects(const intersect::Ray &ray, Span<const O> objects) const;
+  HOST_DEVICE inline AccelRet<O> intersect_objects(const intersect::Ray &ray,
+                                                   Span<const O> objects) const;
 
 private:
   SpanSized<const KDTreeNode<AABB>> nodes_;
@@ -56,7 +56,7 @@ public:
   }
 
 private:
-  detail::Ref gen_internal(const Settings &settings, const AABB& aabb);
+  detail::Ref gen_internal(const Settings &settings, const AABB &aabb);
 
   // PIMPL
   class Generator;

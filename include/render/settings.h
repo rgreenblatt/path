@@ -1,12 +1,12 @@
 #pragma once
 
-#include "meta/one_per_instance.h"
-#include "meta/all_values.h"
 #include "intersect/accel/enum_accel/accel_type.h"
 #include "intersect/accel/enum_accel/settings.h"
 #include "lib/settings.h"
-#include "render/general_settings.h"
+#include "meta/all_values.h"
+#include "meta/one_per_instance.h"
 #include "render/dir_sampler.h"
+#include "render/general_settings.h"
 #include "render/light_sampler.h"
 #include "render/term_prob.h"
 #include "rng/rng.h"
@@ -15,16 +15,15 @@
 
 namespace render {
 using CompileTimeSettingsFull =
-    std::tuple<intersect::accel::enum_accel::AccelType,
-               LightSamplerType, DirSamplerType, TermProbType, rng::RngType>;
+    std::tuple<intersect::accel::enum_accel::AccelType, LightSamplerType,
+               DirSamplerType, TermProbType, rng::RngType>;
 
 struct CompileTimeSettingsSubset : public CompileTimeSettingsFull {
   using CompileTimeSettingsFull::CompileTimeSettingsFull;
 };
 } // namespace render
 
-template <>
-struct AllValuesImpl<render::CompileTimeSettingsSubset> {
+template <> struct AllValuesImpl<render::CompileTimeSettingsSubset> {
 private:
   using AccelType = intersect::accel::enum_accel::AccelType;
   using RngType = rng::RngType;
@@ -35,30 +34,26 @@ private:
 public:
   // compile times don't change much from small constant values to 1...
   static constexpr std::array<render::CompileTimeSettingsSubset, 8> values = {{
-      {AccelType::KDTree,  LightSamplerType::RandomTriangle,
+      {AccelType::KDTree, LightSamplerType::RandomTriangle,
        DirSamplerType::BRDF, TermProbType::MultiplierFunc,
        rng::RngType::Uniform},
-      {AccelType::KDTree,  LightSamplerType::NoLightSampling,
+      {AccelType::KDTree, LightSamplerType::NoLightSampling,
        DirSamplerType::BRDF, TermProbType::MultiplierFunc,
        rng::RngType::Uniform},
-      {AccelType::KDTree,  LightSamplerType::RandomTriangle,
-       DirSamplerType::BRDF, TermProbType::NIters,
-       rng::RngType::Uniform},
-      {AccelType::KDTree,  LightSamplerType::NoLightSampling,
-       DirSamplerType::BRDF, TermProbType::NIters,
-       rng::RngType::Uniform},
-      {AccelType::KDTree,  LightSamplerType::RandomTriangle,
+      {AccelType::KDTree, LightSamplerType::RandomTriangle,
+       DirSamplerType::BRDF, TermProbType::NIters, rng::RngType::Uniform},
+      {AccelType::KDTree, LightSamplerType::NoLightSampling,
+       DirSamplerType::BRDF, TermProbType::NIters, rng::RngType::Uniform},
+      {AccelType::KDTree, LightSamplerType::RandomTriangle,
        DirSamplerType::Uniform, TermProbType::MultiplierFunc,
        rng::RngType::Uniform},
-      {AccelType::KDTree,  LightSamplerType::NoLightSampling,
+      {AccelType::KDTree, LightSamplerType::NoLightSampling,
        DirSamplerType::Uniform, TermProbType::MultiplierFunc,
        rng::RngType::Uniform},
-      {AccelType::KDTree,  LightSamplerType::RandomTriangle,
-       DirSamplerType::Uniform, TermProbType::NIters,
-       rng::RngType::Uniform},
-      {AccelType::KDTree,  LightSamplerType::NoLightSampling,
-       DirSamplerType::Uniform, TermProbType::NIters,
-       rng::RngType::Uniform},
+      {AccelType::KDTree, LightSamplerType::RandomTriangle,
+       DirSamplerType::Uniform, TermProbType::NIters, rng::RngType::Uniform},
+      {AccelType::KDTree, LightSamplerType::NoLightSampling,
+       DirSamplerType::Uniform, TermProbType::NIters, rng::RngType::Uniform},
   }};
 };
 
@@ -105,11 +100,9 @@ public:
   constexpr CompileTimeSettings(const T &v) : values_(v) {}
 
   template <typename... Vals>
-  constexpr CompileTimeSettings(Vals &&... vals) : values_({vals...}) {}
+  constexpr CompileTimeSettings(Vals &&...vals) : values_({vals...}) {}
 
-  constexpr AccelType flat_accel_type() const {
-    return std::get<0>(values_);
-  }
+  constexpr AccelType flat_accel_type() const { return std::get<0>(values_); }
 
   AccelType &flat_accel_type() { return std::get<0>(values_); }
 
@@ -160,11 +153,8 @@ private:
   using AllRngSettings = OnePerInstance<RngType, rng::RngSettings>;
 
   const CompileTimeSettings default_compile_time = {
-      AccelType::KDTree,
-      LightSamplerType::RandomTriangle,
-      DirSamplerType::BRDF,
-      TermProbType::MultiplierFunc,
-      RngType::Uniform};
+      AccelType::KDTree, LightSamplerType::RandomTriangle, DirSamplerType::BRDF,
+      TermProbType::MultiplierFunc, RngType::Uniform};
 
 public:
   AllAccelSettings flat_accel;
@@ -191,8 +181,7 @@ public:
           type);
     };
 
-    serialize_item("flat_accel", compile_time.flat_accel_type(),
-                   flat_accel);
+    serialize_item("flat_accel", compile_time.flat_accel_type(), flat_accel);
     serialize_item("light_sampler", compile_time.light_sampler_type(),
                    light_sampler);
     serialize_item("dir_sampler", compile_time.dir_sampler_type(), dir_sampler);
