@@ -3,7 +3,7 @@
 #include "data_structure/get_ptr.h"
 #include "data_structure/get_size.h"
 
-#include <assert.h>
+#include <cassert>
 #include <concepts>
 #include <type_traits>
 

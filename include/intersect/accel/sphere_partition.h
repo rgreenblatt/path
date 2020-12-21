@@ -5,7 +5,7 @@
 
 #include <Eigen/Core>
 
-#include <assert.h>
+#include <cassert>
 #include <tuple>
 #include <vector>
 

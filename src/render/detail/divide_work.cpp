@@ -1,9 +1,7 @@
 #include "render/detail/divide_work.h"
 #include "lib/utils.h"
 
-#include "lib/info/debug_print.h"
-
-#include <assert.h>
+#include <cassert>
 
 namespace render {
 namespace detail {

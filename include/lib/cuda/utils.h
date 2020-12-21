@@ -1,7 +1,7 @@
 #pragma once
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 
 // needed for some reason when using clang...
 #define CUB_USE_COOPERATIVE_GROUPS
