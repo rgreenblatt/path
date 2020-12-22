@@ -4,8 +4,8 @@
 #include "lib/cuda/utils.h"
 #include "lib/optional.h"
 
-#include <compare>
 #include <cmath>
+#include <compare>
 
 namespace intersect {
 template <typename InfoType> struct Intersection {

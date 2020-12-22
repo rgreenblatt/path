@@ -1,6 +1,7 @@
 #pragma once
 
 #include "meta/all_values.h"
+#include "meta/concepts.h"
 #include "meta/get_idx.h"
 #include "meta/sequential_look_up.h"
 
@@ -25,21 +26,20 @@ public:
 
   OnePerInstance(const Items &items) : items_(items){};
 
-  template <T value> const auto &get_item() const {
-    constexpr unsigned idx = get_idx(value);
-
-    return std::get<idx>(items_);
+  template <T value> const auto &get() const {
+    return std::get<get_idx(value)>(items_);
   }
 
-  template <T value> auto &get_item() {
-    constexpr unsigned idx = get_idx(value);
+  template <T value> auto &get() { return std::get<get_idx(value)>(items_); }
 
-    return std::get<idx>(items_);
-  }
+  template <T value> using Tag = Tag<T, value>;
+
+  template <T value> const auto &get(Tag<value>) const { return get<value>(); }
+
+  template <T value> auto &get(Tag<value>) { return get<value>(); }
 
   template <typename F> auto visit(const F &f, const T &value) {
-    unsigned idx = get_idx(value);
-    return sequential_look_up<size>(idx, [&](auto idx) {
+    return sequential_look_up<size>(get_idx(value), [&](auto idx) {
       return f(std::get<decltype(idx)::value>(items_));
     });
   }

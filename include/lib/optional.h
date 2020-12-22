@@ -5,18 +5,15 @@
 #include <algorithm>
 #include <thrust/optional.h>
 
-template<typename T>
-using Optional = thrust::optional<T>;
+template <typename T> using Optional = thrust::optional<T>;
 
 inline constexpr auto nullopt_value = thrust::nullopt;
 
-template<typename T>
-constexpr decltype(auto) create_optional(T&& v) {
+template <typename T> constexpr decltype(auto) create_optional(T &&v) {
   return thrust::make_optional(std::forward<T>(v));
 }
 
-template <typename T>
-concept IsOptional = SpecializationOf<T, Optional>;
+template <typename T> concept IsOptional = SpecializationOf<T, Optional>;
 
 template <typename T, typename F>
 requires std::convertible_to<decltype(std::declval<F>()()),

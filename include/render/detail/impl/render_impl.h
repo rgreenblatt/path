@@ -67,10 +67,10 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
             compile_time_settings.flat_accel_type();
 
         auto scene_ref =
-            stored_scene_generators_.template get_item<flat_accel_type>().gen(
+            stored_scene_generators_.template get<flat_accel_type>().gen(
                 intersectable_scene::flat_triangle::Settings<
                     intersect::accel::enum_accel::Settings<flat_accel_type>>{
-                    settings.flat_accel.template get_item<flat_accel_type>()},
+                    settings.flat_accel.template get<flat_accel_type>()},
                 s);
 
         constexpr auto light_sampler_type =
@@ -81,25 +81,24 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
         constexpr auto rng_type = compile_time_settings.rng_type();
 
         auto light_sampler =
-            light_samplers_.template get_item<light_sampler_type>().gen(
-                settings.light_sampler.template get_item<light_sampler_type>(),
-                s.emissive_groups(), s.emissive_group_ends_per_mesh(),
+            light_samplers_.template get<light_sampler_type>().gen(
+                settings.light_sampler.template get<light_sampler_type>(),
+                s.emissive_clusters(), s.emissive_cluster_ends_per_mesh(),
                 s.materials(), s.transformed_mesh_objects(),
                 s.transformed_mesh_idxs(), s.triangles());
 
-        auto dir_sampler =
-            dir_samplers_.template get_item<dir_sampler_type>().gen(
-                settings.dir_sampler.template get_item<dir_sampler_type>());
+        auto dir_sampler = dir_samplers_.template get<dir_sampler_type>().gen(
+            settings.dir_sampler.template get<dir_sampler_type>());
 
-        auto term_prob = term_probs_.template get_item<term_prob_type>().gen(
-            settings.term_prob.template get_item<term_prob_type>());
+        auto term_prob = term_probs_.template get<term_prob_type>().gen(
+            settings.term_prob.template get<term_prob_type>());
 
         // TODO
         const unsigned max_draws_per_sample = 128;
 
-        auto rng = rngs_.template get_item<rng_type>().gen(
-            settings.rng.template get_item<rng_type>(), samples_per, x_dim,
-            y_dim, max_draws_per_sample);
+        auto rng = rngs_.template get<rng_type>().gen(
+            settings.rng.template get<rng_type>(), samples_per, x_dim, y_dim,
+            max_draws_per_sample);
 
         intensities(settings.general_settings, show_progress, division,
                     samples_per, x_dim, y_dim, scene_ref, light_sampler,

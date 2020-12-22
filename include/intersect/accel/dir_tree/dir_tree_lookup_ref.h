@@ -1,8 +1,8 @@
 #pragma once
 
+#include "lib/optional.h"
 #include "ray/detail/accel/dir_tree/dir_tree.h"
 #include "ray/detail/intersection/intersection.h"
-#include "lib/optional.h"
 
 namespace ray {
 namespace detail {

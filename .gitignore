@@ -1,13 +1,8 @@
-gpu_debug
 .ccls-cache
 out.png
 cpu_out.png
 gpu_out.png
-.pool_command_history.txt
-debug/
-release/
-debug_cpu_only/
-release_cpu_only/
+build/
 cpu_video
 gpu_video
 # Prerequisites

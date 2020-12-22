@@ -15,5 +15,4 @@ static constexpr std::size_t get_idx(const T &value) {
 
   assert(false);
   __builtin_unreachable();
-  return 0;
 }

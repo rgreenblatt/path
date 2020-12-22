@@ -13,7 +13,8 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# set(CMAKE_VERBOSE_MAKEFILE TRUE)
+set(CMAKE_VERBOSE_MAKEFILE TRUE)
+set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
 add_compile_options(-Wall -Wextra -fsized-deallocation -g)
 
@@ -37,6 +38,16 @@ set(RELEASE_ARGS "-Ofast;-ffast-math;-march=native;-DNDEBUG")
 add_compile_options("$<$<CONFIG:RELEASE>:${RELEASE_ARGS}>")
 add_compile_options("$<$<CONFIG:RELWITHDEBINFO>:${RELEASE_ARGS}>")
 add_compile_options("$<$<CONFIG:DEBUG>:-ftrapv>")
+
+option (FORCE_COLORED_OUTPUT
+  "Always produce ANSI-colored output (GNU/Clang only)." TRUE)
+if (${FORCE_COLORED_OUTPUT})
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+       add_compile_options (-fdiagnostics-color=always)
+    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+       add_compile_options (-fcolor-diagnostics)
+    endif ()
+endif ()
 
 # TODO: convert to generator...
 # disable ptxas warnings
@@ -74,9 +85,8 @@ set(BUILD_SHARED_LIBS OFF)
 
 option(SYNTAX_ONLY "Only check syntax" OFF)
 option(CPU_ONLY "don't build for the gpu" OFF)
-option(CPU_GPU "build for the gpu" OFF)
 
-if(CPU_ONLY AND NOT CPU_GPU)
+if(CPU_ONLY)
   add_definitions(-DCPU_ONLY)
 endif()
 
@@ -107,7 +117,7 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/kdtree/generator.cu"
   )
 target_add_standard_include(intersect)
-target_link_libraries(intersect OpenMP::OpenMP_CXX yaml-cpp)
+target_link_libraries(intersect PUBLIC yaml-cpp PRIVATE OpenMP::OpenMP_CXX)
 
 add_library(
   renderer
@@ -122,8 +132,8 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/render/detail/divide_work.cpp"
   )
 target_add_standard_include(renderer)
-target_link_libraries(renderer intersect OpenMP::OpenMP_CXX Qt5::Widgets
-  yaml-cpp -lcurand)
+target_link_libraries(renderer PUBLIC yaml-cpp PRIVATE OpenMP::OpenMP_CXX
+  Qt5::Widgets -lcurand intersect)
 
 add_library(
   scenefile_compat
@@ -134,7 +144,7 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/scene/scenefile_compat/scenefile_loader.cpp"
   )
 target_add_standard_include(scenefile_compat)
-target_link_libraries(scenefile_compat Qt5::Xml yaml-cpp)
+target_link_libraries(scenefile_compat PRIVATE Qt5::Xml yaml-cpp)
 
 if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
   enable_testing()
@@ -145,7 +155,7 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
 
   macro(package_add_test TEST_NAME)
     add_executable(${TEST_NAME} ${ARGN})
-    target_link_libraries(${TEST_NAME} gtest gmock gtest_main)
+    target_link_libraries(${TEST_NAME} PRIVATE gtest gmock gtest_main)
     gtest_discover_tests(${TEST_NAME}
       WORKING_DIRECTORY ${PROJECT_DIR}
       PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_DIR}"
@@ -164,13 +174,13 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
     "${PROJECT_SOURCE_DIR}/tests/src/lambda_check.cu")
   # package_add_test(sphere_partition
   #   "${PROJECT_SOURCE_DIR}/tests/src/sphere_partition.cpp")
-  # target_link_libraries(sphere_partition renderer)
+  # target_link_libraries(sphere_partition PRIVATE renderer)
   package_add_test(binary_search
     "${PROJECT_SOURCE_DIR}/tests/src/binary_search.cpp")
   package_add_test(projection "${PROJECT_SOURCE_DIR}/tests/src/projection.cpp")
   package_add_test(intersection
     "${PROJECT_SOURCE_DIR}/tests/src/intersection.cu")
-  target_link_libraries(intersection intersect)
+  target_link_libraries(intersection PRIVATE intersect)
 
   add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND}
     DEPENDS "${TEST_LIST}")
@@ -183,7 +193,7 @@ if(BUILD_BENCHMARKS OR CMAKE_EXPORT_COMPILE_COMMANDS)
 
   macro(package_add_bench BENCH_NAME)
     add_executable(${BENCH_NAME} ${ARGN})
-    target_link_libraries(${BENCH_NAME} benchmark::benchmark
+    target_link_libraries(${BENCH_NAME} PRIVATE benchmark::benchmark
       benchmark::benchmark_main)
     set_target_properties(${BENCH_NAME} PROPERTIES FOLDER benchmarks)
     target_add_standard_include(${BENCH_NAME})
@@ -203,5 +213,6 @@ add_executable(
   path
   "${PROJECT_SOURCE_DIR}/src/main.cpp"
   )
-target_link_libraries(path renderer docopt_s scenefile_compat)
+target_link_libraries(path PRIVATE renderer docopt_s scenefile_compat
+  Qt5::Widgets)
 target_add_standard_include(path)

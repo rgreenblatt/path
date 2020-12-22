@@ -104,8 +104,8 @@ intensities_impl(unsigned x, unsigned y, unsigned start_sample,
         const auto &light_intersection = *light_intersection_op;
 
         // TODO: verify this behaves as expected...
-        if (std::abs(light_intersection.intersection_dist - expected_distance)
-            > 1e-6) {
+        if (std::abs(light_intersection.intersection_dist - expected_distance) >
+            1e-6) {
           continue;
         }
 

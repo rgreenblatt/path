@@ -1,7 +1,6 @@
 #pragma once
 
 #include "execution_model/execution_model.h"
-#include "intersect/accel/accel.h"
 #include "lib/bgra.h"
 #include "lib/span.h"
 #include "render/settings.h"

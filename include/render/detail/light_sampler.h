@@ -12,7 +12,7 @@
 #include "render/light_sampler.h"
 #include "rng/rng.h"
 #include "rng/test_rng_state_type.h"
-#include "scene/emissive_group.h"
+#include "scene/emissive_cluster.h"
 
 #include <Eigen/Core>
 
@@ -55,7 +55,7 @@ concept LightSampler = requires {
   requires requires(
       LightSamplerImpl<type, execution_model> & light_sampler,
       const LightSamplerSettings<type> &settings,
-      Span<const scene::EmissiveGroup> emissive_groups,
+      Span<const scene::EmissiveCluster> emissive_groups,
       Span<const unsigned> emissive_group_ends_per_mesh,
       Span<const material::Material> materials,
       SpanSized<const intersect::TransformedObject> transformed_mesh_objects,
@@ -98,7 +98,7 @@ public:
     }
   };
 
-  auto gen(const Settings &settings, Span<const scene::EmissiveGroup>,
+  auto gen(const Settings &settings, Span<const scene::EmissiveCluster>,
            Span<const unsigned>, Span<const material::Material>,
            SpanSized<const intersect::TransformedObject>, Span<const unsigned>,
            Span<const intersect::Triangle>) {
@@ -106,9 +106,9 @@ public:
   }
 };
 
-constexpr Optional<unsigned>
-search(const float target, SpanSized<const float> values,
-       const unsigned binary_search_threshold) {
+constexpr Optional<unsigned> search(const float target,
+                                    SpanSized<const float> values,
+                                    const unsigned binary_search_threshold) {
   Optional<unsigned> solution;
 
   if (values.size() < binary_search_threshold) {
@@ -128,11 +128,20 @@ search(const float target, SpanSized<const float> values,
   return solution;
 }
 
+namespace detail {
+enum class TWItem {
+  Triangle,
+  Weight,
+};
+}
+
 template <ExecutionModel execution_model>
 struct LightSamplerImpl<LightSamplerType::RandomTriangle, execution_model> {
 private:
+  using TWItem = detail::TWItem;
+
   template <template <typename> class VecT>
-  using GroupItems = VectorGroup<VecT, intersect::Triangle, float>;
+  using TWGroup = VectorGroup<VecT, TWItem, intersect::Triangle, float>;
 
 public:
   using Settings = LightSamplerSettings<LightSamplerType::RandomTriangle>;
@@ -227,13 +236,13 @@ public:
 
   auto
   gen(const Settings &settings,
-      Span<const scene::EmissiveGroup> emissive_groups,
+      Span<const scene::EmissiveCluster> emissive_groups,
       Span<const unsigned> emissive_group_ends_per_mesh,
       Span<const material::Material> materials,
       SpanSized<const intersect::TransformedObject> transformed_mesh_objects,
       Span<const unsigned> transformed_mesh_idxs,
       Span<const intersect::Triangle> triangles) {
-    GroupItems<HostVector> items;
+    host_items_.clear_all();
     float cumulative_weight = 0.0f;
     for (unsigned object_idx = 0; object_idx < transformed_mesh_objects.size();
          ++object_idx) {
@@ -254,24 +263,26 @@ public:
 
           cumulative_weight +=
               surface_area * materials[group.material_idx].emission.sum();
-          items.push_back_all(transformed_triangle, cumulative_weight);
+          host_items_.push_back_all(transformed_triangle, cumulative_weight);
         }
       }
     }
 
     // normalize
-    for (auto &weight : items.get<1>()) {
+    for (auto &weight : host_items_.template get<TWItem::Weight>()) {
       weight /= cumulative_weight;
     }
-    items.copy_to_other(items_);
+    host_items_.copy_to_other(items_);
 
-    return Ref(settings, items_.template get<0>(), items_.template get<1>());
+    return Ref(settings, items_.template get<TWItem::Triangle>(),
+               items_.template get<TWItem::Weight>());
   }
 
 private:
   template <typename T> using ExecVecT = ExecVector<execution_model, T>;
 
-  GroupItems<ExecVecT> items_;
+  TWGroup<HostVector> host_items_;
+  TWGroup<ExecVecT> items_;
 };
 } // namespace detail
 } // namespace render

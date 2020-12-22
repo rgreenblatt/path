@@ -10,6 +10,7 @@
 #include "intersectable_scene/triangle_generator.h"
 #include "lib/cuda/utils.h"
 #include "lib/group.h"
+#include "lib/vector_group.h"
 #include "scene/scene.h"
 #include "scene/triangle_data.h"
 
@@ -50,6 +51,13 @@ template <intersect::accel::AccelRef<intersect::Triangle> Accel> struct Ref {
   }
 };
 
+namespace detail {
+enum class TriItem {
+  Triangle,
+  Data,
+};
+}
+
 template <
     ExecutionModel exec, Setting AccelSettings,
     intersect::accel::ObjectSpecificAccel<AccelSettings, intersect::Triangle>
@@ -61,8 +69,7 @@ public:
   using Settings = Settings<AccelSettings>;
 
   auto gen(const Settings &settings, const scene::Scene &scene) {
-    host_triangles_.clear();
-    host_triangle_data_.clear();
+    host_triangle_values_.clear_all();
 
     auto objects = scene.transformed_mesh_objects();
     auto scene_triangles = scene.triangles();
@@ -75,28 +82,35 @@ public:
       const auto &transform = objects[i].object_to_world();
       for (unsigned j = get_previous<unsigned>(mesh_idx, mesh_ends);
            j < mesh_ends[i]; ++j) {
-        host_triangles_.push_back(scene_triangles[j].transform(transform));
-        host_triangle_data_.push_back(scene_triangle_data[j]);
+        host_triangle_values_.push_back_all(
+            scene_triangles[j].transform(transform), scene_triangle_data[j]);
       }
     }
 
-    copy_to_vec(host_triangles_, triangles_);
-    copy_to_vec(host_triangle_data_, triangle_data_);
+    host_triangle_values_.copy_to_other(triangle_values_);
     copy_to_vec(scene.materials(), materials_);
 
     auto accel_ref = accel_.template gen<intersect::Triangle>(
-        settings.accel_settings, host_triangles_, scene.overall_aabb());
+        settings.accel_settings,
+        host_triangle_values_.template get<TriItem::Triangle>(),
+        scene.overall_aabb());
 
-    return Ref<std::decay_t<decltype(accel_ref)>>{accel_ref, triangles_,
-                                                  triangle_data_, materials_};
+    return Ref<std::decay_t<decltype(accel_ref)>>{
+        accel_ref, triangle_values_.template get<TriItem::Triangle>(),
+        triangle_values_.template get<TriItem::Data>(), materials_};
   }
 
 private:
   template <typename T> using ExecVecT = ExecVector<exec, T>;
-  std::vector<intersect::Triangle> host_triangles_;
-  std::vector<scene::TriangleData> host_triangle_data_;
-  ExecVecT<intersect::Triangle> triangles_;
-  ExecVecT<scene::TriangleData> triangle_data_;
+
+  using TriItem = detail::TriItem;
+
+  template <template <typename> class VecT>
+  using VectorGroup =
+      VectorGroup<VecT, TriItem, intersect::Triangle, scene::TriangleData>;
+
+  VectorGroup<HostVector> host_triangle_values_;
+  VectorGroup<ExecVecT> triangle_values_;
   ExecVecT<material::Material> materials_;
   Accel accel_;
 };

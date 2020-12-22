@@ -85,8 +85,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
       };
 
       for (unsigned i = 0; i < num_triangles; i++) {
-        triangles[i] =
-            Triangle{{random_vec(), random_vec(), random_vec()}};
+        triangles[i] = Triangle{{random_vec(), random_vec(), random_vec()}};
       }
 
       HostDeviceVector<Test> tests(num_tests);
@@ -96,8 +95,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
       auto loop_all_ref = loop_all_inst.template gen<Triangle>(
           Settings<AccelType::LoopAll>(), triangles, AABB());
 
-      auto get_ground_truth =
-          [&](const Ray &ray) -> Optional<unsigned> {
+      auto get_ground_truth = [&](const Ray &ray) -> Optional<unsigned> {
         auto a = loop_all_ref.intersect_objects<Triangle>(ray, triangles);
         if (a.has_value()) {
           return a->info.idx;

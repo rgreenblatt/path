@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-#include <Eigen/Dense>
+#include <Eigen/Core>
 
 namespace scene {
 namespace scenefile_compat {

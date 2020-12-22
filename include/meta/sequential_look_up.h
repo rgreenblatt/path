@@ -9,7 +9,6 @@ constexpr decltype(auto) sequential_look_up(unsigned index, F &&f) {
   if (index >= size) {
     assert(false);
     __builtin_unreachable();
-    index = size - 1;
   }
 
   if constexpr (size == 1) {

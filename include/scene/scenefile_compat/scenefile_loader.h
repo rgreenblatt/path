@@ -11,7 +11,7 @@ namespace scenefile_compat {
 class ScenefileLoader {
 public:
   Optional<Scene> load_scene(const std::string &filename,
-                                     float width_height_ratio);
+                             float width_height_ratio);
 
 private:
   bool parse_tree(Scene &scene_v, const CS123SceneNode &root,

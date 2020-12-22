@@ -3,7 +3,7 @@
 #include "intersect/accel/aabb.h"
 
 namespace scene {
-struct EmissiveGroup {
+struct EmissiveCluster {
   unsigned material_idx;
   unsigned start_idx;
   unsigned end_idx;

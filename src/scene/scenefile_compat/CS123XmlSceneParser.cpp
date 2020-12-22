@@ -4,7 +4,7 @@
 
 #include "scene/scenefile_compat/CS123XmlSceneParser.h"
 
-#include <Eigen/Dense>
+#include <Eigen/Core>
 
 #include <assert.h>
 #include <iostream>

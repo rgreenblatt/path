@@ -13,8 +13,6 @@
 #include <iostream>
 #include <string>
 
-#include "lib/info/debug_print.h"
-
 // In retrospect, I don't really like docopt...
 static const char USAGE[] =
     R"(Path

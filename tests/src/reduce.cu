@@ -3,7 +3,6 @@
 #include "lib/cuda/reduce.cuh"
 #include "lib/span.h"
 
-#include <Eigen/Dense>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 

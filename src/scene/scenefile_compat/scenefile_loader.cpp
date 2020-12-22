@@ -1,7 +1,7 @@
 #include "scene/scenefile_compat/scenefile_loader.h"
 #include "lib/group.h"
-#include "lib/utils.h"
 #include "lib/optional.h"
+#include "lib/utils.h"
 #include "scene/camera.h"
 #include "scene/mat_to_material.h"
 #include "scene/scene.h"
@@ -20,7 +20,7 @@
 namespace scene {
 namespace scenefile_compat {
 Optional<Scene> ScenefileLoader::load_scene(const std::string &filename,
-                                                    float width_height_ratio) {
+                                            float width_height_ratio) {
   loaded_meshes_.clear();
 
   overall_min_b_transformed_ = max_eigen_vec();
@@ -66,7 +66,7 @@ Optional<Scene> ScenefileLoader::load_scene(const std::string &filename,
 bool ScenefileLoader::parse_tree(Scene &scene_v, const CS123SceneNode &root,
                                  const std::string &base_dir) {
   return parse_node(scene_v, root, Eigen::Affine3f::Identity(), base_dir) &&
-         scene_v.mesh_ends_.size() != 0;
+         scene_v.meshs_.size() != 0;
 }
 
 bool ScenefileLoader::parse_node(Scene &scene_v, const CS123SceneNode &node,
@@ -133,17 +133,18 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
   auto add_mesh_instance = [&](unsigned idx,
                                const intersect::accel::AABB &aabb) {
     intersect::TransformedObject obj{transform, aabb};
-    scene_v.transformed_mesh_idxs_.push_back(idx);
     overall_max_b_transformed_ =
         overall_max_b_transformed_.cwiseMax(obj.bounds().max_bound);
     overall_min_b_transformed_ =
         overall_min_b_transformed_.cwiseMin(obj.bounds().min_bound);
-    scene_v.transformed_mesh_objects_.push_back(obj);
+    scene_v.transformed_objects_.push_back_all(obj, idx);
   };
 
   auto map_it = loaded_meshes_.find(absolute_path);
   if (map_it != loaded_meshes_.end()) {
-    add_mesh_instance(map_it->second, scene_v.mesh_aabbs_[map_it->second]);
+    add_mesh_instance(
+        map_it->second,
+        scene_v.meshs_.template get<Scene::MeshT::AABB>()[map_it->second]);
 
     return true;
   }
@@ -172,24 +173,24 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
     return false;
   }
 
-  unsigned mesh_idx = scene_v.mesh_ends_.size();
+  unsigned mesh_idx = scene_v.meshs_.size();
 
   auto min_b = max_eigen_vec();
   auto max_b = lowest_eigen_vec();
 
-  Eigen::Vector3f emissive_group_min_b;
-  Eigen::Vector3f emissive_group_max_b;
-  bool adding_to_emissive_group = false;
+  Eigen::Vector3f emissive_cluster_min_b;
+  Eigen::Vector3f emissive_cluster_max_b;
+  bool adding_to_emissive_cluster = false;
   unsigned emissive_material_idx;
   unsigned emissive_start_idx;
 
-  auto end_emissive_group = [&] {
+  auto end_emissive_cluster = [&] {
     unsigned emissive_end_idx = scene_v.triangles_.size();
-    scene_v.emissive_groups_.push_back(
+    scene_v.emissive_clusters_.push_back(
         {emissive_material_idx,
          emissive_start_idx,
          emissive_end_idx,
-         {emissive_group_min_b, emissive_group_max_b}});
+         {emissive_cluster_min_b, emissive_cluster_max_b}});
   };
 
   // TODO populate vectors and use tranform
@@ -246,40 +247,40 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
         abort();
       }
 
-      auto add_vertices_emissive_group = [&] {
+      auto add_vertices_emissive_cluster = [&] {
         for (const auto &vertex : vertices) {
-          emissive_group_min_b = emissive_group_min_b.cwiseMin(vertex);
-          emissive_group_max_b = emissive_group_max_b.cwiseMax(vertex);
+          emissive_cluster_min_b = emissive_cluster_min_b.cwiseMin(vertex);
+          emissive_cluster_max_b = emissive_cluster_max_b.cwiseMax(vertex);
         }
       };
 
-      auto new_emissive_group = [&] {
-        emissive_group_min_b = max_eigen_vec();
-        emissive_group_max_b = lowest_eigen_vec();
-        adding_to_emissive_group = true;
+      auto new_emissive_cluster = [&] {
+        emissive_cluster_min_b = max_eigen_vec();
+        emissive_cluster_max_b = lowest_eigen_vec();
+        adding_to_emissive_cluster = true;
         emissive_start_idx = scene_v.triangles_.size();
         emissive_material_idx = material_idx;
 
-        add_vertices_emissive_group();
+        add_vertices_emissive_cluster();
       };
 
       if (is_emissive[material_idx]) {
-        if (adding_to_emissive_group) {
+        if (adding_to_emissive_cluster) {
           if (material_idx != emissive_material_idx) {
-            // end, new group
-            end_emissive_group();
+            // end, new cluster
+            end_emissive_cluster();
 
-            new_emissive_group();
+            new_emissive_cluster();
           } else {
-            add_vertices_emissive_group();
+            add_vertices_emissive_cluster();
           }
         } else {
-          new_emissive_group();
+          new_emissive_cluster();
         }
-      } else if (adding_to_emissive_group) {
-        end_emissive_group();
+      } else if (adding_to_emissive_cluster) {
+        end_emissive_cluster();
 
-        adding_to_emissive_group = false;
+        adding_to_emissive_cluster = false;
       }
 
       intersect::Triangle triangle{vertices};
@@ -290,31 +291,30 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
                                              [&] { return triangle.normal(); });
       }
 
-      scene_v.triangles_.push_back(triangle);
-      scene_v.triangle_data_.push_back({normals, material_idx});
+      scene_v.triangles_.push_back_all(triangle, {normals, material_idx});
 
       index_offset += fv;
     }
   }
 
-  if (adding_to_emissive_group) {
-    end_emissive_group();
+  if (adding_to_emissive_cluster) {
+    end_emissive_cluster();
   }
 
-  scene_v.emissive_group_ends_per_mesh_.push_back(
-      scene_v.emissive_groups_.size());
-  scene_v.mesh_ends_.push_back(scene_v.triangles_.size());
+  unsigned mesh_end = scene_v.triangles_.size();
   intersect::accel::AABB aabb{min_b, max_b};
-  scene_v.mesh_aabbs_.push_back(aabb);
+  unsigned emissive_cluster_end = scene_v.emissive_clusters_.size();
+  scene_v.meshs_.push_back_all(mesh_end, aabb, absolute_path,
+                               emissive_cluster_end);
+
   add_mesh_instance(mesh_idx, aabb);
   loaded_meshes_.insert({absolute_path, mesh_idx});
-  scene_v.mesh_paths_.push_back(absolute_path);
 
   std::cout << "added mesh" << std::endl;
   std::cout << "total triangle count: " << scene_v.triangles_.size()
             << std::endl;
-  std::cout << "total num emissive groups: " << scene_v.emissive_groups_.size()
-            << std::endl;
+  std::cout << "total num emissive clusters: "
+            << scene_v.emissive_clusters_.size() << std::endl;
 
   return true;
 }

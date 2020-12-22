@@ -22,4 +22,4 @@ settings:
   general_settings:
     computation_settings:
       {}
-    back_cull_emission: false
+    back_cull_emission: true

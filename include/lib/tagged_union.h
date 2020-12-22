@@ -48,25 +48,19 @@ private:
 
 struct access {
   template <std::size_t idx, SpecializationOf<VariadicUnion> UnionType>
-  static constexpr auto &&get_at_idx(UnionType &&v) {
+  static constexpr auto &&get(UnionType &&v) {
     if constexpr (idx == 0) {
       return v.first_;
     } else {
-      return get_at_idx<idx - 1>(std::forward<UnionType>(v));
+      return get<idx - 1>(std::forward<UnionType>(v));
     }
   }
 };
 } // namespace detail
 
-template <AllValuesEnumerable E, E tag_in> struct Tag {
-  static constexpr E tag = tag_in;
-};
-
-// uses variant under the hood
 template <AllValuesEnumerable E, std::movable... T>
-requires(AllValues<E>.size() == sizeof...(T) && sizeof...(T) > 0 &&
-         sizeof...(T) <
-             std::numeric_limits<unsigned>::max()) class TaggedUnion {
+requires(AllValues<E>.size() == sizeof...(T) &&
+         sizeof...(T) > 0) class TaggedUnion {
 private:
   static constexpr auto values = AllValues<E>;
 
@@ -83,8 +77,7 @@ private:
     assert(((first.idx_ == rest.idx_) && ... && true));
     return sequential_look_up<values.size()>(first.idx_, [&](auto value) {
       constexpr unsigned idx = decltype(value)::value;
-      return f(ac::get_at_idx<idx>(first.union_),
-               ac::get_at_idx<idx>(rest.union_)...);
+      return f(ac::get<idx>(first.union_), ac::get<idx>(rest.union_)...);
     });
   }
 
@@ -182,13 +175,12 @@ public:
     return boost::hana::fold_left(
         std::make_index_sequence<num_elements>(), std::array<T, 0>{},
         [](auto arr, auto idx) {
-          const auto &values = AllValues<__type_pack_element<idx, T>>;
-          std::array<T, values.size()> out_values;
-          for (int i = 0; i < values.size(); ++i) {
-            out_values[i] = T::T<magic_enum::enum_value<E>(idx)>(values[i]);
-          }
-
-          return std::tuple_cat(arr, out_values);
+          return std::tuple_cat(
+              arr, boost::hana::unpack(
+                       AllValues<__type_pack_element<idx, T>>, [&](auto... v) {
+                         return std::array{
+                             T::T<magic_enum::enum_value<E>(idx)>(v)...};
+                       }));
         });
   }();
 };
