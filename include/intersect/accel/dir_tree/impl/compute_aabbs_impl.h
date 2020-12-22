@@ -17,13 +17,8 @@ compute_aabbs_impl(SpanSized<const Eigen::Projective3f> transforms,
     return;
   }
 
-  Eigen::Vector3f min_bound = Eigen::Vector3f(
-      std::numeric_limits<float>::max(), std::numeric_limits<float>::max(),
-      std::numeric_limits<float>::max());
-  Eigen::Vector3f max_bound =
-      Eigen::Vector3f(std::numeric_limits<float>::lowest(),
-                      std::numeric_limits<float>::lowest(),
-                      std::numeric_limits<float>::lowest());
+  Eigen::Vector3f min_bound = max_eigen_vec();
+  Eigen::Vector3f max_bound = min_eigen_vec();
 
   for (const auto &point : bounds[bound_idx]) {
     auto transformed_point =

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <functional>
 
 template <typename T> class RefT : public std::reference_wrapper<T> {

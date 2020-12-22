@@ -39,10 +39,8 @@ Triangle::intersect(const Ray &ray) const {
 }
 
 HOST_DEVICE inline accel::AABB Triangle::bounds() const {
-  auto min_b =
-      Eigen::Vector3f::Constant(std::numeric_limits<float>::max()).eval();
-  auto max_b =
-      Eigen::Vector3f::Constant(std::numeric_limits<float>::lowest()).eval();
+  auto min_b = max_eigen_vec();
+  auto max_b = min_eigen_vec();
   for (const auto &vertex : vertices) {
     min_b = min_b.cwiseMin(vertex);
     max_b = max_b.cwiseMax(vertex);

@@ -7,7 +7,7 @@ namespace render {
 namespace detail {
 
 constexpr unsigned make_divisable(unsigned v, unsigned divisable_by) {
-  return ((v + divisable_by - 1) / divisable_by) * divisable_by;
+  return ceil_divide(v, divisable_by) * divisable_by;
 }
 
 // Testing:

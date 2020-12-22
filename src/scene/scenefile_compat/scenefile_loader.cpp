@@ -24,7 +24,7 @@ Optional<Scene> ScenefileLoader::load_scene(const std::string &filename,
   loaded_meshes_.clear();
 
   overall_min_b_transformed_ = max_eigen_vec();
-  overall_max_b_transformed_ = lowest_eigen_vec();
+  overall_max_b_transformed_ = min_eigen_vec();
 
   CS123XmlSceneParser parser(filename);
   if (!parser.parse()) {
@@ -176,7 +176,7 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
   unsigned mesh_idx = scene_v.meshs_.size();
 
   auto min_b = max_eigen_vec();
-  auto max_b = lowest_eigen_vec();
+  auto max_b = min_eigen_vec();
 
   Eigen::Vector3f emissive_cluster_min_b;
   Eigen::Vector3f emissive_cluster_max_b;
@@ -256,7 +256,7 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
 
       auto new_emissive_cluster = [&] {
         emissive_cluster_min_b = max_eigen_vec();
-        emissive_cluster_max_b = lowest_eigen_vec();
+        emissive_cluster_max_b = min_eigen_vec();
         adding_to_emissive_cluster = true;
         emissive_start_idx = scene_v.triangles_.size();
         emissive_material_idx = material_idx;

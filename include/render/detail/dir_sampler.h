@@ -21,7 +21,7 @@ concept DirSamplerRef = requires(const V &dir_sampler,
                                  const material::Material &material,
                                  const Eigen::Vector3f &incoming_dir,
                                  const Eigen::Vector3f &normal,
-                                 rng::TestRngStateT &rng) {
+                                 rng::DummyRngState &rng) {
   { dir_sampler(position, material, incoming_dir, normal, rng) }
   ->std::common_with<DirSample>;
 };

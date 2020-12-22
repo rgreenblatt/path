@@ -1,3 +1,5 @@
+#pragma once
+
 #include "ray/detail/accel/dir_tree/sphere_partition.h"
 
 namespace ray {

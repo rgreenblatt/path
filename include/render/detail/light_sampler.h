@@ -39,7 +39,7 @@ concept LightSamplerRef = requires(const V &light_sampler,
                                    const material::Material &material,
                                    const Eigen::Vector3f &incoming_dir,
                                    const Eigen::Vector3f &normal,
-                                   rng::TestRngStateT &rng) {
+                                   rng::DummyRngState &rng) {
   V::max_sample_size;
   V::performs_samples;
 

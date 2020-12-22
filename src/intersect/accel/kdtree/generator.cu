@@ -1,4 +1,5 @@
 #include "intersect/accel/kdtree/generator.h"
+#include "lib/utils.h"
 
 namespace intersect {
 namespace accel {
@@ -126,13 +127,7 @@ KDTree<execution_model>::Generator::gen(const Settings &settings,
     indexes_[i] = i;
   }
 
-  nodes_.push_back(KDTreeNode(
-      {0, 0}, AABB{Eigen::Vector3f(std::numeric_limits<float>::max(),
-                                   std::numeric_limits<float>::max(),
-                                   std::numeric_limits<float>::max()),
-                   Eigen::Vector3f(std::numeric_limits<float>::lowest(),
-                                   std::numeric_limits<float>::lowest(),
-                                   std::numeric_limits<float>::lowest())}));
+  nodes_.push_back(KDTreeNode({0, 0}, AABB{max_eigen_vec(), min_eigen_vec()}));
 
   construct(0, bounds.size(), 0);
 

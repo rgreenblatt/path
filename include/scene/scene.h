@@ -28,14 +28,17 @@ public:
   using AABB = intersect::accel::AABB;
   using Material = material::Material;
 
-  SpanSized<const unsigned> mesh_ends() const { 
-    return meshs_.template get<MeshT::End>(); }
+  SpanSized<const unsigned> mesh_ends() const {
+    return meshs_.template get<MeshT::End>();
+  }
 
-  SpanSized<const AABB> mesh_aabbs() const { 
-    return meshs_.template get<MeshT::AABB>(); }
+  SpanSized<const AABB> mesh_aabbs() const {
+    return meshs_.template get<MeshT::AABB>();
+  }
 
-  SpanSized<const std::string> mesh_paths() const { 
-    return meshs_.template get<MeshT::Path>(); }
+  SpanSized<const std::string> mesh_paths() const {
+    return meshs_.template get<MeshT::Path>();
+  }
 
   SpanSized<const TransformedObject> transformed_mesh_objects() const {
     return transformed_objects_.template get<TransformedObjectT::Inst>();
@@ -45,17 +48,15 @@ public:
     return transformed_objects_.template get<TransformedObjectT::MeshIdx>();
   }
 
-  SpanSized<const Triangle> triangles() const { 
+  SpanSized<const Triangle> triangles() const {
     return triangles_.template get<TriangleT::Inst>();
-     }
-
-  SpanSized<const TriangleData> triangle_data() const { 
-    return triangles_.template get<TriangleT::Data>();
-    }
-
-  SpanSized<const Material> materials() const { 
-    return materials_;
   }
+
+  SpanSized<const TriangleData> triangle_data() const {
+    return triangles_.template get<TriangleT::Data>();
+  }
+
+  SpanSized<const Material> materials() const { return materials_; }
 
   SpanSized<const EmissiveCluster> emissive_clusters() const {
     return emissive_clusters_;
@@ -76,7 +77,7 @@ private:
   enum class MeshT {
     End,
     AABB,
-    Path, // used as unique identifier
+    Path,               // used as unique identifier
     EmissiveClusterEnd, // used as unique identifier
   };
 

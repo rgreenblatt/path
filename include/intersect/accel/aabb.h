@@ -2,7 +2,9 @@
 
 #include "lib/cuda/utils.h"
 #include "lib/optional.h"
+#include "lib/utils.h"
 
+#include <Eigen/Core>
 #include <Eigen/Geometry>
 
 #include <iostream>
@@ -13,12 +15,8 @@ inline std::tuple<Eigen::Vector3f, Eigen::Vector3f>
 get_transformed_bounds(const Eigen::Affine3f &transform,
                        const Eigen::Vector3f &min_bound,
                        const Eigen::Vector3f &max_bound) {
-  Eigen::Vector3f min_transformed_bound(std::numeric_limits<float>::max(),
-                                        std::numeric_limits<float>::max(),
-                                        std::numeric_limits<float>::max());
-  Eigen::Vector3f max_transformed_bound(std::numeric_limits<float>::lowest(),
-                                        std::numeric_limits<float>::lowest(),
-                                        std::numeric_limits<float>::lowest());
+  auto min_transformed_bound = max_eigen_vec();
+  auto max_transformed_bound = min_eigen_vec();
   for (auto x_is_min : {false, true}) {
     for (auto y_is_min : {false, true}) {
       for (auto z_is_min : {false, true}) {
