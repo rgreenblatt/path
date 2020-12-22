@@ -67,9 +67,9 @@ private:
 };
 
 template <ExecutionModel exec>
-struct KDTreeAccel : BoolWrapper<BoundsOnlyAccel<KDTree<exec>, Settings>> {};
+struct IsAccel : BoolWrapper<BoundsOnlyAccel<KDTree<exec>, Settings>> {};
 
-static_assert(PredicateForAllValues<ExecutionModel>::value<KDTreeAccel>);
+static_assert(PredicateForAllValues<ExecutionModel>::value<IsAccel>);
 } // namespace kdtree
 } // namespace accel
 } // namespace intersect

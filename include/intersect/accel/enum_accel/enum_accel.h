@@ -20,11 +20,10 @@ struct EnumAccel
                       dir_tree::DirTree<execution_model>> {};
 
 template <AccelType type, ExecutionModel exec>
-struct EnumAccelValid
+struct IsAccel
     : BoolWrapper<BoundsOnlyAccel<EnumAccel<type, exec>, Settings<type>>> {};
 
-static_assert(
-    PredicateForAllValues<AccelType, ExecutionModel>::value<EnumAccelValid>);
+static_assert(PredicateForAllValues<AccelType, ExecutionModel>::value<IsAccel>);
 } // namespace enum_accel
 } // namespace accel
 } // namespace intersect

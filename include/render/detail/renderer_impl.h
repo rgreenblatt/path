@@ -9,11 +9,9 @@
 #include "render/detail/light_sampler.h"
 #include "render/detail/term_prob.h"
 #include "render/settings.h"
-#include "rng/halton.h"
+#include "rng/enum_rng/enum_rng.h"
 // TODO: generalize...
 #include "intersectable_scene/flat_triangle/flat_triangle.h"
-#include "rng/sobel.h"
-#include "rng/uniform.h"
 #include "scene/scene.h"
 
 #include <map>
@@ -61,9 +59,12 @@ private:
 
   OnePerInstance<TermProbType, TermProbT> term_probs_;
 
-  template <rng::RngType type> using Rng = rng::RngT<type, execution_model>;
+  using RngType = rng::enum_rng::RngType;
 
-  OnePerInstance<rng::RngType, Rng> rngs_;
+  template <RngType type>
+  using Rng = rng::enum_rng::EnumRng<type, execution_model>;
+
+  OnePerInstance<RngType, Rng> rngs_;
 
   ThrustData<execution_model> thrust_data_;
 

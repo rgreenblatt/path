@@ -3,8 +3,10 @@
 #include "execution_model/execution_model_vector_type.h"
 #include "lib/cuda/curand_utils.h"
 #include "lib/span.h"
+#include "meta/predicate_for_all_values.h"
 #include "rng/rng.h"
 #include "rng/rng_from_sequence_gen.h"
+#include "rng/sobel/settings.h"
 
 #include <curand.h>
 #include <curand_kernel.h>
@@ -12,7 +14,9 @@
 #include <iostream>
 
 namespace rng {
-namespace sobel_detail {
+namespace sobel {
+namespace detail {
+// TODO: consider impl to impl file...
 template <ExecutionModel execution_model> struct SobelSequenceGen {
   Span<const float> operator()(unsigned dimension_bound, unsigned count) {
     if constexpr (execution_model == ExecutionModel::CPU) {
@@ -82,8 +86,6 @@ template <ExecutionModel execution_model> struct SobelSequenceGen {
     }
   }
 
-  using Settings = rng::RngSettings<RngType::Sobel>;
-
   void init(const Settings &) {}
 
 private:
@@ -91,15 +93,17 @@ private:
   ExecVector<execution_model, unsigned long long> scramble_constants_32_;
   ExecVector<execution_model, float> vals_;
 };
-} // namespace sobel_detail
+} // namespace detail
 
-template <ExecutionModel execution_model>
-struct RngImpl<RngType::Sobel, execution_model>
-    : RngFromSequenceGen<execution_model, sobel_detail::SobelSequenceGen> {
-  using Ref = typename RngFromSequenceGen<execution_model,
-                                          sobel_detail::SobelSequenceGen>::Ref;
-};
+template <ExecutionModel exec>
+using Sobel = RngFromSequenceGen<detail::SobelSequenceGen<exec>, Settings>;
 
-static_assert(Rng<RngType::Sobel, ExecutionModel::GPU>);
-static_assert(Rng<RngType::Sobel, ExecutionModel::CPU>);
+static_assert(Rng<Sobel<ExecutionModel::GPU>, Settings>);
+static_assert(Rng<Sobel<ExecutionModel::CPU>, Settings>);
+
+template <ExecutionModel exec>
+struct IsRng : BoolWrapper<Rng<Sobel<exec>, Settings>> {};
+
+static_assert(PredicateForAllValues<ExecutionModel>::value<IsRng>);
+} // namespace sobel
 } // namespace rng

@@ -31,10 +31,9 @@ template <ExecutionModel execution_model> struct LoopAll {
 };
 
 template <ExecutionModel exec>
-struct LoopAllIsAccel : BoolWrapper<BoundsOnlyAccel<LoopAll<exec>, Settings>> {
-};
+struct IsAccel : BoolWrapper<BoundsOnlyAccel<LoopAll<exec>, Settings>> {};
 
-static_assert(PredicateForAllValues<ExecutionModel>::value<LoopAllIsAccel>);
+static_assert(PredicateForAllValues<ExecutionModel>::value<IsAccel>);
 } // namespace loop_all
 } // namespace accel
 } // namespace intersect

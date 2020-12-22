@@ -1,26 +1,22 @@
 #pragma once
 
-#include "execution_model/execution_model_vector_type.h"
+#include "lib/settings.h"
 #include "lib/span.h"
 #include "rng/rng.h"
 
 namespace rng {
-template <typename SG>
-concept SequenceGen = requires(SG &state, unsigned dimension, unsigned count) {
+template <typename SG, typename S>
+concept SequenceGen = requires(SG &state, unsigned dimension, unsigned count,
+                               const S &settings) {
+  requires Setting<S>;
   { state(dimension, count) }
   ->std::same_as<Span<const float>>;
 
-  typename SG::Settings;
-  requires requires(const typename SG::Settings &settings) {
-    { state.init(settings) }
-    ->std::same_as<void>;
-  };
+  state.init(settings);
 };
 
-template <ExecutionModel execution_model, template <ExecutionModel> class SGE>
-requires SequenceGen<SGE<execution_model>> struct RngFromSequenceGen {
-  using SG = SGE<execution_model>;
-
+template <typename SG, Setting S>
+requires SequenceGen<SG, S> struct RngFromSequenceGen {
   struct Ref {
     struct State {
       HOST_DEVICE State() = default;
@@ -76,8 +72,8 @@ requires SequenceGen<SGE<execution_model>> struct RngFromSequenceGen {
   RngFromSequenceGen() {}
 
   // Are x_dim and y_dim actually unimportant???
-  Ref gen(const typename SG::Settings &settings, unsigned samples_per, unsigned,
-          unsigned, unsigned max_sample_size) {
+  Ref gen(const S &settings, unsigned samples_per, unsigned, unsigned,
+          unsigned max_sample_size) {
     gen_.init(settings);
     unsigned dimension_bound = max_sample_size;
     unsigned next_vals = 4;

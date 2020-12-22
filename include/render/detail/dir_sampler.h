@@ -6,7 +6,6 @@
 #include "material/material.h"
 #include "render/dir_sampler.h"
 #include "rng/rng.h"
-#include "rng/test_rng_state_type.h"
 
 #include <Eigen/Core>
 
@@ -21,7 +20,7 @@ concept DirSamplerRef = requires(const V &dir_sampler,
                                  const material::Material &material,
                                  const Eigen::Vector3f &incoming_dir,
                                  const Eigen::Vector3f &normal,
-                                 rng::DummyRngState &rng) {
+                                 rng::MockRngState &rng) {
   { dir_sampler(position, material, incoming_dir, normal, rng) }
   ->std::common_with<DirSample>;
 };

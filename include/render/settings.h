@@ -9,14 +9,15 @@
 #include "render/general_settings.h"
 #include "render/light_sampler.h"
 #include "render/term_prob.h"
-#include "rng/rng.h"
+#include "rng/enum_rng/rng_type.h"
+#include "rng/enum_rng/settings.h"
 
 #include <tuple>
 
 namespace render {
 using CompileTimeSettingsFull =
     std::tuple<intersect::accel::enum_accel::AccelType, LightSamplerType,
-               DirSamplerType, TermProbType, rng::RngType>;
+               DirSamplerType, TermProbType, rng::enum_rng::RngType>;
 
 struct CompileTimeSettingsSubset : public CompileTimeSettingsFull {
   using CompileTimeSettingsFull::CompileTimeSettingsFull;
@@ -26,28 +27,26 @@ struct CompileTimeSettingsSubset : public CompileTimeSettingsFull {
 template <> struct AllValuesImpl<render::CompileTimeSettingsSubset> {
 private:
   using AccelType = intersect::accel::enum_accel::AccelType;
-  using RngType = rng::RngType;
+  using RngType = rng::enum_rng::RngType;
   using LightSamplerType = render::LightSamplerType;
   using DirSamplerType = render::DirSamplerType;
   using TermProbType = render::TermProbType;
 
 public:
   // compile times don't change much from small constant values to 1...
-  static constexpr std::array<render::CompileTimeSettingsSubset, 6> values = {{
+  static constexpr std::array<render::CompileTimeSettingsSubset, 4> values = {{
       {AccelType::KDTree, LightSamplerType::RandomTriangle,
        DirSamplerType::BRDF, TermProbType::MultiplierFunc,
-       rng::RngType::Uniform},
-      {AccelType::KDTree, LightSamplerType::NoLightSampling,
+       rng::enum_rng::RngType::Uniform},
+      {AccelType::KDTree, LightSamplerType::RandomTriangle,
+       DirSamplerType::BRDF, TermProbType::NIters,
+       rng::enum_rng::RngType::Uniform},
+      {AccelType::KDTree, LightSamplerType::RandomTriangle,
        DirSamplerType::BRDF, TermProbType::MultiplierFunc,
-       rng::RngType::Uniform},
+       rng::enum_rng::RngType::Sobel},
       {AccelType::KDTree, LightSamplerType::RandomTriangle,
-       DirSamplerType::BRDF, TermProbType::Constant, rng::RngType::Uniform},
-      {AccelType::KDTree, LightSamplerType::NoLightSampling,
-       DirSamplerType::BRDF, TermProbType::Constant, rng::RngType::Uniform},
-      {AccelType::KDTree, LightSamplerType::RandomTriangle,
-       DirSamplerType::BRDF, TermProbType::NIters, rng::RngType::Uniform},
-      {AccelType::KDTree, LightSamplerType::NoLightSampling,
-       DirSamplerType::BRDF, TermProbType::NIters, rng::RngType::Uniform},
+       DirSamplerType::BRDF, TermProbType::NIters,
+       rng::enum_rng::RngType::Sobel},
   }};
 };
 
@@ -88,7 +87,7 @@ namespace render {
 class CompileTimeSettings {
 public:
   using AccelType = intersect::accel::enum_accel::AccelType;
-  using RngType = rng::RngType;
+  using RngType = rng::enum_rng::RngType;
   using T = CompileTimeSettingsSubset;
 
   constexpr CompileTimeSettings(const T &v) : values_(v) {}
@@ -129,12 +128,10 @@ private:
 struct Settings {
 private:
   using AccelType = intersect::accel::enum_accel::AccelType;
-  using RngType = rng::RngType;
+  using RngType = rng::enum_rng::RngType;
 
-  template <AccelType type>
-  using AccelSettings = typename intersect::accel::enum_accel::Settings<type>;
-
-  using AllAccelSettings = OnePerInstance<AccelType, AccelSettings>;
+  using AllAccelSettings =
+      OnePerInstance<AccelType, intersect::accel::enum_accel::Settings>;
 
   using AllLightSamplerSettings =
       OnePerInstance<LightSamplerType, LightSamplerSettings>;
@@ -144,7 +141,7 @@ private:
 
   using AllTermProbSettings = OnePerInstance<TermProbType, TermProbSettings>;
 
-  using AllRngSettings = OnePerInstance<RngType, rng::RngSettings>;
+  using AllRngSettings = OnePerInstance<RngType, rng::enum_rng::Settings>;
 
   const CompileTimeSettings default_compile_time = {
       AccelType::KDTree, LightSamplerType::RandomTriangle, DirSamplerType::BRDF,

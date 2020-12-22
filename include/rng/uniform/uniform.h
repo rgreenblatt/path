@@ -1,14 +1,16 @@
 #pragma once
 
+#include "meta/predicate_for_all_values.h"
 #include "rng/rng.h"
+#include "rng/uniform/settings.h"
 
 #include <curand_kernel.h>
 
 #include <random>
 
 namespace rng {
-template <ExecutionModel execution_model>
-struct RngImpl<RngType::Uniform, execution_model> {
+namespace uniform {
+template <ExecutionModel execution_model> struct Uniform {
   struct Ref {
     struct State {
       HOST_DEVICE State() = default;
@@ -60,12 +62,18 @@ struct RngImpl<RngType::Uniform, execution_model> {
     unsigned y_dim_;
   };
 
-  Ref gen(const RngSettings<RngType::Uniform> &, unsigned samples_per,
-          unsigned x_dim, unsigned y_dim, unsigned) {
+  Ref gen(const Settings &, unsigned samples_per, unsigned x_dim,
+          unsigned y_dim, unsigned) {
     return Ref(samples_per, x_dim, y_dim);
   }
 };
 
-static_assert(Rng<RngType::Uniform, ExecutionModel::GPU>);
-static_assert(Rng<RngType::Uniform, ExecutionModel::CPU>);
+static_assert(Rng<Uniform<ExecutionModel::GPU>, Settings>);
+static_assert(Rng<Uniform<ExecutionModel::CPU>, Settings>);
+
+template <ExecutionModel exec>
+struct IsRng : BoolWrapper<Rng<Uniform<exec>, Settings>> {};
+
+static_assert(PredicateForAllValues<ExecutionModel>::value<IsRng>);
+} // namespace uniform
 } // namespace rng

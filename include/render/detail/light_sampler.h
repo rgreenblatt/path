@@ -11,7 +11,6 @@
 #include "material/material.h"
 #include "render/light_sampler.h"
 #include "rng/rng.h"
-#include "rng/test_rng_state_type.h"
 #include "scene/emissive_cluster.h"
 
 #include <Eigen/Core>
@@ -39,7 +38,7 @@ concept LightSamplerRef = requires(const V &light_sampler,
                                    const material::Material &material,
                                    const Eigen::Vector3f &incoming_dir,
                                    const Eigen::Vector3f &normal,
-                                   rng::DummyRngState &rng) {
+                                   rng::MockRngState &rng) {
   V::max_sample_size;
   V::performs_samples;
 

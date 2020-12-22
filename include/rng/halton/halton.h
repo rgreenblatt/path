@@ -1,11 +1,15 @@
 #pragma once
 
+#include "execution_model/execution_model_vector_type.h"
 #include "execution_model/thrust_data.h"
 #include "lib/span.h"
+#include "meta/predicate_for_all_values.h"
+#include "rng/halton/settings.h"
 #include "rng/rng_from_sequence_gen.h"
 
 namespace rng {
-namespace halton_detail {
+namespace halton {
+namespace detail {
 constexpr std::array<unsigned, 512> primes = {
     1,    2,    3,    5,    7,    11,   13,   17,   19,   23,   29,   31,
     37,   41,   43,   47,   53,   59,   61,   67,   71,   73,   79,   83,
@@ -126,8 +130,6 @@ template <ExecutionModel execution_model> struct HaltonSequenceGen {
     return vals_;
   }
 
-  using Settings = rng::RngSettings<RngType::Halton>;
-
   void init(const Settings &) {}
 
 private:
@@ -137,16 +139,17 @@ private:
   ExecVector<execution_model, unsigned> u_working_mem_;
   ExecVector<execution_model, float> vals_;
 };
-} // namespace halton_detail
+} // namespace detail
 
-template <ExecutionModel execution_model>
-struct RngImpl<RngType::Halton, execution_model>
-    : RngFromSequenceGen<execution_model, halton_detail::HaltonSequenceGen> {
-  using Ref =
-      typename RngFromSequenceGen<execution_model,
-                                  halton_detail::HaltonSequenceGen>::Ref;
-};
+template <ExecutionModel exec>
+using Halton = RngFromSequenceGen<detail::HaltonSequenceGen<exec>, Settings>;
 
-static_assert(Rng<RngType::Halton, ExecutionModel::GPU>);
-static_assert(Rng<RngType::Halton, ExecutionModel::CPU>);
+static_assert(Rng<Halton<ExecutionModel::GPU>, Settings>);
+static_assert(Rng<Halton<ExecutionModel::CPU>, Settings>);
+
+template <ExecutionModel exec>
+struct IsRng : BoolWrapper<Rng<Halton<exec>, Settings>> {};
+
+static_assert(PredicateForAllValues<ExecutionModel>::value<IsRng>);
+} // namespace halton
 } // namespace rng

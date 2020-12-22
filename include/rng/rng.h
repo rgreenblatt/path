@@ -8,58 +8,47 @@
 #include <concepts>
 
 namespace rng {
-enum class RngType { Uniform, Halton, Sobel };
-
-template <RngType type, ExecutionModel execution_model> struct RngImpl;
-
-template <RngType type> struct RngSettings;
-
-template <> struct RngSettings<RngType::Uniform> : EmptySettings {};
-template <> struct RngSettings<RngType::Sobel> : EmptySettings {};
-template <> struct RngSettings<RngType::Halton> : EmptySettings {};
-
-static_assert(Setting<RngSettings<RngType::Uniform>>);
-static_assert(Setting<RngSettings<RngType::Halton>>);
-
-template <typename State> concept RngState = requires(State &state) {
-  std::default_initializable<State>;
+template <typename T> concept RngState = requires(T &state) {
+  requires std::default_initializable<T>;
   { state.next() }
   ->std::same_as<float>;
 };
 
-template <typename Ref>
-concept RngRef = requires(const Ref &ref, unsigned sample_idx, unsigned x,
+template <typename T>
+concept RngRef = requires(const T &ref, unsigned sample_idx, unsigned x,
                           unsigned y) {
-  typename Ref::State;
-  RngState<typename Ref::State>;
   { ref.get_generator(x, y, sample_idx) }
-  ->std::common_with<typename Ref::State>;
+  ->RngState;
 };
 
-template <RngType type, ExecutionModel execution_model> concept Rng = requires {
-  typename RngImpl<type, execution_model>;
-  typename RngImpl<type, execution_model>::Ref;
-  RngRef<typename RngImpl<type, execution_model>::Ref>;
-  typename RngImpl<type, execution_model>::Ref::State;
-  RngState<typename RngImpl<type, execution_model>::Ref::State>;
-  typename RngSettings<type>;
-  typename RngSettings<type>;
-
-  // generation
-  requires requires(RngImpl<type, execution_model> & rng,
-                    const RngSettings<type> &settings, unsigned samples_per,
+template <typename T, typename S> concept Rng = requires {
+  requires Setting<S>;
+  requires requires(T & rng, const S &settings, unsigned samples_per,
                     unsigned x_dim, unsigned y_dim,
                     unsigned max_draws_per_sample) {
     { rng.gen(settings, samples_per, x_dim, y_dim, max_draws_per_sample) }
-    ->std::common_with<typename RngImpl<type, execution_model>::Ref>;
+    ->RngRef;
   };
 };
 
-template <RngType type, ExecutionModel execution_model>
-requires Rng<type, execution_model> struct RngT
-    : RngImpl<type, execution_model> {
-  HOST_DEVICE RngT() = default;
+struct MockRngSettings : EmptySettings {};
 
-  using RngImpl<type, execution_model>::RngImpl;
+struct MockRng {
+  struct Ref {
+    struct State {
+      float next() { return 0.f; }
+    };
+
+    State get_generator(unsigned, unsigned, unsigned) const { return {}; }
+  };
+
+  Ref gen(const MockRngSettings &, unsigned, unsigned, unsigned, unsigned) {
+    return {};
+  }
 };
+
+using MockRngRef = MockRng::Ref;
+using MockRngState = MockRng::Ref::State;
+
+static_assert(Rng<MockRng, MockRngSettings>);
 } // namespace rng

@@ -1,9 +1,7 @@
 #pragma once
 
 #include "render/dir_sample.h"
-// TODO: refactor rng out somehow...
 #include "rng/rng.h"
-#include "rng/test_rng_state_type.h"
 
 #include <Eigen/Core>
 
@@ -36,21 +34,21 @@ template <typename T> concept BRDF = requires {
   || !T::has_non_delta_samples;
 
   requires requires(const T &brdf, const Eigen::Vector3f &incoming_dir,
-                    const Eigen::Vector3f &normal, rng::DummyRngState &r) {
+                    const Eigen::Vector3f &normal, rng::MockRngState &r) {
     { brdf.sample(incoming_dir, normal, r) }
     ->std::common_with<render::DirSample>;
   }
   || !T::has_non_delta_samples;
 
   requires requires(const T &brdf, const Eigen::Vector3f &incoming_dir,
-                    const Eigen::Vector3f &normal, rng::DummyRngState &r) {
+                    const Eigen::Vector3f &normal, rng::MockRngState &r) {
     { brdf.delta_sample(incoming_dir, normal, r) }
     ->std::common_with<DeltaSample>;
   }
   || !T::has_delta_samples;
 
   requires requires(const T &brdf, const Eigen::Vector3f &incoming_dir,
-                    const Eigen::Vector3f &normal, rng::DummyRngState &r) {
+                    const Eigen::Vector3f &normal, rng::MockRngState &r) {
     { brdf.prob_delta(incoming_dir, normal, r) }
     ->std::common_with<float>;
   }
