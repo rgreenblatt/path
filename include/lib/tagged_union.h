@@ -52,7 +52,7 @@ struct access {
     if constexpr (idx == 0) {
       return v.first_;
     } else {
-      return get<idx - 1>(std::forward<UnionType>(v));
+      return get<idx - 1>(v.rest_);
     }
   }
 };
