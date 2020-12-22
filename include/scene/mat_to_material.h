@@ -62,7 +62,7 @@ material::Material mat_to_material(const tinyobj::material_t &material) {
     }
 
     // ideal specular
-    return Material{EnumBRDF::create<BRDFType::Diffuse>({{specular}}),
+    return Material{EnumBRDF::create<BRDFType::Mirror>({{specular}}),
                     emission};
   } else if (specular_non_zero /*&& !diffuse_non_zero*/) {
     return Material{EnumBRDF::create<BRDFType::Glossy>({{specular, shininess}}),
