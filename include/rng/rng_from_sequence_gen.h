@@ -16,7 +16,7 @@ constexpr unsigned fnv_hash(unsigned in) {
   constexpr unsigned offset_basis = 2166136261;
   unsigned out_hash = offset_basis;
   for (unsigned i = 0; i < 4; ++i) {
-    out_hash ^= (in >> (8*i)) & 0xff;
+    out_hash ^= (in >> (8 * i)) & 0xff;
     out_hash *= prime;
   }
   return out_hash;
@@ -74,7 +74,7 @@ requires SequenceGen<SG, S> struct RngFromSequenceGen {
       // the hash is used to make different locations look roughly uncorrelated.
       // Note that they may be correlated in practice (depending on the
       // sequence).
-      // For path tracing this make pixels look uncorrelated. 
+      // For path tracing this make pixels look uncorrelated.
       return State(detail::fnv_hash(location) % dimension_bound_, sample_idx,
                    this);
     }
