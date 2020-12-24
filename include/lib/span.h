@@ -72,6 +72,10 @@ public:
     return {ptr_ + start, end - start};
   }
 
+  constexpr Span<T, false> as_unsized() const { return *this; }
+
+  constexpr Span<const T, false> as_const() const { return *this; }
+
 private:
   T *ptr_;
 

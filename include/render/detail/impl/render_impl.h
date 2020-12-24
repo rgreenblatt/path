@@ -62,13 +62,12 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
         constexpr auto term_prob_type = compile_time_settings.term_prob_type();
         constexpr auto rng_type = compile_time_settings.rng_type();
 
-        // FIXME
         auto light_sampler =
             light_samplers_.template get<light_sampler_type>()
-                .template gen<bsdf::UnionBSDF>(
+                .gen(
                     settings.light_sampler.template get<light_sampler_type>(),
                     s.emissive_clusters(), s.emissive_cluster_ends_per_mesh(),
-                    s.materials(), s.transformed_mesh_objects(),
+                    s.materials().as_unsized(), s.transformed_mesh_objects(),
                     s.transformed_mesh_idxs(), s.triangles());
 
         auto dir_sampler = dir_samplers_.template get<dir_sampler_type>().gen(
