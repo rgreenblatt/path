@@ -74,9 +74,7 @@ requires SequenceGen<SG, S> struct RngFromSequenceGen {
       // the hash is used to make different locations look roughly uncorrelated.
       // Note that they may be correlated in practice (depending on the
       // sequence).
-      // For path tracing this make pixels look uncorrelated. Note that
-      // pixels don't need to be uncorrelated for the integration to
-      // be unbiased as each pixel is a separate integration problem.
+      // For path tracing this make pixels look uncorrelated. 
       return State(detail::fnv_hash(location) % dimension_bound_, sample_idx,
                    this);
     }
