@@ -16,7 +16,7 @@ settings:
   term_prob_settings:
     exp: 5
     min_prob: 0.2
-  rng: Sobel
+  rng: Uniform
   rng_settings:
     {}
   general_settings:

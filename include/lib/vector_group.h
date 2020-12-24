@@ -4,7 +4,6 @@
 #include "data_structure/vector.h"
 #include "lib/span.h"
 #include "meta/all_values.h"
-#include "meta/concepts.h"
 #include "meta/get_idx.h"
 
 #include <boost/hana/ext/std/array.hpp>
@@ -62,8 +61,9 @@ public:
     return get<value>();
   }
 
-  // requires all_types_same
-  SpanSized<FirstType> operator[](unsigned i) { return data_[i]; }
+  SpanSized<FirstType> operator[](unsigned i) requires(all_types_same) {
+    return data_[i];
+  }
 
   template <template <typename> class OtherVecT>
   requires(... &&CopyableToVec<VecT<T>, OtherVecT<T>>) void copy_to_other(
@@ -91,6 +91,7 @@ private:
                                       std::array<VecT<FirstType>, sizeof...(T)>,
                                       std::tuple<VecT<T>...>>;
 
+  // can this be reduced somehow???
   template <template <typename> class OtherVecT, AllValuesEnumerable OtherE,
             typename... OtherT>
   requires((... && Vector<OtherVecT<OtherT>>)&&(

@@ -14,7 +14,7 @@ struct Ref {
   AABB aabb;
   unsigned size;
 
-  constexpr inline const AABB &bounds() const { return aabb; }
+  constexpr const AABB &bounds() const { return aabb; }
 
   template <Object O>
   HOST_DEVICE inline AccelRet<O> intersect_objects(const intersect::Ray &ray,

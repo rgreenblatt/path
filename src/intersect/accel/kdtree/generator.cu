@@ -11,7 +11,6 @@ template <ExecutionModel execution_model>
 unsigned KDTree<execution_model>::Generator::partition(unsigned start,
                                                        unsigned end,
                                                        uint8_t axis) {
-  // TODO: check start vs end
   float x = bounds_[end].center[axis];
   size_t i = start;
   for (size_t j = start; j <= end - 1; j++) {

@@ -2,12 +2,12 @@
 
 #include "execution_model/execution_model_vector_type.h"
 #include "execution_model/thrust_data.h"
+#include "integrate/dir_sampler/enum_dir_sampler/enum_dir_sampler.h"
+#include "integrate/light_sampler/enum_light_sampler/enum_light_sampler.h"
+#include "integrate/term_prob/enum_term_prob/enum_term_prob.h"
 #include "intersect/accel/enum_accel/enum_accel.h"
 #include "lib/bgra.h"
 #include "meta/one_per_instance.h"
-#include "render/detail/dir_sampler.h"
-#include "render/detail/light_sampler.h"
-#include "render/detail/term_prob.h"
 #include "render/settings.h"
 #include "rng/enum_rng/enum_rng.h"
 // TODO: generalize...
@@ -19,6 +19,12 @@
 
 namespace render {
 namespace detail {
+using enum_accel::EnumAccel;
+using enum_dir_sampler::EnumDirSampler;
+using enum_light_sampler::EnumLightSampler;
+using enum_term_prob::EnumTermProb;
+using rng::enum_rng::EnumRng;
+
 template <ExecutionModel execution_model> class RendererImpl {
 public:
   void render(Span<BGRA> pixels, const scene::Scene &s, unsigned &samples_per,
@@ -33,29 +39,25 @@ private:
 
   // TODO: consider eventually freeing...
 
-  using AccelType = intersect::accel::enum_accel::AccelType;
-
   template <AccelType type>
   using IntersectableSceneGenerator =
       intersectable_scene::flat_triangle::Generator<
-          execution_model, intersect::accel::enum_accel::Settings<type>,
-          intersect::accel::enum_accel::EnumAccel<type, execution_model>>;
+          execution_model, enum_accel::Settings<type>,
+          EnumAccel<type, execution_model>>;
 
   OnePerInstance<AccelType, IntersectableSceneGenerator>
       stored_scene_generators_;
 
   template <LightSamplerType type>
-  using LightSamplerT = LightSamplerT<type, execution_model>;
+  using LightSamplerT = EnumLightSampler<type, execution_model>;
 
   OnePerInstance<LightSamplerType, LightSamplerT> light_samplers_;
 
-  template <DirSamplerType type>
-  using DirSamplerT = DirSamplerT<type, execution_model>;
+  template <DirSamplerType type> using DirSamplerT = EnumDirSampler<type>;
 
   OnePerInstance<DirSamplerType, DirSamplerT> dir_samplers_;
 
-  template <TermProbType type>
-  using TermProbT = TermProbT<type, execution_model>;
+  template <TermProbType type> using TermProbT = EnumTermProb<type>;
 
   OnePerInstance<TermProbType, TermProbT> term_probs_;
 
@@ -69,8 +71,6 @@ private:
   ThrustData<execution_model> thrust_data_;
 
   ExecVecT<Eigen::Array3f> intensities_;
-  ExecVecT<scene::TriangleData> triangle_data_;
-  ExecVecT<material::Material> materials_;
   ExecVecT<BGRA> bgra_;
 };
 } // namespace detail

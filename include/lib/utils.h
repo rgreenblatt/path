@@ -4,7 +4,9 @@
 
 #include <Eigen/Core>
 
-constexpr inline unsigned ceil_divide(unsigned l, unsigned r) {
+#include <limits>
+
+constexpr unsigned ceil_divide(unsigned l, unsigned r) {
   return (l + r - 1) / r;
 };
 

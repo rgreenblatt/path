@@ -7,7 +7,7 @@
 #include "intersect/triangle.h"
 #include "intersectable_scene/flat_triangle/settings.h"
 #include "intersectable_scene/intersectable_scene.h"
-#include "intersectable_scene/triangle_generator.h"
+#include "intersectable_scene/scene_generator.h"
 #include "lib/cuda/utils.h"
 #include "lib/group.h"
 #include "lib/vector_group.h"
@@ -16,11 +16,14 @@
 
 namespace intersectable_scene {
 namespace flat_triangle {
+namespace detail {
 template <intersect::accel::AccelRef<intersect::Triangle> Accel> struct Ref {
+  using B = scene::Material::BSDFT;
+
   Accel accel;
   Span<const intersect::Triangle> triangles;
   Span<const scene::TriangleData> triangle_data;
-  Span<const material::Material> materials;
+  Span<const scene::Material> materials;
 
   HOST_DEVICE inline intersect::accel::AABB bounds() const {
     return accel.bounds();
@@ -43,7 +46,7 @@ template <intersect::accel::AccelRef<intersect::Triangle> Accel> struct Ref {
         intersection.intersection_point(ray), triangles[triangle_idx]);
   }
 
-  HOST_DEVICE inline const material::Material &
+  HOST_DEVICE inline const scene::Material &
   get_material(const Intersection &intersection) const {
     auto [triangle_idx, triangle_info] = intersection.info;
 
@@ -51,12 +54,11 @@ template <intersect::accel::AccelRef<intersect::Triangle> Accel> struct Ref {
   }
 };
 
-namespace detail {
 enum class TriItem {
   Triangle,
   Data,
 };
-}
+} // namespace detail
 
 template <
     ExecutionModel exec, Setting AccelSettings,
@@ -95,7 +97,7 @@ public:
         host_triangle_values_.template get<TriItem::Triangle>(),
         scene.overall_aabb());
 
-    return Ref<std::decay_t<decltype(accel_ref)>>{
+    return detail::Ref<std::decay_t<decltype(accel_ref)>>{
         accel_ref, triangle_values_.template get<TriItem::Triangle>(),
         triangle_values_.template get<TriItem::Data>(), materials_};
   }
@@ -111,8 +113,18 @@ private:
 
   VectorGroup<HostVector> host_triangle_values_;
   VectorGroup<ExecVecT> triangle_values_;
-  ExecVecT<material::Material> materials_;
+  ExecVecT<scene::Material> materials_;
   Accel accel_;
 };
+
+// TODO: consider implementing later...
+#if 0
+template <ExecutionModel exec>
+struct IsSceneGenerator
+    : BoolWrapper<SceneGenerator<Generator<exec, MockAccelSettings, MockAccel>,
+                                 Settings>> {};
+
+static_assert(PredicateForAllValues<ExecutionModel>::value<IsSceneGenerator>);
+#endif
 } // namespace flat_triangle
 } // namespace intersectable_scene

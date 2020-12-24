@@ -6,6 +6,8 @@
 #include "intersect/accel/kdtree/node.h"
 #include "intersect/accel/kdtree/settings.h"
 
+#include <memory>
+
 namespace intersect {
 namespace accel {
 namespace kdtree {
@@ -21,7 +23,7 @@ public:
       : nodes_(nodes), local_idx_to_global_idx_(local_idx_to_global_idx),
         aabb_(aabb) {}
 
-  constexpr inline const AABB &bounds() const { return aabb_; }
+  constexpr const AABB &bounds() const { return aabb_; }
 
   template <Object O>
   HOST_DEVICE inline AccelRet<O> intersect_objects(const intersect::Ray &ray,

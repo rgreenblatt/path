@@ -2,8 +2,6 @@
 
 #include "meta/all_values.h"
 
-#include <iostream>
-
 template <AllValuesEnumerable T>
 static constexpr std::size_t get_idx(const T &value) {
   constexpr auto values = AllValues<T>;

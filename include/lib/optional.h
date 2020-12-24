@@ -1,8 +1,9 @@
 #pragma once
 
-#include "meta/concepts.h"
+#include "meta/specialization_of.h"
 
 #include <algorithm>
+#include <concepts>
 #include <thrust/optional.h>
 
 template <typename T> using Optional = thrust::optional<T>;

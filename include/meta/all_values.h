@@ -1,8 +1,8 @@
 #pragma once
 
-#include "meta/concepts.h"
 #include "meta/enum.h"
 #include "meta/sequential_look_up.h"
+#include "meta/std_array_specialization.h"
 #include "meta/to_array.h"
 
 #include <boost/hana/cartesian_product.hpp>

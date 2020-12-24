@@ -9,9 +9,11 @@ struct GeneralSettings {
   bool back_cull_emission = true;
 
   template <class Archive> void serialize(Archive &archive) {
-    archive(CEREAL_NVP(computation_settings));
-    archive(CEREAL_NVP(back_cull_emission));
+    archive(NVP(computation_settings));
+    archive(NVP(back_cull_emission));
   }
+
+  constexpr bool operator==(const GeneralSettings &) const = default;
 };
 
 static_assert(Setting<GeneralSettings>);

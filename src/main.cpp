@@ -6,6 +6,7 @@
 
 #include <QImage>
 #include <boost/lexical_cast.hpp>
+#include <cereal-yaml/archives/yaml.hpp>
 #include <docopt.h>
 #include <magic_enum.hpp>
 
@@ -115,7 +116,7 @@ int main(int argc, char *argv[]) {
   std::ostringstream os;
   {
     cereal::YAMLOutputArchive archive(os);
-    archive(CEREAL_NVP(settings));
+    archive(NVP(settings));
   }
   std::cout << os.str() << std::endl;
 

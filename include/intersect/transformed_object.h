@@ -1,10 +1,7 @@
 #pragma once
 
-#include "intersect/accel/aabb.h"
-#include "intersect/impl/ray_impl.h"
 #include "intersect/object.h"
 #include "intersect/ray.h"
-#include "intersect/triangle.h"
 #include "lib/span.h"
 
 #include <Eigen/Geometry>

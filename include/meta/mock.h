@@ -1,0 +1,48 @@
+#pragma once
+
+#include <compare>
+#include <concepts>
+
+struct MockNoRequirements {
+  MockNoRequirements() = delete;
+  MockNoRequirements(const MockNoRequirements &) = delete;
+  MockNoRequirements(MockNoRequirements &&) = delete;
+  ~MockNoRequirements() = delete;
+};
+
+struct MockMovable {
+  MockMovable() = delete;
+  MockMovable(const MockMovable &) = delete;
+  MockMovable(MockMovable &&) = default;
+  MockMovable &operator=(MockMovable &&) = default;
+  ~MockMovable() = default;
+};
+
+struct MockDefaultInitMovable {
+  MockDefaultInitMovable() = default;
+  MockDefaultInitMovable(const MockDefaultInitMovable &) = delete;
+  MockDefaultInitMovable(MockDefaultInitMovable &&) = default;
+  MockDefaultInitMovable &operator=(MockDefaultInitMovable &&) = default;
+  ~MockDefaultInitMovable() = default;
+};
+
+struct MockCopyable {
+  MockCopyable() = delete;
+};
+
+struct MockSemiregular {};
+
+struct MockRegular {
+  constexpr bool operator==(const MockRegular &) const = default;
+};
+
+struct MockTotallyOrdered {
+  constexpr auto operator<=>(const MockTotallyOrdered &) const = default;
+};
+
+static_assert(std::movable<MockMovable>);
+static_assert(!std::copyable<MockMovable>);
+static_assert(std::copyable<MockCopyable>);
+static_assert(!std::semiregular<MockCopyable>);
+static_assert(std::regular<MockRegular>);
+static_assert(std::totally_ordered<MockTotallyOrdered>);

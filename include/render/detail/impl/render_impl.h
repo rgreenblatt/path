@@ -1,12 +1,11 @@
 #pragma once
 
 #include "intersect/accel/enum_accel/enum_accel_impl.h"
-#include "intersect/impl/ray_impl.h"
 #include "intersect/impl/triangle_impl.h"
 #include "lib/group.h"
 #include "meta/dispatch_value.h"
 #include "render/detail/divide_work.h"
-#include "render/detail/intensities.h"
+#include "render/detail/integrate_image.h"
 #include "render/detail/renderer_impl.h"
 #include "render/detail/tone_map.h"
 
@@ -27,24 +26,9 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
                   (division.x_block_size * division.y_block_size);
   }
 
-  Span<const scene::TriangleData> triangle_data;
-  Span<const material::Material> materials;
   Span<BGRA> output_pixels;
 
   if constexpr (execution_model == ExecutionModel::GPU) {
-    auto inp_t_data = s.triangle_data();
-    auto inp_materials = s.materials();
-
-    triangle_data_.resize(inp_t_data.size());
-    materials_.resize(inp_materials.size());
-
-    thrust::copy(inp_t_data.begin(), inp_t_data.end(), triangle_data_.begin());
-    thrust::copy(inp_materials.begin(), inp_materials.end(),
-                 materials_.begin());
-
-    triangle_data = triangle_data_;
-    materials = materials_;
-
     if (division.num_sample_blocks != 1) {
       intensities_.resize(division.num_sample_blocks * x_dim * y_dim);
     }
@@ -52,8 +36,6 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
     bgra_.resize(x_dim * y_dim);
     output_pixels = bgra_;
   } else {
-    triangle_data = s.triangle_data();
-    materials = s.materials();
     output_pixels = pixels;
   }
 
@@ -80,12 +62,14 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
         constexpr auto term_prob_type = compile_time_settings.term_prob_type();
         constexpr auto rng_type = compile_time_settings.rng_type();
 
+        // FIXME
         auto light_sampler =
-            light_samplers_.template get<light_sampler_type>().gen(
-                settings.light_sampler.template get<light_sampler_type>(),
-                s.emissive_clusters(), s.emissive_cluster_ends_per_mesh(),
-                s.materials(), s.transformed_mesh_objects(),
-                s.transformed_mesh_idxs(), s.triangles());
+            light_samplers_.template get<light_sampler_type>()
+                .template gen<bsdf::UnionBSDF>(
+                    settings.light_sampler.template get<light_sampler_type>(),
+                    s.emissive_clusters(), s.emissive_cluster_ends_per_mesh(),
+                    s.materials(), s.transformed_mesh_objects(),
+                    s.transformed_mesh_idxs(), s.triangles());
 
         auto dir_sampler = dir_samplers_.template get<dir_sampler_type>().gen(
             settings.dir_sampler.template get<dir_sampler_type>());
@@ -100,10 +84,10 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
             settings.rng.template get<rng_type>(), samples_per, x_dim, y_dim,
             max_draws_per_sample);
 
-        intensities(settings.general_settings, show_progress, division,
-                    samples_per, x_dim, y_dim, scene_ref, light_sampler,
-                    dir_sampler, term_prob, rng, output_pixels, intensities_,
-                    s.film_to_world());
+        integrate_image(settings.general_settings, show_progress, division,
+                        samples_per, x_dim, y_dim, scene_ref, light_sampler,
+                        dir_sampler, term_prob, rng, output_pixels,
+                        intensities_, s.film_to_world());
       },
       settings.compile_time.values());
 

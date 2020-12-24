@@ -18,7 +18,7 @@ public:
 
   Ref(const AABB &aabb) : aabb_(aabb) {}
 
-  constexpr inline const AABB &bounds() const { return aabb_; }
+  constexpr const AABB &bounds() const { return aabb_; }
 
   template <Object O>
   HOST_DEVICE inline AccelRet<O> intersect_objects(const intersect::Ray &,

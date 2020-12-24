@@ -1,11 +1,12 @@
 #pragma once
 
 #include "meta/all_values.h"
-#include "meta/concepts.h"
 #include "meta/get_idx.h"
 #include "meta/sequential_look_up.h"
 
-#include <iostream>
+#include <compare>
+#include <tuple>
+#include <utility>
 
 template <AllValuesEnumerable T, template <T> class TypeOver>
 class OnePerInstance {
@@ -22,27 +23,34 @@ public:
   using Items =
       decltype(OnePerInstance::items_helper(std::make_index_sequence<size>{}));
 
-  OnePerInstance(){};
+  constexpr OnePerInstance(){};
 
-  OnePerInstance(const Items &items) : items_(items){};
+  constexpr OnePerInstance(const Items &items) : items_(items){};
 
-  template <T value> const auto &get() const {
+  template <T value> constexpr const auto &get() const {
     return std::get<get_idx(value)>(items_);
   }
 
-  template <T value> auto &get() { return std::get<get_idx(value)>(items_); }
+  template <T value> constexpr auto &get() {
+    return std::get<get_idx(value)>(items_);
+  }
 
   template <T value> using Tag = Tag<T, value>;
 
-  template <T value> const auto &get(Tag<value>) const { return get<value>(); }
+  template <T value> constexpr const auto &get(Tag<value>) const {
+    return get<value>();
+  }
 
-  template <T value> auto &get(Tag<value>) { return get<value>(); }
+  template <T value> constexpr auto &get(Tag<value>) { return get<value>(); }
 
-  template <typename F> auto visit(const F &f, const T &value) {
+  template <typename F> constexpr auto visit(const F &f, const T &value) {
     return sequential_look_up<size>(get_idx(value), [&](auto idx) {
       return f(std::get<decltype(idx)::value>(items_));
     });
   }
+
+  constexpr bool operator==(const OnePerInstance &other) const = default;
+  constexpr auto operator<=>(const OnePerInstance &other) const = default;
 
 private:
   Items items_;

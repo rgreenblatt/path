@@ -1,15 +1,14 @@
 #pragma once
 
-#include "execution_model/execution_model.h"
-#include "lib/cuda/utils.h"
 #include "lib/settings.h"
+#include "meta/mock.h"
 
 #include <array>
 #include <concepts>
 
 namespace rng {
 template <typename T> concept RngState = requires(T &state) {
-  requires std::default_initializable<T>;
+  requires std::semiregular<T>;
   { state.next() }
   ->std::same_as<float>;
 };
@@ -17,6 +16,7 @@ template <typename T> concept RngState = requires(T &state) {
 template <typename T>
 concept RngRef = requires(const T &ref, unsigned sample_idx, unsigned x,
                           unsigned y) {
+  requires std::copyable<T>;
   { ref.get_generator(x, y, sample_idx) }
   ->RngState;
 };
@@ -33,18 +33,16 @@ template <typename T, typename S> concept Rng = requires {
 
 struct MockRngSettings : EmptySettings {};
 
-struct MockRng {
-  struct Ref {
-    struct State {
-      float next() { return 0.f; }
+struct MockRng : MockNoRequirements {
+  struct Ref : MockCopyable {
+    struct State : MockSemiregular {
+      float next();
     };
 
-    State get_generator(unsigned, unsigned, unsigned) const { return {}; }
+    State get_generator(unsigned, unsigned, unsigned) const;
   };
 
-  Ref gen(const MockRngSettings &, unsigned, unsigned, unsigned, unsigned) {
-    return {};
-  }
+  Ref gen(const MockRngSettings &, unsigned, unsigned, unsigned, unsigned);
 };
 
 using MockRngRef = MockRng::Ref;

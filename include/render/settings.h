@@ -1,23 +1,33 @@
 #pragma once
 
-#include "intersect/accel/enum_accel/accel_type.h"
+#include "integrate/dir_sampler/enum_dir_sampler/settings.h"
+#include "integrate/light_sampler/enum_light_sampler/settings.h"
+#include "integrate/term_prob/enum_term_prob/settings.h"
 #include "intersect/accel/enum_accel/settings.h"
 #include "lib/settings.h"
 #include "meta/all_values.h"
 #include "meta/one_per_instance.h"
-#include "render/dir_sampler.h"
 #include "render/general_settings.h"
-#include "render/light_sampler.h"
-#include "render/term_prob.h"
 #include "rng/enum_rng/rng_type.h"
 #include "rng/enum_rng/settings.h"
 
 #include <tuple>
 
 namespace render {
+namespace enum_accel = intersect::accel::enum_accel;
+namespace enum_dir_sampler = integrate::dir_sampler::enum_dir_sampler;
+namespace enum_light_sampler = integrate::light_sampler::enum_light_sampler;
+namespace enum_term_prob = integrate::term_prob::enum_term_prob;
+
+using enum_accel::AccelType;
+using enum_dir_sampler::DirSamplerType;
+using enum_light_sampler::LightSamplerType;
+using enum_term_prob::TermProbType;
+using rng::enum_rng::RngType;
+
 using CompileTimeSettingsFull =
-    std::tuple<intersect::accel::enum_accel::AccelType, LightSamplerType,
-               DirSamplerType, TermProbType, rng::enum_rng::RngType>;
+    std::tuple<AccelType, LightSamplerType, DirSamplerType, TermProbType,
+               RngType>;
 
 struct CompileTimeSettingsSubset : public CompileTimeSettingsFull {
   using CompileTimeSettingsFull::CompileTimeSettingsFull;
@@ -26,11 +36,11 @@ struct CompileTimeSettingsSubset : public CompileTimeSettingsFull {
 
 template <> struct AllValuesImpl<render::CompileTimeSettingsSubset> {
 private:
-  using AccelType = intersect::accel::enum_accel::AccelType;
-  using RngType = rng::enum_rng::RngType;
-  using LightSamplerType = render::LightSamplerType;
+  using AccelType = render::AccelType;
   using DirSamplerType = render::DirSamplerType;
+  using LightSamplerType = render::LightSamplerType;
   using TermProbType = render::TermProbType;
+  using RngType = render::RngType;
 
 public:
   // compile times don't change much from small constant values to 1...
@@ -86,8 +96,6 @@ inline void load_minimal(Archive const &, T &enum_v, const std::string &s) {
 namespace render {
 class CompileTimeSettings {
 public:
-  using AccelType = intersect::accel::enum_accel::AccelType;
-  using RngType = rng::enum_rng::RngType;
   using T = CompileTimeSettingsSubset;
 
   constexpr CompileTimeSettings(const T &v) : values_(v) {}
@@ -121,29 +129,28 @@ public:
 
   constexpr const T &values() const { return values_; }
 
+  constexpr bool operator==(const CompileTimeSettings &other) const = default;
+
 private:
   T values_;
 };
 
 struct Settings {
 private:
-  using AccelType = intersect::accel::enum_accel::AccelType;
-  using RngType = rng::enum_rng::RngType;
-
-  using AllAccelSettings =
-      OnePerInstance<AccelType, intersect::accel::enum_accel::Settings>;
+  using AllAccelSettings = OnePerInstance<AccelType, enum_accel::Settings>;
 
   using AllLightSamplerSettings =
-      OnePerInstance<LightSamplerType, LightSamplerSettings>;
+      OnePerInstance<LightSamplerType, enum_light_sampler::Settings>;
 
   using AllDirSamplerSettings =
-      OnePerInstance<DirSamplerType, DirSamplerSettings>;
+      OnePerInstance<DirSamplerType, enum_dir_sampler::Settings>;
 
-  using AllTermProbSettings = OnePerInstance<TermProbType, TermProbSettings>;
+  using AllTermProbSettings =
+      OnePerInstance<TermProbType, enum_term_prob::Settings>;
 
   using AllRngSettings = OnePerInstance<RngType, rng::enum_rng::Settings>;
 
-  const CompileTimeSettings default_compile_time = {
+  static constexpr CompileTimeSettings default_compile_time = {
       AccelType::KDTree, LightSamplerType::RandomTriangle, DirSamplerType::BRDF,
       TermProbType::MultiplierFunc, RngType::Uniform};
 
@@ -162,6 +169,13 @@ public:
 
   GeneralSettings general_settings;
 
+  // why can't these be constexpr?
+  Settings() {}
+  Settings(const Settings &) = default;
+  Settings(Settings &&) = default;
+  Settings &operator=(const Settings &) = default;
+  Settings &operator=(Settings &&) = default;
+
   template <class Archive> void serialize(Archive &archive) {
     auto serialize_item = [&](const auto &name, auto &type, auto &settings) {
       archive(cereal::make_nvp(name, type));
@@ -178,8 +192,10 @@ public:
     serialize_item("dir_sampler", compile_time.dir_sampler_type(), dir_sampler);
     serialize_item("term_prob", compile_time.term_prob_type(), term_prob);
     serialize_item("rng", compile_time.rng_type(), rng);
-    archive(CEREAL_NVP(general_settings));
+    archive(NVP(general_settings));
   }
+
+  constexpr bool operator==(const Settings &) const = default;
 };
 
 static_assert(Setting<Settings>);

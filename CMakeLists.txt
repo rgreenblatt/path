@@ -9,10 +9,6 @@ project(path VERSION 0.1 LANGUAGES CUDA CXX)
 
 cmake_minimum_required(VERSION 3.18)
 
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-set(CMAKE_AUTOUIC ON)
-
 set(CMAKE_VERBOSE_MAKEFILE TRUE)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
@@ -125,9 +121,10 @@ add_library(
 
   "${PROJECT_SOURCE_DIR}/src/render/renderer.cu"
 
+  "${PROJECT_SOURCE_DIR}/src/integrate/light_sampler/random_triangle/random_triangle.cu"
   "${PROJECT_SOURCE_DIR}/src/render/detail/tone_map.cu"
-  "${PROJECT_SOURCE_DIR}/src/render/detail/intensities.cu"
-  "${PROJECT_SOURCE_DIR}/src/render/detail/intensities.cpp"
+  "${PROJECT_SOURCE_DIR}/src/render/detail/integrate_image.cu"
+  "${PROJECT_SOURCE_DIR}/src/render/detail/integrate_image.cpp"
   "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl.cu"
   "${PROJECT_SOURCE_DIR}/src/render/detail/divide_work.cpp"
   )

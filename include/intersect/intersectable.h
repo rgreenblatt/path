@@ -2,7 +2,8 @@
 
 #include "intersect/intersection.h"
 #include "intersect/ray.h"
-#include "meta/concepts.h"
+#include "meta/decays_to.h"
+#include "meta/mock.h"
 
 #include <concepts>
 
@@ -15,8 +16,8 @@ concept Intersectable = requires(const T &t, const Ray &ray) {
   ->DecaysTo<IntersectionOp<typename T::InfoType>>;
 };
 
-struct MockIntersectable {
-  using InfoType = std::tuple<>;
+struct MockIntersectable : MockNoRequirements {
+  struct InfoType : MockCopyable {};
 
   constexpr IntersectionOp<InfoType> intersect(const Ray &) const {
     return nullopt_value;

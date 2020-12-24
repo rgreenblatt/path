@@ -1,6 +1,7 @@
 #pragma once
 
 #include "execution_model/execution_model.h"
+#include "intersect/accel/accel.h"
 #include "intersect/accel/dir_tree/dir_tree.h"
 #include "intersect/accel/enum_accel/accel_type.h"
 #include "intersect/accel/enum_accel/settings.h"

@@ -3,11 +3,12 @@
 #include "data_structure/get_size.h"
 #include "lib/bit_utils.h"
 #include "lib/span.h"
-#include "meta/concepts.h"
+#include "meta/specialization_of.h"
 
+#include <concepts>
 #include <cstdint>
 
-template <std::integral Block> class BitsetRef {
+template <std::unsigned_integral Block> class BitsetRef {
 public:
   HOST_DEVICE BitsetRef(const SpanSized<Block> &data) : data_(data) {}
 
@@ -98,7 +99,6 @@ private:
   SpanSized<Block> data_;
 };
 
-template <typename Ref>
-requires SpecializationOf<Ref, BitsetRef> struct GetSizeImpl<Ref> {
+template <SpecializationOf<BitsetRef> Ref> struct GetSizeImpl<Ref> {
   static constexpr unsigned get(Ref &&v) { return v.size(); }
 };

@@ -1,6 +1,7 @@
 #pragma once
 
-#include "meta/concepts.h"
+#include "meta/specialization_of.h"
+#include "meta/std_array_specialization.h"
 
 #include <thrust/device_vector.h>
 

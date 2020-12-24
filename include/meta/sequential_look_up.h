@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cassert>
-#include <iostream>
 #include <type_traits>
 
 template <unsigned size, typename F>

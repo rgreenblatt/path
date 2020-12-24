@@ -17,11 +17,11 @@ struct Settings {
   unsigned num_objects_terminate = 2;
 
   template <class Archive> void serialize(Archive &archive) {
-    archive(CEREAL_NVP(s_a_heuristic), CEREAL_NVP(use_s_a_heuritic),
-            CEREAL_NVP(num_objects_terminate));
+    archive(NVP(s_a_heuristic), NVP(use_s_a_heuritic),
+            NVP(num_objects_terminate));
   }
 
-  constexpr inline bool operator==(const Settings &) const = default;
+  constexpr bool operator==(const Settings &) const = default;
 };
 
 static_assert(Setting<Settings>);

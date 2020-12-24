@@ -50,11 +50,11 @@ inline HOST_DEVICE unsigned count_leading_zeros(uint64_t v) {
 template <std::integral T>
 static constexpr unsigned bits_per = sizeof(T) * CHAR_BIT;
 
-template <std::integral T> constexpr inline T bit_mask(unsigned bit_idx) {
+template <std::integral T> constexpr T bit_mask(unsigned bit_idx) {
   return T(1) << bit_idx;
 }
 
-template <std::integral T> constexpr inline T up_to_mask(unsigned n) {
+template <std::integral T> constexpr T up_to_mask(unsigned n) {
   // in binary, 1 (n + 1) times
   // 0: 1
   // 1: 11

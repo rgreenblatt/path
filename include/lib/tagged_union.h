@@ -1,9 +1,10 @@
 #pragma once
 
 #include "meta/all_values.h"
-#include "meta/concepts.h"
+#include "meta/decays_to.h"
 #include "meta/get_idx.h"
 #include "meta/sequential_look_up.h"
+#include "meta/specialization_of.h"
 
 #include <boost/hana/fold_left.hpp>
 #include <boost/hana/unpack.hpp>

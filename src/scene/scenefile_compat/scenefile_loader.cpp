@@ -3,9 +3,9 @@
 #include "lib/optional.h"
 #include "lib/utils.h"
 #include "scene/camera.h"
-#include "scene/mat_to_material.h"
 #include "scene/scene.h"
 #include "scene/scenefile_compat/CS123XmlSceneParser.h"
+#include "scene/tinyobj_material_conversion.h"
 
 #include <Eigen/Geometry>
 #include <Eigen/StdVector>
@@ -161,7 +161,7 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
   }
 
   for (const auto &m : mesh_materials) {
-    auto material = mat_to_material(m);
+    auto material = tinyobj_material_conversion(m);
 
     is_emissive.push_back(material.emission.matrix().squaredNorm() > 1e-9f);
 
@@ -193,7 +193,6 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
          {emissive_cluster_min_b, emissive_cluster_max_b}});
   };
 
-  // TODO populate vectors and use tranform
   for (size_t s = 0; s < shapes.size(); s++) {
     size_t index_offset = 0;
     for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
@@ -214,7 +213,7 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
         tinyobj::real_t nx;
         tinyobj::real_t ny;
         tinyobj::real_t nz;
-        // TODO: current texture not supported...
+        // TODO: currently texture not supported...
         tinyobj::real_t tx;
         tinyobj::real_t ty;
 

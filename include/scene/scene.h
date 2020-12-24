@@ -6,8 +6,8 @@
 #include "lib/optional.h"
 #include "lib/span.h"
 #include "lib/vector_group.h"
-#include "material/material.h"
 #include "scene/emissive_cluster.h"
+#include "scene/material.h"
 #include "scene/triangle_data.h"
 
 #include <tiny_obj_loader.h>
@@ -19,6 +19,8 @@ namespace scenefile_compat {
 class ScenefileLoader;
 }
 
+// TODO: eventually scene should allow for non triangle
+// scenes and alternate material
 class Scene {
 public:
   const Eigen::Affine3f &film_to_world() const { return film_to_world_; }
@@ -26,7 +28,6 @@ public:
   using Triangle = intersect::Triangle;
   using TransformedObject = intersect::TransformedObject;
   using AABB = intersect::accel::AABB;
-  using Material = material::Material;
 
   SpanSized<const unsigned> mesh_ends() const {
     return meshs_.template get<MeshT::End>();
@@ -110,7 +111,7 @@ private:
   MeshGroup meshs_;
   TransformedObjectGroup transformed_objects_;
   TriangleGroup triangles_;
-  std::vector<material::Material> materials_;
+  std::vector<Material> materials_;
   std::vector<EmissiveCluster> emissive_clusters_;
 
   intersect::accel::AABB overall_aabb_;
