@@ -66,9 +66,6 @@ struct MockContinuousDirSamplerRef : MockCopyable {
                     const Eigen::Vector3f &, R &) const;
 };
 
-// TODO: asserts
-// static_assert(ContinuousDirSamplerRef<MockContinuousDirSamplerRef>);
-// static_assert(!DirSamplerRef<MockContinuousDirSamplerRef>);
-// TODO: needs mock?
+static_assert(ContinuousDirSamplerRef<MockContinuousDirSamplerRef>);
 } // namespace dir_sampler
 } // namespace integrate

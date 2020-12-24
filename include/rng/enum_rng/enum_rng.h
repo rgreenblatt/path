@@ -3,7 +3,6 @@
 #include "execution_model/execution_model.h"
 #include "rng/enum_rng/rng_type.h"
 #include "rng/enum_rng/settings.h"
-#include "rng/halton/halton.h"
 #include "rng/sobel/sobel.h"
 #include "rng/uniform/uniform.h"
 
@@ -12,7 +11,6 @@ namespace enum_rng {
 template <RngType type, ExecutionModel execution_model>
 struct EnumRng
     : public PickType<RngType, type, uniform::Uniform<execution_model>,
-                      halton::Halton<execution_model>,
                       sobel::Sobel<execution_model>> {};
 
 template <RngType type, ExecutionModel exec>

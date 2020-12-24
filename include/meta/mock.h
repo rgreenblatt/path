@@ -39,10 +39,3 @@ struct MockRegular {
 struct MockTotallyOrdered {
   constexpr auto operator<=>(const MockTotallyOrdered &) const = default;
 };
-
-static_assert(std::movable<MockMovable>);
-static_assert(!std::copyable<MockMovable>);
-static_assert(std::copyable<MockCopyable>);
-static_assert(!std::semiregular<MockCopyable>);
-static_assert(std::regular<MockRegular>);
-static_assert(std::totally_ordered<MockTotallyOrdered>);

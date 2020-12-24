@@ -14,19 +14,18 @@ template <typename T> concept RngState = requires(T &state) {
 };
 
 template <typename T>
-concept RngRef = requires(const T &ref, unsigned sample_idx, unsigned x,
-                          unsigned y) {
+concept RngRef = requires(const T &ref, unsigned sample_idx,
+                          unsigned location) {
   requires std::copyable<T>;
-  { ref.get_generator(x, y, sample_idx) }
+  { ref.get_generator(sample_idx, location) }
   ->RngState;
 };
 
 template <typename T, typename S> concept Rng = requires {
   requires Setting<S>;
   requires requires(T & rng, const S &settings, unsigned samples_per,
-                    unsigned x_dim, unsigned y_dim,
-                    unsigned max_draws_per_sample) {
-    { rng.gen(settings, samples_per, x_dim, y_dim, max_draws_per_sample) }
+                    unsigned n_locations, unsigned max_draws_per_sample) {
+    { rng.gen(settings, samples_per, n_locations, max_draws_per_sample) }
     ->RngRef;
   };
 };
@@ -39,10 +38,10 @@ struct MockRng : MockNoRequirements {
       float next();
     };
 
-    State get_generator(unsigned, unsigned, unsigned) const;
+    State get_generator(unsigned, unsigned) const;
   };
 
-  Ref gen(const MockRngSettings &, unsigned, unsigned, unsigned, unsigned);
+  Ref gen(const MockRngSettings &, unsigned, unsigned, unsigned);
 };
 
 using MockRngRef = MockRng::Ref;

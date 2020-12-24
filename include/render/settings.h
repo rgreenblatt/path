@@ -44,18 +44,12 @@ private:
 
 public:
   // compile times don't change much from small constant values to 1...
-  static constexpr std::array<render::CompileTimeSettingsSubset, 4> values = {{
+  static constexpr std::array<render::CompileTimeSettingsSubset, 2> values = {{
       {AccelType::KDTree, LightSamplerType::RandomTriangle,
        DirSamplerType::BRDF, TermProbType::MultiplierFunc,
        rng::enum_rng::RngType::Uniform},
       {AccelType::KDTree, LightSamplerType::RandomTriangle,
-       DirSamplerType::BRDF, TermProbType::NIters,
-       rng::enum_rng::RngType::Uniform},
-      {AccelType::KDTree, LightSamplerType::RandomTriangle,
        DirSamplerType::BRDF, TermProbType::MultiplierFunc,
-       rng::enum_rng::RngType::Sobel},
-      {AccelType::KDTree, LightSamplerType::RandomTriangle,
-       DirSamplerType::BRDF, TermProbType::NIters,
        rng::enum_rng::RngType::Sobel},
   }};
 };

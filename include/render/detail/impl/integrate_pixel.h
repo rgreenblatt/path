@@ -44,7 +44,7 @@ integrate_pixel(unsigned x, unsigned y, unsigned start_sample,
   while (!finished || sample_idx != end_sample) {
     if (finished) {
       multiplier = Eigen::Vector3f::Ones();
-      rng = rng_ref.get_generator(sample_idx, x, y);
+      rng = rng_ref.get_generator(sample_idx, x + y * x_dim);
       iters = 0;
 
       float x_offset = rng.next();

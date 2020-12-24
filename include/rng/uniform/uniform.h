@@ -1,5 +1,8 @@
 #pragma once
 
+#include "execution_model/execution_model.h"
+#include "lib/cuda/curand_utils.h"
+#include "lib/cuda/utils.h"
 #include "meta/predicate_for_all_values.h"
 #include "rng/rng.h"
 #include "rng/uniform/settings.h"
@@ -10,13 +13,16 @@
 
 namespace rng {
 namespace uniform {
-template <ExecutionModel execution_model> struct Uniform {
+template <ExecutionModel exec> struct Uniform {
   struct Ref {
-    struct State {
+    unsigned samples_per_;
+
+    class State {
+    public:
       HOST_DEVICE State() = default;
 
       HOST_DEVICE State(unsigned seed) {
-        if constexpr (execution_model == ExecutionModel::GPU) {
+        if constexpr (exec == ExecutionModel::GPU) {
           curand_init(seed, 0, 0, &state_);
         } else {
           state_.seed(seed);
@@ -25,7 +31,7 @@ template <ExecutionModel execution_model> struct Uniform {
       }
 
       HOST_DEVICE inline float next() {
-        if constexpr (execution_model == ExecutionModel::GPU) {
+        if constexpr (exec == ExecutionModel::GPU) {
           return patched_curand_uniform(&state_);
         } else {
           return dist_(state_);
@@ -35,36 +41,23 @@ template <ExecutionModel execution_model> struct Uniform {
     private:
       using GPUState = curandState;
       using CPUState = std::mt19937; // SPEED: maybe try other generators
-      std::conditional_t<execution_model == ExecutionModel::GPU, GPUState,
-                         CPUState>
+      std::conditional_t<exec == ExecutionModel::GPU, GPUState, CPUState>
           state_;
 
       using GPUDist = std::tuple<>; // Nothing
       using CPUDist = std::uniform_real_distribution<float>;
-      std::conditional_t<execution_model == ExecutionModel::GPU, GPUDist,
-                         CPUDist>
-          dist_;
+      std::conditional_t<exec == ExecutionModel::GPU, GPUDist, CPUDist> dist_;
     };
 
-    HOST_DEVICE Ref() {}
-
-    Ref(unsigned samples_per, unsigned x_dim, unsigned y_dim)
-        : samples_per_(samples_per), x_dim_(x_dim), y_dim_(y_dim) {}
-
-    HOST_DEVICE inline State get_generator(unsigned sample_idx, unsigned x,
-                                           unsigned y) const {
-      return State(sample_idx + x * samples_per_ + y * samples_per_ * x_dim_);
+    HOST_DEVICE inline State get_generator(unsigned sample_idx,
+                                           unsigned location) const {
+      return State(sample_idx + location * samples_per_);
     }
-
-  private:
-    unsigned samples_per_;
-    unsigned x_dim_;
-    unsigned y_dim_;
   };
 
-  Ref gen(const Settings &, unsigned samples_per, unsigned x_dim,
-          unsigned y_dim, unsigned) {
-    return Ref(samples_per, x_dim, y_dim);
+  Ref gen(const Settings &, unsigned samples_per, unsigned /*n_locations*/,
+          unsigned /*max_draws_per_sample*/) {
+    return Ref{samples_per};
   }
 };
 

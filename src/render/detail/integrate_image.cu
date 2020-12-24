@@ -58,11 +58,6 @@ __global__ void integrate_image_global(
   auto compute_bgras = [&](const auto &reduce_func, unsigned idx) {
     Eigen::Array3f totals;
     for (unsigned axis = 0; axis < 3; axis++) {
-      // work around code gen bug...
-      volatile bool undefined_garbage = false;
-      if (undefined_garbage) {
-        printf("%f\n", intensity[axis]);
-      }
       totals[axis] = reduce_func(intensity[axis]);
     }
     if (idx == 0) {
@@ -78,6 +73,12 @@ __global__ void integrate_image_global(
         // SPEED: Block reduce isn't cheap, maybe it would be better to always
         // use at most a warp?
         [&](const float v) {
+          // work around code gen bug with block_reduce...
+          volatile bool undefined_garbage = false;
+          if (undefined_garbage) {
+            printf("%f\n", v);
+          }
+
           return block_reduce(v, add, 0.0f, thread_idx, block_dim);
         },
         thread_idx);
@@ -105,7 +106,7 @@ void integrate_image(const GeneralSettings &settings, bool show_progress,
   size_t total_grid = division.num_sample_blocks * division.num_x_blocks *
                       division.num_y_blocks;
 
-  size_t max_launch_size = (2 << 24) / division.block_size;
+  size_t max_launch_size = settings.computation_settings.max_blocks_per_launch;
 
   size_t num_launches = ceil_divide(total_grid, max_launch_size);
   size_t blocks_per = total_grid / num_launches;

@@ -60,7 +60,6 @@ template <ExecutionModel execution_model> struct SobelSequenceGen {
       // SPEED: horrific efficiency...
       thrust::transform(
           start_it, start_it + val_size, vals_.begin(),
-          // TODO: lambda bug with default capture???
           [=] HOST_DEVICE(unsigned i) {
             unsigned dimension = i % dimension_bound;
             unsigned offset = i / dimension_bound;
@@ -72,6 +71,7 @@ template <ExecutionModel execution_model> struct SobelSequenceGen {
 
             return patched_curand_uniform(&state);
 #else
+            // needed to ensure lambda has same size on host and device
             (void)offset;
             (void)state;
             (void)vectors_32_v;
@@ -97,9 +97,6 @@ private:
 
 template <ExecutionModel exec>
 using Sobel = RngFromSequenceGen<detail::SobelSequenceGen<exec>, Settings>;
-
-static_assert(Rng<Sobel<ExecutionModel::GPU>, Settings>);
-static_assert(Rng<Sobel<ExecutionModel::CPU>, Settings>);
 
 template <ExecutionModel exec>
 struct IsRng : BoolWrapper<Rng<Sobel<exec>, Settings>> {};

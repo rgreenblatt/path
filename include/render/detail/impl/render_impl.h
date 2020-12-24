@@ -63,12 +63,11 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
         constexpr auto rng_type = compile_time_settings.rng_type();
 
         auto light_sampler =
-            light_samplers_.template get<light_sampler_type>()
-                .gen(
-                    settings.light_sampler.template get<light_sampler_type>(),
-                    s.emissive_clusters(), s.emissive_cluster_ends_per_mesh(),
-                    s.materials().as_unsized(), s.transformed_mesh_objects(),
-                    s.transformed_mesh_idxs(), s.triangles());
+            light_samplers_.template get<light_sampler_type>().gen(
+                settings.light_sampler.template get<light_sampler_type>(),
+                s.emissive_clusters(), s.emissive_cluster_ends_per_mesh(),
+                s.materials().as_unsized(), s.transformed_mesh_objects(),
+                s.transformed_mesh_idxs(), s.triangles().as_unsized());
 
         auto dir_sampler = dir_samplers_.template get<dir_sampler_type>().gen(
             settings.dir_sampler.template get<dir_sampler_type>());
@@ -78,9 +77,10 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
 
         // TODO
         const unsigned max_draws_per_sample = 128;
+        unsigned n_locations = x_dim * y_dim;
 
         auto rng = rngs_.template get<rng_type>().gen(
-            settings.rng.template get<rng_type>(), samples_per, x_dim, y_dim,
+            settings.rng.template get<rng_type>(), samples_per, n_locations,
             max_draws_per_sample);
 
         integrate_image(settings.general_settings, show_progress, division,
