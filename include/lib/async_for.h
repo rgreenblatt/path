@@ -4,8 +4,9 @@
 #include <future>
 #include <vector>
 
-template <typename F> concept CallableOnIndex = requires(const F &f) {
-  f(unsigned());
+template <typename F>
+concept CallableOnIndex = requires(const F &f, unsigned i) {
+  f(i);
 };
 
 template <CallableOnIndex F>
