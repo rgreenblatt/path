@@ -2,10 +2,11 @@
 
 #include "meta/mock.h"
 
-// really there should be a smaller header I can include...
 #include <cereal/cereal.hpp>
 
 #include <concepts>
+#include <type_traits>
+#include <utility>
 
 // This is the concept of a serializable setting (using cereal)
 
@@ -20,7 +21,7 @@ concept Setting = requires(T &data, MockArchive &archive) {
 };
 
 struct EmptySettings {
-  template <class Archive> void serialize(Archive &) {}
+  template <typename Archive> void serialize(Archive &) {}
 
   constexpr bool operator==(const EmptySettings &) const = default;
 };

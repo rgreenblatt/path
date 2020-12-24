@@ -7,7 +7,7 @@ namespace flat_triangle {
 template <Setting AccelSettings> struct Settings {
   AccelSettings accel_settings;
 
-  template <class Archive> void serialize(Archive &archive) {
+  template <typename Archive> void serialize(Archive &archive) {
     archive(NVP(accel_settings));
   }
 

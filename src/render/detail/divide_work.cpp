@@ -5,19 +5,6 @@
 
 namespace render {
 namespace detail {
-
-constexpr unsigned make_divisable(unsigned v, unsigned divisable_by) {
-  return ceil_divide(v, divisable_by) * divisable_by;
-}
-
-// Testing:
-static_assert(make_divisable(3, 1) == 3);
-static_assert(make_divisable(4, 1) == 4);
-static_assert(make_divisable(4, 2) == 4);
-static_assert(make_divisable(4, 3) == 6);
-static_assert(make_divisable(3, 3) == 3);
-static_assert(make_divisable(100, 3) == 102);
-
 WorkDivision divide_work(unsigned samples_per, unsigned x_dim, unsigned y_dim) {
   constexpr unsigned block_size = 256;
   constexpr unsigned x_block_size_thread = 32;

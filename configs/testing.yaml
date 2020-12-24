@@ -16,10 +16,11 @@ settings:
   term_prob_settings:
     exp: 5
     min_prob: 0.2
-  rng: Uniform
+  rng: Sobel
   rng_settings:
     {}
   general_settings:
     computation_settings:
       max_blocks_per_launch: 4096
-    back_cull_emission: true
+    rendering_equation_settings:
+      back_cull_emission: true

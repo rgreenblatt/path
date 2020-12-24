@@ -9,7 +9,7 @@ struct Settings {
   float exp = 5.0f;
   float min_prob = 0.2f;
 
-  template <class Archive> void serialize(Archive &archive) {
+  template <typename Archive> void serialize(Archive &archive) {
     archive(NVP(exp), NVP(min_prob));
   }
 

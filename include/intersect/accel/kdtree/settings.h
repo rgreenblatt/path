@@ -16,7 +16,7 @@ struct Settings {
   // terminate
   unsigned num_objects_terminate = 2;
 
-  template <class Archive> void serialize(Archive &archive) {
+  template <typename Archive> void serialize(Archive &archive) {
     archive(NVP(s_a_heuristic), NVP(use_s_a_heuritic),
             NVP(num_objects_terminate));
   }

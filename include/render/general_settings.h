@@ -1,16 +1,17 @@
 #pragma once
 
+#include "integrate/rendering_equation_settings.h"
 #include "lib/settings.h"
 #include "render/computation_settings.h"
 
 namespace render {
 struct GeneralSettings {
   ComputationSettings computation_settings;
-  bool back_cull_emission = true;
+  integrate::RenderingEquationSettings rendering_equation_settings;
 
-  template <class Archive> void serialize(Archive &archive) {
+  template <typename Archive> void serialize(Archive &archive) {
     archive(NVP(computation_settings));
-    archive(NVP(back_cull_emission));
+    archive(NVP(rendering_equation_settings));
   }
 
   constexpr bool operator==(const GeneralSettings &) const = default;

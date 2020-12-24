@@ -18,7 +18,7 @@ namespace integrate {
 namespace light_sampler {
 struct LightSample {
   FSample dir_sample;
-  float expected_distance;
+  float target_distance;
 };
 
 template <unsigned n> struct LightSamples {

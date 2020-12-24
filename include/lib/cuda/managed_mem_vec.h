@@ -5,19 +5,19 @@
 #include <vector>
 
 // consider using construct method to override default initalization
-template <class T> struct UMAllocator {
+template <typename T> struct UMAllocator {
   typedef T value_type;
   UMAllocator() {}
-  template <class U> UMAllocator(const UMAllocator<U> &other);
+  template <typename U> UMAllocator(const UMAllocator<U> &other);
 
   T *allocate(size_t n);
 
   void deallocate(T *p, size_t n);
 };
 
-template <class T> using ManangedMemVec = std::vector<T, UMAllocator<T>>;
+template <typename T> using ManangedMemVec = std::vector<T, UMAllocator<T>>;
 
-template <class T> T *UMAllocator<T>::allocate(size_t n) {
+template <typename T> T *UMAllocator<T>::allocate(size_t n) {
   T *ptr;
   if (n > 0) {
     CUDA_ERROR_CHK(cudaMallocManaged(&ptr, n * sizeof(T)));
@@ -27,6 +27,6 @@ template <class T> T *UMAllocator<T>::allocate(size_t n) {
   return ptr;
 }
 
-template <class T> void UMAllocator<T>::deallocate(T *p, size_t) {
+template <typename T> void UMAllocator<T>::deallocate(T *p, size_t) {
   CUDA_ERROR_CHK(cudaFree(p));
 }

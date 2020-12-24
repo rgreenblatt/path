@@ -6,7 +6,7 @@ namespace render {
 struct ComputationSettings {
   unsigned max_blocks_per_launch = 256;
 
-  template <class Archive> void serialize(Archive &archive) {
+  template <typename Archive> void serialize(Archive &archive) {
     archive(NVP(max_blocks_per_launch));
   }
 

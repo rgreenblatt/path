@@ -70,12 +70,12 @@ static_assert([] {
 }());
 
 namespace cereal {
-template <class Archive, Enum T>
+template <typename Archive, Enum T>
 inline std::string save_minimal(Archive const &, T const &enum_v) {
   return std::string(magic_enum::enum_name(enum_v));
 }
 
-template <class Archive, Enum T>
+template <typename Archive, Enum T>
 inline void load_minimal(Archive const &, T &enum_v, const std::string &s) {
   auto val_op = magic_enum::enum_cast<T>(s);
   if (val_op.has_value()) {
@@ -163,19 +163,13 @@ public:
 
   GeneralSettings general_settings;
 
-  // why can't these be constexpr?
-  Settings() {}
-  Settings(const Settings &) = default;
-  Settings(Settings &&) = default;
-  Settings &operator=(const Settings &) = default;
-  Settings &operator=(Settings &&) = default;
-
-  template <class Archive> void serialize(Archive &archive) {
+  template <typename Archive> void serialize(Archive &archive) {
     auto serialize_item = [&](const auto &name, auto &type, auto &settings) {
-      archive(cereal::make_nvp(name, type));
+      archive(::cereal::make_nvp(name, type));
       settings.visit(
           [&](auto &item) {
-            archive(cereal::make_nvp(std::string(name) + "_settings", item));
+            archive(::cereal::make_nvp(
+                (std::string(name) + "_settings").c_str(), item));
           },
           type);
     };

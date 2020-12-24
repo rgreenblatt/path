@@ -10,7 +10,7 @@ struct SAHeuristicSettings {
   float traversal_cost;
   float intersection_cost;
 
-  template <class Archive> void serialize(Archive &archive) {
+  template <typename Archive> void serialize(Archive &archive) {
     archive(NVP(traversal_cost), NVP(intersection_cost));
   }
 

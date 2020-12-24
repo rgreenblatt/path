@@ -2,7 +2,7 @@
 
 #include <type_traits>
 
-template <class T, template <typename...> class Template>
+template <typename T, template <typename...> class Template>
 struct is_specialization : std::false_type {};
 
 template <template <typename...> class Template, class... Args>

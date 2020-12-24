@@ -8,7 +8,7 @@ namespace n_iters {
 struct Settings {
   unsigned iters = 1;
 
-  template <class Archive> void serialize(Archive &archive) {
+  template <typename Archive> void serialize(Archive &archive) {
     archive(NVP(iters));
   }
 

@@ -11,8 +11,6 @@ concept Vector = requires(Vec &v, unsigned n, typename Vec::value_type x) {
   typename Vec::value_type;
   v.resize(n);
   v.resize(n, x);
-  typename GetPtrT<Vec, typename Vec::value_type>;
-  requires GetPtr<GetPtrT<Vec, typename Vec::value_type>, Vec>;
-  typename GetSizeT<Vec>;
+  requires GetPtr<Vec, typename Vec::value_type>;
   requires GetSize<Vec>;
 };
