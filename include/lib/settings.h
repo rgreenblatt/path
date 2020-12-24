@@ -2,7 +2,8 @@
 
 #include "meta/mock.h"
 
-#include <cereal-yaml/archives/yaml.hpp>
+// really there should be a smaller header I can include...
+#include <cereal/cereal.hpp>
 
 #include <concepts>
 
