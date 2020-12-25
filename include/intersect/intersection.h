@@ -8,7 +8,7 @@
 #include <compare>
 
 namespace intersect {
-template <typename InfoType> struct Intersection {
+template <std::copyable InfoType> struct Intersection {
   float intersection_dist;
   bool is_back_intersection;
   InfoType info;

@@ -2,38 +2,41 @@
 
 #include "execution_model/execution_model_vector_type.h"
 #include "intersect/accel/accel.h"
+#include "intersect/accel/add_idx.h"
 #include "intersect/accel/loop_all/settings.h"
 #include "meta/predicate_for_all_values.h"
 
 namespace intersect {
 namespace accel {
 namespace loop_all {
-namespace detail {
-// In this case, the Ref type doesn't depend on the ExecutionModel
-struct Ref {
-  AABB aabb;
-  unsigned size;
+struct LoopAll {
+  struct Ref {
+    AABB aabb;
+    unsigned size;
 
-  constexpr const AABB &bounds() const { return aabb; }
+    constexpr const AABB &bounds() const { return aabb; }
 
-  template <Object O>
-  HOST_DEVICE inline AccelRet<O> intersect_objects(const intersect::Ray &ray,
-                                                   Span<const O> objects) const;
-};
-} // namespace detail
+    template <IntersectableAtIdx F>
+    HOST_DEVICE inline AccelRet<F>
+    intersect_objects(const intersect::Ray &ray,
+                      const F &intersectable_at_idx) const {
+      AccelRet<F> best;
 
-template <ExecutionModel execution_model> struct LoopAll {
+      for (unsigned idx = 0; idx < size; idx++) {
+        best = optional_min(best, add_idx(intersectable_at_idx(idx, ray), idx));
+      }
+
+      return best;
+    }
+  };
+
   template <typename B>
-  detail::Ref gen(const Settings &, SpanSized<const B> objects,
-                  const AABB &aabb) {
-    return detail::Ref{aabb, static_cast<unsigned>(objects.size())};
+  Ref gen(const Settings &, SpanSized<const B> objects, const AABB &aabb) {
+    return Ref{aabb, static_cast<unsigned>(objects.size())};
   }
 };
 
-template <ExecutionModel exec>
-struct IsAccel : BoolWrapper<BoundsOnlyAccel<LoopAll<exec>, Settings>> {};
-
-static_assert(PredicateForAllValues<ExecutionModel>::value<IsAccel>);
+static_assert(BoundsOnlyAccel<LoopAll, Settings>);
 } // namespace loop_all
 } // namespace accel
 } // namespace intersect

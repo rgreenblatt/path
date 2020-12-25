@@ -17,7 +17,7 @@
 namespace intersectable_scene {
 namespace flat_triangle {
 namespace detail {
-template <intersect::accel::AccelRef<intersect::Triangle> Accel> struct Ref {
+template <intersect::accel::AccelRef Accel> struct Ref {
   using B = scene::Material::BSDFT;
 
   Accel accel;
@@ -32,7 +32,10 @@ template <intersect::accel::AccelRef<intersect::Triangle> Accel> struct Ref {
   using InfoType = intersect::accel::IdxHolder<intersect::Triangle::InfoType>;
 
   HOST_DEVICE inline auto intersect(const intersect::Ray &ray) const {
-    return accel.intersect_objects(ray, triangles);
+    return accel.intersect_objects(
+        ray, [&](unsigned idx, const intersect::Ray &ray) {
+          return triangles[idx].intersect(ray);
+        });
   }
 
   using Intersection = intersect::Intersection<InfoType>;

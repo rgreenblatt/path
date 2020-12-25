@@ -41,7 +41,10 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
         test_expected.data() + test_expected.size(), results.data(),
         [=] __host__ __device__(const auto &test) {
           auto [ray, _] = test;
-          auto a = ref.intersect_objects(ray, triangles_span);
+          auto a =
+              ref.intersect_objects(ray, [&](unsigned idx, const Ray &ray) {
+                return triangles_span[idx].intersect(ray);
+              });
           return optional_map(a, [](const auto &v) { return v.info.idx; });
         });
 
@@ -96,7 +99,10 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
           Settings<AccelType::LoopAll>(), triangles, AABB());
 
       auto get_ground_truth = [&](const Ray &ray) -> Optional<unsigned> {
-        auto a = loop_all_ref.intersect_objects<Triangle>(ray, triangles);
+        auto a = loop_all_ref.intersect_objects(
+            ray, [&](unsigned idx, const Ray &ray) {
+              return triangles[idx].intersect(ray);
+            });
         if (a.has_value()) {
           return a->info.idx;
         } else {

@@ -14,11 +14,10 @@
 namespace intersect {
 namespace accel {
 namespace enum_accel {
-template <AccelType type, ExecutionModel execution_model>
+template <AccelType type, ExecutionModel exec>
 struct EnumAccel
-    : public PickType<AccelType, type, loop_all::LoopAll<execution_model>,
-                      kdtree::KDTree<execution_model>,
-                      dir_tree::DirTree<execution_model>> {};
+    : public PickType<AccelType, type, loop_all::LoopAll, kdtree::KDTree<exec>,
+                      dir_tree::DirTree<exec>> {};
 
 template <AccelType type, ExecutionModel exec>
 struct IsAccel

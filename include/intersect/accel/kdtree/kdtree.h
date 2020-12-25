@@ -25,9 +25,10 @@ public:
 
   constexpr const AABB &bounds() const { return aabb_; }
 
-  template <Object O>
-  HOST_DEVICE inline AccelRet<O> intersect_objects(const intersect::Ray &ray,
-                                                   Span<const O> objects) const;
+  template <IntersectableAtIdx F>
+  HOST_DEVICE inline AccelRet<F>
+  intersect_objects(const intersect::Ray &ray,
+                    const F &intersectable_at_idx) const;
 
 private:
   SpanSized<const KDTreeNode<AABB>> nodes_;

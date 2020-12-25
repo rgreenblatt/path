@@ -8,10 +8,11 @@ namespace intersect {
 namespace accel {
 namespace kdtree {
 namespace detail {
-template <Object O>
-HOST_DEVICE inline AccelRet<O>
-Ref::intersect_objects(const intersect::Ray &ray, Span<const O> objects) const {
-  AccelRet<O> best;
+template <IntersectableAtIdx F>
+HOST_DEVICE inline AccelRet<F>
+Ref::intersect_objects(const intersect::Ray &ray,
+                       const F &intersectable_at_idx) const {
+  AccelRet<F> best;
 
   if (nodes_.size() == 0) {
     return nullopt_value;
@@ -86,7 +87,7 @@ Ref::intersect_objects(const intersect::Ray &ray, Span<const O> objects) const {
         // TODO: SPEED
         // would it be better to enforce the same ordering everywhere somehow?
         unsigned global_idx = local_idx_to_global_idx_[idx];
-        auto intersection = objects[global_idx].intersect(ray);
+        auto intersection = intersectable_at_idx(global_idx, ray);
         best = optional_min(best, add_idx(intersection, global_idx));
       }
     }

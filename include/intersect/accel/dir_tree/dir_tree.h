@@ -14,15 +14,16 @@ namespace detail {
 // not yet...)
 class Ref {
 public:
+  // TODO: why is this constructor needed...
   HOST_DEVICE Ref() {}
 
   Ref(const AABB &aabb) : aabb_(aabb) {}
 
   constexpr const AABB &bounds() const { return aabb_; }
 
-  template <Object O>
-  HOST_DEVICE inline AccelRet<O> intersect_objects(const intersect::Ray &,
-                                                   Span<const O>) const {
+  template <IntersectableAtIdx F>
+  HOST_DEVICE inline AccelRet<F> intersect_objects(const intersect::Ray &,
+                                                   const F &) const {
     // TODO
     assert(false);
 
