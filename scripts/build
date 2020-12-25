@@ -107,9 +107,13 @@ def get_builder(cmake_generator, page, use_ccache, lolcat, threads,
     return build
 
 
-def build_default_command_parser(description):
+def build_default_command_parser(description, release_default=False):
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument('--release', action='store_true')
+    parser.add_argument('--release',
+                        default=release_default,
+                        dest='release',
+                        action='store_true')
+    parser.add_argument('--debug', dest='release', action='store_false')
     parser.add_argument('--cpu-only',
                         dest='cpu_only',
                         action='store_true',
@@ -120,6 +124,11 @@ def build_default_command_parser(description):
                         help='build for the cpu and gpu')
 
     return parser
+
+
+def parse_no_args(description, remaining_args):
+    parser = argparse.ArgumentParser(description=description)
+    parser.parse_args(remaining_args)
 
 
 def build_command(builder, remaining_args, forced_directory):
@@ -155,7 +164,8 @@ def test_command(builder, remaining_args, forced_directory):
 
 
 def bench_command(builder, remaining_args, forced_directory):
-    parser = build_default_command_parser('run benchmarks')
+    parser = build_default_command_parser('run benchmarks',
+                                          release_default=True)
     parser.add_argument('executable', help='benchmark to run')
     parser.add_argument('executable_args', nargs=argparse.REMAINDER)
     args = parser.parse_args(remaining_args)
@@ -169,7 +179,10 @@ def bench_command(builder, remaining_args, forced_directory):
                    check=True)
 
 
-def cc_command(builder, *_):
+def cc_command(builder, remaining_args, _forced_directory):
+    parser = argparse.ArgumentParser(
+        description='generate compile_commands.json')
+    parser.parse_args(remaining_args)
     directory = "build/compile_commands_dir"
     builder(False,
             False,
@@ -210,9 +223,10 @@ def main():
     main_parser.add_argument('--cuda-archs',
                              default='75',
                              help='cuda architectures (sm_*)')
-    main_parser.add_argument('--generator',
-                             default='Ninja',
-                             help='cmake generator (Ninja, Unix Makefiles, ...)')
+    main_parser.add_argument(
+        '--generator',
+        default='Ninja',
+        help='cmake generator (Ninja, Unix Makefiles, ...)')
     main_parser.add_argument('-p',
                              '--pager',
                              dest='pager',

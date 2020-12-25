@@ -1,13 +1,11 @@
 #pragma once
 
-#include "lib/cuda/curand_utils.h"
 #include "lib/cuda/utils.h"
 #include "lib/settings.h"
 #include "lib/span.h"
 #include "lib/utils.h"
 #include "rng/rng.h"
-
-#include <curand_kernel.h>
+#include "rng/rng_from_sequence_gen_settings.h"
 
 namespace rng {
 namespace detail {
@@ -21,20 +19,18 @@ constexpr unsigned fnv_hash(unsigned in) {
   }
   return out_hash;
 }
-} // namespace detail
 
 template <typename SG, typename S>
-concept SequenceGen = requires(SG &state, unsigned dimension, unsigned count,
-                               const S &settings) {
+concept SequenceGen = requires(SG &gen, const S &settings, unsigned dimension,
+                               unsigned count) {
   requires Setting<S>;
-  { state(dimension, count) }
+  { gen.gen(settings, dimension, count) }
   ->std::same_as<Span<const float>>;
-
-  state.init(settings);
 };
 
 template <typename SG, Setting S>
-requires SequenceGen<SG, S> struct RngFromSequenceGen {
+requires SequenceGen<SG, S> class RngFromSequenceGen {
+public:
   struct Ref {
     unsigned samples_per_;
     unsigned dimension_bound_;
@@ -75,24 +71,22 @@ requires SequenceGen<SG, S> struct RngFromSequenceGen {
       // Note that they may be correlated in practice (depending on the
       // sequence).
       // For path tracing this make pixels look uncorrelated.
-      return State(detail::fnv_hash(location) % dimension_bound_, sample_idx,
-                   this);
+      return State(fnv_hash(location) % dimension_bound_, sample_idx, this);
     }
   };
 
   RngFromSequenceGen() {}
 
-  Ref gen(const S &settings, unsigned samples_per, unsigned /*n_locations*/,
-          unsigned max_sample_size) {
-    gen_.init(settings);
-    unsigned dimension_bound = max_sample_size;
+  Ref gen(const RngFromSequenceGenSettings<S> &settings, unsigned samples_per,
+          unsigned /*n_locations*/) {
+    auto vals = gen_.gen(settings.sequence_settings, settings.max_sample_size,
+                         samples_per);
 
-    auto vals = gen_(dimension_bound, samples_per);
-
-    return Ref{samples_per, dimension_bound, vals};
+    return Ref{samples_per, settings.max_sample_size, vals};
   }
 
 private:
   SG gen_;
 };
+} // namespace detail
 } // namespace rng

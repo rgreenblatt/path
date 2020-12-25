@@ -24,8 +24,8 @@ concept RngRef = requires(const T &ref, unsigned sample_idx,
 template <typename T, typename S> concept Rng = requires {
   requires Setting<S>;
   requires requires(T & rng, const S &settings, unsigned samples_per,
-                    unsigned n_locations, unsigned max_draws_per_sample) {
-    { rng.gen(settings, samples_per, n_locations, max_draws_per_sample) }
+                    unsigned n_locations) {
+    { rng.gen(settings, samples_per, n_locations) }
     ->RngRef;
   };
 };
@@ -41,7 +41,7 @@ struct MockRng : MockNoRequirements {
     State get_generator(unsigned, unsigned) const;
   };
 
-  Ref gen(const MockRngSettings &, unsigned, unsigned, unsigned);
+  Ref gen(const MockRngSettings &, unsigned, unsigned);
 };
 
 using MockRngRef = MockRng::Ref;

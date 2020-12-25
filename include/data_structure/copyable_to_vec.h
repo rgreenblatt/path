@@ -16,5 +16,5 @@ concept CopyableToVec = requires(const From &f, To &t) {
   f.size();
   f.begin();
   f.end();
-  copy_to_vec(f, t);
+  detail::VectorLike<To>;
 };

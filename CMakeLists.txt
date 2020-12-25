@@ -127,6 +127,7 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/render/detail/integrate_image.cpp"
   "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl.cu"
   "${PROJECT_SOURCE_DIR}/src/render/detail/divide_work.cpp"
+  "${PROJECT_SOURCE_DIR}/src/rng/sobel/sobel.cu"
   )
 target_add_standard_include(renderer)
 target_link_libraries(renderer PUBLIC yaml-cpp PRIVATE OpenMP::OpenMP_CXX
@@ -200,7 +201,7 @@ if(BUILD_BENCHMARKS OR CMAKE_EXPORT_COMPILE_COMMANDS)
   package_add_bench(scan "${PROJECT_SOURCE_DIR}/benchmarks/src/scan.cu")
   # sometimes there are some issues with cub and warp intrinsics with sorting
   # (on clang)
-  # package_add_bench(sort "${PROJECT_SOURCE_DIR}/benchmarks/src/sort.cu")
+  package_add_bench(sort "${PROJECT_SOURCE_DIR}/benchmarks/src/sort.cu")
 
   add_custom_target(bench COMMAND ${CMAKE_CTEST_COMMAND}
     DEPENDS "${BENCH_LIST}")

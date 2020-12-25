@@ -55,8 +55,7 @@ template <ExecutionModel exec> struct Uniform {
     }
   };
 
-  Ref gen(const Settings &, unsigned samples_per, unsigned /*n_locations*/,
-          unsigned /*max_draws_per_sample*/) {
+  Ref gen(const Settings &, unsigned samples_per, unsigned /*n_locations*/) {
     return Ref{samples_per};
   }
 };

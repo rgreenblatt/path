@@ -1,3 +1,4 @@
+// must be included first to avoid issues with cub...
 #include "lib/cuda/utils.h"
 
 #include "data_structure/bitset_ref.h"

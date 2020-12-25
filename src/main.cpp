@@ -20,7 +20,7 @@ static const char USAGE[] =
 
     Usage:
       path <scene_file> [--width=<pixels>] [--height=<pixels>]
-        [--samples=<count>] [--output=<file_name>] [--config-file=<file_name>]
+        [--samples=<count>] [--output=<file_name>] [--config=<file_name>]
         [-g | --gpu] [--profile-samples] [--samples-min=<min>]
         [--samples-max=<max>] [--bench] [--bench-budget=<time>]
         [--disable-progress]
@@ -106,7 +106,7 @@ int main(int argc, char *argv[]) {
 
   render::Settings settings;
 
-  auto config_file_name = get_unpack_arg("--config-file");
+  auto config_file_name = get_unpack_arg("--config");
   if (config_file_name) {
     std::ifstream i(config_file_name.asString(), std::ifstream::binary);
     cereal::YAMLInputArchive archive(i);

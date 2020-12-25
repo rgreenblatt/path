@@ -146,7 +146,7 @@ private:
 
   static constexpr CompileTimeSettings default_compile_time = {
       AccelType::KDTree, LightSamplerType::RandomTriangle, DirSamplerType::BRDF,
-      TermProbType::MultiplierFunc, RngType::Uniform};
+      TermProbType::MultiplierFunc, RngType::Sobel};
 
 public:
   AllAccelSettings flat_accel;

@@ -18,7 +18,10 @@ settings:
     min_prob: 0.2
   rng: Sobel
   rng_settings:
-    {}
+    # {}
+    sequence_settings:
+      {}
+    max_sample_size: 128
   general_settings:
     computation_settings:
       max_blocks_per_launch: 4096

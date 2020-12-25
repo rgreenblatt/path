@@ -1,3 +1,6 @@
+// must be included first to avoid issues with cub...
+#include "lib/cuda/utils.h"
+
 #include "execution_model/device_vector.h"
 #include "execution_model/thrust_data.h"
 #include "lib/span.h"

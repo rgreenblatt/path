@@ -75,13 +75,10 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
         auto term_prob = term_probs_.template get<term_prob_type>().gen(
             settings.term_prob.template get<term_prob_type>());
 
-        // TODO
-        const unsigned max_draws_per_sample = 128;
         unsigned n_locations = x_dim * y_dim;
 
         auto rng = rngs_.template get<rng_type>().gen(
-            settings.rng.template get<rng_type>(), samples_per, n_locations,
-            max_draws_per_sample);
+            settings.rng.template get<rng_type>(), samples_per, n_locations);
 
         integrate_image(settings.general_settings, show_progress, division,
                         samples_per, x_dim, y_dim, scene_ref, light_sampler,
