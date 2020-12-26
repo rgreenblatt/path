@@ -124,7 +124,6 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/integrate/light_sampler/random_triangle/random_triangle.cu"
   "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl_general_render_gpu.cu"
   "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl_general_render_cpu.cpp"
-  "${PROJECT_SOURCE_DIR}/src/render/detail/tone_map.cu"
   "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl.cu"
   "${PROJECT_SOURCE_DIR}/src/render/detail/work_division.cpp"
   "${PROJECT_SOURCE_DIR}/src/render/detail/reduce_intensities_gpu.cu"

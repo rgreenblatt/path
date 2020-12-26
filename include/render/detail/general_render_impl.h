@@ -7,7 +7,6 @@
 #include "render/detail/integrate_image.h"
 #include "render/detail/reduce_intensities_gpu.h"
 #include "render/detail/renderer_impl.h"
-#include "render/detail/tone_map.h"
 #include "render/detail/work_division.h"
 
 namespace render {
