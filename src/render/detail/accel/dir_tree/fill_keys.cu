@@ -16,10 +16,10 @@ namespace dir_tree {
 __global__ void fill_keys_global(SpanSized<unsigned> keys,
                                  unsigned num_elements_per_thread,
                                  SpanSized<unsigned> groups) {
-  // blockDim is divisible by warpSize
+  // blockDim is divisible by warp_size
   unsigned element_idx = blockIdx.x * blockDim.x + threadIdx.x;
-  unsigned warp_idx = element_idx / warpSize;
-  unsigned lane = threadIdx.x % warpSize;
+  unsigned warp_idx = element_idx / warp_size;
+  unsigned lane = threadIdx.x % warp_size;
   unsigned group_idx = blockIdx.y * blockDim.y + threadIdx.y;
   if (group_idx >= groups.size()) {
     return;
@@ -27,9 +27,9 @@ __global__ void fill_keys_global(SpanSized<unsigned> keys,
   auto [start, end] = group_start_end(group_idx, groups);
   unsigned element_start = lane + warp_idx * num_elements_per_thread + start;
   unsigned element_end =
-      std::min(end, element_start + warpSize * num_elements_per_thread);
+      std::min(end, element_start + warp_size * num_elements_per_thread);
 
-  for (unsigned i = element_start; i < element_end; i += warpSize) {
+  for (unsigned i = element_start; i < element_end; i += warp_size) {
     keys[i] = group_idx;
   }
 }

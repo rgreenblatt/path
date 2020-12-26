@@ -8,48 +8,48 @@
 #include "intersect/accel/enum_accel/enum_accel.h"
 #include "lib/bgra.h"
 #include "meta/one_per_instance.h"
+#include "render/renderer.h"
 #include "render/settings.h"
 #include "rng/enum_rng/enum_rng.h"
 // TODO: generalize...
 #include "intersectable_scene/flat_triangle/flat_triangle.h"
 #include "scene/scene.h"
 
-#include <map>
-#include <set>
+#include <Eigen/Core>
 
 namespace render {
-namespace detail {
 using enum_accel::EnumAccel;
 using enum_dir_sampler::EnumDirSampler;
 using enum_light_sampler::EnumLightSampler;
 using enum_term_prob::EnumTermProb;
 using rng::enum_rng::EnumRng;
 
-template <ExecutionModel execution_model> class RendererImpl {
+template <ExecutionModel exec> class Renderer::Impl {
 public:
-  void render(Span<BGRA> pixels, const scene::Scene &s, unsigned &samples_per,
-              unsigned x_dim, unsigned y_dim, const Settings &settings,
-              bool show_progress, bool show_times);
+  Impl();
 
-  RendererImpl();
+  void general_render(bool output_as_bgra, Span<BGRA> pixels,
+                      Span<Eigen::Array3f> intensities, const scene::Scene &s,
+                      unsigned &samples_per, unsigned x_dim, unsigned y_dim,
+                      const Settings &settings, bool show_progress,
+                      bool show_times);
 
 private:
-  template <typename T> using ExecVecT = ExecVector<execution_model, T>;
-  template <typename T> using SharedVecT = SharedVector<execution_model, T>;
+  template <typename T> using ExecVecT = ExecVector<exec, T>;
+  template <typename T> using SharedVecT = SharedVector<exec, T>;
 
   // TODO: consider eventually freeing...
 
   template <AccelType type>
   using IntersectableSceneGenerator =
       intersectable_scene::flat_triangle::Generator<
-          execution_model, enum_accel::Settings<type>,
-          EnumAccel<type, execution_model>>;
+          exec, enum_accel::Settings<type>, EnumAccel<type, exec>>;
 
   OnePerInstance<AccelType, IntersectableSceneGenerator>
       stored_scene_generators_;
 
   template <LightSamplerType type>
-  using LightSamplerT = EnumLightSampler<type, execution_model>;
+  using LightSamplerT = EnumLightSampler<type, exec>;
 
   OnePerInstance<LightSamplerType, LightSamplerT> light_samplers_;
 
@@ -63,15 +63,14 @@ private:
 
   using RngType = rng::enum_rng::RngType;
 
-  template <RngType type>
-  using Rng = rng::enum_rng::EnumRng<type, execution_model>;
+  template <RngType type> using Rng = rng::enum_rng::EnumRng<type, exec>;
 
   OnePerInstance<RngType, Rng> rngs_;
 
-  ThrustData<execution_model> thrust_data_;
+  ThrustData<exec> thrust_data_;
 
   ExecVecT<Eigen::Array3f> intensities_;
+  ExecVecT<Eigen::Array3f> reduced_intensities_;
   ExecVecT<BGRA> bgra_;
 };
-} // namespace detail
 } // namespace render

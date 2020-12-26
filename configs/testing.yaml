@@ -21,9 +21,15 @@ settings:
     # {}
     sequence_settings:
       {}
-    max_sample_size: 128
+    max_sample_size: 256
   general_settings:
     computation_settings:
       max_blocks_per_launch: 4096
+      render_work_division:
+        block_size: 256
+        target_x_block_size: 32
+        target_y_block_size: 8
+        max_samples_per_thread: 64
+        target_samples_per_thread: 32
     rendering_equation_settings:
       back_cull_emission: true

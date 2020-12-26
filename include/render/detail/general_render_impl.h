@@ -1,42 +1,54 @@
 #pragma once
 
 #include "intersect/accel/enum_accel/enum_accel_impl.h"
-#include "intersect/impl/triangle_impl.h"
+#include "intersect/triangle_impl.h"
 #include "lib/group.h"
 #include "meta/dispatch_value.h"
-#include "render/detail/divide_work.h"
 #include "render/detail/integrate_image.h"
+#include "render/detail/reduce_intensities_gpu.h"
 #include "render/detail/renderer_impl.h"
 #include "render/detail/tone_map.h"
+#include "render/detail/work_division.h"
 
 namespace render {
-namespace detail {
-template <ExecutionModel execution_model>
-void RendererImpl<execution_model>::render(Span<BGRA> pixels,
-                                           const scene::Scene &s,
-                                           unsigned &samples_per,
-                                           unsigned x_dim, unsigned y_dim,
-                                           const Settings &settings,
-                                           bool show_progress, bool) {
-  auto division = divide_work(samples_per, x_dim, y_dim);
+using namespace detail;
 
-  if (execution_model == ExecutionModel::GPU) {
-    samples_per = (division.num_sample_blocks * division.block_size *
-                   division.samples_per_thread) /
-                  (division.x_block_size * division.y_block_size);
+template <ExecutionModel exec>
+void Renderer::Impl<exec>::general_render(
+    bool output_as_bgra, Span<BGRA> pixels, Span<Eigen::Array3f> intensities,
+    const scene::Scene &s, unsigned &samples_per, unsigned x_dim,
+    unsigned y_dim, const Settings &settings, bool show_progress, bool) {
+  // only used for gpu
+  WorkDivision division;
+
+  if (exec == ExecutionModel::GPU) {
+    division = WorkDivision(
+        settings.general_settings.computation_settings.render_work_division,
+        samples_per, x_dim, y_dim);
   }
 
   Span<BGRA> output_pixels;
+  Span<Eigen::Array3f> output_intensities;
 
-  if constexpr (execution_model == ExecutionModel::GPU) {
-    if (division.num_sample_blocks != 1) {
-      intensities_.resize(division.num_sample_blocks * x_dim * y_dim);
+  if (output_as_bgra) {
+    if constexpr (exec == ExecutionModel::GPU) {
+      if (division.num_sample_blocks() != 1 || output_as_bgra) {
+        intensities_.resize(division.num_sample_blocks() * x_dim * y_dim);
+        output_intensities = intensities_;
+      }
+
+      bgra_.resize(x_dim * y_dim);
+      output_pixels = bgra_;
+    } else {
+      output_pixels = pixels;
     }
-
-    bgra_.resize(x_dim * y_dim);
-    output_pixels = bgra_;
   } else {
-    output_pixels = pixels;
+    if constexpr (exec == ExecutionModel::GPU) {
+      intensities_.resize(division.num_sample_blocks() * x_dim * y_dim);
+      output_intensities = intensities_;
+    } else {
+      output_intensities = intensities;
+    }
   }
 
   dispatch_value(
@@ -80,20 +92,24 @@ void RendererImpl<execution_model>::render(Span<BGRA> pixels,
         auto rng = rngs_.template get<rng_type>().gen(
             settings.rng.template get<rng_type>(), samples_per, n_locations);
 
-        integrate_image(settings.general_settings, show_progress, division,
-                        samples_per, x_dim, y_dim, scene_ref, light_sampler,
-                        dir_sampler, term_prob, rng, output_pixels,
-                        intensities_, s.film_to_world());
+        integrate_image(output_as_bgra, settings.general_settings,
+                        show_progress, division, samples_per, x_dim, y_dim,
+                        scene_ref, light_sampler, dir_sampler, term_prob, rng,
+                        output_pixels, output_intensities, s.film_to_world());
       },
       settings.compile_time.values());
 
-  if constexpr (execution_model == ExecutionModel::GPU) {
-    if (division.num_sample_blocks != 1) {
-      tone_map<execution_model>(intensities_, bgra_);
-    }
+  if constexpr (exec == ExecutionModel::GPU) {
+    auto intensities_gpu = reduce_intensities_gpu(
+        output_as_bgra, division.num_sample_blocks(), samples_per,
+        &intensities_, &reduced_intensities_, bgra_);
 
-    thrust::copy(bgra_.begin(), bgra_.end(), pixels.begin());
+    if (output_as_bgra) {
+      thrust::copy(bgra_.begin(), bgra_.end(), pixels.begin());
+    } else {
+      thrust::copy(intensities_gpu->begin(), intensities_gpu->end(),
+                   intensities.begin());
+    }
   }
 }
-} // namespace detail
 } // namespace render

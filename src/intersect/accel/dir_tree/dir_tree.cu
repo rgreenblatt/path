@@ -1,5 +1,4 @@
 #include "intersect/accel/dir_tree/dir_tree.h"
-#include "intersect/impl/triangle_impl.h"
 
 namespace intersect {
 namespace accel {

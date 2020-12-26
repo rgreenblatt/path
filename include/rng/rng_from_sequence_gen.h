@@ -20,12 +20,17 @@ constexpr unsigned fnv_hash(unsigned in) {
   return out_hash;
 }
 
+struct SequenceGenOutput {
+  Span<const float> vals;
+  unsigned initial_dimension_bound;
+};
+
 template <typename SG, typename S>
 concept SequenceGen = requires(SG &gen, const S &settings, unsigned dimension,
                                unsigned count) {
   requires Setting<S>;
   { gen.gen(settings, dimension, count) }
-  ->std::same_as<Span<const float>>;
+  ->std::same_as<SequenceGenOutput>;
 };
 
 template <typename SG, Setting S>
@@ -34,6 +39,7 @@ public:
   struct Ref {
     unsigned samples_per_;
     unsigned dimension_bound_;
+    unsigned initial_dimension_bound_;
     Span<const float> vals_;
 
     class State {
@@ -71,7 +77,8 @@ public:
       // Note that they may be correlated in practice (depending on the
       // sequence).
       // For path tracing this make pixels look uncorrelated.
-      return State(fnv_hash(location) % dimension_bound_, sample_idx, this);
+      return State(fnv_hash(location) % initial_dimension_bound_, sample_idx,
+                   this);
     }
   };
 
@@ -79,10 +86,12 @@ public:
 
   Ref gen(const RngFromSequenceGenSettings<S> &settings, unsigned samples_per,
           unsigned /*n_locations*/) {
-    auto vals = gen_.gen(settings.sequence_settings, settings.max_sample_size,
-                         samples_per);
+    auto [vals, initial_dimension_bound] = gen_.gen(
+        settings.sequence_settings, settings.max_sample_size, samples_per);
 
-    return Ref{samples_per, settings.max_sample_size, vals};
+    return Ref{samples_per, settings.max_sample_size,
+               std::min(initial_dimension_bound, settings.max_sample_size),
+               vals};
   }
 
 private:

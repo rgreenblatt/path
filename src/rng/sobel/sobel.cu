@@ -18,8 +18,8 @@ namespace detail {
 // use curand to generate for simplicity and gpu/cpu consistancy
 template <ExecutionModel exec> class SobelSequenceGen<exec>::Generator {
 public:
-  Span<const float> gen(const SobelSettings &, unsigned dimension_bound,
-                        unsigned count) {
+  rng::detail::SequenceGenOutput gen(const SobelSettings &,
+                                     unsigned dimension_bound, unsigned count) {
     curandDirectionVectors32_t *host_vectors_32_ptr;
     unsigned *host_scramble_constants_32_ptr;
 
@@ -67,12 +67,15 @@ public:
           return patched_curand_uniform(&state);
         });
 
+    // TODO: why is this needed? issues with higher dimensions of sobel???
+    constexpr unsigned initial_dimension_bound = 64;
+
     if constexpr (exec == ExecutionModel::GPU) {
-      return gpu_vals_;
+      return {gpu_vals_, initial_dimension_bound};
     } else {
       copy_to_vec(gpu_vals_, vals_);
 
-      return vals_;
+      return {vals_, initial_dimension_bound};
     }
   }
 
@@ -84,9 +87,9 @@ private:
 };
 
 template <ExecutionModel exec>
-Span<const float> SobelSequenceGen<exec>::gen(const SobelSettings &settings,
-                                              unsigned dimension_bound,
-                                              unsigned count) {
+rng::detail::SequenceGenOutput
+SobelSequenceGen<exec>::gen(const SobelSettings &settings,
+                            unsigned dimension_bound, unsigned count) {
   return gen_->gen(settings, dimension_bound, count);
 }
 

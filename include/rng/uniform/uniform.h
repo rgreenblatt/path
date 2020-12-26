@@ -60,9 +60,6 @@ template <ExecutionModel exec> struct Uniform {
   }
 };
 
-static_assert(Rng<Uniform<ExecutionModel::GPU>, Settings>);
-static_assert(Rng<Uniform<ExecutionModel::CPU>, Settings>);
-
 template <ExecutionModel exec>
 struct IsRng : BoolWrapper<Rng<Uniform<exec>, Settings>> {};
 

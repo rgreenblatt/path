@@ -1,6 +1,7 @@
-#include "render/detail/integrate_image.h"
+#include "render/detail/assign_output.h"
+#include "render/detail/general_render_impl.h"
 #include "render/detail/impl/integrate_pixel.h"
-#include "render/detail/impl/render_impl.h"
+#include "render/detail/integrate_image.h"
 
 #include <cli/ProgressBar.hpp>
 
@@ -9,11 +10,13 @@ namespace detail {
 template <intersectable_scene::IntersectableScene S,
           LightSamplerRef<typename S::B> L, DirSamplerRef<typename S::B> D,
           TermProbRef T, rng::RngRef R>
-void integrate_image(const GeneralSettings &settings, bool show_progress,
-                     const WorkDivision &, unsigned samples_per, unsigned x_dim,
-                     unsigned y_dim, const S &scene, const L &light_sampler,
+void integrate_image(bool output_as_bgra, const GeneralSettings &settings,
+                     bool show_progress, const WorkDivision &,
+                     unsigned samples_per, unsigned x_dim, unsigned y_dim,
+                     const S &scene, const L &light_sampler,
                      const D &direction_sampler, const T &term_prob,
-                     const R &rng, Span<BGRA> pixels, Span<Eigen::Array3f>,
+                     const R &rng, Span<BGRA> pixels,
+                     Span<Eigen::Array3f> intensities,
                      const Eigen::Affine3f &film_to_world) {
   ProgressBar progress_bar(x_dim * y_dim, 70);
   if (show_progress) {
@@ -25,11 +28,12 @@ void integrate_image(const GeneralSettings &settings, bool show_progress,
 #endif
   for (unsigned y = 0; y < y_dim; y++) {
     for (unsigned x = 0; x < x_dim; x++) {
-      pixels[x + y * x_dim] = intensity_to_bgr(
-          integrate_pixel(x, y, 0, samples_per, settings, x_dim, y_dim, scene,
-                          light_sampler, direction_sampler, term_prob, rng,
-                          film_to_world) /
-          samples_per);
+      assign_output(
+          output_as_bgra, pixels, intensities, 0, 1, x, y, x_dim, samples_per,
+          integrate_pixel(x, y, 0, samples_per,
+                          settings.rendering_equation_settings, x_dim, y_dim,
+                          scene, light_sampler, direction_sampler, term_prob,
+                          rng, film_to_world));
       if (show_progress) {
 #pragma omp critical
         {
@@ -44,7 +48,7 @@ void integrate_image(const GeneralSettings &settings, bool show_progress,
     progress_bar.done();
   }
 }
-
-template class RendererImpl<ExecutionModel::CPU>;
 } // namespace detail
+
+template class Renderer::Impl<ExecutionModel::CPU>;
 } // namespace render

@@ -2,8 +2,8 @@
 #include "intersect/accel/accel.h"
 #include "intersect/accel/enum_accel/enum_accel.h"
 #include "intersect/accel/enum_accel/enum_accel_impl.h"
-#include "intersect/impl/triangle_impl.h"
 #include "intersect/triangle.h"
+#include "intersect/triangle_impl.h"
 #include "lib/optional.h"
 #include "lib/span.h"
 

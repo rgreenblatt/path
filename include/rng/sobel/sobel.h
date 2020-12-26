@@ -18,8 +18,8 @@ public:
   SobelSequenceGen(SobelSequenceGen &&);
   SobelSequenceGen &operator=(SobelSequenceGen &&);
 
-  Span<const float> gen(const SobelSettings &settings, unsigned dimension_bound,
-                        unsigned count);
+  rng::detail::SequenceGenOutput gen(const SobelSettings &settings,
+                                     unsigned dimension_bound, unsigned count);
 
 private:
   // PIMPL

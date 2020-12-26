@@ -10,8 +10,7 @@ struct GeneralSettings {
   integrate::RenderingEquationSettings rendering_equation_settings;
 
   template <typename Archive> void serialize(Archive &archive) {
-    archive(NVP(computation_settings));
-    archive(NVP(rendering_equation_settings));
+    archive(NVP(computation_settings), NVP(rendering_equation_settings));
   }
 
   constexpr bool operator==(const GeneralSettings &) const = default;

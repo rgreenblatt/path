@@ -6,6 +6,7 @@
 
 #include <Eigen/Geometry>
 
+#include <algorithm>
 #include <string_view>
 #include <tuple>
 
@@ -16,7 +17,7 @@ constexpr size_t copy_in_n_times(Iter format_iter, std::string_view s,
                                  size_t times) {
   size_t offset = 0;
   for (size_t i = 0; i < times; ++i) {
-    copy(s.begin(), s.end(), format_iter);
+    std::copy(s.begin(), s.end(), format_iter);
 
     offset += s.size();
   }
@@ -100,7 +101,8 @@ HOST_DEVICE inline auto debug_print(std::string_view file_name, int line_number,
   std::array<char, 100> format_buffer;
   std::string_view initial_format = "[%s%s:%d %s] %s =\n";
 
-  copy(initial_format.begin(), initial_format.end(), format_buffer.begin());
+  std::copy(initial_format.begin(), initial_format.end(),
+            format_buffer.begin());
 
   const long to_remove =
       static_cast<long>(file_name.size()) - max_file_name_len;

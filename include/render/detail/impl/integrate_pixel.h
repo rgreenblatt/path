@@ -23,13 +23,12 @@ initial_ray(float x, float y, unsigned x_dim, unsigned y_dim,
 template <intersectable_scene::IntersectableScene S,
           LightSamplerRef<typename S::B> L, DirSamplerRef<typename S::B> D,
           TermProbRef T, rng::RngRef R>
-HOST_DEVICE inline Eigen::Array3f
-integrate_pixel(unsigned x, unsigned y, unsigned start_sample,
-                unsigned end_sample, const GeneralSettings &settings,
-                unsigned x_dim, unsigned y_dim, const S &scene,
-                const L &light_sampler, const D &dir_sampler,
-                const T &term_prob, const R &rng_ref,
-                const Eigen::Affine3f &film_to_world) {
+HOST_DEVICE inline Eigen::Array3f integrate_pixel(
+    unsigned x, unsigned y, unsigned start_sample, unsigned end_sample,
+    const integrate::RenderingEquationSettings &settings, unsigned x_dim,
+    unsigned y_dim, const S &scene, const L &light_sampler,
+    const D &dir_sampler, const T &term_prob, const R &rng_ref,
+    const Eigen::Affine3f &film_to_world) {
   auto initial_ray_sampler = [&](auto &rng) -> integrate::RaySampleDistance {
     float x_offset = rng.next();
     float y_offset = rng.next();
@@ -41,9 +40,8 @@ integrate_pixel(unsigned x, unsigned y, unsigned start_sample,
   };
 
   return integrate::rendering_equation(
-      initial_ray_sampler, start_sample, end_sample, x + y * x_dim,
-      settings.rendering_equation_settings, scene, light_sampler, dir_sampler,
-      term_prob, rng_ref);
+      initial_ray_sampler, start_sample, end_sample, x + y * x_dim, settings,
+      scene, light_sampler, dir_sampler, term_prob, rng_ref);
 }
 } // namespace detail
 } // namespace render

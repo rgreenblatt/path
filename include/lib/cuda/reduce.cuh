@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lib/cuda/utils.h"
 #include <cstdint>
 
 #ifdef __CUDACC__ // To avoid issues with the language server
@@ -7,7 +8,7 @@ constexpr uint32_t full_mask = 0xffffffff;
 
 template <typename T, typename F>
 inline __device__ T warp_reduce(T val, const F &f) {
-  for (unsigned offset = warpSize / 2; offset > 0; offset /= 2) {
+  for (unsigned offset = warp_size / 2; offset > 0; offset /= 2) {
     val = f(__shfl_down_sync(full_mask, val, offset), val);
   }
 
@@ -20,8 +21,8 @@ __inline__ __device__ T block_reduce(T val, const F &f, const T &identity_value,
                                      unsigned thread_block_size) {
   static __shared__ T shared[32]; // Shared mem for 32 partial sums
 
-  unsigned lane = thread_block_index % warpSize;
-  unsigned wid = thread_block_index / warpSize;
+  unsigned lane = thread_block_index % warp_size;
+  unsigned wid = thread_block_index / warp_size;
 
   val = warp_reduce(val, f); // Each warp performs partial reduction
 
@@ -32,8 +33,8 @@ __inline__ __device__ T block_reduce(T val, const F &f, const T &identity_value,
   __syncthreads(); // Wait for all partial reductions
 
   // read from shared memory only if that warp existed
-  val = (thread_block_index < thread_block_size / warpSize) ? shared[lane]
-                                                            : identity_value;
+  val = (thread_block_index < thread_block_size / warp_size) ? shared[lane]
+                                                             : identity_value;
 
   val = warp_reduce(val, f); // Final reduce within first warp
 

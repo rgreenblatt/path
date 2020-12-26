@@ -8,9 +8,11 @@
 
 #ifdef __CUDACC__
 #define HOST_DEVICE __host__ __device__
+#define DEVICE __device__
 #else
 #include <cuda_runtime.h>
 #define HOST_DEVICE
+#define DEVICE
 #endif
 
 inline void cuda_assert(cudaError_t code, const char *file, int line) {
@@ -29,3 +31,5 @@ inline void cuda_assert(cudaError_t code, const char *file, int line) {
 #else
 #define ALIGN_STRUCT(x) alignas(x)
 #endif
+
+inline constexpr unsigned warp_size = 32;

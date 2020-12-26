@@ -1,14 +1,9 @@
-#include "lib/info/timer.h"
 #include "render/detail/renderer_impl.h"
 
-#include <thrust/copy.h>
-
 namespace render {
-namespace detail {
 template <ExecutionModel execution_model>
-RendererImpl<execution_model>::RendererImpl() {}
+Renderer::Impl<execution_model>::Impl() {}
 
-template class RendererImpl<ExecutionModel::CPU>;
-template class RendererImpl<ExecutionModel::GPU>;
-} // namespace detail
+template class Renderer::Impl<ExecutionModel::CPU>;
+template class Renderer::Impl<ExecutionModel::GPU>;
 } // namespace render
