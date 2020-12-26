@@ -5,5 +5,7 @@ template <ExecutionModel execution_model>
 Renderer::Impl<execution_model>::Impl() {}
 
 template class Renderer::Impl<ExecutionModel::CPU>;
+#ifndef CPU_ONLY
 template class Renderer::Impl<ExecutionModel::GPU>;
+#endif
 } // namespace render

@@ -1,6 +1,6 @@
 #include "render/detail/work_division.h"
 #include "lib/cuda/utils.h"
-#include "lib/utils.h"
+#include "lib/integer_division_utils.h"
 
 #include <cassert>
 

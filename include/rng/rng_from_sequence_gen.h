@@ -3,7 +3,6 @@
 #include "lib/cuda/utils.h"
 #include "lib/settings.h"
 #include "lib/span.h"
-#include "lib/utils.h"
 #include "rng/rng.h"
 #include "rng/rng_from_sequence_gen_settings.h"
 

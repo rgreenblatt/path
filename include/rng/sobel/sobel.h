@@ -7,6 +7,8 @@
 #include "rng/rng_from_sequence_gen.h"
 #include "rng/sobel/settings.h"
 
+#include <memory>
+
 namespace rng {
 namespace sobel {
 namespace detail {

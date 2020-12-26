@@ -2,7 +2,7 @@
 
 #include "meta/mock.h"
 
-#include <cereal/cereal.hpp>
+#include <cereal/name_value_pair.hpp>
 
 #include <concepts>
 #include <type_traits>

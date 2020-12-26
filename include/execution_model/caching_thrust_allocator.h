@@ -4,13 +4,12 @@
 #include "lib/cuda/utils.h"
 #include "meta/predicate_for_all_values.h"
 
-#include <thrust/host_vector.h>
 #include <thrust/system/cuda/execution_policy.h>
 #include <thrust/system/cuda/vector.h>
 
 #include <concepts>
-#include <iostream>
 #include <map>
+#include <stdexcept>
 
 // thrust-cuda-tip-reuse-temporary-buffers-across-transforms
 template <ExecutionModel execution_model> class CachingThrustAllocator {

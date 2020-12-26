@@ -13,6 +13,7 @@ set(CMAKE_VERBOSE_MAKEFILE TRUE)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
 add_compile_options(-Wall -Wextra -fsized-deallocation -g)
+add_link_options(-fuse-ld=lld)
 
 # use libc++ for this project and submodules
 # set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -stdlib=libc++")
@@ -118,12 +119,12 @@ target_link_libraries(intersect PUBLIC yaml-cpp PRIVATE OpenMP::OpenMP_CXX)
 add_library(
   renderer
   STATIC
+  "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl_general_render_gpu.cu"
+  "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl_general_render_cpu.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/render/renderer.cu"
 
   "${PROJECT_SOURCE_DIR}/src/integrate/light_sampler/random_triangle/random_triangle.cu"
-  "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl_general_render_gpu.cu"
-  "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl_general_render_cpu.cpp"
   "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl.cu"
   "${PROJECT_SOURCE_DIR}/src/render/detail/work_division.cpp"
   "${PROJECT_SOURCE_DIR}/src/render/detail/reduce_intensities_gpu.cu"

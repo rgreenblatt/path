@@ -3,14 +3,11 @@
 #include "intersect/accel/aabb.h"
 #include "intersect/transformed_object.h"
 #include "intersect/triangle.h"
-#include "lib/optional.h"
 #include "lib/span.h"
 #include "lib/vector_group.h"
 #include "scene/emissive_cluster.h"
 #include "scene/material.h"
 #include "scene/triangle_data.h"
-
-#include <tiny_obj_loader.h>
 
 #include <vector>
 

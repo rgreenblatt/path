@@ -5,7 +5,6 @@
 #include "intersect/ray.h"
 #include "lib/cuda/utils.h"
 
-#include <Eigen/Core>
 #include <Eigen/Geometry>
 
 namespace intersect {

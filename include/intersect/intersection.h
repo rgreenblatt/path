@@ -30,6 +30,6 @@ HOST_DEVICE inline auto operator<=>(const Intersection<InfoType> &lhs,
   return lhs.intersection_dist <=> rhs.intersection_dist;
 }
 
-template <typename InfoType>
+template <std::copyable InfoType>
 using IntersectionOp = Optional<Intersection<InfoType>>;
 } // namespace intersect

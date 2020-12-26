@@ -76,7 +76,7 @@ Ref::intersect_objects(const intersect::Ray &ray,
               node_stack.push(StackData{first, new_depth});
             },
             [&](const std::array<unsigned, 2> &data) {
-              start_end = create_optional(data);
+              start_end = data;
               current_idx = data[0];
             });
       }

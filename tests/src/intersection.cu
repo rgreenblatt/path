@@ -45,7 +45,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
               ref.intersect_objects(ray, [&](unsigned idx, const Ray &ray) {
                 return triangles_span[idx].intersect(ray);
               });
-          return optional_map(a, [](const auto &v) { return v.info.idx; });
+          return a.op_map([](const auto &v) { return v.info.idx; });
         });
 
     for (unsigned i = 0; i < test_expected.size(); i++) {

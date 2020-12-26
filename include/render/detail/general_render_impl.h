@@ -8,6 +8,7 @@
 #include "render/detail/reduce_intensities_gpu.h"
 #include "render/detail/renderer_impl.h"
 #include "render/detail/work_division.h"
+#include "render/detail/compile_time_settings_impl.h"
 
 namespace render {
 using namespace detail;
@@ -57,7 +58,7 @@ void Renderer::Impl<exec>::general_render(
             std::decay_t<decltype(settings_tup)>::value;
 
         constexpr auto flat_accel_type =
-            compile_time_settings.flat_accel_type();
+            compile_time_settings.flat_accel_type;
 
         auto scene_ref =
             stored_scene_generators_.template get<flat_accel_type>().gen(
@@ -67,11 +68,11 @@ void Renderer::Impl<exec>::general_render(
                 s);
 
         constexpr auto light_sampler_type =
-            compile_time_settings.light_sampler_type();
+            compile_time_settings.light_sampler_type;
         constexpr auto dir_sampler_type =
-            compile_time_settings.dir_sampler_type();
-        constexpr auto term_prob_type = compile_time_settings.term_prob_type();
-        constexpr auto rng_type = compile_time_settings.rng_type();
+            compile_time_settings.dir_sampler_type;
+        constexpr auto term_prob_type = compile_time_settings.term_prob_type;
+        constexpr auto rng_type = compile_time_settings.rng_type;
 
         auto light_sampler =
             light_samplers_.template get<light_sampler_type>().gen(
@@ -96,7 +97,7 @@ void Renderer::Impl<exec>::general_render(
                         scene_ref, light_sampler, dir_sampler, term_prob, rng,
                         output_pixels, output_intensities, s.film_to_world());
       },
-      settings.compile_time.values());
+      settings.compile_time);
 
   if constexpr (exec == ExecutionModel::GPU) {
     auto intensities_gpu = reduce_intensities_gpu(

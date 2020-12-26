@@ -3,7 +3,6 @@
 #include "intersect/accel/accel.h"
 #include "intersect/accel/dir_tree/settings.h"
 #include "intersect/accel/s_a_heuristic_settings.h"
-#include "intersect/triangle.h"
 #include "meta/predicate_for_all_values.h"
 
 namespace intersect {

@@ -9,7 +9,7 @@ namespace accel {
 template <typename T>
 HOST_DEVICE inline IntersectionOp<IdxHolder<T>>
 add_idx(const IntersectionOp<T> &i, unsigned idx) {
-  return optional_map(i, [&](const auto &v) {
+  return i.op_map([&](const auto &v) {
     return v.map_info([&](const T &v) -> IdxHolder<T> { return {idx, v}; });
   });
 }

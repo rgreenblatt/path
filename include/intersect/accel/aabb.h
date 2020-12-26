@@ -2,9 +2,8 @@
 
 #include "lib/cuda/utils.h"
 #include "lib/optional.h"
-#include "lib/utils.h"
+#include "lib/min_max_eigen.h"
 
-#include <Eigen/Core>
 #include <Eigen/Geometry>
 
 #include <iostream>

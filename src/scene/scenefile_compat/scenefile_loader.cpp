@@ -1,7 +1,7 @@
 #include "scene/scenefile_compat/scenefile_loader.h"
 #include "lib/group.h"
 #include "lib/optional.h"
-#include "lib/utils.h"
+#include "lib/min_max_eigen.h"
 #include "scene/camera.h"
 #include "scene/scene.h"
 #include "scene/scenefile_compat/CS123XmlSceneParser.h"
@@ -286,8 +286,8 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
 
       std::array<Eigen::Vector3f, 3> normals;
       for (size_t v = 0; v < fv; v++) {
-        normals[v] = optional_unwrap_or_else(normals_op[v],
-                                             [&] { return triangle.normal(); });
+        normals[v] =
+            normals_op[v].unwrap_or_else([&] { return triangle.normal(); });
       }
 
       scene_v.triangles_.push_back_all(triangle, {normals, material_idx});

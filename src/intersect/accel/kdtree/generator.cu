@@ -1,5 +1,5 @@
 #include "intersect/accel/kdtree/generator.h"
-#include "lib/utils.h"
+#include "lib/min_max_eigen.h"
 
 namespace intersect {
 namespace accel {

@@ -2,7 +2,6 @@
 
 #include "lib/bgra.h"
 #include "lib/cuda/utils.h"
-#include "lib/utils.h"
 
 #include <Eigen/Geometry>
 

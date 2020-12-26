@@ -1,5 +1,5 @@
 #ifndef CPU_ONLY
-#include "lib/utils.h"
+#include "lib/integer_division_utils.h"
 #include "render/detail/general_render_impl.h"
 #include "render/detail/impl/integrate_pixel.h"
 #include "render/detail/integrate_image.h"

@@ -11,16 +11,18 @@ namespace intersect {
 template <typename T>
 concept Intersectable = requires(const T &t, const Ray &ray) {
   typename T::InfoType;
-  requires std::copyable<typename T::InfoType>;
+  requires std::semiregular<typename T::InfoType>;
   { t.intersect(ray) }
   ->DecaysTo<IntersectionOp<typename T::InfoType>>;
 };
 
 struct MockIntersectable : MockNoRequirements {
-  struct InfoType : MockCopyable {};
+  struct InfoType : MockSemiregular {};
 
   constexpr IntersectionOp<InfoType> intersect(const Ray &) const {
     return nullopt_value;
   }
 };
+
+static_assert(Intersectable<MockIntersectable>);
 } // namespace intersect
