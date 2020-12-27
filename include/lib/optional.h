@@ -19,33 +19,91 @@ template <typename T> concept IsOptional = SpecializationOf<T, Optional>;
 
 // Can't use std::optional and thrust::optional takes decades to
 // compile so instead we implement optional...
+// This was probably a mistake - took longer than expected to test and
+// implement. But at least I now have a better understanding of alignment,
+// placement new, and exactly how copy/move assigment/construction should
+// work for an option...
 //
 // Note that this optional implements many methods (from rust) which aren't part
 // of std::optional
 template <std::movable T> class Optional {
 public:
   constexpr Optional() : has_value_(false) {}
+
+  constexpr Optional(const Optional &other) : has_value_(other.has_value_) {
+    if(has_value_) {
+      construct_in_place(*this, *other);
+    }
+  }
+  
+  constexpr Optional(Optional &&other) : has_value_(other.has_value_) {
+    if(has_value_) {
+      construct_in_place(*this, std::move(*other));
+      other.has_value_ = false;
+    }
+  }
+
+  constexpr Optional& operator=(const Optional &other)  {
+    if (this != &other) {
+      if (has_value_ && other.has_value_) {
+        **this = *other;
+      } else if (other.has_value_) {
+        construct_in_place(*this, *other);
+      } else {
+        this->~Optional();
+      }
+
+      has_value_ = other.has_value_;
+    }
+
+    return *this;
+  }
+
+  constexpr Optional &operator=(Optional &&other) {
+    if (this != &other) {
+      if (has_value_ && other.has_value_) {
+        **this = std::move(*other);
+      } else if (other.has_value_) {
+        construct_in_place(*this, std::move(*other));
+      } else {
+        this->~Optional();
+      }
+
+      has_value_ = other.has_value_;
+    }
+
+    return *this;
+  }
+
+  constexpr ~Optional() {
+    // destruct
+    if (has_value_) {
+      reinterpret_cast<T*>(bytes_.data())->~T();
+    }
+  }
+
   constexpr Optional(const NulloptT &) : Optional() {}
-  constexpr Optional(T &&value) : has_value_(true) {
-    ::new (reinterpret_cast<void *>(bytes_.data())) T(std::forward<T>(value));
-  }
+
   constexpr Optional(const T &value) : has_value_(true) {
-    ::new (reinterpret_cast<void *>(bytes_.data())) T(value);
+    construct_in_place(*this, value);
   }
-  constexpr Optional operator=(T &value) {
-    return Optional(std::forward<T>(value));
+
+  constexpr Optional(T &&value) : has_value_(true) {
+    construct_in_place(*this, std::forward<T>(value));
   }
-  constexpr Optional operator=(const T &value) { return Optional(value); }
 
   constexpr const T &operator*() const {
     assert(has_value());
     return *reinterpret_cast<const T *>(bytes_.data());
   }
+
   constexpr T &operator*() {
     assert(has_value());
     return *reinterpret_cast<T *>(bytes_.data());
   }
+
   constexpr const T *operator->() const { return &(**this); }
+
   constexpr T *operator->() { return &(**this); }
 
   constexpr bool has_value() const { return has_value_; }
@@ -103,7 +161,12 @@ public:
   }
 
 private:
-  std::array<std::byte, sizeof(T)> bytes_;
+  template<typename V>
+  constexpr static void construct_in_place(Optional& cls, V&& v) {
+    ::new (reinterpret_cast<void *>(cls.bytes_.data())) T(std::forward<V>(v));
+  }
+
+  alignas(T) std::array<std::byte, sizeof(T)> bytes_;
   bool has_value_;
 };
 
