@@ -26,10 +26,4 @@ inline void cuda_assert(cudaError_t code, const char *file, int line) {
 #define CUDA_ERROR_CHK(ans)                                                    \
   { cuda_assert((ans), __FILE__, __LINE__); }
 
-#ifdef __CUDACC__
-#define ALIGN_STRUCT(x) __align__(x)
-#else
-#define ALIGN_STRUCT(x) alignas(x)
-#endif
-
 inline constexpr unsigned warp_size = 32;

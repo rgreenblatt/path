@@ -11,7 +11,8 @@ namespace ray {
 namespace detail {
 namespace accel {
 namespace dir_tree {
-class ALIGN_STRUCT(16) DirTreeNode {
+// TODO: why align?
+class alignas(16) DirTreeNode {
 public:
   HOST_DEVICE DirTreeNode(unsigned start, unsigned end)
       : start_end_({start, end}), type_(Type::StartEnd) {}
@@ -56,7 +57,8 @@ private:
 };
 
 // eventually this should be triangle or something...
-class ALIGN_STRUCT(32) DirTree {
+// TODO: why align?
+class alignas(32) DirTree {
 public:
   // is it worth special casing affine? (union or whatever...)
   //   - only affine now I think...
@@ -81,7 +83,8 @@ private:
   unsigned idx_;
 };
 
-class ALIGN_STRUCT(32) DirTreeLookup {
+// TODO: why align?
+class alignas(32) DirTreeLookup {
 public:
   HOST_DEVICE DirTreeLookup() = default;
 
