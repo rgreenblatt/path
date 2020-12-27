@@ -13,22 +13,22 @@ TEST(Projection, find_rotate_vector_to_vector) {
     EXPECT_NEAR(transformed.z(), target->z(), 1e-6f);
   };
 
-  check(UnitVector::new_unchecked({0, 0, 1}),
+  check(UnitVector::new_normalize({0, 0, 1}),
         UnitVector::new_normalize({0, 0, 1}));
-  check(UnitVector::new_unchecked({0, 0, 1}),
+  check(UnitVector::new_normalize({0, 0, 1}),
         UnitVector::new_normalize({0, 0, -1}));
-  check(UnitVector::new_unchecked({0, 1, 1}),
+  check(UnitVector::new_normalize({0, 1, 1}),
         UnitVector::new_normalize({0, 0, 1}));
-  check(UnitVector::new_unchecked({1, 0, 1}),
+  check(UnitVector::new_normalize({1, 0, 1}),
         UnitVector::new_normalize({0, 0, 1}));
-  check(UnitVector::new_unchecked({1, 1, 1}),
+  check(UnitVector::new_normalize({1, 1, 1}),
         UnitVector::new_normalize({0, 0, 1}));
-  check(UnitVector::new_unchecked({0.382, 0.38, 1}),
+  check(UnitVector::new_normalize({0.382, 0.38, 1}),
         UnitVector::new_normalize({0, 0, 1}));
-  check(UnitVector::new_unchecked({0.7, 0.8, 1}),
+  check(UnitVector::new_normalize({0.7, 0.8, 1}),
         UnitVector::new_normalize({0, 0, -1}));
-  check(UnitVector::new_unchecked({0.7, 0.8, 0.1}),
+  check(UnitVector::new_normalize({0.7, 0.8, 0.1}),
         UnitVector::new_normalize({0, 0, -1}));
-  check(UnitVector::new_unchecked({0.7, 0.8, -0.1}),
+  check(UnitVector::new_normalize({0.7, 0.8, -0.1}),
         UnitVector::new_normalize({0, 0, -1}));
 }
