@@ -1,7 +1,7 @@
 #include "lib/optional.h"
+#include "lib/assert.h"
 #include "meta/mock.h"
 
-#include <cassert>
 #include <gtest/gtest.h>
 
 TEST(Optional, basic) {
@@ -22,17 +22,16 @@ TEST(Optional, basic) {
 template <bool copy_allowed> class CountCalls {
 public:
   CountCalls() = delete;
-  
+
   CountCalls(unsigned *moved_into, unsigned *assign_moved,
              unsigned *copied_into, unsigned *assign_copied, bool *destructed)
       : moved_into_(moved_into), assign_moved_(assign_moved),
         copied_into_(copied_into), assign_copied_(assign_copied),
         destructed_(destructed) {}
 
-
   CountCalls(const CountCalls &other) requires copy_allowed {
-    assert(other.destructed_ != nullptr);
-    assert(!*other.destructed_);
+    always_assert(other.destructed_ != nullptr);
+    always_assert(!*other.destructed_);
     moved_into_ = other.moved_into_;
     assign_moved_ = other.assign_moved_;
     copied_into_ = other.copied_into_;
@@ -42,8 +41,8 @@ public:
   }
 
   CountCalls(CountCalls &&other) {
-    assert(other.destructed_ != nullptr);
-    assert(!*other.destructed_);
+    always_assert(other.destructed_ != nullptr);
+    always_assert(!*other.destructed_);
     moved_into_ = other.moved_into_;
     assign_moved_ = other.assign_moved_;
     copied_into_ = other.copied_into_;
@@ -59,10 +58,10 @@ public:
   }
 
   CountCalls &operator=(const CountCalls &other) requires copy_allowed {
-    assert(destructed_ != nullptr);
-    assert(other.destructed_ != nullptr);
-    assert(!*destructed_);
-    assert(!*other.destructed_);
+    always_assert(destructed_ != nullptr);
+    always_assert(other.destructed_ != nullptr);
+    always_assert(!*destructed_);
+    always_assert(!*other.destructed_);
     if (this != &other) {
       moved_into_ = other.moved_into_;
       assign_moved_ = other.assign_moved_;
@@ -75,9 +74,9 @@ public:
   };
 
   CountCalls &operator=(CountCalls &&other) {
-    assert(other.destructed_ != nullptr);
-    assert(!*destructed_);
-    assert(!*other.destructed_);
+    always_assert(other.destructed_ != nullptr);
+    always_assert(!*destructed_);
+    always_assert(!*other.destructed_);
     if (this != &other) {
       moved_into_ = other.moved_into_;
       assign_moved_ = other.assign_moved_;
@@ -97,7 +96,7 @@ public:
 
   ~CountCalls() {
     if (destructed_ != nullptr) {
-      assert(!*destructed_);
+      always_assert(!*destructed_);
       *destructed_ = true;
     }
   }
@@ -284,7 +283,7 @@ TEST(Optional, MoveDestruct) {
   }
 
   check(Expected{}.s_destructed(true), __LINE__);
-  
+
   {
     Optional a(
         Optional(CountCalls<true>(&moved_into, &assign_moved, &copied_into,

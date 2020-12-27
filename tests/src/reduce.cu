@@ -1,5 +1,6 @@
 #include "data_structure/copyable_to_vec.h"
 #include "execution_model/vector_type.h"
+#include "lib/assert.h"
 #include "lib/cuda/reduce.cuh"
 #include "lib/span.h"
 
@@ -7,7 +8,6 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
-#include <cstdio>
 #include <random>
 
 template <typename T>
@@ -35,7 +35,7 @@ TEST(Reduce, sum) {
     for (unsigned n_blocks : {1, 2, 4, 7, 16}) {
       const unsigned block_size = 256;
       const unsigned size = n_blocks * block_size;
-      assert(size % block_size == 0);
+      always_assert(size % block_size == 0);
 
       std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
 
