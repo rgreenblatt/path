@@ -1,17 +1,10 @@
 #include "lib/info/timer.h"
-#include "lib/optional.h"
-#include "lib/serialize_enum.h"
-#include "render/renderer.h"
-#include "render/settings.h"
-#include "scene/scenefile_compat/scenefile_loader.h"
+#include "render/renderer_from_files.h"
 
 #include <QImage>
 #include <boost/lexical_cast.hpp>
-#include <cereal-yaml/archives/yaml.hpp>
 #include <docopt.h>
-#include <magic_enum.hpp>
 
-#include <fstream>
 #include <iostream>
 #include <string>
 
@@ -57,6 +50,7 @@ int main(int argc, char *argv[]) {
     if (it == args.end()) {
       std::cerr << "internal command line parse error" << std::endl;
       std::cerr << s << std::endl;
+      assert(false);
       abort();
     }
 
@@ -92,41 +86,23 @@ int main(int argc, char *argv[]) {
 
   QImage image(width, height, QImage::Format_RGB32);
 
-  scene::scenefile_compat::ScenefileLoader loader;
+  render::RendererFromFiles renderer;
 
-  auto scene = loader.load_scene(scene_file_name, float(width) / height);
-
-  if (!scene.has_value()) {
-    std::cerr << "failed to load scene" << std::endl;
-    return 1;
+  renderer.load_scene(scene_file_name, float(width) / height);
+  auto config_file_name = get_unpack_arg("--config");
+  if (config_file_name) {
+    renderer.load_config(config_file_name.asString());
   }
-
-  render::Renderer renderer;
+  renderer.print_config();
 
   Span<BGRA> pixels(reinterpret_cast<BGRA *>(image.bits()), width * height);
 
-  render::Settings settings;
-
-  auto config_file_name = get_unpack_arg("--config");
-  if (config_file_name) {
-    std::ifstream i(config_file_name.asString(), std::ifstream::binary);
-    cereal::YAMLInputArchive archive(i);
-    archive(settings);
-  }
-
-  std::ostringstream os;
-  {
-    cereal::YAMLOutputArchive archive(os);
-    archive(NVP(settings));
-  }
-  std::cout << os.str() << std::endl;
 
   unsigned updated_samples = samples;
 
   auto render = [&](bool show_progress, bool show_times) {
-    renderer.render(execution_model, pixels, *scene, updated_samples, width,
-                    height, settings, show_progress && !disable_progress,
-                    show_times);
+    renderer.render(execution_model, pixels, updated_samples, width, height,
+                    show_progress && !disable_progress, show_times);
   };
 
   if (get_unpack_arg("--bench").asBool()) {

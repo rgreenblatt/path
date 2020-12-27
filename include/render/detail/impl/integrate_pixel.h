@@ -3,6 +3,8 @@
 #include "integrate/rendering_equation.h"
 #include "render/detail/integrate_image.h"
 
+#include "lib/info/printf_dbg.h"
+
 namespace render {
 namespace detail {
 HOST_DEVICE inline intersect::Ray
@@ -40,9 +42,14 @@ HOST_DEVICE inline Eigen::Array3f integrate_pixel(
         multiplier, nullopt_value};
   };
 
-  return integrate::rendering_equation(
+  auto out = integrate::rendering_equation(
       initial_ray_sampler, start_sample, end_sample, x + y * x_dim, settings,
       scene, light_sampler, dir_sampler, term_prob, rng_ref);
+  printf_dbg(out);
+  printf_dbg(x);
+  printf_dbg(y);
+
+  return out;
 }
 } // namespace detail
 } // namespace render

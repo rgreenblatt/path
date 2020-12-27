@@ -123,6 +123,7 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl_general_render_cpu.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/render/renderer.cu"
+  "${PROJECT_SOURCE_DIR}/src/render/renderer_from_files.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/integrate/light_sampler/random_triangle/random_triangle.cu"
   "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl.cu"
@@ -199,10 +200,12 @@ if(BUILD_BENCHMARKS OR CMAKE_EXPORT_COMPILE_COMMANDS)
     list(APPEND BENCH_LIST ${BENCH_NAME})
   endmacro()
 
-  package_add_bench(scan "${PROJECT_SOURCE_DIR}/benchmarks/src/scan.cu")
+  package_add_bench(scan_bench "${PROJECT_SOURCE_DIR}/benchmarks/src/scan.cu")
   # sometimes there are some issues with cub and warp intrinsics with sorting
   # (on clang)
-  package_add_bench(sort "${PROJECT_SOURCE_DIR}/benchmarks/src/sort.cu")
+  package_add_bench(sort_bench "${PROJECT_SOURCE_DIR}/benchmarks/src/sort.cu")
+  package_add_bench(render_bench "${PROJECT_SOURCE_DIR}/benchmarks/src/render.cu")
+  target_link_libraries(render_bench PRIVATE renderer scenefile_compat)
 
   add_custom_target(bench COMMAND ${CMAKE_CTEST_COMMAND}
     DEPENDS "${BENCH_LIST}")
