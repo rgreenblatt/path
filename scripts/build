@@ -68,7 +68,7 @@ def get_builder(cmake_generator, page, use_ccache, lolcat, threads,
         ]
 
         if use_ccache:
-            gen_args += "-DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+            gen_args += ["-DCMAKE_CXX_COMPILER_LAUNCHER=ccache"]
 
         if cpu_only:
             gen_args += ["-DCPU_ONLY=ON"]
@@ -85,6 +85,7 @@ def get_builder(cmake_generator, page, use_ccache, lolcat, threads,
 
             processes = []
             cmd_process = None
+            print("running:", cmds)
             for i, c in enumerate(cmds):
                 last = i == len(cmds) - 1
                 first = cmd_process is None
@@ -238,12 +239,14 @@ def main():
                              action='store_false',
                              help="don't page output")
     main_parser.add_argument('--ccache',
-                             dest='no_ccache',
+                             dest='ccache',
                              action='store_false',
+                             default=True,
                              help='use ccache')
     main_parser.add_argument('--no-ccache',
-                             dest='disable_ccache',
+                             dest='ccache',
                              action='store_true',
+                             default=True,
                              help="don't use ccache")
     main_parser.add_argument('-l',
                              '--lolcat',
@@ -274,7 +277,7 @@ def main():
             name, args.command))
         sys.exit(1)
     cmd(
-        get_builder(args.generator, args.pager, not args.no_ccache,
+        get_builder(args.generator, args.pager, args.ccache,
                     args.lolcat, args.threads, args.cuda_archs), unknown,
         args.directory)
 
