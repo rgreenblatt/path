@@ -1,0 +1,35 @@
+settings:
+  flat_accel: KDTree
+  flat_accel_settings:
+    s_a_heuristic:
+      traversal_cost: 1
+      intersection_cost: 1
+    use_s_a_heuritic: false
+    num_objects_terminate: 2
+  light_sampler: RandomTriangle
+  light_sampler_settings:
+    binary_search_threshold: 2147483648
+  dir_sampler: BSDF
+  dir_sampler_settings:
+    {}
+  term_prob: MultiplierFunc
+  term_prob_settings:
+    exp: 5
+    min_prob: 0.2
+  rng: Sobel
+  rng_settings:
+    # {}
+    sequence_settings:
+      {}
+    max_sample_size: 256
+  general_settings:
+    computation_settings:
+      max_blocks_per_launch: 4096
+      render_work_division:
+        block_size: 256
+        target_x_block_size: 32
+        target_y_block_size: 8
+        max_samples_per_thread: 64
+        target_samples_per_thread: 32
+    rendering_equation_settings:
+      back_cull_emission: true
