@@ -1,8 +1,8 @@
 #include "render/renderer_from_files.h"
-#include "render/renderer.h"
-#include "scene/scenefile_compat/scenefile_loader.h"
 #include "lib/serialize_enum.h"
+#include "render/renderer.h"
 #include "render/settings.h"
+#include "scene/scenefile_compat/scenefile_loader.h"
 
 #include <cereal-yaml/archives/yaml.hpp>
 
@@ -19,8 +19,8 @@ RendererFromFiles::~RendererFromFiles() = default;
 RendererFromFiles::RendererFromFiles(RendererFromFiles &&) = default;
 RendererFromFiles &RendererFromFiles::operator=(RendererFromFiles &&) = default;
 
-void RendererFromFiles::load_scene(
-    const std::filesystem::path &scene_file_path, float width_height_ratio) {
+void RendererFromFiles::load_scene(const std::filesystem::path &scene_file_path,
+                                   float width_height_ratio) {
   scene::scenefile_compat::ScenefileLoader loader;
   auto scene_op = loader.load_scene(scene_file_path, width_height_ratio);
 

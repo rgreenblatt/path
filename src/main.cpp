@@ -97,7 +97,6 @@ int main(int argc, char *argv[]) {
 
   Span<BGRA> pixels(reinterpret_cast<BGRA *>(image.bits()), width * height);
 
-
   unsigned updated_samples = samples;
 
   auto render = [&](bool show_progress, bool show_times) {

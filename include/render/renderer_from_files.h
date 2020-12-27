@@ -8,7 +8,7 @@
 #include <memory>
 
 namespace scene {
-  class Scene;
+class Scene;
 }
 
 namespace render {

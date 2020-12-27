@@ -31,19 +31,19 @@ public:
   constexpr Optional() : has_value_(false) {}
 
   constexpr Optional(const Optional &other) : has_value_(other.has_value_) {
-    if(has_value_) {
+    if (has_value_) {
       construct_in_place(*this, *other);
     }
   }
-  
+
   constexpr Optional(Optional &&other) : has_value_(other.has_value_) {
-    if(has_value_) {
+    if (has_value_) {
       construct_in_place(*this, std::move(*other));
       other.has_value_ = false;
     }
   }
 
-  constexpr Optional& operator=(const Optional &other)  {
+  constexpr Optional &operator=(const Optional &other) {
     if (this != &other) {
       if (has_value_ && other.has_value_) {
         **this = *other;
@@ -78,7 +78,7 @@ public:
   constexpr ~Optional() {
     // destruct
     if (has_value_) {
-      reinterpret_cast<T*>(bytes_.data())->~T();
+      reinterpret_cast<T *>(bytes_.data())->~T();
     }
   }
 
@@ -161,8 +161,8 @@ public:
   }
 
 private:
-  template<typename V>
-  constexpr static void construct_in_place(Optional& cls, V&& v) {
+  template <typename V>
+  constexpr static void construct_in_place(Optional &cls, V &&v) {
     ::new (reinterpret_cast<void *>(cls.bytes_.data())) T(std::forward<V>(v));
   }
 
