@@ -79,7 +79,7 @@ rendering_equation(F &&initial_ray_sampler, unsigned start_sample,
       intensity += multiplier * material.emission;
     }
 
-    Eigen::Vector3f normal = scene.get_normal(next_intersection, ray);
+    auto normal = scene.get_normal(next_intersection, ray);
 
     auto intersection_point = next_intersection.intersection_point(ray);
 
@@ -94,7 +94,7 @@ rendering_equation(F &&initial_ray_sampler, unsigned start_sample,
           const auto &[dir_sample, light_target_distance] = samples.samples[i];
 
           // TODO: BSDF case
-          if (dir_sample.direction.dot(normal) <= 0.f) {
+          if (dir_sample.direction->dot(*normal) <= 0.f) {
             continue;
           }
 

@@ -19,12 +19,10 @@ struct uninitialized_allocator : thrust::device_allocator<T> {
 } // namespace detail
 } // namespace device_vector
 
-
 template <typename T>
-using DeviceVector = thrust::device_vector<T,
-      device_vector::detail::uninitialized_allocator<T>>;
+using DeviceVector =
+    thrust::device_vector<T, device_vector::detail::uninitialized_allocator<T>>;
 #else
 // Shouldn't be used, just a placeholder for cpu builds
-template<typename T>
-struct DeviceVector : MockNoRequirements {};
+template <typename T> struct DeviceVector : MockNoRequirements {};
 #endif

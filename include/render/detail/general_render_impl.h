@@ -4,11 +4,11 @@
 #include "intersect/triangle_impl.h"
 #include "lib/group.h"
 #include "meta/dispatch_value.h"
+#include "render/detail/compile_time_settings_impl.h"
 #include "render/detail/integrate_image.h"
 #include "render/detail/reduce_intensities_gpu.h"
 #include "render/detail/renderer_impl.h"
 #include "render/detail/work_division.h"
-#include "render/detail/compile_time_settings_impl.h"
 
 namespace render {
 using namespace detail;
@@ -57,8 +57,7 @@ void Renderer::Impl<exec>::general_render(
         constexpr CompileTimeSettings compile_time_settings =
             std::decay_t<decltype(settings_tup)>::value;
 
-        constexpr auto flat_accel_type =
-            compile_time_settings.flat_accel_type;
+        constexpr auto flat_accel_type = compile_time_settings.flat_accel_type;
 
         auto scene_ref =
             stored_scene_generators_.template get<flat_accel_type>().gen(

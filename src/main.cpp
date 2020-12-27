@@ -1,9 +1,9 @@
 #include "lib/info/timer.h"
 #include "lib/optional.h"
+#include "lib/serialize_enum.h"
 #include "render/renderer.h"
 #include "render/settings.h"
 #include "scene/scenefile_compat/scenefile_loader.h"
-#include "lib/serialize_enum.h"
 
 #include <QImage>
 #include <boost/lexical_cast.hpp>

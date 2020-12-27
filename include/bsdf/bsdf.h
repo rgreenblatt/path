@@ -9,9 +9,9 @@
 
 namespace bsdf {
 template <typename T>
-concept BSDF = requires(const T &bsdf, const Eigen::Vector3f &incoming_dir,
-                        const Eigen::Vector3f &outgoing_dir,
-                        const Eigen::Vector3f &normal, rng::MockRngState &r) {
+concept BSDF = requires(const T &bsdf, const UnitVector &incoming_dir,
+                        const UnitVector &outgoing_dir,
+                        const UnitVector &normal, rng::MockRngState &r) {
   { T::continuous }
   ->DecaysTo<bool>;
   { T::discrete }
@@ -67,12 +67,11 @@ struct MockContinuousBSDF : MockNoRequirements {
 
   bool is_brdf() const;
 
-  Eigen::Array3f continuous_eval(const Eigen::Vector3f &,
-                                 const Eigen::Vector3f &,
-                                 const Eigen::Vector3f &) const;
+  Eigen::Array3f continuous_eval(const UnitVector &, const UnitVector &,
+                                 const UnitVector &) const;
 
   template <rng::RngState R>
-  BSDFSample continuous_sample(const Eigen::Vector3f &, const Eigen::Vector3f &,
+  BSDFSample continuous_sample(const UnitVector &, const UnitVector &,
                                R &) const;
 };
 
@@ -83,8 +82,7 @@ struct MockDiscreteBSDF : MockNoRequirements {
   bool is_brdf() const;
 
   template <rng::RngState R>
-  BSDFSample discrete_sample(const Eigen::Vector3f &, const Eigen::Vector3f &,
-                             R &) const;
+  BSDFSample discrete_sample(const UnitVector &, const UnitVector &, R &) const;
 };
 
 struct MockContinuousDiscreteBSDF : public MockContinuousBSDF,
@@ -94,7 +92,7 @@ struct MockContinuousDiscreteBSDF : public MockContinuousBSDF,
 
   bool is_brdf() const;
 
-  float prob_continuous(const Eigen::Vector3f &, const Eigen::Vector3f &) const;
+  float prob_continuous(const UnitVector &, const UnitVector &) const;
 };
 
 static_assert(ContinuousBSDF<MockContinuousBSDF>);

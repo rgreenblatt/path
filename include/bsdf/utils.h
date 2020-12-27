@@ -1,19 +1,19 @@
 #pragma once
 
 #include "lib/cuda/utils.h"
+#include "lib/unit_vector.h"
 
 #include <Eigen/Geometry>
 
 namespace bsdf {
-HOST_DEVICE inline Eigen::Vector3f
-reflect_over_normal(const Eigen::Vector3f &vec, const Eigen::Vector3f &normal) {
-  return (vec + 2.0f * -vec.dot(normal) * normal).normalized();
+HOST_DEVICE inline UnitVector reflect_over_normal(const UnitVector &vec,
+                                                  const UnitVector &normal) {
+  return UnitVector::new_normalize(*vec + 2.0f * -vec->dot(*normal) * *normal);
 };
 
-HOST_DEVICE inline Eigen::Vector3f
-refract_by_normal(float ior, const Eigen::Vector3f &vec,
-                  const Eigen::Vector3f &normal) {
-  float cos_to_normal = -vec.dot(normal);
+HOST_DEVICE inline UnitVector
+refract_by_normal(float ior, const UnitVector &vec, const UnitVector &normal) {
+  float cos_to_normal = -vec->dot(*normal);
 
   bool exiting_media = cos_to_normal < 0;
 
@@ -21,13 +21,14 @@ refract_by_normal(float ior, const Eigen::Vector3f &vec,
 
   float in_sqrt = 1 - frac * frac * (1 - cos_to_normal * cos_to_normal);
 
-  Eigen::Vector3f effective_normal = exiting_media ? -normal : normal;
+  UnitVector effective_normal =
+      exiting_media ? UnitVector::new_unchecked(-*normal) : normal;
 
   if (in_sqrt > 0) {
-    return (Eigen::AngleAxisf(std::acos(std::sqrt(in_sqrt)),
-                              vec.cross(effective_normal).normalized()) *
-            -effective_normal)
-        .normalized();
+    return UnitVector::new_normalize(
+        Eigen::AngleAxisf(std::acos(std::sqrt(in_sqrt)),
+                          vec->cross(*effective_normal).normalized()) *
+        -*effective_normal);
   } else {
     return reflect_over_normal(vec, normal);
   }

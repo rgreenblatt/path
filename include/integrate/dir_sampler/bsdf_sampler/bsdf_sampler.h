@@ -21,8 +21,8 @@ public:
     template <bsdf::ContinuousBSDF B, rng::RngState R>
     HOST_DEVICE Sample operator()(const Eigen::Vector3f &,
                                   const B &bsdf_sampler,
-                                  const Eigen::Vector3f &direction,
-                                  const Eigen::Vector3f &normal, R &rng) const {
+                                  const UnitVector &direction,
+                                  const UnitVector &normal, R &rng) const {
       return {bsdf_sampler.continuous_sample(direction, normal, rng), false};
     }
   };

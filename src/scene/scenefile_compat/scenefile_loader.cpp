@@ -1,7 +1,8 @@
 #include "scene/scenefile_compat/scenefile_loader.h"
+#include "lib/eigen_utils.h"
 #include "lib/group.h"
 #include "lib/optional.h"
-#include "lib/min_max_eigen.h"
+#include "lib/unit_vector.h"
 #include "scene/camera.h"
 #include "scene/scene.h"
 #include "scene/scenefile_compat/CS123XmlSceneParser.h"
@@ -36,7 +37,8 @@ Optional<Scene> ScenefileLoader::load_scene(const std::string &filename,
   Scene scene_v;
 
   scene_v.film_to_world_ = get_camera_transform(
-      cameraData.look.head<3>(), cameraData.up.head<3>(),
+      UnitVector::new_normalize(cameraData.look.head<3>()),
+      UnitVector::new_normalize(cameraData.up.head<3>()),
       cameraData.pos.head<3>(), cameraData.heightAngle, width_height_ratio);
 
   CS123SceneGlobalData globalData;
@@ -204,7 +206,7 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
       }
 
       std::array<Eigen::Vector3f, 3> vertices;
-      std::array<Optional<Eigen::Vector3f>, 3> normals_op;
+      std::array<Optional<UnitVector>, 3> normals_op;
       for (size_t v = 0; v < fv; v++) {
         tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
         tinyobj::real_t vx = attrib.vertices[3 * idx.vertex_index + 0];
@@ -221,7 +223,7 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
           nx = attrib.normals[3 * idx.normal_index + 0];
           ny = attrib.normals[3 * idx.normal_index + 1];
           nz = attrib.normals[3 * idx.normal_index + 2];
-          normals_op[v] = Eigen::Vector3f(nx, ny, nz).normalized();
+          normals_op[v] = UnitVector::new_normalize({nx, ny, nz});
         }
 
         if (idx.texcoord_index != -1) {
@@ -284,7 +286,7 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
 
       intersect::Triangle triangle{vertices};
 
-      std::array<Eigen::Vector3f, 3> normals;
+      std::array<UnitVector, 3> normals;
       for (size_t v = 0; v < fv; v++) {
         normals[v] =
             normals_op[v].unwrap_or_else([&] { return triangle.normal(); });

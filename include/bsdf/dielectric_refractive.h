@@ -24,10 +24,10 @@ public:
   constexpr bool is_brdf() const { return false; }
 
   template <rng::RngState R>
-  HOST_DEVICE BSDFSample discrete_sample(const Eigen::Vector3f &incoming_dir,
-                                         const Eigen::Vector3f &normal,
+  HOST_DEVICE BSDFSample discrete_sample(const UnitVector &incoming_dir,
+                                         const UnitVector &normal,
                                          R &rng) const {
-    float cos_to_normal = std::abs(incoming_dir.dot(normal));
+    float cos_to_normal = std::abs(incoming_dir->dot(*normal));
     float prop_reflected = r_0_ + (1 - r_0_) * std::pow(1 - cos_to_normal, 5);
     if (rng.next() < prop_reflected) {
       // reflect

@@ -25,21 +25,19 @@ public:
 
   constexpr bool is_brdf() const { return true; }
 
-  HOST_DEVICE Eigen::Array3f
-  continuous_eval(const Eigen::Vector3f &incoming_dir,
-                  const Eigen::Vector3f &outgoing_dir,
-                  const Eigen::Vector3f &normal) const {
+  HOST_DEVICE Eigen::Array3f continuous_eval(const UnitVector &incoming_dir,
+                                             const UnitVector &outgoing_dir,
+                                             const UnitVector &normal) const {
     return specular_ * normalizing_factor_ *
-           std::pow(
-               std::max(
-                   reflect_over_normal(incoming_dir, normal).dot(outgoing_dir),
-                   0.0f),
-               shininess_);
+           std::pow(std::max(reflect_over_normal(incoming_dir, normal)
+                                 ->dot(*outgoing_dir),
+                             0.0f),
+                    shininess_);
   }
 
   template <rng::RngState R>
-  HOST_DEVICE BSDFSample continuous_sample(const Eigen::Vector3f &incoming_dir,
-                                           const Eigen::Vector3f &normal,
+  HOST_DEVICE BSDFSample continuous_sample(const UnitVector &incoming_dir,
+                                           const UnitVector &normal,
                                            R &rng) const {
     float v0 = rng.next();
     float v1 = rng.next();

@@ -18,7 +18,7 @@ concept IntersectableScene = requires(const T &t, const intersect::Ray &ray) {
   requires requires(
       const intersect::Intersection<typename T::InfoType> &intersection) {
     { t.get_normal(intersection, ray) }
-    ->std::convertible_to<Eigen::Vector3f>;
+    ->std::convertible_to<UnitVector>;
     { t.get_material(intersection) }
     ->DecaysTo<bsdf::Material<typename T::B>>;
   };

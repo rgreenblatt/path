@@ -1,8 +1,8 @@
 #pragma once
 
 #include "lib/cuda/utils.h"
+#include "lib/eigen_utils.h"
 #include "lib/optional.h"
-#include "lib/min_max_eigen.h"
 
 #include <Eigen/Geometry>
 

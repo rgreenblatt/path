@@ -40,9 +40,8 @@ template <intersect::accel::AccelRef Accel> struct Ref {
 
   using Intersection = intersect::Intersection<InfoType>;
 
-  HOST_DEVICE inline Eigen::Vector3f
-  get_normal(const Intersection &intersection,
-             const intersect::Ray &ray) const {
+  HOST_DEVICE inline UnitVector get_normal(const Intersection &intersection,
+                                           const intersect::Ray &ray) const {
     unsigned triangle_idx = intersection.info.idx;
 
     return triangle_data[triangle_idx].get_normal(

@@ -30,10 +30,9 @@ struct UnionBSDF {
     return bsdf.visit([](const auto &v) { return v.is_brdf(); });
   }
 
-  HOST_DEVICE Eigen::Array3f
-  continuous_eval(const Eigen::Vector3f &incoming_dir,
-                  const Eigen::Vector3f &outgoing_dir,
-                  const Eigen::Vector3f &normal) const {
+  HOST_DEVICE Eigen::Array3f continuous_eval(const UnitVector &incoming_dir,
+                                             const UnitVector &outgoing_dir,
+                                             const UnitVector &normal) const {
     return bsdf.visit([&](const auto &v) -> Eigen::Array3f {
       if constexpr (std::decay_t<decltype(v)>::continuous) {
         return v.continuous_eval(incoming_dir, outgoing_dir, normal);
@@ -44,8 +43,8 @@ struct UnionBSDF {
     });
   }
 
-  HOST_DEVICE float prob_continuous(const Eigen::Vector3f &incoming_dir,
-                                    const Eigen::Vector3f &outgoing_dir) const {
+  HOST_DEVICE float prob_continuous(const UnitVector &incoming_dir,
+                                    const UnitVector &outgoing_dir) const {
     return bsdf.visit([&](const auto &v) -> float {
       using T = std::decay_t<decltype(v)>;
       if constexpr (T::continuous && !T::discrete) {
@@ -59,9 +58,8 @@ struct UnionBSDF {
   }
 
   template <rng::RngState R>
-  HOST_DEVICE auto discrete_sample(const Eigen::Vector3f &incoming_dir,
-                                   const Eigen::Vector3f &normal,
-                                   R &rng) const {
+  HOST_DEVICE auto discrete_sample(const UnitVector &incoming_dir,
+                                   const UnitVector &normal, R &rng) const {
     return bsdf.visit([&](const auto &v) -> BSDFSample {
       if constexpr (std::decay_t<decltype(v)>::discrete) {
         return v.discrete_sample(incoming_dir, normal, rng);
@@ -73,9 +71,8 @@ struct UnionBSDF {
   }
 
   template <rng::RngState R>
-  HOST_DEVICE auto continuous_sample(const Eigen::Vector3f &incoming_dir,
-                                     const Eigen::Vector3f &normal,
-                                     R &rng) const {
+  HOST_DEVICE auto continuous_sample(const UnitVector &incoming_dir,
+                                     const UnitVector &normal, R &rng) const {
     return bsdf.visit([&](const auto &v) -> BSDFSample {
       if constexpr (std::decay_t<decltype(v)>::continuous) {
         return v.continuous_sample(incoming_dir, normal, rng);

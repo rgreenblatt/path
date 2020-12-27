@@ -12,8 +12,8 @@ template <ContinuousDirSamplerRef T> struct RefFromContinuousSampler {
 
   template <bsdf::BSDF B, rng::RngState R>
   HOST_DEVICE Sample operator()(const Eigen::Vector3f &position, const B &bsdf,
-                                const Eigen::Vector3f &incoming_dir,
-                                const Eigen::Vector3f &normal, R &r) const {
+                                const UnitVector &incoming_dir,
+                                const UnitVector &normal, R &r) const {
     if constexpr (B::continuous && B::discrete) {
       if (discrete_prob_check(bsdf, incoming_dir, normal, r)) {
         return {bsdf.discrete_sample(incoming_dir, normal, r), true};
@@ -29,9 +29,9 @@ template <ContinuousDirSamplerRef T> struct RefFromContinuousSampler {
 
 private:
   template <bsdf::BSDF B, rng::RngState R>
-  static HOST_DEVICE bool
-  discrete_prob_check(const B &bsdf, const Eigen::Vector3f &incoming_dir,
-                      const Eigen::Vector3f &normal, R &r) {
+  static HOST_DEVICE bool discrete_prob_check(const B &bsdf,
+                                              const UnitVector &incoming_dir,
+                                              const UnitVector &normal, R &r) {
     float prob_continuous = bsdf.prob_continuous(incoming_dir, normal);
     if (prob_continuous == 0.f) {
       return true;

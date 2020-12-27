@@ -1,16 +1,15 @@
 #include "scene/camera.h"
 
 namespace scene {
-Eigen::Affine3f get_camera_transform(const Eigen::Vector3f &look,
-                                     const Eigen::Vector3f &up,
+Eigen::Affine3f get_camera_transform(const UnitVector &look,
+                                     const UnitVector &up,
                                      const Eigen::Vector3f &pos,
                                      float height_angle,
                                      float width_height_ratio) {
 
-  Eigen::Vector3f f = look.normalized();
-  Eigen::Vector3f u = up.normalized();
-  Eigen::Vector3f s = f.cross(u);
-  u = s.cross(f);
+  const Eigen::Vector3f &f = *look;
+  Eigen::Vector3f s = f.cross(*up);
+  Eigen::Vector3f u = s.cross(f);
 
   Eigen::Matrix4f view_mat;
   view_mat << s.x(), s.y(), s.z(), -s.dot(pos), u.x(), u.y(), u.z(),

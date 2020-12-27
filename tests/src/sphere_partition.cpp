@@ -8,7 +8,7 @@ using namespace ray::detail::accel::dir_tree;
 constexpr float epsilon = 1e-6;
 
 TEST(SpherePartition, conversions) {
-  auto check = [](Eigen::Vector3f vec, float colatitude, float longitude) {
+  auto check = [](const UnitVector &vec, float colatitude, float longitude) {
     vec.normalize();
     {
       auto [actual_colatitude, actual_longitude] =
@@ -20,18 +20,21 @@ TEST(SpherePartition, conversions) {
       auto actual_vec = HalfSpherePartition::colatitude_longitude_to_vec(
           colatitude, longitude);
 
-      EXPECT_NEAR(actual_vec.x(), vec.x(), epsilon);
-      EXPECT_NEAR(actual_vec.y(), vec.y(), epsilon);
-      EXPECT_NEAR(actual_vec.z(), vec.z(), epsilon);
+      EXPECT_NEAR(actual_vec.x(), vec->x(), epsilon);
+      EXPECT_NEAR(actual_vec.y(), vec->y(), epsilon);
+      EXPECT_NEAR(actual_vec.z(), vec->z(), epsilon);
     }
   };
 
-  check({0, 0, 1}, float(0), 0);
-  check({0, 0, -1}, float(M_PI), 0);
-  check({1, 0, 0}, float(M_PI) / 2.0f, 0);
-  check({0, 1, 0}, float(M_PI) / 2.0f, float(M_PI) / 2);
-  check({0, -1, 0}, float(M_PI) / 2.0f, -float(M_PI) / 2);
-  check({0.5, 0.5, 0}, float(M_PI) / 2.0f, float(M_PI) / 4.0f);
+  check(UnitVector::new_normalize({0, 0, 1}), float(0), 0);
+  check(UnitVector::new_normalize({0, 0, -1}), float(M_PI), 0);
+  check(UnitVector::new_normalize({1, 0, 0}), float(M_PI) / 2.0f, 0);
+  check(UnitVector::new_normalize({0, 1, 0}), float(M_PI) / 2.0f,
+        float(M_PI) / 2);
+  check(UnitVector::new_normalize({0, -1, 0}), float(M_PI) / 2.0f,
+        -float(M_PI) / 2);
+  check(UnitVector::new_normalize({0.5, 0.5, 0}), float(M_PI) / 2.0f,
+        float(M_PI) / 4.0f);
 }
 
 TEST(SpherePartition, construct) {
@@ -74,32 +77,41 @@ TEST(SpherePartition, get_closest) {
     HalfSpherePartition partition(5, regions); // 1 collar (and cap)
 
     EXPECT_EQ(partition.size(), 5); // tests below assume exactly 5 regions
-    EXPECT_EQ(partition.get_closest({0, 0, 1}), (std::tuple{0u, false}));
-    EXPECT_EQ(partition.get_closest({0, 0, -1}), (std::tuple{0u, true}));
-    EXPECT_EQ(partition.get_closest({0.001, -0.03, 0.983}),
+    EXPECT_EQ(partition.get_closest(UnitVector::new_noralize({0, 0, 1})),
               (std::tuple{0u, false}));
-    EXPECT_EQ(partition.get_closest({0.001, -0.03, -0.983}),
+    EXPECT_EQ(partition.get_closest(UnitVector::new_noralize({0, 0, -1})),
               (std::tuple{0u, true}));
-    EXPECT_EQ(partition.get_closest({-0.5, -0.03, 0.5}),
-              (std::tuple{1u, false}));
-    EXPECT_EQ(partition.get_closest({0.5, 0.03, -0.5}), (std::tuple{1u, true}));
-    EXPECT_EQ(partition.get_closest({-0.5, 0.03, 0.5}),
-              (std::tuple{4u, false}));
-    EXPECT_EQ(partition.get_closest({0.5, -0.03, -0.5}),
-              (std::tuple{4u, true}));
+    EXPECT_EQ(
+        partition.get_closest(UnitVector::new_noralize({0.001, -0.03, 0.983})),
+        (std::tuple{0u, false}));
+    EXPECT_EQ(
+        partition.get_closest(UnitVector::new_noralize({0.001, -0.03, -0.983})),
+        (std::tuple{0u, true}));
+    EXPECT_EQ(
+        partition.get_closest(UnitVector::new_noralize({-0.5, -0.03, 0.5})),
+        (std::tuple{1u, false}));
+    EXPECT_EQ(
+        partition.get_closest(UnitVector::new_noralize({0.5, 0.03, -0.5})),
+        (std::tuple{1u, true}));
+    EXPECT_EQ(
+        partition.get_closest(UnitVector::new_noralize({-0.5, 0.03, 0.5})),
+        (std::tuple{4u, false}));
+    EXPECT_EQ(
+        partition.get_closest(UnitVector::new_noralize({0.5, -0.03, -0.5})),
+        (std::tuple{4u, true}));
   }
 #if 0
   {
     // verifying internal assertions pass
     HostDeviceVector<HalfSpherePartition::ColatitudeDiv> regions;
     HalfSpherePartition partition(37, regions); // 1 collar (and cap)
-    partition.get_closest({0.5, -0.03, -0.5});
-    partition.get_closest({0.5, -0.8, 0.21});
-    partition.get_closest({0.2, -0.8, 0.21});
-    partition.get_closest({0.4, -0.2, 0.21});
-    partition.get_closest({0.4, -0.2, 0.8});
-    partition.get_closest({-0.4, -0.2, 0.8});
-    partition.get_closest({-0.4, 0.2, 0.8});
+    partition.get_closest(UnitVector::new_noralize({0.5, -0.03, -0.5}));
+    partition.get_closest(UnitVector::new_noralize({0.5, -0.8, 0.21}));
+    partition.get_closest(UnitVector::new_noralize({0.2, -0.8, 0.21}));
+    partition.get_closest(UnitVector::new_noralize({0.4, -0.2, 0.21}));
+    partition.get_closest(UnitVector::new_noralize({0.4, -0.2, 0.8}));
+    partition.get_closest(UnitVector::new_noralize({-0.4, -0.2, 0.8}));
+    partition.get_closest(UnitVector::new_noralize({-0.4, 0.2, 0.8}));
   }
 #endif
 }

@@ -20,7 +20,7 @@ public:
     template <bsdf::BSDF B, rng::RngState R>
     HOST_DEVICE LightSamples<max_sample_size>
     operator()(const Eigen::Vector3f &, const bsdf::Material<B> &,
-               const Eigen::Vector3f &, const Eigen::Vector3f &, R &) const {
+               const UnitVector &, const UnitVector &, R &) const {
       return {{}, 0};
     }
   };

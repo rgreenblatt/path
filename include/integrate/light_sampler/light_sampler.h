@@ -6,6 +6,7 @@
 #include "intersect/object.h"
 #include "intersect/transformed_object.h"
 #include "lib/span.h"
+#include "lib/unit_vector.h"
 #include "rng/rng.h"
 #include "scene/emissive_cluster.h"
 
@@ -30,8 +31,8 @@ template <typename T, typename B>
 concept LightSamplerRef = requires(const T &light_sampler,
                                    const Eigen::Vector3f &position,
                                    const bsdf::Material<B> &material,
-                                   const Eigen::Vector3f &incoming_dir,
-                                   const Eigen::Vector3f &normal,
+                                   const UnitVector &incoming_dir,
+                                   const UnitVector &normal,
                                    rng::MockRngState &rng) {
   requires bsdf::BSDF<B>;
   requires std::copyable<T>;

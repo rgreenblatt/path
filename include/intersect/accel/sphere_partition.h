@@ -2,6 +2,7 @@
 
 #include "lib/cuda/utils.h"
 #include "lib/span.h"
+#include "lib/unit_vector.h"
 
 #include <Eigen/Core>
 
@@ -24,7 +25,7 @@ public:
   // pi / 2 when vector is toward y (x = 0, y = 1, z = 0)
   // -pi / 2 when vector is away in y (x = 0, y = -1, z = 0)
   HOST_DEVICE static std::tuple<float, float>
-  vec_to_colatitude_longitude(const Eigen::Vector3f &vec);
+  vec_to_colatitude_longitude(const UnitVector &vec);
 
   // inverse of above
   HOST_DEVICE static Eigen::Vector3f
@@ -42,7 +43,7 @@ public:
                                                      float longitude) const;
 
   HOST_DEVICE std::tuple<unsigned, bool>
-  get_closest(const Eigen::Vector3f &vec) const;
+  get_closest(const UnitVector &vec) const;
 
   HOST_DEVICE inline unsigned size() const {
     return colatitude_divs_[colatitude_divs_.size() - 1].end_index;

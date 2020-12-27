@@ -62,11 +62,12 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
     HostDeviceVector<Triangle> triangles = {
         Triangle{{{{0, 0, 0}, {1, 0, 0}, {0, 1, 0}}}}};
     HostDeviceVector<Test> tests = {
-        {Ray{{0.1, 0.1, -1}, {0, 0, 1}}, 0},
-        {Ray{{0.8, 0.7, -1}, {0, 0, 1}}, nullopt_value},
-        {Ray{{0.3, 0.1, -1}, {0, 0, 1}}, 0},
-        {Ray{{0.1, 0.8, -1}, {0, -.7, 1}}, 0},
-        {Ray{{0.1, 0.1, -1}, {0, 0, 1}}, 0},
+        {Ray{{0.1, 0.1, -1}, UnitVector::new_normalize({0, 0, 1})}, 0},
+        {Ray{{0.8, 0.7, -1}, UnitVector::new_normalize({0, 0, 1})},
+         nullopt_value},
+        {Ray{{0.3, 0.1, -1}, UnitVector::new_normalize({0, 0, 1})}, 0},
+        {Ray{{0.1, 0.8, -1}, UnitVector::new_normalize({0, -.7, 1})}, 0},
+        {Ray{{0.1, 0.1, -1}, UnitVector::new_normalize({0, 0, 1})}, 0},
     };
 
     run_tests.template operator()<ExecutionModel::CPU>(triangles, tests);
@@ -112,7 +113,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
 
       for (unsigned i = 0; i < num_tests; i++) {
         auto eye = random_vec();
-        auto direction = random_vec().normalized();
+        auto direction = UnitVector::new_normalize(random_vec());
         Ray ray = {eye, direction};
         tests[i] = Test{ray, get_ground_truth(ray)};
       }

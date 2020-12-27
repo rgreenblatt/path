@@ -1,7 +1,7 @@
 #pragma once
 
-#include "render/compile_time_settings.h"
 #include "meta/all_values.h"
+#include "render/compile_time_settings.h"
 
 template <> struct AllValuesImpl<render::CompileTimeSettings> {
 private:

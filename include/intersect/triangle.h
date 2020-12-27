@@ -4,8 +4,11 @@
 #include "intersect/object.h"
 #include "intersect/ray.h"
 #include "lib/cuda/utils.h"
+#include "lib/unit_vector.h"
 
 #include <Eigen/Geometry>
+
+#include <array>
 
 namespace intersect {
 struct Triangle {
@@ -23,13 +26,12 @@ struct Triangle {
     return 0.5f * normal_raw();
   }
 
-  HOST_DEVICE inline Eigen::Vector3f normal() const {
-    return normal_raw().normalized();
+  HOST_DEVICE inline UnitVector normal() const {
+    return UnitVector::new_normalize(normal_raw());
   }
 
-  template <typename T>
-  HOST_DEVICE inline T interpolate_values(const Eigen::Vector3f &point,
-                                          const std::array<T, 3> &values) const;
+  HOST_DEVICE inline std::array<float, 3>
+  interpolation_values(const Eigen::Vector3f &point) const;
 
   HOST_DEVICE inline accel::AABB bounds() const;
 

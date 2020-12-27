@@ -6,6 +6,7 @@
 #include "integrate/dir_sampler/uniform/settings.h"
 #include "lib/cuda/utils.h"
 #include "lib/projection.h"
+#include "lib/unit_vector.h"
 #include "rng/rng.h"
 
 namespace integrate {
@@ -21,8 +22,8 @@ public:
 
     template <bsdf::ContinuousBSDF B, rng::RngState R>
     HOST_DEVICE Sample operator()(const Eigen::Vector3f &, const B &bsdf,
-                                  const Eigen::Vector3f &incoming_dir,
-                                  const Eigen::Vector3f &normal, R &rng) const {
+                                  const UnitVector &incoming_dir,
+                                  const UnitVector &normal, R &rng) const {
       float v0 = rng.next();
       float v1 = rng.next();
 
@@ -33,13 +34,13 @@ public:
 
       auto direction = find_relative_vec(normal, phi, theta);
 
-      assert(need_whole_sphere || direction.dot(normal) >= 0);
+      assert(need_whole_sphere || direction->dot(*normal) >= 0);
 
       float inv_prob_of_direction = (need_whole_sphere ? 4 : 2) * M_PI;
 
       return Sample{
           {direction, bsdf.continuous_eval(incoming_dir, direction, normal) *
-                          direction.dot(normal) * inv_prob_of_direction},
+                          direction->dot(*normal) * inv_prob_of_direction},
           false};
     }
   };

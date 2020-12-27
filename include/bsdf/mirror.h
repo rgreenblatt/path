@@ -17,9 +17,8 @@ struct Mirror {
   constexpr bool is_brdf() const { return true; }
 
   template <rng::RngState R>
-  HOST_DEVICE BSDFSample discrete_sample(const Eigen::Vector3f &incoming_dir,
-                                         const Eigen::Vector3f &normal,
-                                         R &) const {
+  HOST_DEVICE BSDFSample discrete_sample(const UnitVector &incoming_dir,
+                                         const UnitVector &normal, R &) const {
     return {reflect_over_normal(incoming_dir, normal), specular_};
   }
 };

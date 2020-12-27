@@ -19,7 +19,7 @@ Ref::intersect_objects(const intersect::Ray &ray,
   }
 
   // TODO: how important is this...
-  Eigen::Vector3f direction_no_zeros = ray.direction;
+  Eigen::Vector3f direction_no_zeros = *ray.direction;
   auto remove_zero = [](float &v) {
     if (v == 0.0f || v == -0.0f) {
       v = 1e-20f;
@@ -61,7 +61,7 @@ Ref::intersect_objects(const intersect::Ray &ray,
               const uint8_t axis = stack_v.depth % 3;
               const auto intersection_point =
                   ray.origin[axis] +
-                  ray.direction[axis] * *bounding_intersection;
+                  (*ray.direction)[axis] * *bounding_intersection;
               auto first = split.left_index;
               auto second = split.right_index;
 

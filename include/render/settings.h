@@ -7,8 +7,8 @@
 #include "lib/settings.h"
 #include "meta/all_values.h"
 #include "meta/one_per_instance.h"
-#include "render/general_settings.h"
 #include "render/compile_time_settings.h"
+#include "render/general_settings.h"
 #include "rng/enum_rng/settings.h"
 
 #include <string>

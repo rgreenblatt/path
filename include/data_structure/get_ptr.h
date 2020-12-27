@@ -12,9 +12,7 @@ template <detail::ArrayOrVector T> struct GetPtrImpl<T> {
 
 #ifdef __CUDACC__
 template <detail::IsDeviceVector T> struct GetPtrImpl<T> {
-  static auto get(T &&t) { 
-    return thrust::raw_pointer_cast(t.data());
-  }
+  static auto get(T &&t) { return thrust::raw_pointer_cast(t.data()); }
 };
 #endif
 

@@ -1,11 +1,13 @@
 #pragma once
 
+#include "lib/unit_vector.h"
+
 #include <Eigen/Core>
 
 namespace integrate {
 namespace detail {
 template <typename T> struct GenDirSample {
-  Eigen::Vector3f direction;
+  UnitVector direction;
   T multiplier;
 };
 } // namespace detail

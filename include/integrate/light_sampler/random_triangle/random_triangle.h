@@ -58,8 +58,8 @@ public:
   template <bsdf::BSDF B, rng::RngState R>
   HOST_DEVICE LightSamples<max_sample_size>
   operator()(const Eigen::Vector3f &position, const bsdf::Material<B> & /*mat*/,
-             const Eigen::Vector3f & /*incoming_dir*/,
-             const Eigen::Vector3f &normal, R &rng) const {
+             const UnitVector & /*incoming_dir*/, const UnitVector &normal,
+             R &rng) const {
     if (cumulative_weights_.size() == 0) {
       return LightSamples<max_sample_size>{{}, 0};
     }
@@ -95,7 +95,8 @@ public:
     const Eigen::Vector3f point = vertices[0] + vec0 * weight0 + vec1 * weight1;
 
     const Eigen::Vector3f direction_unnormalized = point - position;
-    const Eigen::Vector3f direction = direction_unnormalized.normalized();
+    const UnitVector direction =
+        UnitVector::new_normalize(direction_unnormalized);
 
     // SPEED: cache normal?
     const Eigen::Vector3f triangle_normal = triangle.normal_scaled_by_area();
@@ -104,7 +105,7 @@ public:
         get_size<float>(sample_idx, cumulative_weights_);
 
     const float normal_weight =
-        std::abs(normal.dot(direction) * triangle_normal.dot(direction));
+        std::abs(normal->dot(*direction) * triangle_normal.dot(*direction));
 
     // case where we sample from the current triangle (or a parallel triangle)
     if (normal_weight < 1e-8) {

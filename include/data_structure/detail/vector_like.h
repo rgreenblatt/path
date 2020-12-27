@@ -8,7 +8,6 @@
 #include <array>
 #include <vector>
 
-
 namespace detail {
 template <typename T>
 concept ArrayOrVector =
@@ -24,6 +23,6 @@ template <typename T>
 concept IsDeviceVector = SpecializationOf<T, DeviceVector>;
 #endif
 
-template <typename T> concept VectorLike = ArrayOrVector<T> ||
-    IsDeviceVector<T>;
+template <typename T>
+concept VectorLike = ArrayOrVector<T> || IsDeviceVector<T>;
 } // namespace detail

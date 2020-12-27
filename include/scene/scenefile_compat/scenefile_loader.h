@@ -1,8 +1,8 @@
 #pragma once
 
+#include "lib/optional.h"
 #include "scene/scene.h"
 #include "scene/scenefile_compat/CS123SceneData.h"
-#include "lib/optional.h"
 
 #include <map>
 #include <string>

@@ -15,7 +15,8 @@ initial_ray(float x, float y, unsigned x_dim, unsigned y_dim,
   intersect::Ray ray;
 
   ray.origin = film_to_world.translation();
-  ray.direction = (world_space_film_plane - ray.origin).normalized();
+  ray.direction =
+      UnitVector::new_normalize(world_space_film_plane - ray.origin);
 
   return ray;
 }

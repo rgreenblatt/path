@@ -2,8 +2,8 @@
 
 #include "meta/enum.h"
 
-#include <string>
 #include <iostream>
+#include <string>
 
 namespace cereal {
 template <typename Archive, Enum T>

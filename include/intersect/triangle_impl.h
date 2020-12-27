@@ -10,7 +10,7 @@ Triangle::intersect(const Ray &ray) const {
   Eigen::Vector3f edge1 = vertices[1] - vertices[0];
   Eigen::Vector3f edge2 = vertices[2] - vertices[0];
 
-  Eigen::Vector3f h = ray.direction.cross(edge2);
+  Eigen::Vector3f h = ray.direction->cross(edge2);
   float a = edge1.dot(h);
 
   constexpr float float_epsilon = 1e-6f;
@@ -25,7 +25,7 @@ Triangle::intersect(const Ray &ray) const {
     return nullopt_value;
   }
   Eigen::Vector3f q = s.cross(edge1);
-  float v = f * ray.direction.dot(q);
+  float v = f * ray.direction->dot(q);
   if (v < 0.f || u + v > 1.f) {
     return nullopt_value;
   }
@@ -49,10 +49,8 @@ HOST_DEVICE inline accel::AABB Triangle::bounds() const {
   return {min_b, max_b};
 }
 
-template <typename T>
-HOST_DEVICE inline T
-Triangle::interpolate_values(const Eigen::Vector3f &point,
-                             const std::array<T, 3> &values) const {
+HOST_DEVICE inline std::array<float, 3>
+Triangle::interpolation_values(const Eigen::Vector3f &point) const {
   Eigen::Vector3f p0 = vertices[1] - vertices[0];
   Eigen::Vector3f p1 = vertices[2] - vertices[0];
   Eigen::Vector3f p2 = point - vertices[0];
@@ -66,6 +64,6 @@ Triangle::interpolate_values(const Eigen::Vector3f &point,
   float w = (d00 * d21 - d01 * d20) / denom;
   float u = 1.f - v - w;
 
-  return u * values[0] + v * values[1] + w * values[2];
+  return {u, v, w};
 }
 } // namespace intersect

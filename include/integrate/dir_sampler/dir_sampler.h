@@ -3,6 +3,7 @@
 #include "bsdf/bsdf.h"
 #include "integrate/dir_sample.h"
 #include "lib/settings.h"
+#include "lib/unit_vector.h"
 #include "meta/mock.h"
 #include "rng/rng.h"
 
@@ -25,8 +26,8 @@ struct Sample {
 template <typename T, typename B>
 concept DirSamplerRef = requires(const T &dir_sampler,
                                  const Eigen::Vector3f &position, const B &bsdf,
-                                 const Eigen::Vector3f &incoming_dir,
-                                 const Eigen::Vector3f &normal,
+                                 const UnitVector &incoming_dir,
+                                 const UnitVector &normal,
                                  rng::MockRngState &rng) {
   requires ::bsdf::BSDF<B>;
   requires std::copyable<T>;
@@ -62,8 +63,8 @@ concept GeneralDirSampler =
 
 struct MockContinuousDirSamplerRef : MockCopyable {
   template <bsdf::ContinuousBSDF B, rng::RngState R>
-  Sample operator()(const Eigen::Vector3f &, const B &, const Eigen::Vector3f &,
-                    const Eigen::Vector3f &, R &) const;
+  Sample operator()(const Eigen::Vector3f &, const B &, const UnitVector &,
+                    const UnitVector &, R &) const;
 };
 
 static_assert(ContinuousDirSamplerRef<MockContinuousDirSamplerRef>);

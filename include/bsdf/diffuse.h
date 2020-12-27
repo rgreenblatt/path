@@ -18,15 +18,15 @@ struct Diffuse {
 
   constexpr bool is_brdf() const { return true; }
 
-  HOST_DEVICE Eigen::Array3f continuous_eval(const Eigen::Vector3f &,
-                                             const Eigen::Vector3f &,
-                                             const Eigen::Vector3f &) const {
+  HOST_DEVICE Eigen::Array3f continuous_eval(const UnitVector &,
+                                             const UnitVector &,
+                                             const UnitVector &) const {
     return diffuse_ * normalizing_factor;
   }
 
   template <rng::RngState R>
-  HOST_DEVICE BSDFSample continuous_sample(const Eigen::Vector3f &,
-                                           const Eigen::Vector3f &normal,
+  HOST_DEVICE BSDFSample continuous_sample(const UnitVector &,
+                                           const UnitVector &normal,
                                            R &rng) const {
     float v0 = rng.next();
     float v1 = rng.next();

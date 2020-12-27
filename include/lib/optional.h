@@ -1,20 +1,19 @@
 #pragma once
 
-#include "meta/specialization_of.h"
 #include "meta/mock.h"
+#include "meta/specialization_of.h"
 
 #include <algorithm>
-#include <concepts>
-#include <utility>
 #include <cassert>
+#include <concepts>
 #include <cstddef>
+#include <utility>
 
-struct NulloptT { };
+struct NulloptT {};
 
 inline constexpr auto nullopt_value = NulloptT{};
 
-template<std::movable T>
-class Optional;
+template <std::movable T> class Optional;
 
 template <typename T> concept IsOptional = SpecializationOf<T, Optional>;
 
@@ -23,42 +22,33 @@ template <typename T> concept IsOptional = SpecializationOf<T, Optional>;
 //
 // Note that this optional implements many methods (from rust) which aren't part
 // of std::optional
-template<std::movable T>
-class Optional {
+template <std::movable T> class Optional {
 public:
   constexpr Optional() : has_value_(false) {}
   constexpr Optional(const NulloptT &) : Optional() {}
   constexpr Optional(T &&value) : has_value_(true) {
-    ::new (reinterpret_cast<void*>(bytes_.data())) T(std::forward<T>(value));
+    ::new (reinterpret_cast<void *>(bytes_.data())) T(std::forward<T>(value));
   }
   constexpr Optional(const T &value) : has_value_(true) {
-    ::new (reinterpret_cast<void*>(bytes_.data())) T(value);
+    ::new (reinterpret_cast<void *>(bytes_.data())) T(value);
   }
-  constexpr Optional operator=(T &value)  {
+  constexpr Optional operator=(T &value) {
     return Optional(std::forward<T>(value));
   }
-  constexpr Optional operator=(const T &value)  {
-    return Optional(value);
-  }
+  constexpr Optional operator=(const T &value) { return Optional(value); }
 
-  constexpr const T& operator*() const {
+  constexpr const T &operator*() const {
     assert(has_value());
-    return *reinterpret_cast<const T*>(bytes_.data());
+    return *reinterpret_cast<const T *>(bytes_.data());
   }
-  constexpr T& operator*() {
+  constexpr T &operator*() {
     assert(has_value());
-    return *reinterpret_cast<T*>(bytes_.data());
+    return *reinterpret_cast<T *>(bytes_.data());
   }
-  constexpr const T* operator->() const {
-    return &(**this);
-  }
-  constexpr T* operator->() {
-    return &(**this);
-  }
-  
-  constexpr bool has_value() const {
-    return has_value_;
-  }
+  constexpr const T *operator->() const { return &(**this); }
+  constexpr T *operator->() { return &(**this); }
+
+  constexpr bool has_value() const { return has_value_; }
 
   template <typename F>
   requires std::convertible_to<decltype(std::declval<F>()()),
@@ -90,7 +80,7 @@ public:
     return unwrap_or_else([&]() { return o; });
   }
 
-  template<typename F>
+  template <typename F>
   using TypeCalledOnT = decltype(std::declval<F>()(std::declval<T>()));
 
   template <typename F>
@@ -103,7 +93,7 @@ public:
   }
 
   template <typename F>
-  constexpr auto and_then(F &&f) const 
+  constexpr auto and_then(F &&f) const
       -> decltype(f(**this)) requires IsOptional<decltype(f(**this))> {
     if (has_value()) {
       return f(**this);
@@ -146,9 +136,7 @@ constexpr auto optional_fold(FFold &&f_fold, FBase &&f_base,
 template <typename... T>
 constexpr auto optional_min(const Optional<T> &...values) {
   return optional_fold(
-      [](const auto &a, const auto &b) {
-        return Optional(std::min(a, b));
-      },
+      [](const auto &a, const auto &b) { return Optional(std::min(a, b)); },
       [](const auto &a) { return a; }, values...);
 }
 

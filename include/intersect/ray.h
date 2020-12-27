@@ -2,16 +2,18 @@
 
 #include "lib/cuda/utils.h"
 
+#include "lib/unit_vector.h"
+
 #include <Eigen/Geometry>
 
 namespace intersect {
 struct Ray {
   Eigen::Vector3f origin;
-  Eigen::Vector3f direction; // must be normalized
+  UnitVector direction;
 
   HOST_DEVICE inline Ray transform(const Eigen::Affine3f &transform) const {
-    // TODO why where they using inverse().transpose()?
-    return Ray{transform * origin, transform.linear() * direction};
+    return Ray{transform * origin,
+               UnitVector::new_normalize(transform.linear() * *direction)};
   }
 };
 } // namespace intersect

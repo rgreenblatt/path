@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lib/unit_vector.h"
 #include "ray/detail/accel/dir_tree/sphere_partition.h"
 
 namespace ray {
@@ -7,12 +8,11 @@ namespace detail {
 namespace accel {
 namespace dir_tree {
 HOST_DEVICE inline std::tuple<float, float>
-HalfSpherePartition::vec_to_colatitude_longitude(const Eigen::Vector3f &vec) {
+HalfSpherePartition::vec_to_colatitude_longitude(const UnitVector &vec) {
   // maybe input should always be normalized (so normalizing here isn't
   // required)
-  const auto normalized = vec.normalized().eval();
-  float colatitude = M_PI / 2 - std::asin(normalized.z());
-  float longitude = std::atan2(normalized.y(), normalized.x());
+  float colatitude = M_PI / 2 - std::asin(vec->z());
+  float longitude = std::atan2(vec->y(), vec->x());
 
   return std::make_tuple(colatitude, longitude);
 }
@@ -108,7 +108,7 @@ HalfSpherePartition::get_closest(float colatitude, float longitude) const {
 // colatitude should be 0 - pi
 // longitude should be (-pi) - pi
 HOST_DEVICE inline std::tuple<unsigned, bool>
-HalfSpherePartition::get_closest(const Eigen::Vector3f &vec) const {
+HalfSpherePartition::get_closest(const UnitVector &vec) const {
   auto [colatitude, longitude] = vec_to_colatitude_longitude(vec);
 
   return get_closest(colatitude, longitude);
