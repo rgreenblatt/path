@@ -1,3 +1,4 @@
+#include "lib/assert.h"
 #include "lib/cuda/utils.h"
 #include "lib/span_convertable_device_vector.h"
 #include "lib/span_convertable_vector.h"
@@ -19,16 +20,16 @@ void DirTreeGeneratorImpl<execution_model>::construct() {
 
     current_edges_keys_->resize(current_edges_->size());
     other_edges_keys_->resize(other_edges_->size());
-    assert(Span<const unsigned>(current_edges_keys_.get()).data() ==
-           (is_x_ ? Span<const unsigned>(x_edges_keys_).data()
-                  : Span<const unsigned>(y_edges_keys_).data()));
-    assert(Span<const unsigned>(other_edges_keys_.get()).data() ==
-           (is_x_ ? Span<const unsigned>(y_edges_keys_).data()
-                  : Span<const unsigned>(x_edges_keys_).data()));
-    assert(x_edges_keys_.size() ==
-           axis_groups_.first.get()[0][num_groups() - 1]);
-    assert(y_edges_keys_.size() ==
-           axis_groups_.first.get()[1][num_groups() - 1]);
+    always_assert(Span<const unsigned>(current_edges_keys_.get()).data() ==
+                  (is_x_ ? Span<const unsigned>(x_edges_keys_).data()
+                         : Span<const unsigned>(y_edges_keys_).data()));
+    always_assert(Span<const unsigned>(other_edges_keys_.get()).data() ==
+                  (is_x_ ? Span<const unsigned>(y_edges_keys_).data()
+                         : Span<const unsigned>(x_edges_keys_).data()));
+    always_assert(x_edges_keys_.size() ==
+                  axis_groups_.first.get()[0][num_groups() - 1]);
+    always_assert(y_edges_keys_.size() ==
+                  axis_groups_.first.get()[1][num_groups() - 1]);
     z_keys_.resize(sorted_by_z_min_.first->size());
 
     Timer fill_keys_timer;

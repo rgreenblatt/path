@@ -6,7 +6,6 @@
 
 #include <Eigen/Core>
 
-#include <cassert>
 #include <tuple>
 #include <vector>
 

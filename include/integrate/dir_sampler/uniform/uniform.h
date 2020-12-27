@@ -4,6 +4,7 @@
 #include "integrate/dir_sampler/dir_sampler.h"
 #include "integrate/dir_sampler/ref_from_continuous_sampler.h"
 #include "integrate/dir_sampler/uniform/settings.h"
+#include "lib/assert.h"
 #include "lib/cuda/utils.h"
 #include "lib/projection.h"
 #include "lib/unit_vector.h"
@@ -34,7 +35,7 @@ public:
 
       auto direction = find_relative_vec(normal, phi, theta);
 
-      assert(need_whole_sphere || direction->dot(*normal) >= 0);
+      debug_assert(need_whole_sphere || direction->dot(*normal) >= 0);
 
       float inv_prob_of_direction = (need_whole_sphere ? 4 : 2) * M_PI;
 

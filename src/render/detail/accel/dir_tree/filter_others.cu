@@ -1,3 +1,4 @@
+#include "lib/assert.h"
 #include "lib/async_for.h"
 #include "lib/cuda/utils.h"
 #include "lib/span_convertable_device_vector.h"
@@ -185,7 +186,7 @@ void DirTreeGeneratorImpl<execution_model>::filter_others() {
 
       unsigned size = old_z_vals.size() * 2;
 
-      assert(size != 0);
+      always_assert(size != 0);
 
       auto &indexes = i == 1 ? new_z_min_indexes_ : new_z_max_indexes_;
 

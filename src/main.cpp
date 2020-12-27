@@ -1,3 +1,4 @@
+#include "lib/assert.h"
 #include "lib/info/timer.h"
 #include "render/renderer_from_files.h"
 
@@ -50,8 +51,7 @@ int main(int argc, char *argv[]) {
     if (it == args.end()) {
       std::cerr << "internal command line parse error" << std::endl;
       std::cerr << s << std::endl;
-      assert(false);
-      abort();
+      unreachable();
     }
 
     return it->second;

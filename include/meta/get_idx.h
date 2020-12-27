@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lib/assert.h"
 #include "meta/all_values.h"
 
 template <AllValuesEnumerable T>
@@ -11,6 +12,5 @@ static constexpr std::size_t get_idx(const T &value) {
     }
   }
 
-  assert(false);
-  __builtin_unreachable();
+  unreachable_unchecked();
 }

@@ -23,10 +23,7 @@ public:
   template <IntersectableAtIdx F>
   HOST_DEVICE inline AccelRet<F> intersect_objects(const intersect::Ray &,
                                                    const F &) const {
-    // TODO
-    assert(false);
-
-    return nullopt_value;
+    unreachable_unchecked();
   }
 
 private:

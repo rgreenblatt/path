@@ -1,17 +1,16 @@
 #include "render/detail/work_division.h"
+#include "lib/assert.h"
 #include "lib/cuda/utils.h"
 #include "lib/integer_division_utils.h"
-
-#include <cassert>
 
 namespace render {
 namespace detail {
 WorkDivision::WorkDivision(
     const WorkDivisionSettings &settings, // TODO settings
     unsigned &samples_per, unsigned x_dim, unsigned y_dim) {
-  assert(settings.block_size ==
-         settings.target_x_block_size * settings.target_y_block_size);
-  assert(settings.block_size % warp_size == 0);
+  always_assert(settings.block_size ==
+                settings.target_x_block_size * settings.target_y_block_size);
+  always_assert(settings.block_size % warp_size == 0);
 
   const unsigned warps_per_block = settings.block_size / warp_size;
 

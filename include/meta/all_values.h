@@ -11,7 +11,6 @@
 #include <boost/hana/ext/std/tuple.hpp>
 #include <magic_enum.hpp>
 
-#include <cassert>
 #include <concepts>
 #include <tuple>
 #include <utility>
@@ -42,8 +41,10 @@ struct AllValuesImpl<std::tuple<Types...>> {
 
 template <std::unsigned_integral T, T up_to> struct UpTo {
   T value;
-  constexpr UpTo() : value{} { assert(value < up_to); }
-  constexpr UpTo(T value) : value{value} { assert(value < up_to); }
+  constexpr UpTo() requires(up_to > 0) : value{} {}
+  constexpr UpTo(T value) requires(up_to > 0) : value{value} {
+    debug_assert(value < up_to);
+  }
   constexpr operator T() const { return value; }
   constexpr operator T &() { return value; }
 };

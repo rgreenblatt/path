@@ -1,10 +1,10 @@
 #pragma once
 
+#include "lib/assert.h"
 #include "meta/mock.h"
 #include "meta/specialization_of.h"
 
 #include <algorithm>
-#include <cassert>
 #include <concepts>
 #include <cstddef>
 #include <utility>
@@ -93,12 +93,12 @@ public:
   }
 
   constexpr const T &operator*() const {
-    assert(has_value());
+    debug_assert(has_value());
     return *reinterpret_cast<const T *>(bytes_.data());
   }
 
   constexpr T &operator*() {
-    assert(has_value());
+    debug_assert(has_value());
     return *reinterpret_cast<T *>(bytes_.data());
   }
 

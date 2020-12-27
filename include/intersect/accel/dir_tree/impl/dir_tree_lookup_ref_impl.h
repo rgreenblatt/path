@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lib/assert.h"
 #include "lib/binary_search.h"
 #include "lib/stack.h"
 #include "ray/detail/accel/dir_tree/dir_tree_lookup_ref.h"
@@ -37,7 +38,7 @@ DirTreeLookupRef::operator()(const Eigen::Vector3f &world_space_direction,
   bool y_positive = transformed_dir.y() >= 0;
   bool z_positive = transformed_dir.z() >= 0;
 
-  assert((flipped && !z_positive) || (!flipped && z_positive));
+  debug_assert((flipped && !z_positive) || (!flipped && z_positive));
 
   float z_no_value = z_positive ? std::numeric_limits<float>::max()
                                 : std::numeric_limits<float>::lowest();

@@ -1,10 +1,10 @@
 #pragma once
 
+#include "lib/assert.h"
 #include "lib/cuda/utils.h"
 
 #include <Eigen/Core>
 
-#include <cassert>
 #include <cmath>
 
 class UnitVector {
@@ -16,7 +16,8 @@ public:
   }
 
   HOST_DEVICE static UnitVector new_unchecked(const Eigen::Vector3f &v) {
-    assert(std::abs(v.norm() - 1.f) < 1e-6);
+    // TODO: epsilon?
+    debug_assert(std::abs(v.norm() - 1.f) < 1e-6);
     return UnitVector(v);
   }
 

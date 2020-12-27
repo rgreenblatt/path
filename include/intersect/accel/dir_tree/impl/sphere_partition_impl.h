@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lib/assert.h"
 #include "lib/unit_vector.h"
 #include "ray/detail/accel/dir_tree/sphere_partition.h"
 
@@ -52,7 +53,7 @@ HalfSpherePartition::get_center_colatitude_longitude(unsigned collar,
         (collar + 0.5f) / colatitude_inverse_interval_ - colatitude_offset_;
 
     const auto &c = colatitude_divs_[collar];
-    assert(region + c.start_index < c.end_index);
+    debug_assert(region + c.start_index < c.end_index);
     float longitude = ((region + 0.5f) / c.inverse_interval) - M_PI;
 
     return {colatitude, longitude};
@@ -82,14 +83,14 @@ HalfSpherePartition::get_closest(float colatitude, float longitude) const {
     }
   }
 
-  // what epsilon?
+  // TODO: what epsilon?
   float epsilon = 1e-5;
-  assert(colatitude < half_pi + epsilon);
-  assert(-epsilon < colatitude);
+  debug_assert(colatitude < half_pi + epsilon);
+  debug_assert(-epsilon < colatitude);
 
   colatitude = std::clamp(colatitude, epsilon, half_pi - epsilon);
 
-  assert(std::abs(longitude) < float(M_PI) + epsilon);
+  debug_assert(std::abs(longitude) < float(M_PI) + epsilon);
 
   longitude =
       std::clamp(longitude, float(-M_PI) + epsilon, float(M_PI) - epsilon);
@@ -100,7 +101,7 @@ HalfSpherePartition::get_closest(float colatitude, float longitude) const {
       unsigned(std::floor(region.inverse_interval * (longitude + M_PI))) +
       region.start_index;
 
-  assert(closest_idx < region.end_index);
+  debug_assert(closest_idx < region.end_index);
 
   return {closest_idx, is_flipped};
 }

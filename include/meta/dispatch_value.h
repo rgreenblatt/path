@@ -1,8 +1,10 @@
 #pragma once
 
+#include "lib/assert.h"
 #include "meta/all_values.h"
 #include "meta/sequential_look_up.h"
 
+#include <iostream>
 #include <map>
 
 template <AllValuesEnumerable T, unsigned idx> struct Holder {
@@ -27,8 +29,7 @@ auto dispatch_value(const F &f, T value) {
     if (lookup.size() != values.size()) {
       std::cerr << "internal dispatch error (not all values unique)"
                 << std::endl;
-      assert(false);
-      abort();
+      unreachable();
     }
 
     return lookup;
@@ -37,8 +38,7 @@ auto dispatch_value(const F &f, T value) {
   auto it = lookup.find(value);
   if (it == lookup.end()) {
     std::cerr << "invalid dispatch value!" << std::endl;
-    assert(false);
-    abort();
+    unreachable();
   }
 
   return sequential_look_up<AllValues<T>.size()>(

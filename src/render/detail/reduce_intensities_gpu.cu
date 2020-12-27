@@ -1,9 +1,8 @@
 #ifndef CPU_ONLY
+#include "lib/assert.h"
 #include "render/detail/reduce_assign_output.h"
 #include "render/detail/reduce_intensities_gpu.h"
 #include "render/detail/work_division_impl.h"
-
-#include <cassert>
 
 namespace render {
 namespace detail {
@@ -15,7 +14,7 @@ __global__ void reduce_intensities_global(
   const unsigned block_idx = blockIdx.x;
   const unsigned thread_idx = threadIdx.x;
 
-  assert(blockDim.x == division.block_size());
+  debug_assert(blockDim.x == division.block_size());
 
   auto [start_sample, end_sample, x, y] =
       division.get_thread_info(block_idx, thread_idx, reduction_factor);
@@ -38,7 +37,7 @@ DeviceVector<Eigen::Array3f> *reduce_intensities_gpu(
     DeviceVector<Eigen::Array3f> *intensities_in,
     DeviceVector<Eigen::Array3f> *intensities_out, Span<BGRA> bgras) {
   while (reduction_factor != 1) {
-    assert(intensities_in->size() % reduction_factor == 0);
+    always_assert(intensities_in->size() % reduction_factor == 0);
     unsigned x_dim = intensities_in->size() / reduction_factor;
     const unsigned block_size = 256;
     const unsigned target_x_block_size = 256;

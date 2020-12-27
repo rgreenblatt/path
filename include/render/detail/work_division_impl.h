@@ -1,16 +1,17 @@
 #pragma once
 
+#include "lib/assert.h"
 #include "lib/cuda/reduce.cuh"
 #include "lib/cuda/utils.h"
 #include "render/detail/work_division.h"
-
-#include <cassert>
 
 namespace render {
 namespace detail {
 inline HOST_DEVICE WorkDivision::ThreadInfo
 WorkDivision::get_thread_info(unsigned block_idx, unsigned thread_idx,
                               unsigned samples_per) const {
+  debug_assert(thread_idx < block_size_);
+
   const unsigned block_idx_sample = block_idx % num_sample_blocks_;
   const unsigned block_idx_pixel = block_idx / num_sample_blocks_;
   const unsigned block_idx_x = block_idx_pixel % num_x_blocks_;

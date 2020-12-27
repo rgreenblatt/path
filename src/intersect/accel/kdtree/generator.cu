@@ -1,4 +1,5 @@
 #include "intersect/accel/kdtree/generator.h"
+#include "lib/assert.h"
 #include "lib/eigen_utils.h"
 
 namespace intersect {
@@ -61,7 +62,7 @@ bool KDTree<execution_model>::Generator::terminate_here(unsigned start,
 template <ExecutionModel execution_model>
 AABB KDTree<execution_model>::Generator::get_bounding(unsigned start,
                                                       unsigned end) {
-  assert(start != end);
+  debug_assert(start != end);
 
   AABB out = bounds_[start].aabb;
   for (unsigned i = start + 1; i < end; i++) {
@@ -75,7 +76,7 @@ template <ExecutionModel execution_model>
 unsigned KDTree<execution_model>::Generator::construct(unsigned start,
                                                        unsigned end,
                                                        unsigned depth) {
-  assert(start != end);
+  debug_assert(start != end);
   if (terminate_here(start, end)) {
     auto total_bounds = get_bounding(start, end);
     unsigned index = nodes_.size();

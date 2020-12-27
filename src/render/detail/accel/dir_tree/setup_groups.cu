@@ -1,3 +1,4 @@
+#include "lib/assert.h"
 #include "lib/cuda/utils.h"
 #include "lib/span_convertable_device_vector.h"
 #include "lib/span_convertable_vector.h"
@@ -91,7 +92,7 @@ void DirTreeGeneratorImpl<execution_model>::setup_groups() {
             bool is_best_edge_min = is_mins[best_edge_idx];
             unsigned start_inclusive = starts_inclusive[best_edge_idx];
             auto [start, end] = group_start_end(group_idx, edges_groups);
-            assert(end > start);
+            debug_assert(end > start);
             unsigned index_in_group = best_edge_idx - start;
 
             auto [num_left_v, num_right_v] = left_right_counts(
@@ -117,7 +118,7 @@ void DirTreeGeneratorImpl<execution_model>::setup_groups() {
             auto new_groups = new_groups_arr[i];
             auto [start, end] = group_start_end(group_idx, old_groups);
             unsigned size = group_size(group_idx, old_groups);
-            assert(i != 1 || size != 0);
+            debug_assert(i != 1 || size != 0);
             unsigned start_new_indexes = start * 2;
             if (using_left) {
               new_groups[left_output_idx] =
@@ -127,7 +128,7 @@ void DirTreeGeneratorImpl<execution_model>::setup_groups() {
               new_groups[right_output_idx] =
                   get_previous(start_new_indexes + 2 * size, new_indexes);
             }
-            assert(
+            debug_assert(
                 i != 1 ||
                 ((new_indexes[start_new_indexes + size - 1] -
                   get_previous(start_new_indexes, new_indexes)) == num_left &&

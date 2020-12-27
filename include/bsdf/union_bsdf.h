@@ -5,6 +5,7 @@
 #include "bsdf/diffuse.h"
 #include "bsdf/glossy.h"
 #include "bsdf/mirror.h"
+#include "lib/assert.h"
 #include "lib/cuda/utils.h"
 #include "lib/tagged_union.h"
 
@@ -37,8 +38,7 @@ struct UnionBSDF {
       if constexpr (std::decay_t<decltype(v)>::continuous) {
         return v.continuous_eval(incoming_dir, outgoing_dir, normal);
       } else {
-        assert(false);
-        return {};
+        unreachable_unchecked();
       }
     });
   }
@@ -64,8 +64,7 @@ struct UnionBSDF {
       if constexpr (std::decay_t<decltype(v)>::discrete) {
         return v.discrete_sample(incoming_dir, normal, rng);
       } else {
-        assert(false);
-        return {};
+        unreachable_unchecked();
       }
     });
   }
@@ -77,8 +76,7 @@ struct UnionBSDF {
       if constexpr (std::decay_t<decltype(v)>::continuous) {
         return v.continuous_sample(incoming_dir, normal, rng);
       } else {
-        assert(false);
-        return {};
+        unreachable_unchecked();
       }
     });
   }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lib/assert.h"
 #include "lib/span.h"
 
 #include <algorithm>
@@ -15,7 +16,7 @@ binary_search(unsigned start, unsigned end, T target, unsigned guess,
     return start;
   }
 
-  assert(guess >= start && guess < end);
+  debug_assert(guess >= start && guess < end);
 
   auto cmp = [&](const T &v1, const T &v2) {
     if (is_increasing) {

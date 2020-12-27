@@ -1,13 +1,13 @@
 #pragma once
 
-#include <cassert>
+#include "lib/assert.h"
+
 #include <type_traits>
 
 template <unsigned size, typename F>
 constexpr decltype(auto) sequential_look_up(unsigned index, F &&f) {
   if (index >= size) {
-    assert(false);
-    __builtin_unreachable();
+    unreachable_unchecked();
   }
 
   if constexpr (size == 1) {

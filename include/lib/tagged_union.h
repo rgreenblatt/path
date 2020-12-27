@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lib/assert.h"
 #include "meta/all_values.h"
 #include "meta/decays_to.h"
 #include "meta/get_idx.h"
@@ -75,7 +76,7 @@ private:
             typename F>
   static constexpr decltype(auto) visit_n(F &&f, First &&first,
                                           Rest &&...rest) {
-    assert(((first.idx_ == rest.idx_) && ... && true));
+    debug_assert(((first.idx_ == rest.idx_) && ... && true));
     return sequential_look_up<values.size()>(first.idx_, [&](auto value) {
       constexpr unsigned idx = decltype(value)::value;
       return f(ac::get<idx>(first.union_), ac::get<idx>(rest.union_)...);

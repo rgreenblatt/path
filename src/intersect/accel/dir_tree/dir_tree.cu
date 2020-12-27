@@ -1,4 +1,5 @@
 #include "intersect/accel/dir_tree/dir_tree.h"
+#include "lib/assert.h"
 
 namespace intersect {
 namespace accel {
@@ -9,7 +10,7 @@ typename detail::Ref DirTree<execution_model>::gen(const Settings &,
                                                    SpanSized<const B>,
                                                    const AABB &aabb) {
   // TODO
-  assert(false);
+  unreachable();
   return detail::Ref{aabb};
 }
 

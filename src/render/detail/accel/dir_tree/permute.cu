@@ -1,3 +1,4 @@
+#include "lib/assert.h"
 #include "lib/async_for.h"
 #include "lib/span_convertable_device_vector.h"
 #include "lib/span_convertable_vector.h"
@@ -69,7 +70,7 @@ void DirTreeGeneratorImpl<execution_model>::permute() {
         if (k % num_edges_per == 0) {
           unsigned group_idx = k / num_edges_per;
           // first in group
-          assert(is_min);
+          debug_assert(is_min);
           group_min_maxs[group_idx][0] = value;
           unsigned node_idx = group_idx + (axis == 0 ? 0 : num_dir_trees) + 1;
           nodes[node_idx] = DirTreeNode(value, 0, node_idx + num_dir_trees);
@@ -77,7 +78,7 @@ void DirTreeGeneratorImpl<execution_model>::permute() {
         } else if ((k + 1) % num_edges_per == 0) {
           unsigned group_idx = k / num_edges_per;
           // last in group
-          assert(!is_min);
+          debug_assert(!is_min);
           group_min_maxs[group_idx][1] = value;
           unsigned node_idx = group_idx + (axis == 0 ? 0 : num_dir_trees) + 1 +
                               2 * num_dir_trees;

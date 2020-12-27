@@ -4,6 +4,7 @@
 #include "execution_model/host_vector.h"
 #include "integrate/light_sampler/random_triangle/settings.h"
 #include "integrate/light_sampler/triangle_light_sampler.h"
+#include "lib/assert.h"
 #include "lib/group.h"
 #include "lib/optional.h"
 #include "lib/vector_group.h"
@@ -31,7 +32,7 @@ constexpr Optional<unsigned> search(const float target,
   } else {
     // binary search
     // UNIMPLEMENTED...
-    assert(false);
+    unreachable_unchecked();
   }
 
   return solution;
@@ -63,6 +64,9 @@ public:
     if (cumulative_weights_.size() == 0) {
       return LightSamples<max_sample_size>{{}, 0};
     }
+
+    // TODO: SPEED, complexity, ...
+
     const float search_value = rng.next();
     const auto sample_idx_op = detail::search(search_value, cumulative_weights_,
                                               binary_search_threshold_);
@@ -73,8 +77,7 @@ public:
 
     const unsigned sample_idx = *sample_idx_op;
 
-    // TODO: SPEED, complexity, ...
-    assert(sample_idx < cumulative_weights_.size());
+    debug_assert(sample_idx < cumulative_weights_.size());
 
     const auto &triangle = triangles_[sample_idx];
 

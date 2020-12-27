@@ -6,6 +6,7 @@
 #include "integrate/rendering_equation_settings.h"
 #include "integrate/term_prob/term_prob.h"
 #include "intersectable_scene/intersectable_scene.h"
+#include "lib/assert.h"
 
 namespace integrate {
 struct RaySampleDistance {
@@ -146,9 +147,9 @@ rendering_equation(F &&initial_ray_sampler, unsigned start_sample,
 
     multiplier /= (1.0f - this_term_prob);
 
-    assert(multiplier.x() >= 0.0f);
-    assert(multiplier.y() >= 0.0f);
-    assert(multiplier.z() >= 0.0f);
+    debug_assert(multiplier.x() >= 0.0f);
+    debug_assert(multiplier.y() >= 0.0f);
+    debug_assert(multiplier.z() >= 0.0f);
 
     ray.origin = intersection_point;
     ray.direction = sample.sample.direction;

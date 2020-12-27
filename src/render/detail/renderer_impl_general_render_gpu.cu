@@ -1,4 +1,5 @@
 #ifndef CPU_ONLY
+#include "lib/assert.h"
 #include "lib/integer_division_utils.h"
 #include "render/detail/general_render_impl.h"
 #include "render/detail/impl/integrate_pixel.h"
@@ -8,8 +9,6 @@
 #include "render/detail/work_division_impl.h"
 
 #include <cli/ProgressBar.hpp>
-
-#include <cassert>
 
 #include "lib/info/debug_print.h"
 
@@ -27,7 +26,7 @@ __global__ void integrate_image_global(
   const unsigned block_idx = blockIdx.x + start_blocks;
   const unsigned thread_idx = threadIdx.x;
 
-  assert(blockDim.x == division.block_size());
+  debug_assert(blockDim.x == division.block_size());
 
   auto [start_sample, end_sample, x, y] =
       division.get_thread_info(block_idx, thread_idx, samples_per);

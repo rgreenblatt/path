@@ -1,5 +1,7 @@
 #pragma once
 
+#include "lib/assert.h"
+
 #include <array>
 #include <cstdint>
 #include <limits>
@@ -9,19 +11,19 @@ public:
   constexpr Stack() : size_(0) {}
 
   constexpr void push(const T &v) {
-    assert(size_ < max_size);
+    debug_assert(size_ < max_size);
     arr_[size_] = v;
     size_++;
   }
 
   constexpr T pop() {
-    assert(size_ != 0);
+    debug_assert(size_ != 0);
     size_--;
     return arr_[size_];
   }
 
   constexpr const T &peek() const {
-    assert(size_ != 0);
+    debug_assert(size_ != 0);
     return arr_[size_ - 1];
   }
 

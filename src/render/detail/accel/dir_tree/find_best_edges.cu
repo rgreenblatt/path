@@ -1,3 +1,4 @@
+#include "lib/assert.h"
 #include "lib/async_for.h"
 #include "lib/printf_dbg.h"
 #include "ray/detail/accel/dir_tree/dir_tree_generator_impl.h"
@@ -60,11 +61,11 @@ void DirTreeGeneratorImpl<execution_model>::find_best_edges() {
             std::array<float, 2> min_max_region = group_min_max[key];
             float this_value = edge_values[i];
 
-            assert(i >= start);
-            assert(i < end);
-            assert(min_max_region[0] <= min_max_region[1]);
-            assert(min_max_region[0] <= this_value + 1e-5);
-            assert(this_value <= min_max_region[1] + 1e-5);
+            debug_assert(i >= start);
+            debug_assert(i < end);
+            debug_assert(min_max_region[0] <= min_max_region[1]);
+            debug_assert(min_max_region[0] <= this_value + 1e-5);
+            debug_assert(this_value <= min_max_region[1] + 1e-5);
 
             float prop_left =
                 get_prop_left(this_value, min_max_region[0], min_max_region[1]);

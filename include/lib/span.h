@@ -2,8 +2,8 @@
 
 #include "data_structure/get_ptr.h"
 #include "data_structure/get_size.h"
+#include "lib/assert.h"
 
-#include <cassert>
 #include <concepts>
 #include <type_traits>
 
@@ -52,7 +52,7 @@ public:
   }
 
   constexpr T &operator[](const std::size_t index) const {
-    assert(checkIndex(index));
+    debug_assert(checkIndex(index));
     return ptr_[index];
   }
 
@@ -64,10 +64,10 @@ public:
 
   constexpr Span<T, true> slice(std::size_t start, std::size_t end) const {
     if constexpr (use_size) {
-      assert(end <= size_);
+      debug_assert(end <= size_);
     }
 
-    assert(start <= end);
+    debug_assert(start <= end);
 
     return {ptr_ + start, end - start};
   }

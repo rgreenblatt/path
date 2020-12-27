@@ -1,4 +1,5 @@
 #include "render/renderer_from_files.h"
+#include "lib/assert.h"
 #include "lib/serialize_enum.h"
 #include "render/renderer.h"
 #include "render/settings.h"
@@ -26,8 +27,7 @@ void RendererFromFiles::load_scene(const std::filesystem::path &scene_file_path,
 
   if (!scene_op.has_value()) {
     std::cerr << "failed to load scene" << std::endl;
-    assert(false);
-    abort();
+    unreachable();
   }
   scene_ = std::make_unique<scene::Scene>(*scene_op);
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lib/assert.h"
 #include "lib/cuda/utils.h"
 #include "lib/settings.h"
 #include "lib/span.h"
@@ -51,7 +52,7 @@ public:
             ref_(ref) {}
 
       HOST_DEVICE inline float next() {
-        assert(ref_ != nullptr);
+        debug_assert(ref_ != nullptr);
 
         float out = ref_->vals_[sample_ * ref_->dimension_bound_ + dim_];
 
@@ -70,7 +71,7 @@ public:
 
     HOST_DEVICE inline State get_generator(unsigned sample_idx,
                                            unsigned location) const {
-      assert(sample_idx < samples_per_);
+      debug_assert(sample_idx < samples_per_);
 
       // the hash is used to make different locations look roughly uncorrelated.
       // Note that they may be correlated in practice (depending on the
