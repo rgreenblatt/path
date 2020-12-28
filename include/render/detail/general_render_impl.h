@@ -16,7 +16,7 @@ using namespace detail;
 template <ExecutionModel exec>
 void Renderer::Impl<exec>::general_render(
     bool output_as_bgra, Span<BGRA> pixels, Span<Eigen::Array3f> intensities,
-    const scene::Scene &s, unsigned &samples_per, unsigned x_dim,
+    const scene::Scene &s, unsigned samples_per, unsigned x_dim,
     unsigned y_dim, const Settings &settings, bool show_progress, bool) {
   // only used for gpu
   WorkDivision division;

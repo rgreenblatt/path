@@ -4,6 +4,8 @@
 
 #include <cmath>
 #include <algorithm>
+#include <cstdint>
+#include <limits>
 
 namespace render {
 namespace detail {
@@ -50,6 +52,10 @@ WorkDivision::WorkDivision(const WorkDivisionSettings &settings,
 
   num_x_blocks_ = ceil_divide(x_dim, x_block_size_);
   num_y_blocks_ = ceil_divide(y_dim, y_block_size_);
+
+  always_assert(static_cast<uint64_t>(num_sample_blocks_) * num_x_blocks_ *
+                    num_y_blocks_ <
+                static_cast<uint64_t>(std::numeric_limits<unsigned>::max()));
 }
 } // namespace detail
 } // namespace render

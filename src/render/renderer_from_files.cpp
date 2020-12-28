@@ -49,7 +49,7 @@ void RendererFromFiles::print_config() const {
 }
 
 void RendererFromFiles::render(ExecutionModel execution_model,
-                               Span<BGRA> pixels, unsigned &samples_per,
+                               Span<BGRA> pixels, unsigned samples_per,
                                unsigned x_dim, unsigned y_dim,
                                bool progress_bar, bool show_times) {
   renderer_->render(execution_model, pixels, *scene_, samples_per, x_dim, y_dim,
@@ -58,7 +58,7 @@ void RendererFromFiles::render(ExecutionModel execution_model,
 
 void RendererFromFiles::render_intensities(ExecutionModel execution_model,
                                            Span<Eigen::Array3f> intensities,
-                                           unsigned &samples_per,
+                                           unsigned samples_per,
                                            unsigned x_dim, unsigned y_dim,
                                            bool progress_bar, bool show_times) {
   renderer_->render_intensities(execution_model, intensities, *scene_,

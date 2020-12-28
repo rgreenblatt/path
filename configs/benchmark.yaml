@@ -29,7 +29,7 @@ settings:
         block_size: 256
         target_x_block_size: 32
         target_y_block_size: 8
-        max_samples_per_thread: 64
-        target_samples_per_thread: 32
+        max_samples_per_thread: 16
+        target_samples_per_thread: 8
     rendering_equation_settings:
       back_cull_emission: true

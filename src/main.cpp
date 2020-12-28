@@ -97,10 +97,8 @@ int main(int argc, char *argv[]) {
 
   Span<BGRA> pixels(reinterpret_cast<BGRA *>(image.bits()), width * height);
 
-  unsigned updated_samples = samples;
-
   auto render = [&](bool show_progress, bool show_times) {
-    renderer.render(execution_model, pixels, updated_samples, width, height,
+    renderer.render(execution_model, pixels, samples, width, height,
                     show_progress && !disable_progress, show_times);
   };
 
@@ -145,11 +143,6 @@ int main(int argc, char *argv[]) {
 
   } else {
     render(true, false);
-  }
-
-  if (updated_samples != samples) {
-    std::cout << "samples changed from " << samples << " to " << updated_samples
-              << std::endl;
   }
 
   image.save(output_file_name.c_str());

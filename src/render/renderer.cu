@@ -35,7 +35,7 @@ void Renderer::visit_renderer(ExecutionModel execution_model, F &&f) {
 }
 
 void Renderer::render(ExecutionModel execution_model, Span<BGRA> pixels,
-                      const scene::Scene &s, unsigned &samples_per,
+                      const scene::Scene &s, unsigned samples_per,
                       unsigned x_dim, unsigned y_dim, const Settings &settings,
                       bool show_progress, bool show_times) {
   visit_renderer(execution_model, [&](auto &&renderer) {
@@ -46,7 +46,7 @@ void Renderer::render(ExecutionModel execution_model, Span<BGRA> pixels,
 
 void Renderer::render_intensities(ExecutionModel execution_model,
                                   Span<Eigen::Array3f> intensities,
-                                  const scene::Scene &s, unsigned &samples_per,
+                                  const scene::Scene &s, unsigned samples_per,
                                   unsigned x_dim, unsigned y_dim,
                                   const Settings &settings, bool show_progress,
                                   bool show_times) {

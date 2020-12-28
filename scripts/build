@@ -145,7 +145,10 @@ def run_command(builder, remaining_args, forced_directory):
     parser.add_argument('executable_args', nargs=argparse.REMAINDER)
     args = parser.parse_args(remaining_args)
     directory = get_directory(args.release, args.cpu_only, forced_directory)
-    builder(args.release, args.cpu_only, directory)
+    builder(args.release,
+            args.cpu_only,
+            directory,
+            additional_build_args=["--target", args.executable])
     try:
         subprocess.run([os.path.join(directory, args.executable)] +
                        args.executable_args,
@@ -174,10 +177,14 @@ def bench_command(builder, remaining_args, forced_directory):
     builder(args.release,
             args.cpu_only,
             directory,
-            additional_gen_args=["-DBUILD_BENCHMARKS=ON"])
-    subprocess.run([os.path.join(directory, args.executable)] +
-                   args.executable_args,
-                   check=True)
+            additional_gen_args=["-DBUILD_BENCHMARKS=ON"],
+            additional_build_args=["--target", args.executable])
+    try:
+        subprocess.run([os.path.join(directory, args.executable)] +
+                       args.executable_args,
+                       check=True)
+    except subprocess.CalledProcessError as e:
+        sys.exit(e.returncode)
 
 
 def cc_command(builder, remaining_args, _forced_directory):

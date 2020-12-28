@@ -29,12 +29,12 @@ public:
   void print_config() const;
 
   void render(ExecutionModel execution_model, Span<BGRA> pixels,
-              unsigned &samples_per, unsigned x_dim, unsigned y_dim,
+              unsigned samples_per, unsigned x_dim, unsigned y_dim,
               bool progress_bar = false, bool show_times = false);
 
   void render_intensities(ExecutionModel execution_model,
                           Span<Eigen::Array3f> intensities,
-                          unsigned &samples_per, unsigned x_dim, unsigned y_dim,
+                          unsigned samples_per, unsigned x_dim, unsigned y_dim,
                           bool progress_bar = false, bool show_times = false);
 
 private:

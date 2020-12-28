@@ -30,7 +30,7 @@ public:
 
   void general_render(bool output_as_bgra, Span<BGRA> pixels,
                       Span<Eigen::Array3f> intensities, const scene::Scene &s,
-                      unsigned &samples_per, unsigned x_dim, unsigned y_dim,
+                      unsigned samples_per, unsigned x_dim, unsigned y_dim,
                       const Settings &settings, bool show_progress,
                       bool show_times);
 

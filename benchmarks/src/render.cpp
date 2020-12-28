@@ -123,19 +123,14 @@ int main(int argc, char *argv[]) {
                 << "x" << ground_truth_width << std::endl;
 
       renderer.load_scene(scene_path, 1.f);
-      unsigned n_truth_samples_in = n_ground_truth_samples;
 
       ground_truth_intensities[i].resize(ground_truth_width *
                                          ground_truth_width);
 
-      renderer.render_intensities(
-          ExecutionModel::GPU, ground_truth_intensities[i], n_truth_samples_in,
-          ground_truth_width, ground_truth_width, true, false);
-      if (n_truth_samples_in != n_ground_truth_samples) {
-        std::cerr << "n_ground_truth_samples had to be changed: invalid"
-                  << std::endl;
-        unreachable();
-      }
+      renderer.render_intensities(ExecutionModel::GPU,
+                                  ground_truth_intensities[i],
+                                  n_ground_truth_samples, ground_truth_width,
+                                  ground_truth_width, true, false);
 
       ar(ground_truth_intensities[i]);
     }
@@ -197,7 +192,6 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-  // benchmark::
 
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();
