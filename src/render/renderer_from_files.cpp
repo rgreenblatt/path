@@ -21,9 +21,9 @@ RendererFromFiles::RendererFromFiles(RendererFromFiles &&) = default;
 RendererFromFiles &RendererFromFiles::operator=(RendererFromFiles &&) = default;
 
 void RendererFromFiles::load_scene(const std::filesystem::path &scene_file_path,
-                                   float width_height_ratio) {
+                                   float width_height_ratio, bool quiet) {
   scene::scenefile_compat::ScenefileLoader loader;
-  auto scene_op = loader.load_scene(scene_file_path, width_height_ratio);
+  auto scene_op = loader.load_scene(scene_file_path, width_height_ratio, quiet);
 
   if (!scene_op.has_value()) {
     std::cerr << "failed to load scene" << std::endl;

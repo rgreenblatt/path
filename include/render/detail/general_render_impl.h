@@ -102,10 +102,16 @@ void Renderer::Impl<exec>::general_render(
     auto intensities_gpu = reduce_intensities_gpu(
         output_as_bgra, division.num_sample_blocks(), samples_per,
         &intensities_, &reduced_intensities_, bgra_);
+    always_assert(intensities_gpu != nullptr);
+    always_assert(intensities_gpu == &intensities_ ||
+                  intensities_gpu == &reduced_intensities_);
 
     if (output_as_bgra) {
       thrust::copy(bgra_.begin(), bgra_.end(), pixels.begin());
     } else {
+      always_assert(intensities_gpu != nullptr);
+      always_assert(intensities_gpu == &intensities_ ||
+                    intensities_gpu == &reduced_intensities_);
       thrust::copy(intensities_gpu->begin(), intensities_gpu->end(),
                    intensities.begin());
     }

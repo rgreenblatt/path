@@ -22,14 +22,16 @@
 namespace scene {
 namespace scenefile_compat {
 Optional<Scene> ScenefileLoader::load_scene(const std::string &filename,
-                                            float width_height_ratio) {
+                                            float width_height_ratio,
+                                            bool quiet) {
+  quiet_ = quiet;
   loaded_meshes_.clear();
 
   overall_min_b_transformed_ = max_eigen_vec();
   overall_max_b_transformed_ = min_eigen_vec();
 
   CS123XmlSceneParser parser(filename);
-  if (!parser.parse()) {
+  if (!parser.parse(quiet)) {
     return nullopt_value;
   }
   CS123SceneCameraData cameraData;
@@ -311,11 +313,13 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
   add_mesh_instance(mesh_idx, aabb);
   loaded_meshes_.insert({absolute_path, mesh_idx});
 
-  std::cout << "added mesh" << std::endl;
-  std::cout << "total triangle count: " << scene_v.triangles_.size()
-            << std::endl;
-  std::cout << "total num emissive clusters: "
-            << scene_v.emissive_clusters_.size() << std::endl;
+  if (!quiet_) {
+    std::cout << "added mesh" << std::endl;
+    std::cout << "total triangle count: " << scene_v.triangles_.size()
+              << std::endl;
+    std::cout << "total num emissive clusters: "
+              << scene_v.emissive_clusters_.size() << std::endl;
+  }
 
   return true;
 }

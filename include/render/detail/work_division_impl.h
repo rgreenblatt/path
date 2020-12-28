@@ -5,32 +5,42 @@
 #include "lib/cuda/utils.h"
 #include "render/detail/work_division.h"
 
+#include <algorithm>
+
 namespace render {
 namespace detail {
 inline HOST_DEVICE WorkDivision::ThreadInfo
-WorkDivision::get_thread_info(unsigned block_idx, unsigned thread_idx,
-                              unsigned samples_per) const {
+WorkDivision::get_thread_info(unsigned block_idx, unsigned thread_idx) const {
   debug_assert(thread_idx < block_size_);
 
-  const unsigned block_idx_sample = block_idx % num_sample_blocks_;
-  const unsigned block_idx_pixel = block_idx / num_sample_blocks_;
-  const unsigned block_idx_x = block_idx_pixel % num_x_blocks_;
-  const unsigned block_idx_y = block_idx_pixel / num_x_blocks_;
+  // handling block_idx and thread_idx separately like this ensures we don't
+  // have overflow without having to use 64 bit integers (which are slow on
+  // gpus)
 
-  unsigned work_idx = samples_per_thread_ * thread_idx;
+  unsigned block_idx_sample = block_idx % num_sample_blocks_;
+  unsigned block_idx_location = block_idx / num_sample_blocks_;
+  unsigned block_idx_x = block_idx_location % num_x_blocks_;
+  unsigned block_idx_y = block_idx_location / num_x_blocks_;
 
-  unsigned sample_block_size = samples_per / num_sample_blocks_;
+  unsigned thread_idx_sample = thread_idx % sample_block_size_;
+  unsigned thread_idx_location = thread_idx / sample_block_size_;
+  unsigned thread_idx_x = thread_idx_location % x_block_size_;
+  unsigned thread_idx_y = thread_idx_location / x_block_size_;
 
-  const unsigned work_idx_sample = work_idx % sample_block_size;
-  const unsigned work_idx_pixel = work_idx / sample_block_size;
-  const unsigned work_idx_x = work_idx_pixel % x_block_size_;
-  const unsigned work_idx_y = work_idx_pixel / x_block_size_;
+  unsigned sample_idx =
+      thread_idx_sample + block_idx_sample * sample_block_size_;
+  unsigned x = thread_idx_x + block_idx_x * x_block_size_;
+  unsigned y = thread_idx_y + block_idx_y * y_block_size_;
 
-  const unsigned start_sample =
-      work_idx_sample + block_idx_sample * sample_block_size;
-  const unsigned end_sample = start_sample + samples_per_thread_;
-  const unsigned x = work_idx_x + block_idx_x * x_block_size_;
-  const unsigned y = work_idx_y + block_idx_y * y_block_size_;
+  unsigned base_samples_before = sample_idx * base_samples_per_thread_;
+  unsigned n_extra_sample_before =
+      std::min(n_threads_per_unit_extra_, sample_idx);
+  unsigned start_sample = base_samples_before + n_extra_sample_before;
+  bool has_extra_sample = sample_idx < n_threads_per_unit_extra_; 
+  unsigned n_samples = base_samples_per_thread_ +
+                       (has_extra_sample ? 1 : 0);
+
+  unsigned end_sample = start_sample + n_samples;
 
   return {start_sample, end_sample, x, y};
 }

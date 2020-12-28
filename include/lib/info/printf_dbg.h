@@ -4,6 +4,7 @@
 #include "lib/cuda/utils.h"
 
 #include <Eigen/Geometry>
+#include <boost/hana/string.hpp>
 
 #include <algorithm>
 #include <string_view>
@@ -11,70 +12,67 @@
 
 namespace printf_dbg {
 namespace detail {
-template <typename Iter>
-constexpr size_t copy_in_n_times(Iter format_iter, std::string_view s,
-                                 size_t times) {
-  size_t offset = 0;
-  for (size_t i = 0; i < times; ++i) {
-    std::copy(s.begin(), s.end(), format_iter);
-
-    offset += s.size();
+template<unsigned n, typename T>
+constexpr auto rep(T v) {
+  if constexpr (n == 0) {
+    return BOOST_HANA_STRING("");
+  } else {
+    return v + rep<n - 1>(v);
   }
-
-  return offset;
 }
 
-// not ideal imo, some clean up is possible for sure...
-template <typename Iter, typename T>
-HOST_DEVICE inline auto debug_value(Iter format_iter, const T &val) {
-  auto handle_vals = [&](std::string_view format, size_t times,
-                         const auto &...vals) {
-    const size_t format_size = copy_in_n_times(format_iter, format, times);
 
-    return std::make_tuple(format_size, std::make_tuple(vals...));
+// not ideal imo, some clean up is possible for sure...
+template <typename T>
+constexpr inline auto debug_value(const T &val) {
+  auto handle_vals = [&](auto str, const auto &...vals) {
+    return std::make_tuple(str, std::make_tuple(vals...));
   };
 
   if constexpr (std::is_same<typename std::decay_t<T>,
                              Eigen::Affine3f>::value) {
-    return debug_value(format_iter, val.matrix());
+    return debug_value(val.matrix());
   } else if constexpr (std::is_same<typename std::decay_t<T>,
                                     Eigen::Matrix3f>::value) {
-    return handle_vals("x: %f, y: %f, z: %f\n", 3, val(0, 0), val(0, 1),
-                       val(0, 2), val(1, 0), val(1, 1), val(1, 2), val(2, 0),
-                       val(2, 1), val(2, 2));
+    return handle_vals(rep<3>(BOOST_HANA_STRING("x: %f, y: %f, z: %f\n")),
+                       val(0, 0), val(0, 1), val(0, 2), val(1, 0), val(1, 1),
+                       val(1, 2), val(2, 0), val(2, 1), val(2, 2));
   } else if constexpr (std::is_same<typename std::decay_t<T>,
                                     Eigen::Matrix4f>::value) {
-    return handle_vals("x: %f, y: %f, z: %f, w: %f\n", 4, val(0, 0), val(0, 1),
-                       val(0, 2), val(1, 0), val(1, 1), val(1, 2), val(2, 0),
-                       val(2, 1), val(2, 2), val(3, 0), val(3, 1), val(3, 2),
-                       val(3, 3));
+    return handle_vals(
+        rep<4>(BOOST_HANA_STRING("x: %f, y: %f, z: %f, w: %f\n")), val(0, 0),
+        val(0, 1), val(0, 2), val(1, 0), val(1, 1), val(1, 2), val(2, 0),
+        val(2, 1), val(2, 2), val(3, 0), val(3, 1), val(3, 2), val(3, 3));
   } else if constexpr (std::is_same<typename std::decay_t<T>,
                                     Eigen::Vector3f>::value ||
                        std::is_same<typename std::decay_t<T>,
                                     Eigen::Array3f>::value) {
-    return handle_vals("x: %f, y: %f, z: %f\n", 1, val.x(), val.y(), val.z());
+    return handle_vals(BOOST_HANA_STRING("x: %f, y: %f, z: %f\n"), val.x(),
+                       val.y(), val.z());
   } else if constexpr (std::is_same<typename std::decay_t<T>, BGRA>::value) {
-    return handle_vals("x: %u, y: %u, z: %u\n", 1, val.x(), val.y(), val.z());
+    return handle_vals(BOOST_HANA_STRING("x: %u, y: %u, z: %u\n"), val.x(),
+                       val.y(), val.z());
   } else if constexpr (std::is_same<typename std::decay_t<T>, char *>::value) {
-    return handle_vals("%s\n", 1, val);
+    return handle_vals(BOOST_HANA_STRING("%s\n"), val);
   } else if constexpr (std::is_pointer_v<T>) {
-    return handle_vals("%p\n", 1, reinterpret_cast<const void *>(val));
+    return handle_vals(BOOST_HANA_STRING("%p\n"),
+                       reinterpret_cast<const void *>(val));
   } else if constexpr (std::is_same<typename std::decay_t<T>, uint8_t>::value) {
-    return handle_vals("%u\n", 1, val);
+    return handle_vals(BOOST_HANA_STRING("%u\n"), val);
   } else if constexpr (std::is_same<typename std::decay_t<T>, float>::value) {
-    return handle_vals("%g\n", 1, val);
+    return handle_vals(BOOST_HANA_STRING("%g\n"), val);
   } else if constexpr (std::is_same<typename std::decay_t<T>,
                                     unsigned>::value) {
-    return handle_vals("%u\n", 1, val);
+    return handle_vals(BOOST_HANA_STRING("%u\n"), val);
   } else if constexpr (std::is_same<typename std::decay_t<T>,
                                     unsigned long>::value) {
-    return handle_vals("%lu\n", 1, val);
+    return handle_vals(BOOST_HANA_STRING("%lu\n"), val);
   } else if constexpr (std::is_same<typename std::decay_t<T>, bool>::value) {
-    return handle_vals("%s\n", 1, val ? "true" : "false");
+    return handle_vals(BOOST_HANA_STRING("%s\n"), val ? "true" : "false");
   } else {
     static_assert(std::is_same<typename std::decay_t<T>, int>::value,
                   "type not yet handled");
-    return handle_vals("%d\n", 1, val);
+    return handle_vals(BOOST_HANA_STRING("%d\n"), val);
   }
 }
 
@@ -91,38 +89,50 @@ __device__ inline size_t strlen(const char *v) {
 }
 #endif
 
-template <typename T>
-HOST_DEVICE inline auto debug_print(std::string_view file_name, int line_number,
-                                    std::string_view func, const T &val,
-                                    std::string_view var_name) {
+constexpr auto combine() {
+  return std::make_tuple(BOOST_HANA_STRING(""), std::make_tuple());
+}
+
+template <typename First, typename... Rest>
+constexpr auto combine(const First &first, const Rest &...rest) {
+  auto rec = combine(rest...);
+  return std::make_tuple(std::get<0>(first) + std::get<0>(rec),
+                         std::tuple_cat(std::get<1>(first), std::get<1>(rec)));
+}
+
+template <typename First, typename... Rest>
+HOST_DEVICE inline decltype(auto)
+debug_print(std::string_view file_name, int line_number, std::string_view func,
+            std::string_view var_name, First &&ret_val, Rest &&...rest) {
+  auto internal = [](const auto&... vals) {
+    return combine(debug_value(vals)...);
+  };
+
+  auto [formatting, vals] = internal(ret_val, rest...);
+
+  auto overall_formating =
+      BOOST_HANA_STRING("[%s%s:%d %s] %s =\n") + formatting;
+
+
   const long max_file_name_len = 20;
-
-  std::array<char, 100> format_buffer;
-  std::string_view initial_format = "[%s%s:%d %s] %s =\n";
-
-  std::copy(initial_format.begin(), initial_format.end(),
-            format_buffer.begin());
-
   const long to_remove =
       static_cast<long>(file_name.size()) - max_file_name_len;
-
   file_name.remove_prefix(std::max(to_remove, 0l));
-  const auto [format_len, args] =
-      debug_value(format_buffer.begin() + initial_format.size(), val);
-  *(format_buffer.data() + (initial_format.size() + format_len)) = '\0';
+
   std::apply(
       [&](const auto &...additional) {
-        printf(format_buffer.data(), to_remove < 0 ? "" : "..",
+        printf(overall_formating.c_str(), to_remove < 0 ? "" : "..",
                file_name.data(), line_number, func.data(), var_name.data(),
                additional...);
       },
-      args);
+      vals);
 
-  return val;
+  return std::forward<First>(ret_val);
 }
+
 } // namespace detail
 } // namespace printf_dbg
 
 #define printf_dbg(...)                                                        \
-  printf_dbg::detail::debug_print(__FILE__, __LINE__, __func__, __VA_ARGS__,   \
-                                  #__VA_ARGS__)
+  printf_dbg::detail::debug_print(__FILE__, __LINE__, __func__, #__VA_ARGS__,   \
+                                  __VA_ARGS__)

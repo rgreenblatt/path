@@ -28,7 +28,7 @@ public:
   virtual ~CS123XmlSceneParser();
 
   // Parse the scene.  Returns false if scene is invalid.
-  virtual bool parse();
+  virtual bool parse(bool quiet = false);
 
   virtual bool get_global_data(CS123SceneGlobalData &data) const;
 

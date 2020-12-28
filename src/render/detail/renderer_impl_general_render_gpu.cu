@@ -29,7 +29,7 @@ __global__ void integrate_image_global(
   debug_assert(blockDim.x == division.block_size());
 
   auto [start_sample, end_sample, x, y] =
-      division.get_thread_info(block_idx, thread_idx, samples_per);
+      division.get_thread_info(block_idx, thread_idx);
 
   if (x >= x_dim || y >= y_dim) {
     return;
@@ -61,7 +61,7 @@ void integrate_image(bool output_as_bgra, const GeneralSettings &settings,
   size_t num_launches = ceil_divide(total_grid, max_launch_size);
   size_t blocks_per = total_grid / num_launches;
 
-#if 1
+#if 0
   dbg(division.samples_per_thread());
   dbg(division.x_block_size());
   dbg(division.y_block_size());

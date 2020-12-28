@@ -4,6 +4,8 @@
 #include "render/detail/reduce_intensities_gpu.h"
 #include "render/detail/work_division_impl.h"
 
+#include "data_structure/copyable_to_vec.h"
+
 namespace render {
 namespace detail {
 __global__ void reduce_intensities_global(
@@ -17,7 +19,7 @@ __global__ void reduce_intensities_global(
   debug_assert(blockDim.x == division.block_size());
 
   auto [start_sample, end_sample, x, y] =
-      division.get_thread_info(block_idx, thread_idx, reduction_factor);
+      division.get_thread_info(block_idx, thread_idx);
 
   if (x >= x_dim) {
     return;
@@ -52,7 +54,8 @@ DeviceVector<Eigen::Array3f> *reduce_intensities_gpu(
     reduce_intensities_global<<<division.total_num_blocks(),
                                 division.block_size()>>>(
         output_as_bgra && division.num_sample_blocks() == 1, reduction_factor,
-        samples_per, x_dim, division, *intensities_in, *intensities_out, bgras);
+        samples_per, x_dim, division, *intensities_in, *intensities_out,
+        bgras);
     reduction_factor = division.num_sample_blocks();
 
     std::swap(intensities_in, intensities_out);

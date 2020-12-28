@@ -24,7 +24,7 @@ public:
   RendererFromFiles &operator=(RendererFromFiles &&);
 
   void load_scene(const std::filesystem::path &scene_file_path,
-                  float width_height_ratio);
+                  float width_height_ratio, bool quiet = false);
   void load_config(const std::filesystem::path &config_file_path);
   void print_config() const;
 

@@ -8,6 +8,8 @@
 
 #include <Eigen/Core>
 
+#include <memory>
+
 namespace render {
 class Renderer {
 public:

@@ -90,7 +90,7 @@ CS123SceneNode *CS123XmlSceneParser::get_root_node() const {
 }
 
 // This is where it all goes down...
-bool CS123XmlSceneParser::parse() {
+bool CS123XmlSceneParser::parse(bool quiet) {
   // Read the file
   QFile file(file_name.c_str());
   if (!file.open(QFile::ReadOnly)) {
@@ -151,7 +151,10 @@ bool CS123XmlSceneParser::parse() {
     childNode = childNode.nextSibling();
   }
 
-  std::cout << "finished parsing " << file_name << std::endl;
+  if (!quiet) {
+    std::cout << "finished parsing " << file_name << std::endl;
+  }
+
   return true;
 }
 

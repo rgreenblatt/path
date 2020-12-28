@@ -10,8 +10,8 @@ struct WorkDivisionSettings {
   unsigned block_size = 256;
   unsigned target_x_block_size = 32;
   unsigned target_y_block_size = 8;
-  unsigned max_samples_per_thread = 64;
-  unsigned target_samples_per_thread = 16;
+  unsigned max_samples_per_thread = 16;
+  unsigned target_samples_per_thread = 8;
 
   template <typename Archive> void serialize(Archive &ar) {
     ar(NVP(block_size), NVP(target_x_block_size), NVP(target_y_block_size),

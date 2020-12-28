@@ -12,7 +12,7 @@ namespace scenefile_compat {
 class ScenefileLoader {
 public:
   Optional<Scene> load_scene(const std::string &filename,
-                             float width_height_ratio);
+                             float width_height_ratio, bool quiet = false);
 
 private:
   bool parse_tree(Scene &scene_v, const CS123SceneNode &root,
@@ -30,6 +30,8 @@ private:
                  const Eigen::Affine3f &transform, const std::string &base_dir);
 
   bool add_light(Scene &scene_v, const CS123SceneLightData &data);
+
+  bool quiet_ = false;
 
   std::map<std::string, unsigned> loaded_meshes_; // avoid reloading dup meshes
 

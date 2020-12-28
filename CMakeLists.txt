@@ -114,7 +114,7 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/kdtree/generator.cu"
   )
 target_add_standard_include(intersect)
-target_link_libraries(intersect PUBLIC yaml-cpp PRIVATE OpenMP::OpenMP_CXX)
+target_link_libraries(intersect PRIVATE OpenMP::OpenMP_CXX)
 
 add_library(
   renderer
@@ -123,7 +123,6 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl_general_render_cpu.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/render/renderer.cu"
-  "${PROJECT_SOURCE_DIR}/src/render/renderer_from_files.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/integrate/light_sampler/random_triangle/random_triangle.cu"
   "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl.cu"
@@ -132,8 +131,7 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/rng/sobel/sobel.cu"
   )
 target_add_standard_include(renderer)
-target_link_libraries(renderer PUBLIC yaml-cpp PRIVATE OpenMP::OpenMP_CXX
-  Qt5::Widgets -lcurand intersect)
+target_link_libraries(renderer PRIVATE OpenMP::OpenMP_CXX -lcurand intersect)
 
 add_library(
   scenefile_compat
@@ -144,7 +142,16 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/scene/scenefile_compat/scenefile_loader.cpp"
   )
 target_add_standard_include(scenefile_compat)
-target_link_libraries(scenefile_compat PRIVATE Qt5::Xml yaml-cpp)
+target_link_libraries(scenefile_compat PRIVATE Qt5::Xml)
+
+add_library(
+  renderer_from_files
+  STATIC
+  "${PROJECT_SOURCE_DIR}/src/render/renderer_from_files.cpp"
+)
+target_add_standard_include(renderer_from_files)
+target_link_libraries(renderer_from_files PRIVATE yaml-cpp renderer
+  scenefile_compat)
 
 if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
   enable_testing()
@@ -165,24 +172,27 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
     list(APPEND TEST_LIST ${TEST_NAME})
   endmacro()
 
-  package_add_test(bitset "${PROJECT_SOURCE_DIR}/tests/src/bitset.cu")
-  package_add_test(reduce "${PROJECT_SOURCE_DIR}/tests/src/reduce.cu")
-  package_add_test(group "${PROJECT_SOURCE_DIR}/tests/src/group.cpp")
-  package_add_test(device_vector
+  package_add_test(bitset_test "${PROJECT_SOURCE_DIR}/tests/src/bitset.cu")
+  package_add_test(reduce_test "${PROJECT_SOURCE_DIR}/tests/src/reduce.cu")
+  package_add_test(group_test "${PROJECT_SOURCE_DIR}/tests/src/group.cpp")
+  package_add_test(device_vector_test
     "${PROJECT_SOURCE_DIR}/tests/src/device_vector.cu")
   package_add_test(lambda_check
     "${PROJECT_SOURCE_DIR}/tests/src/lambda_check.cu")
   # package_add_test(sphere_partition
   #   "${PROJECT_SOURCE_DIR}/tests/src/sphere_partition.cpp")
   # target_link_libraries(sphere_partition PRIVATE renderer)
-  package_add_test(binary_search
+  package_add_test(binary_search_test
     "${PROJECT_SOURCE_DIR}/tests/src/binary_search.cpp")
   package_add_test(projection "${PROJECT_SOURCE_DIR}/tests/src/projection.cpp")
-  package_add_test(intersection
+  package_add_test(intersection_test
     "${PROJECT_SOURCE_DIR}/tests/src/intersection.cu")
-  target_link_libraries(intersection PRIVATE intersect)
-  package_add_test(optional
+  target_link_libraries(intersection_test PRIVATE intersect)
+  package_add_test(optional_test
     "${PROJECT_SOURCE_DIR}/tests/src/optional.cpp")
+  package_add_test(work_division_test
+    "${PROJECT_SOURCE_DIR}/tests/src/work_division.cpp")
+  target_link_libraries(work_division_test PRIVATE renderer)
 
   add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND}
     DEPENDS "${TEST_LIST}")
@@ -206,8 +216,8 @@ if(BUILD_BENCHMARKS OR CMAKE_EXPORT_COMPILE_COMMANDS)
   # sometimes there are some issues with cub and warp intrinsics with sorting
   # (on clang)
   package_add_bench(sort_bench "${PROJECT_SOURCE_DIR}/benchmarks/src/sort.cu")
-  package_add_bench(render_bench "${PROJECT_SOURCE_DIR}/benchmarks/src/render.cu")
-  target_link_libraries(render_bench PRIVATE renderer scenefile_compat)
+  package_add_bench(render_bench "${PROJECT_SOURCE_DIR}/benchmarks/src/render.cpp")
+  target_link_libraries(render_bench PRIVATE renderer_from_files)
 
   add_custom_target(bench COMMAND ${CMAKE_CTEST_COMMAND}
     DEPENDS "${BENCH_LIST}")
@@ -217,6 +227,12 @@ add_executable(
   path
   "${PROJECT_SOURCE_DIR}/src/main.cpp"
   )
-target_link_libraries(path PRIVATE renderer docopt_s scenefile_compat
-  Qt5::Widgets)
+target_link_libraries(path PRIVATE renderer_from_files docopt_s Qt5::Widgets)
 target_add_standard_include(path)
+
+add_executable(
+  check_downsample
+  "${PROJECT_SOURCE_DIR}/src/check_downsample.cpp"
+  )
+target_link_libraries(check_downsample PRIVATE renderer_from_files Qt5::Widgets)
+target_add_standard_include(check_downsample)
