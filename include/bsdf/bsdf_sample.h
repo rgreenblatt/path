@@ -1,3 +1,5 @@
+#pragma once
+
 #include "integrate/dir_sample.h"
 
 namespace bsdf {
