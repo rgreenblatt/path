@@ -10,8 +10,6 @@
 
 #include <cli/ProgressBar.hpp>
 
-#include "lib/info/debug_print.h"
-
 namespace render {
 namespace detail {
 template <intersectable_scene::IntersectableScene S,
@@ -60,14 +58,6 @@ void integrate_image(bool output_as_bgra, const GeneralSettings &settings,
 
   size_t num_launches = ceil_divide(total_grid, max_launch_size);
   size_t blocks_per = total_grid / num_launches;
-
-#if 0
-  dbg(division.samples_per_thread());
-  dbg(division.x_block_size());
-  dbg(division.y_block_size());
-  dbg(division.num_sample_blocks());
-  dbg(division.sample_reduction_strategy());
-#endif
 
   ProgressBar progress_bar(num_launches, 70);
   if (show_progress) {
