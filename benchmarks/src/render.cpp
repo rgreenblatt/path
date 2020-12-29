@@ -1,6 +1,7 @@
 #include "lib/assert.h"
 #include "lib/info/timer.h"
 #include "lib/intensity_utils.h"
+#include "lib/serialize_eigen.h"
 #include "render/renderer_from_files.h"
 
 #include <Eigen/Core>
@@ -14,12 +15,6 @@
 #include <limits>
 #include <string>
 #include <unordered_set>
-
-namespace cereal {
-template <typename Archive> void serialize(Archive &ar, Eigen::Array3f &arr) {
-  ar(arr[0], arr[1], arr[2]);
-}
-} // namespace cereal
 
 int main(int argc, char *argv[]) {
   namespace fs = std::filesystem;
@@ -102,8 +97,6 @@ int main(int argc, char *argv[]) {
       {
         std::ifstream file(ground_truth_file, std::ios::binary);
         cereal::BinaryInputArchive ar(file);
-        ground_truth_intensities[i].resize(ground_truth_width *
-                                           ground_truth_width);
         ar(ground_truth_intensities[i]);
       }
       successfully_loaded = ground_truth_intensities[i].size() ==

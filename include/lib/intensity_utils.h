@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lib/span.h"
+#include "lib/tone_map.h"
 
 #include <Eigen/Core>
 
@@ -33,6 +34,7 @@ void downsample_to(Span<const Eigen::Array3f> intensities,
 }
 
 // double for improved precision
+// use tone_map for error to provide a more visually relevant metric
 double compute_mean_absolute_error(Span<const Eigen::Array3f> intensities,
                                    Span<const Eigen::Array3f> ground_truth,
                                    unsigned width) {
@@ -41,8 +43,8 @@ double compute_mean_absolute_error(Span<const Eigen::Array3f> intensities,
   for (unsigned i = 0; i < width; ++i) {
     for (unsigned j = 0; j < width; ++j) {
       unsigned idx = j + i * width;
-      total += (intensities[idx].template cast<double>() -
-                ground_truth[idx].template cast<double>())
+      total += (tone_map(intensities[idx].template cast<double>()) -
+                tone_map(ground_truth[idx].template cast<double>()))
                    .abs()
                    .sum() /
                3.;

@@ -12,6 +12,14 @@ extern void __assert_fail(const char *__assertion, const char *__file,
 // assert which is disabled by NDEBUG
 #define debug_assert(expr) assert(expr)
 
+// debug assert which allows the compile to assume the statement is always true
+// when NDEBUG is enabled
+#ifdef NDEBUG
+#define debug_assert_assume(expr) __builtin_assume(expr);
+#else
+#define debug_assert_assume(expr) debug_assert(expr)
+#endif
+
 // assert which is never disabled
 #define always_assert(expr)                                                    \
   (static_cast<bool>(expr) ? void(0)                                           \

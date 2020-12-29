@@ -236,3 +236,10 @@ add_executable(
   )
 target_link_libraries(check_downsample PRIVATE renderer_from_files Qt5::Widgets)
 target_add_standard_include(check_downsample)
+
+add_executable(
+  loaded_intensities
+  "${PROJECT_SOURCE_DIR}/src/loaded_intensities.cpp"
+  )
+target_link_libraries(loaded_intensities PRIVATE Qt5::Widgets)
+target_add_standard_include(loaded_intensities)
