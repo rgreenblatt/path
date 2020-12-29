@@ -7,18 +7,27 @@
 #include <concepts>
 #include <type_traits>
 
-template <typename T, bool is_sized = false> class Span {
-private:
-  static constexpr bool is_debug =
-#ifdef NDEBUG
-      false
-#else
-      true
-#endif
-      ;
-  static constexpr bool use_size = is_sized || is_debug;
+namespace detail {
+template <typename T, bool is_sized_in, bool is_debug> class Span;
+}
 
+template <typename> struct is_span : std::false_type {};
+
+template <typename T, bool is_sized, bool is_debug>
+struct is_span<detail::Span<T, is_sized, is_debug>> : std::true_type {};
+
+template <typename T>
+concept SpanSpecialization = is_span<std::decay_t<T>>::value;
+
+namespace detail {
+template <typename T, bool is_sized_in, bool is_debug_in> class Span {
 public:
+  constexpr static bool is_sized = is_sized_in;
+private:
+  constexpr static bool is_debug = is_debug_in;
+  static constexpr bool use_size = is_sized_in || is_debug;
+public:
+
   constexpr Span(T *ptr, std::size_t size) : ptr_(ptr) {
     if constexpr (use_size) {
       size_ = size;
@@ -27,10 +36,17 @@ public:
 
   template <typename V>
       requires GetPtr<V, T> &&
-      (!Span::use_size || GetSize<V>)constexpr Span(V &&v)
+      (GetSize<V> ||
+       (!is_sized && SpanSpecialization<V> &&
+        std::decay_t<V>::is_debug == is_debug)) constexpr Span(V &&v)
       : ptr_(GetPtrT<V, T>::get(std::forward<V>(v))) {
     if constexpr (use_size) {
-      size_ = GetSizeT<V>::get(std::forward<V>(v));
+      if constexpr (GetSize<V>) {
+        size_ = GetSizeT<V>::get(std::forward<V>(v));
+      } else {
+        size_ = v.size_;
+        static_assert(SpanSpecialization<V>);
+      }
     }
   }
 
@@ -62,7 +78,8 @@ public:
 
   constexpr T *end() const { return ptr_ + size(); }
 
-  constexpr Span<T, true> slice(std::size_t start, std::size_t end) const {
+  constexpr Span<T, true, is_debug> slice(std::size_t start,
+                                          std::size_t end) const {
     if constexpr (use_size) {
       debug_assert(end <= size_);
     }
@@ -72,35 +89,41 @@ public:
     return {ptr_ + start, end - start};
   }
 
-  constexpr Span<T, false> as_unsized() const { return *this; }
+  constexpr Span<T, false, is_debug> as_unsized() const { return *this; }
 
-  constexpr Span<const T, false> as_const() const { return *this; }
+  constexpr Span<const T, false, is_debug> as_const() const { return *this; }
 
 private:
   T *ptr_;
 
-  template <typename V> friend struct GetSizeImpl;
-
   struct NoSize {};
 
   typename std::conditional_t<use_size, std::size_t, NoSize> size_;
+
+  template <typename TOther, bool is_sized_other, bool is_debug_other>
+  friend class Span;
 };
 
-template <typename> struct is_span : std::false_type {};
+static constexpr bool is_debug =
+#ifdef NDEBUG
+    false
+#else
+    true
+#endif
+    ;
+}
 
-template <typename T, bool is_sized>
-struct is_span<Span<T, is_sized>> : std::true_type {};
+template<typename T, bool is_sized = false>
+using Span = detail::Span<T, is_sized, detail::is_debug>;
 
-template <typename V>
-concept SpanSpecialization = is_span<std::decay_t<V>>::value;
-
-template <typename SpanT>
-requires SpanSpecialization<SpanT> struct GetSizeImpl<SpanT> {
-  static constexpr std::size_t get(SpanT &&v) { return v.size_; }
+template <SpanSpecialization SpanT> 
+requires SpanT::is_sized
+struct GetSizeImpl<SpanT> {
+  static constexpr std::size_t get(SpanT &&v) { return v.size(); }
 };
 
-template <typename SpanT>
-requires SpanSpecialization<SpanT> struct GetPtrImpl<SpanT> {
+template <SpanSpecialization SpanT>
+struct GetPtrImpl<SpanT> {
   static constexpr auto get(SpanT &&v) { return v.data(); }
 };
 
