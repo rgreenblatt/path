@@ -6,7 +6,7 @@
 #include "render/detail/integrate_image.h"
 #include "render/detail/reduce_assign_output.h"
 #include "render/detail/renderer_impl.h"
-#include "render/detail/work_division_impl.h"
+#include "work_division/work_division_impl.h"
 
 #include <cli/ProgressBar.hpp>
 

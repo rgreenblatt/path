@@ -3,12 +3,11 @@
 #include "lib/assert.h"
 #include "lib/cuda/reduce.cuh"
 #include "lib/cuda/utils.h"
-#include "render/detail/work_division.h"
+#include "work_division/work_division.h"
 
 #include <algorithm>
 
-namespace render {
-namespace detail {
+namespace work_division {
 inline HOST_DEVICE WorkDivision::ThreadInfo
 WorkDivision::get_thread_info(unsigned block_idx, unsigned thread_idx) const {
   debug_assert_assume(thread_idx < block_size_);
@@ -59,4 +58,3 @@ inline DEVICE T WorkDivision::reduce_samples(const T &val, const BinOp &op,
   return sub_block_reduce(val, op, thread_idx, block_size_, sample_block_size_);
 }
 } // namespace detail
-} // namespace render

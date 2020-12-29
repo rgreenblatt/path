@@ -2,16 +2,14 @@
 
 #include "lib/cuda/utils.h"
 #include "lib/settings.h"
-#include "render/work_division_settings.h"
+#include "work_division/settings.h"
 
-// TODO move to different name space?
-namespace render {
-namespace detail {
+namespace work_division {
 class WorkDivision {
 public:
   WorkDivision() {}
 
-  WorkDivision(const WorkDivisionSettings &settings, unsigned samples_per,
+  WorkDivision(const Settings &settings, unsigned samples_per,
                unsigned x_dim, unsigned y_dim);
 
   struct ThreadInfo {
@@ -66,4 +64,3 @@ private:
   unsigned num_y_blocks_;
 };
 } // namespace detail
-} // namespace render

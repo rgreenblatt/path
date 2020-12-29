@@ -117,6 +117,13 @@ target_add_standard_include(intersect)
 target_link_libraries(intersect PRIVATE OpenMP::OpenMP_CXX)
 
 add_library(
+  work_division
+  STATIC
+  "${PROJECT_SOURCE_DIR}/src/work_division/work_division.cpp"
+)
+target_add_standard_include(work_division)
+
+add_library(
   renderer
   STATIC
   "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl_general_render_gpu.cu"
@@ -126,12 +133,12 @@ add_library(
 
   "${PROJECT_SOURCE_DIR}/src/integrate/light_sampler/random_triangle/random_triangle.cu"
   "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl.cu"
-  "${PROJECT_SOURCE_DIR}/src/render/detail/work_division.cpp"
   "${PROJECT_SOURCE_DIR}/src/render/detail/reduce_intensities_gpu.cu"
   "${PROJECT_SOURCE_DIR}/src/rng/sobel/sobel.cu"
   )
 target_add_standard_include(renderer)
-target_link_libraries(renderer PRIVATE OpenMP::OpenMP_CXX -lcurand intersect)
+target_link_libraries(renderer PRIVATE OpenMP::OpenMP_CXX -lcurand intersect
+  work_division)
 
 add_library(
   scenefile_compat
@@ -174,6 +181,8 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
 
   package_add_test(bitset_test "${PROJECT_SOURCE_DIR}/tests/src/bitset.cu")
   package_add_test(reduce_test "${PROJECT_SOURCE_DIR}/tests/src/reduce.cu")
+  target_link_libraries(reduce_test PRIVATE work_division)
+
   package_add_test(group_test "${PROJECT_SOURCE_DIR}/tests/src/group.cpp")
   package_add_test(device_vector_test
     "${PROJECT_SOURCE_DIR}/tests/src/device_vector.cu")

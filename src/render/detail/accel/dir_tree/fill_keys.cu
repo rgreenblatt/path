@@ -78,6 +78,9 @@ template <> void DirTreeGeneratorImpl<ExecutionModel::GPU>::fill_keys() {
 
     fill_keys_global<<<grid, block>>>(keys[axis], num_elements_per_thread,
                                       axis_groups_.first.get()[axis]);
+
+    // TODO: Needed???
+    CUDA_ERROR_CHK(cudaDeviceSynchronize());
   });
 
   fill_keys_timer.report("fill keys");

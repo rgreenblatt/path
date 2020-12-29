@@ -26,6 +26,9 @@ void DirTreeGeneratorImpl<execution_model>::compute_aabbs() {
   dim3 block(bounds_block_size, transform_block_size);
 
   compute_aabbs_global<<<grid, block>>>(transforms_, aabbs_, bounds_);
+
+  // TODO: Needed???
+  CUDA_ERROR_CHK(cudaDeviceSynchronize());
 }
 
 template class DirTreeGeneratorImpl<ExecutionModel::GPU>;

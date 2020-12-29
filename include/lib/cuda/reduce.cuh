@@ -2,6 +2,7 @@
 
 #include "lib/assert.h"
 #include "lib/cuda/utils.h"
+#include "lib/bit_utils.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -12,6 +13,7 @@ template <typename T, typename F>
 inline DEVICE T warp_reduce(T val, const F &f,
                             unsigned sub_block_size = warp_size) {
   debug_assert_assume(warp_size % sub_block_size == 0);
+  debug_assert_assume(power_of_2(sub_block_size));
   // equivalent to above, the compiler isn't quite smart enough to realize...
   debug_assert_assume(sub_block_size <= warp_size);
 

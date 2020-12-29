@@ -1,11 +1,10 @@
-#include "render/work_division_settings.h"
-#include "render/detail/work_division.h"
-#include "render/detail/work_division_impl.h"
+#include "work_division/settings.h"
+#include "work_division/work_division.h"
+#include "work_division/work_division_impl.h"
 
 #include <gtest/gtest.h>
 
-using render::detail::WorkDivision;
-using render::WorkDivisionSettings;
+using namespace work_division;
 
 static unsigned division_samples_per(const WorkDivision &division) {
   return division.num_sample_blocks() * division.sample_block_size() *
@@ -84,7 +83,7 @@ static void check_dims_as_expected(const WorkDivision &division, unsigned
 }
 
 TEST(WorkDivision, combination) {
-  WorkDivisionSettings settings {64, 16, 4, 16, 8};
+  Settings settings {64, 16, 4, 8};
 
   for (unsigned x_dim : {1, 3, 17, 72, 128}) {
     for (unsigned y_dim : {1, 3, 17, 72, 128}) {
@@ -98,7 +97,7 @@ TEST(WorkDivision, combination) {
 }
 
 TEST(WorkDivision, default_settings) {
-  WorkDivisionSettings settings;
+  Settings settings;
 
   WorkDivision division(settings, 2048, 8, 8);
   check_dims_as_expected(division, 2048, 8, 8);

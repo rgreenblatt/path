@@ -7,7 +7,7 @@
 #include "intersectable_scene/intersectable_scene.h"
 #include "lib/bgra.h"
 #include "lib/span.h"
-#include "render/detail/work_division.h"
+#include "work_division/work_division.h"
 #include "render/general_settings.h"
 #include "rng/rng.h"
 
@@ -19,6 +19,7 @@ namespace detail {
 using integrate::dir_sampler::DirSamplerRef;
 using integrate::light_sampler::LightSamplerRef;
 using integrate::term_prob::TermProbRef;
+using work_division::WorkDivision;
 
 // generalize initial rays/work division...
 template <intersectable_scene::IntersectableScene S,
