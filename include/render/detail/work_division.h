@@ -7,12 +7,6 @@
 // TODO move to different name space?
 namespace render {
 namespace detail {
-enum class ReductionStrategy {
-  Block,
-  Warp,
-  Thread,
-};
-
 class WorkDivision {
 public:
   WorkDivision() {}
@@ -30,13 +24,18 @@ public:
   inline HOST_DEVICE ThreadInfo get_thread_info(unsigned block_idx,
                                                 unsigned thread_idx) const;
 
-  template <typename F>
-  DEVICE void call_with_reduce(unsigned thread_idx, unsigned block_idx,
-                               F &&f) const;
+  template <typename T, typename BinOp>
+  inline DEVICE T reduce_samples(const T &val, const BinOp &op,
+                                   unsigned thread_idx) const;
 
-  HOST_DEVICE ReductionStrategy sample_reduction_strategy() const {
-    return sample_reduction_strategy_;
+  inline HOST_DEVICE bool assign_sample(unsigned thread_idx) const {
+    return thread_idx % sample_block_size_ == 0;
   }
+
+  inline HOST_DEVICE unsigned sample_block_idx(unsigned block_idx) const {
+    return block_idx % num_sample_blocks_;
+  }
+
   HOST_DEVICE unsigned block_size() const { return block_size_; }
   HOST_DEVICE unsigned base_samples_per_thread() const {
     return base_samples_per_thread_;
@@ -56,7 +55,6 @@ public:
   }
 
 private:
-  ReductionStrategy sample_reduction_strategy_;
   unsigned block_size_;
   unsigned base_samples_per_thread_;
   unsigned n_threads_per_unit_extra_;

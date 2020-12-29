@@ -11,15 +11,18 @@
 #include <random>
 
 template <typename T>
-__global__ void sum_blocks(Span<const T> in, Span<T> out) {
-  const unsigned idx = threadIdx.x;
-  const unsigned block = blockIdx.x;
-  const unsigned block_size = blockDim.x;
+__global__ void sum_sub_blocks(Span<const T> in, Span<T> out,
+                               unsigned sub_block_size) {
+  unsigned thread_idx = threadIdx.x;
+  unsigned block_idx = blockIdx.x;
+  unsigned block_size = blockDim.x;
+  unsigned overall_idx = thread_idx + block_idx * block_size;
+  unsigned sub_block_idx = overall_idx / sub_block_size;
   auto add = [](auto lhs, auto rhs) { return lhs + rhs; };
-  const T total =
-      block_reduce<T>(in[idx + block * block_size], add, 0, idx, block_size);
-  if (idx == 0) {
-    out[block] = total;
+  const T total = sub_block_reduce<T>(in[overall_idx], add, thread_idx,
+                                      block_size, sub_block_size);
+  if (thread_idx % sub_block_size == 0) {
+    out[sub_block_idx] = total;
   }
 }
 
@@ -32,40 +35,46 @@ __global__ void sum_blocks(Span<const T> in, Span<T> out) {
 
 TEST(Reduce, sum) {
   auto run_test = [](auto dist, auto check_equality) {
-    for (unsigned n_blocks : {1, 2, 4, 7, 16}) {
-      const unsigned block_size = 256;
-      const unsigned size = n_blocks * block_size;
-      always_assert(size % block_size == 0);
+    for (unsigned n_blocks : {1, 2, 3, 7, 17}) {
+      for (unsigned block_size : {32, 128, 256, 1024}) {
+        for (unsigned sub_block_size = 1; sub_block_size <= block_size;
+             sub_block_size *= 2) {
+          const unsigned size = n_blocks * block_size;
+          std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
 
-      std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
+          using T = std::decay_t<decltype(dist(gen))>;
 
-      using T = std::decay_t<decltype(dist(gen))>;
+          HostVector<T> vals(size);
 
-      HostVector<T> vals(size);
+          std::generate(vals.begin(), vals.end(), [&]() { return dist(gen); });
 
-      std::generate(vals.begin(), vals.end(), [&]() { return dist(gen); });
+          DeviceVector<T> gpu_vals;
+          copy_to_vec(vals, gpu_vals);
 
-      DeviceVector<T> gpu_vals;
-      copy_to_vec(vals, gpu_vals);
+          unsigned num_sub_blocks = size / sub_block_size;
 
-      DeviceVector<T> out_gpu_vals(n_blocks);
+          DeviceVector<T> out_gpu_vals(num_sub_blocks);
 
-      sum_blocks<T><<<n_blocks, block_size>>>(gpu_vals, out_gpu_vals);
+          sum_sub_blocks<T><<<n_blocks, block_size>>>(gpu_vals, out_gpu_vals,
+                                                      sub_block_size);
 
-      std::vector<T> expected(n_blocks, 0.f);
+          std::vector<T> expected(num_sub_blocks, 0.f);
 
-      for (unsigned block = 0; block < n_blocks; ++block) {
-        for (unsigned i = block * block_size; i < (block + 1) * block_size;
-             ++i) {
-          expected[block] += vals[i];
+          for (unsigned sub_block = 0; sub_block < num_sub_blocks;
+               ++sub_block) {
+            for (unsigned i = sub_block * sub_block_size;
+                 i < (sub_block + 1) * sub_block_size; ++i) {
+              expected[sub_block] += vals[i];
+            }
+          }
+
+          std::vector<T> actual;
+
+          copy_to_vec(out_gpu_vals, actual);
+
+          check_equality(expected, actual);
         }
       }
-
-      std::vector<T> actual;
-
-      copy_to_vec(out_gpu_vals, actual);
-
-      check_equality(expected, actual);
     }
   };
 

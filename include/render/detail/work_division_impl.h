@@ -11,7 +11,16 @@ namespace render {
 namespace detail {
 inline HOST_DEVICE WorkDivision::ThreadInfo
 WorkDivision::get_thread_info(unsigned block_idx, unsigned thread_idx) const {
-  debug_assert(thread_idx < block_size_);
+  debug_assert_assume(thread_idx < block_size_);
+
+  // allow for compiler optimizations at the call site
+  debug_assert_assume(block_size_ % warp_size == 0);
+  debug_assert_assume(block_size_ >= warp_size);
+  debug_assert_assume(block_size_ % sample_block_size_ == 0);
+  debug_assert_assume(block_size_ % x_block_size_ == 0);
+  debug_assert_assume(block_size_ % y_block_size_ == 0);
+  debug_assert_assume(block_size_ ==
+                      x_block_size_ * y_block_size_ * sample_block_size_);
 
   // handling block_idx and thread_idx separately like this ensures we don't
   // have overflow without having to use 64 bit integers (which are slow on
@@ -36,32 +45,18 @@ WorkDivision::get_thread_info(unsigned block_idx, unsigned thread_idx) const {
   unsigned n_extra_sample_before =
       std::min(n_threads_per_unit_extra_, sample_idx);
   unsigned start_sample = base_samples_before + n_extra_sample_before;
-  bool has_extra_sample = sample_idx < n_threads_per_unit_extra_; 
-  unsigned n_samples = base_samples_per_thread_ +
-                       (has_extra_sample ? 1 : 0);
+  bool has_extra_sample = sample_idx < n_threads_per_unit_extra_;
+  unsigned n_samples = base_samples_per_thread_ + (has_extra_sample ? 1 : 0);
 
   unsigned end_sample = start_sample + n_samples;
 
   return {start_sample, end_sample, x, y};
 }
 
-template <typename F>
-DEVICE void WorkDivision::call_with_reduce(unsigned thread_idx,
-                                           unsigned block_idx, F &&f) const {
-  if (sample_reduction_strategy_ == ReductionStrategy::Block) {
-    f(
-        [&](const auto &v, auto &&oper, const auto &init) {
-          return block_reduce(v, oper, init, thread_idx, block_size_);
-        },
-        thread_idx == 0, block_idx % num_sample_blocks_);
-  } else if (sample_reduction_strategy_ == ReductionStrategy::Warp) {
-    f([&](const auto &v, auto &&oper,
-          const auto & /*init*/) { return warp_reduce(v, oper); },
-      (thread_idx % warp_size) == 0, 0);
-  } else if (sample_reduction_strategy_ == ReductionStrategy::Thread) {
-    f([&](const float v, auto && /*op*/, const auto & /*init*/) { return v; },
-      true, 0);
-  }
+template <typename T, typename BinOp>
+inline DEVICE T WorkDivision::reduce_samples(const T &val, const BinOp &op,
+                                             unsigned thread_idx) const {
+  return sub_block_reduce(val, op, thread_idx, block_size_, sample_block_size_);
 }
 } // namespace detail
 } // namespace render

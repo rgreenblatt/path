@@ -1,14 +1,21 @@
 #pragma once
 
+#include "lib/assert.h"
 #include "lib/cuda/utils.h"
+
+#include <algorithm>
 #include <cstdint>
 
-#ifdef __CUDACC__ // To avoid issues with the language server
 constexpr uint32_t full_mask = 0xffffffff;
 
 template <typename T, typename F>
-inline __device__ T warp_reduce(T val, const F &f) {
-  for (unsigned offset = warp_size / 2; offset > 0; offset /= 2) {
+inline DEVICE T warp_reduce(T val, const F &f,
+                            unsigned sub_block_size = warp_size) {
+  debug_assert_assume(warp_size % sub_block_size == 0);
+  // equivalent to above, the compiler isn't quite smart enough to realize...
+  debug_assert_assume(sub_block_size <= warp_size);
+
+  for (unsigned offset = sub_block_size / 2; offset > 0; offset /= 2) {
     val = f(__shfl_down_sync(full_mask, val, offset), val);
   }
 
@@ -16,36 +23,60 @@ inline __device__ T warp_reduce(T val, const F &f) {
 }
 
 template <typename T, typename F>
-__inline__ __device__ T block_reduce(T val, const F &f, const T &identity_value,
-                                     unsigned thread_block_index,
-                                     unsigned thread_block_size) {
-  static __shared__ T shared[32]; // Shared mem for 32 partial sums
+inline DEVICE T sub_block_reduce(T val, const F &f, unsigned thread_idx,
+                                 unsigned block_size, unsigned sub_block_size) {
+  debug_assert_assume(thread_idx < block_size);
+  debug_assert_assume(block_size % sub_block_size == 0);
+  debug_assert_assume(block_size % warp_size == 0);
+  debug_assert_assume(sub_block_size <= block_size);
+  debug_assert_assume(warp_size <= block_size);
+  debug_assert_assume(block_size != 0);
+  debug_assert_assume(sub_block_size != 0);
+  debug_assert_assume(block_size <= max_num_warps_per_block * warp_size);
 
-  unsigned lane = thread_block_index % warp_size;
-  unsigned wid = thread_block_index / warp_size;
+  // Each warp performs partial reduction
+  val = warp_reduce(val, f, std::min(sub_block_size, warp_size));
 
-  val = warp_reduce(val, f); // Each warp performs partial reduction
-
-  if (lane == 0) {
-    shared[wid] = val; // Write reduced value to shared memory
+  if (sub_block_size <= warp_size) {
+    return val;
   }
 
-  __syncthreads(); // Wait for all partial reductions
+  // Shared mem for partially reduced values
+  static __shared__ T shared[max_num_warps_per_block];
+
+  unsigned lane = thread_idx % warp_size;
+  unsigned warp_idx = thread_idx / warp_size;
+
+  debug_assert_assume(block_size / warp_size <= max_num_warps_per_block);
+  debug_assert_assume(warp_idx < max_num_warps_per_block);
+
+  if (lane == 0) {
+    shared[warp_idx] = val; // Write reduced value to shared memory
+  }
+
+  syncthreads_wrapped(); // Wait for all partial reductions
+
+  unsigned n_warps_per_sub_group = sub_block_size / warp_size;
+  unsigned sub_block_thread_idx = thread_idx % sub_block_size;
+  unsigned sub_block_idx = thread_idx / sub_block_size;
 
   // read from shared memory only if that warp existed
-  val = (thread_block_index < thread_block_size / warp_size) ? shared[lane]
-                                                             : identity_value;
+  if (sub_block_thread_idx < n_warps_per_sub_group) {
+    val = shared[lane + sub_block_idx * n_warps_per_sub_group];
+  }
 
-  val = warp_reduce(val, f); // Final reduce within first warp
+  // Final reduce within first warp of each subgroup
+  // we only reduce the values of n_warps_per_sub_group
+  // so other values in greater lanes in the warp don't matter...
+  val = warp_reduce(val, f, n_warps_per_sub_group);
 
   return val;
 }
 
-__inline__ __device__ bool block_reduce_cond(bool val,
-                                             unsigned thread_block_index,
-                                             unsigned thread_block_size) {
-  return block_reduce(
-      val, [] __device__(bool first, bool second) { return first && second; },
-      true, thread_block_index, thread_block_size);
+// it's plausible the compile won't be able to optimize this function
+// to be as efficient as possible because sub_block_reduce is more general :(
+template <typename T, typename F>
+inline DEVICE T block_reduce(const T& val, const F &f, unsigned thread_idx,
+                             unsigned block_size) {
+  return sub_block_reduce(val, f, thread_idx, block_size, block_size);
 }
-#endif

@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <limits>
 
+#include "lib/info/debug_print.h"
+
 namespace render {
 namespace detail {
 WorkDivision::WorkDivision(const WorkDivisionSettings &settings,
@@ -26,7 +28,7 @@ WorkDivision::WorkDivision(const WorkDivisionSettings &settings,
   unsigned n_threads_per_location;
 
   if (samples_per >= warp_size * settings.max_samples_per_thread) {
-    sample_reduction_strategy_ = ReductionStrategy::Block;
+    // reduce over blocks
     unsigned target_samples_per_block =
         block_size_ * settings.target_samples_per_thread;
     num_sample_blocks_ = std::max(
@@ -35,11 +37,11 @@ WorkDivision::WorkDivision(const WorkDivisionSettings &settings,
         1u);
     n_threads_per_location = num_sample_blocks_ * block_size_;
   } else if (samples_per >= settings.max_samples_per_thread) {
-    sample_reduction_strategy_ = ReductionStrategy::Warp;
+    // reduce over warp
     x_block_size_ = warps_per_block;
     n_threads_per_location = warp_size;
   } else {
-    sample_reduction_strategy_ = ReductionStrategy::Thread;
+    // reduce over single thread
     n_threads_per_location = 1;
     x_block_size_ = settings.target_x_block_size;
     y_block_size_ = settings.target_y_block_size;
@@ -52,6 +54,16 @@ WorkDivision::WorkDivision(const WorkDivisionSettings &settings,
 
   num_x_blocks_ = ceil_divide(x_dim, x_block_size_);
   num_y_blocks_ = ceil_divide(y_dim, y_block_size_);
+
+  // dbg(samples_per);
+  // dbg(x_dim);
+  // dbg(y_dim);
+  // dbg(base_samples_per_thread_);
+  // dbg(n_threads_per_unit_extra_);
+  // dbg(sample_block_size_);
+  // dbg(x_block_size_);
+  // dbg(y_block_size_);
+  // dbg(num_sample_blocks_);
 
   always_assert(static_cast<uint64_t>(num_sample_blocks_) * num_x_blocks_ *
                     num_y_blocks_ <
