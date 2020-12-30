@@ -14,7 +14,8 @@ struct Constant {
 
     HOST_DEVICE Ref(const Settings &settings) : prob_(settings.prob) {}
 
-    HOST_DEVICE float operator()(unsigned, const Eigen::Array3f &) const {
+    ATTR_PURE HOST_DEVICE float operator()(unsigned,
+                                           const Eigen::Array3f &) const {
       return prob_;
     }
 

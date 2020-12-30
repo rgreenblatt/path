@@ -1,6 +1,7 @@
 #pragma once
 
 #include "data_structure/get_size.h"
+#include "lib/attribute.h"
 #include "lib/bit_utils.h"
 #include "lib/span.h"
 #include "meta/specialization_of.h"
@@ -22,36 +23,44 @@ public:
 
   static constexpr unsigned bits_per_block = ::bits_per<Block>;
 
-  HOST_DEVICE bool operator[](unsigned pos) const { return test(pos); }
+  ATTR_PURE_NDEBUG HOST_DEVICE bool operator[](unsigned pos) const {
+    return test(pos);
+  }
 
-  HOST_DEVICE bool test(unsigned block_idx, unsigned bit_idx) const {
+  ATTR_PURE_NDEBUG HOST_DEVICE bool test(unsigned block_idx,
+                                         unsigned bit_idx) const {
     return (data_[block_idx] & bit_mask<Block>(bit_idx)) != 0;
   }
 
-  HOST_DEVICE unsigned size() const { return data_.size() * bits_per_block; }
+  ATTR_PURE_NDEBUG HOST_DEVICE unsigned size() const {
+    return data_.size() * bits_per_block;
+  }
 
-  HOST_DEVICE bool test(unsigned pos) const {
+  ATTR_PURE_NDEBUG HOST_DEVICE bool test(unsigned pos) const {
     return test(block_index(pos), bit_index(pos));
   }
 
-  HOST_DEVICE unsigned count(unsigned block_idx) const {
+  ATTR_PURE_NDEBUG HOST_DEVICE unsigned count(unsigned block_idx) const {
     return popcount(data_[block_idx]);
   }
 
-  HOST_DEVICE unsigned masked_count(unsigned block_idx, Block mask) const {
+  ATTR_PURE_NDEBUG HOST_DEVICE unsigned masked_count(unsigned block_idx,
+                                                     Block mask) const {
     return popcount(data_[block_idx] & mask);
   }
 
-  HOST_DEVICE unsigned num_bits_set_inclusive_up_to(unsigned block_idx,
-                                                    unsigned bit_idx) {
+  ATTR_PURE_NDEBUG HOST_DEVICE unsigned
+  num_bits_set_inclusive_up_to(unsigned block_idx, unsigned bit_idx) const {
     return masked_count(block_idx, up_to_mask<Block>(bit_idx));
   }
 
-  HOST_DEVICE unsigned num_bits_set_inclusive_up_to(unsigned pos) {
+  ATTR_PURE_NDEBUG HOST_DEVICE unsigned
+  num_bits_set_inclusive_up_to(unsigned pos) const {
     return num_bits_set_inclusive_up_to(block_index(pos), bit_index(pos));
   }
 
-  HOST_DEVICE Block find_mask_same(unsigned block_idx, unsigned bit_idx) const {
+  ATTR_PURE_NDEBUG HOST_DEVICE Block find_mask_same(unsigned block_idx,
+                                                    unsigned bit_idx) const {
     Block value = data_[block_idx];
 
     // make most significant set bit the first difference
@@ -79,19 +88,20 @@ public:
     return up_to & eliminate_start;
   }
 
-  HOST_DEVICE Block find_mask_same(unsigned pos) const {
+  ATTR_PURE_NDEBUG HOST_DEVICE Block find_mask_same(unsigned pos) const {
     return find_mask_same(block_index(pos), bit_index(pos));
   }
 
-  HOST_DEVICE Block find_mask_block_end(unsigned block_idx) const {
+  ATTR_PURE_NDEBUG HOST_DEVICE Block
+  find_mask_block_end(unsigned block_idx) const {
     return find_mask_same(block_idx, bits_per_block - 1);
   }
 
-  HOST_DEVICE static unsigned block_index(unsigned pos) {
+  ATTR_PURE_NDEBUG HOST_DEVICE static unsigned block_index(unsigned pos) {
     return pos / bits_per_block;
   }
 
-  HOST_DEVICE static unsigned bit_index(unsigned pos) {
+  ATTR_PURE_NDEBUG HOST_DEVICE static unsigned bit_index(unsigned pos) {
     return pos % bits_per_block;
   }
 
@@ -100,5 +110,5 @@ private:
 };
 
 template <SpecializationOf<BitsetRef> Ref> struct GetSizeImpl<Ref> {
-  static constexpr unsigned get(Ref &&v) { return v.size(); }
+  ATTR_PURE_NDEBUG static constexpr unsigned get(Ref &&v) { return v.size(); }
 };

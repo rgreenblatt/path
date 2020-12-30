@@ -7,11 +7,10 @@
 #include "integrate/term_prob/enum_term_prob/enum_term_prob.h"
 #include "intersect/accel/enum_accel/enum_accel.h"
 #include "lib/bgra.h"
-#include "meta/one_per_instance.h"
+#include "lib/one_per_instance.h"
 #include "render/renderer.h"
 #include "render/settings.h"
 #include "rng/enum_rng/enum_rng.h"
-// TODO: generalize...
 #include "intersectable_scene/flat_triangle/flat_triangle.h"
 #include "scene/scene.h"
 

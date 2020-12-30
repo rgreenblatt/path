@@ -1,15 +1,16 @@
 #pragma once
 
+#include "lib/attribute.h"
 #include "lib/cuda/utils.h"
 
 #include <Eigen/Core>
 
 #include <limits>
 
-HOST_DEVICE inline Eigen::Vector3f max_eigen_vec() {
+ATTR_PURE_NDEBUG HOST_DEVICE inline Eigen::Vector3f max_eigen_vec() {
   return Eigen::Vector3f::Constant(std::numeric_limits<float>::max());
 }
 
-HOST_DEVICE inline Eigen::Vector3f min_eigen_vec() {
+ATTR_PURE_NDEBUG HOST_DEVICE inline Eigen::Vector3f min_eigen_vec() {
   return Eigen::Vector3f::Constant(std::numeric_limits<float>::lowest());
 }

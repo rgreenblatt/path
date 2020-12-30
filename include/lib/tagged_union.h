@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lib/assert.h"
+#include "lib/attribute.h"
 #include "meta/all_values.h"
 #include "meta/decays_to.h"
 #include "meta/get_idx.h"
@@ -132,7 +133,7 @@ public:
     return TaggedUnion(Tag<type>{}, std::forward<Args>(args)...);
   }
 
-  constexpr E type() const { return values[idx_]; }
+  ATTR_PURE_NDEBUG constexpr E type() const { return values[idx_]; }
 
   template <typename F> constexpr decltype(auto) visit(F &&f) const {
     return visit_n(std::forward<F>(f), *this);

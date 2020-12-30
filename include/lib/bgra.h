@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lib/assert.h"
+#include "lib/attribute.h"
 #include "lib/cuda/utils.h"
 #include "lib/tone_map.h"
 
@@ -8,7 +9,8 @@
 
 using BGRA = Eigen::Array4<uint8_t>;
 
-HOST_DEVICE inline BGRA intensity_to_bgr(const Eigen::Array3f &intensity) {
+ATTR_PURE_NDEBUG HOST_DEVICE inline BGRA
+intensity_to_bgr(const Eigen::Array3f &intensity) {
   auto tone_mapped_intensity = tone_map(intensity);
 
   debug_assert(tone_mapped_intensity.x() >= 0.0f);

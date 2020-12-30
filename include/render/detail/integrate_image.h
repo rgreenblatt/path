@@ -7,9 +7,9 @@
 #include "intersectable_scene/intersectable_scene.h"
 #include "lib/bgra.h"
 #include "lib/span.h"
-#include "work_division/work_division.h"
 #include "render/general_settings.h"
 #include "rng/rng.h"
+#include "work_division/work_division.h"
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>

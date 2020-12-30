@@ -12,8 +12,7 @@
 
 namespace printf_dbg {
 namespace detail {
-template<unsigned n, typename T>
-constexpr auto rep(T v) {
+template <unsigned n, typename T> constexpr auto rep(T v) {
   if constexpr (n == 0) {
     return BOOST_HANA_STRING("");
   } else {
@@ -21,10 +20,8 @@ constexpr auto rep(T v) {
   }
 }
 
-
 // not ideal imo, some clean up is possible for sure...
-template <typename T>
-constexpr inline auto debug_value(const T &val) {
+template <typename T> constexpr inline auto debug_value(const T &val) {
   auto handle_vals = [&](auto str, const auto &...vals) {
     return std::make_tuple(str, std::make_tuple(vals...));
   };
@@ -104,7 +101,7 @@ template <typename First, typename... Rest>
 HOST_DEVICE inline decltype(auto)
 debug_print(std::string_view file_name, int line_number, std::string_view func,
             std::string_view var_name, First &&ret_val, Rest &&...rest) {
-  auto internal = [](const auto&... vals) {
+  auto internal = [](const auto &...vals) {
     return combine(debug_value(vals)...);
   };
 
@@ -112,7 +109,6 @@ debug_print(std::string_view file_name, int line_number, std::string_view func,
 
   auto overall_formating =
       BOOST_HANA_STRING("[%s%s:%d %s] %s =\n") + formatting;
-
 
   const long max_file_name_len = 20;
   const long to_remove =
@@ -134,5 +130,5 @@ debug_print(std::string_view file_name, int line_number, std::string_view func,
 } // namespace printf_dbg
 
 #define printf_dbg(...)                                                        \
-  printf_dbg::detail::debug_print(__FILE__, __LINE__, __func__, #__VA_ARGS__,   \
+  printf_dbg::detail::debug_print(__FILE__, __LINE__, __func__, #__VA_ARGS__,  \
                                   __VA_ARGS__)

@@ -1,7 +1,7 @@
 #include "render/detail/assign_output.h"
 #include "render/detail/general_render_impl.h"
-#include "render/detail/impl/integrate_pixel.h"
 #include "render/detail/integrate_image.h"
+#include "render/detail/integrate_pixel.h"
 
 #include <cli/ProgressBar.hpp>
 

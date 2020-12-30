@@ -1,6 +1,7 @@
 #pragma once
 
 #include "intersect/ray.h"
+#include "lib/attribute.h"
 #include "lib/cuda/utils.h"
 #include "lib/optional.h"
 
@@ -13,7 +14,8 @@ template <std::copyable InfoType> struct Intersection {
   bool is_back_intersection;
   InfoType info;
 
-  HOST_DEVICE Eigen::Vector3f intersection_point(const Ray &ray) const {
+  ATTR_PURE_NDEBUG HOST_DEVICE Eigen::Vector3f
+  intersection_point(const Ray &ray) const {
     return ray.origin + *ray.direction * intersection_dist;
   }
 
@@ -24,8 +26,9 @@ template <std::copyable InfoType> struct Intersection {
 };
 
 template <typename InfoType>
-HOST_DEVICE inline auto operator<=>(const Intersection<InfoType> &lhs,
-                                    const Intersection<InfoType> &rhs) {
+ATTR_PURE HOST_DEVICE inline auto
+operator<=>(const Intersection<InfoType> &lhs,
+            const Intersection<InfoType> &rhs) {
   return lhs.intersection_dist <=> rhs.intersection_dist;
 }
 

@@ -17,7 +17,7 @@ __global__ void reduce_intensities_global(
   const unsigned block_idx = blockIdx.x;
   const unsigned thread_idx = threadIdx.x;
 
-  debug_assert_assume(blockDim.x == division.block_size());
+  debug_assert(blockDim.x == division.block_size());
 
   auto [start_sample, end_sample, x, y] =
       division.get_thread_info(block_idx, thread_idx);
@@ -56,8 +56,7 @@ DeviceVector<Eigen::Array3f> *reduce_intensities_gpu(
     reduce_intensities_global<<<division.total_num_blocks(),
                                 division.block_size()>>>(
         output_as_bgra && division.num_sample_blocks() == 1, reduction_factor,
-        samples_per, x_dim, division, *intensities_in, *intensities_out,
-        bgras);
+        samples_per, x_dim, division, *intensities_in, *intensities_out, bgras);
 
     CUDA_ERROR_CHK(cudaDeviceSynchronize());
 

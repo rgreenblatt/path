@@ -4,6 +4,7 @@
 #include "integrate/light_sampler/enum_light_sampler/light_sampler_type.h"
 #include "integrate/term_prob/enum_term_prob/term_prob_type.h"
 #include "intersect/accel/enum_accel/accel_type.h"
+#include "lib/attribute.h"
 #include "rng/enum_rng/rng_type.h"
 
 #include <compare>
@@ -27,6 +28,7 @@ struct CompileTimeSettings {
   TermProbType term_prob_type;
   RngType rng_type;
 
-  constexpr auto operator<=>(const CompileTimeSettings &other) const = default;
+  ATTR_PURE constexpr auto
+  operator<=>(const CompileTimeSettings &other) const = default;
 };
 } // namespace render

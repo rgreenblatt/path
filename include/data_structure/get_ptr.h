@@ -1,18 +1,21 @@
 #pragma once
 
 #include "data_structure/detail/vector_like.h"
+#include "lib/attribute.h"
 
 #include <concepts>
 
 template <typename T> struct GetPtrImpl;
 
 template <detail::ArrayOrVector T> struct GetPtrImpl<T> {
-  static auto get(T &&v) { return v.data(); }
+  ATTR_PURE_NDEBUG static constexpr auto get(T &&v) { return v.data(); }
 };
 
 #ifdef __CUDACC__
 template <detail::IsDeviceVector T> struct GetPtrImpl<T> {
-  static auto get(T &&t) { return thrust::raw_pointer_cast(t.data()); }
+  ATTR_PURE_NDEBUG static auto get(T &&t) {
+    return thrust::raw_pointer_cast(t.data());
+  }
 };
 #endif
 

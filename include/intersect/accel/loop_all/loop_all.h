@@ -4,6 +4,7 @@
 #include "intersect/accel/accel.h"
 #include "intersect/accel/add_idx.h"
 #include "intersect/accel/loop_all/settings.h"
+#include "lib/attribute.h"
 #include "meta/predicate_for_all_values.h"
 
 namespace intersect {
@@ -14,7 +15,7 @@ struct LoopAll {
     AABB aabb;
     unsigned size;
 
-    constexpr const AABB &bounds() const { return aabb; }
+    ATTR_PURE constexpr const AABB &bounds() const { return aabb; }
 
     template <IntersectableAtIdx F>
     HOST_DEVICE inline AccelRet<F>

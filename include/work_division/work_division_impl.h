@@ -8,7 +8,7 @@
 #include <algorithm>
 
 namespace work_division {
-inline HOST_DEVICE WorkDivision::ThreadInfo
+ATTR_PURE_NDEBUG inline HOST_DEVICE WorkDivision::ThreadInfo
 WorkDivision::get_thread_info(unsigned block_idx, unsigned thread_idx) const {
   debug_assert_assume(thread_idx < block_size_);
 
@@ -57,4 +57,4 @@ inline DEVICE T WorkDivision::reduce_samples(const T &val, const BinOp &op,
                                              unsigned thread_idx) const {
   return sub_block_reduce(val, op, thread_idx, block_size_, sample_block_size_);
 }
-} // namespace detail
+} // namespace work_division

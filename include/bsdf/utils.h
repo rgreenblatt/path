@@ -1,17 +1,18 @@
 #pragma once
 
+#include "lib/attribute.h"
 #include "lib/cuda/utils.h"
 #include "lib/unit_vector.h"
 
 #include <Eigen/Geometry>
 
 namespace bsdf {
-HOST_DEVICE inline UnitVector reflect_over_normal(const UnitVector &vec,
-                                                  const UnitVector &normal) {
+ATTR_PURE_NDEBUG HOST_DEVICE inline UnitVector
+reflect_over_normal(const UnitVector &vec, const UnitVector &normal) {
   return UnitVector::new_normalize(*vec + 2.0f * -vec->dot(*normal) * *normal);
 };
 
-HOST_DEVICE inline UnitVector
+ATTR_PURE_NDEBUG HOST_DEVICE inline UnitVector
 refract_by_normal(float ior, const UnitVector &vec, const UnitVector &normal) {
   float cos_to_normal = -vec->dot(*normal);
 

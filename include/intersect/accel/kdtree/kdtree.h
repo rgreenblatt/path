@@ -5,6 +5,7 @@
 #include "intersect/accel/accel.h"
 #include "intersect/accel/kdtree/node.h"
 #include "intersect/accel/kdtree/settings.h"
+#include "lib/attribute.h"
 
 #include <memory>
 
@@ -13,27 +14,17 @@ namespace accel {
 namespace kdtree {
 namespace detail {
 // In this case, the Ref type doesn't depend on the ExecutionModel
-class Ref {
-public:
-  // TODO: why is this constructor needed...
-  HOST_DEVICE Ref() {}
+struct Ref {
+  SpanSized<const KDTreeNode<AABB>> nodes;
+  Span<const unsigned> local_idx_to_global_idx;
+  AABB aabb;
 
-  Ref(SpanSized<const KDTreeNode<AABB>> nodes,
-      Span<const unsigned> local_idx_to_global_idx, const AABB &aabb)
-      : nodes_(nodes), local_idx_to_global_idx_(local_idx_to_global_idx),
-        aabb_(aabb) {}
-
-  constexpr const AABB &bounds() const { return aabb_; }
+  ATTR_PURE constexpr const AABB &bounds() const { return aabb; }
 
   template <IntersectableAtIdx F>
   HOST_DEVICE inline AccelRet<F>
   intersect_objects(const intersect::Ray &ray,
                     const F &intersectable_at_idx) const;
-
-private:
-  SpanSized<const KDTreeNode<AABB>> nodes_;
-  Span<const unsigned> local_idx_to_global_idx_;
-  AABB aabb_;
 };
 } // namespace detail
 

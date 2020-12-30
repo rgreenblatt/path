@@ -1,6 +1,7 @@
 #pragma once
 
 #include "intersect/accel/aabb.h"
+#include "lib/attribute.h"
 #include "lib/cuda/utils.h"
 
 #include <Eigen/Geometry>
@@ -18,14 +19,6 @@ struct KDTreeSplit {
   unsigned left_index;
   unsigned right_index;
   float division_point;
-
-  HOST_DEVICE KDTreeSplit(unsigned left_index, unsigned right_index,
-                          float division_point)
-      : left_index(left_index), right_index(right_index),
-        division_point(division_point) {}
-
-  HOST_DEVICE
-  KDTreeSplit() {}
 };
 
 template <typename Contents> struct KDTreeNode {
@@ -51,7 +44,7 @@ template <typename Contents> struct KDTreeNode {
     }
   }
 
-  HOST_DEVICE bool get_is_split() const { return is_split_; }
+  ATTR_PURE HOST_DEVICE bool get_is_split() const { return is_split_; }
 
   template <typename F> HOST_DEVICE auto transform(const F &f) const {
     auto get_out = [&](const auto &v) {

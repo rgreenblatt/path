@@ -6,6 +6,7 @@
 #include "bsdf/glossy.h"
 #include "bsdf/mirror.h"
 #include "lib/assert.h"
+#include "lib/attribute.h"
 #include "lib/cuda/utils.h"
 #include "lib/tagged_union.h"
 
@@ -27,13 +28,14 @@ struct UnionBSDF {
   static constexpr bool discrete = true;
   static constexpr bool continuous = true;
 
-  HOST_DEVICE bool is_brdf() const {
+  ATTR_PURE_NDEBUG HOST_DEVICE bool is_brdf() const {
     return bsdf.visit([](const auto &v) { return v.is_brdf(); });
   }
 
-  HOST_DEVICE Eigen::Array3f continuous_eval(const UnitVector &incoming_dir,
-                                             const UnitVector &outgoing_dir,
-                                             const UnitVector &normal) const {
+  ATTR_PURE_NDEBUG HOST_DEVICE Eigen::Array3f
+  continuous_eval(const UnitVector &incoming_dir,
+                  const UnitVector &outgoing_dir,
+                  const UnitVector &normal) const {
     return bsdf.visit([&](const auto &v) -> Eigen::Array3f {
       if constexpr (std::decay_t<decltype(v)>::continuous) {
         return v.continuous_eval(incoming_dir, outgoing_dir, normal);
@@ -43,8 +45,9 @@ struct UnionBSDF {
     });
   }
 
-  HOST_DEVICE float prob_continuous(const UnitVector &incoming_dir,
-                                    const UnitVector &outgoing_dir) const {
+  ATTR_PURE_NDEBUG HOST_DEVICE float
+  prob_continuous(const UnitVector &incoming_dir,
+                  const UnitVector &outgoing_dir) const {
     return bsdf.visit([&](const auto &v) -> float {
       using T = std::decay_t<decltype(v)>;
       if constexpr (T::continuous && !T::discrete) {

@@ -1,11 +1,11 @@
-#include "lib/serialize_eigen.h"
 #include "lib/bgra.h"
+#include "lib/serialize_eigen.h"
 #include "lib/span.h"
 
 #include <Eigen/Core>
+#include <QImage>
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/vector.hpp>
-#include <QImage>
 
 #include <fstream>
 

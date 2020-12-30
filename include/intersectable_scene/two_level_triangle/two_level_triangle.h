@@ -1,3 +1,4 @@
+#pragma once
 
 // TODO: REMEMBER to transform normal with .linear().inverse().transpose()
 // see https://eigen.tuxfamily.org/dox/group__TutorialGeometry.html#title2

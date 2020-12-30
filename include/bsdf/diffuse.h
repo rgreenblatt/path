@@ -2,6 +2,7 @@
 
 #include "bsdf/bsdf.h"
 #include "bsdf/bsdf_sample.h"
+#include "lib/attribute.h"
 #include "lib/cuda/utils.h"
 #include "lib/projection.h"
 #include "rng/rng.h"
@@ -16,11 +17,11 @@ struct Diffuse {
   static constexpr bool discrete = false;
   static constexpr bool continuous = true;
 
-  constexpr bool is_brdf() const { return true; }
+  ATTR_PURE constexpr bool is_brdf() const { return true; }
 
-  HOST_DEVICE Eigen::Array3f continuous_eval(const UnitVector &,
-                                             const UnitVector &,
-                                             const UnitVector &) const {
+  ATTR_PURE_NDEBUG HOST_DEVICE Eigen::Array3f
+  continuous_eval(const UnitVector &, const UnitVector &,
+                  const UnitVector &) const {
     return diffuse_ * normalizing_factor;
   }
 

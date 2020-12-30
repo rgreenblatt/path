@@ -27,21 +27,24 @@ public:
 
   constexpr OnePerInstance(const Items &items) : items_(items){};
 
-  template <T value> constexpr const auto &get() const {
+  template <T value> ATTR_PURE_NDEBUG constexpr const auto &get() const {
     return std::get<get_idx(value)>(items_);
   }
 
-  template <T value> constexpr auto &get() {
+  template <T value> ATTR_PURE_NDEBUG constexpr auto &get() {
     return std::get<get_idx(value)>(items_);
   }
 
   template <T value> using Tag = Tag<T, value>;
 
-  template <T value> constexpr const auto &get(Tag<value>) const {
+  template <T value>
+  ATTR_PURE_NDEBUG constexpr const auto &get(Tag<value>) const {
     return get<value>();
   }
 
-  template <T value> constexpr auto &get(Tag<value>) { return get<value>(); }
+  template <T value> ATTR_PURE_NDEBUG constexpr auto &get(Tag<value>) {
+    return get<value>();
+  }
 
   template <typename F> constexpr auto visit(const F &f, const T &value) {
     return sequential_look_up<size>(get_idx(value), [&](auto idx) {

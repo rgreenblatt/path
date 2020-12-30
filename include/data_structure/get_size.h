@@ -1,13 +1,14 @@
 #pragma once
 
 #include "data_structure/detail/vector_like.h"
+#include "lib/attribute.h"
 
 #include <concepts>
 
 template <typename T> struct GetSizeImpl;
 
 template <detail::VectorLike T> struct GetSizeImpl<T> {
-  static auto get(T &&v) { return v.size(); }
+  ATTR_PURE_NDEBUG constexpr static auto get(T &&v) { return v.size(); }
 };
 
 template <typename T> concept GetSize = requires(T &&t) {

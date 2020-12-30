@@ -3,6 +3,7 @@
 #include "data_structure/get_ptr.h"
 #include "data_structure/get_size.h"
 #include "lib/assert.h"
+#include "lib/attribute.h"
 
 #include <concepts>
 #include <type_traits>
@@ -23,11 +24,12 @@ namespace detail {
 template <typename T, bool is_sized_in, bool is_debug_in> class Span {
 public:
   constexpr static bool is_sized = is_sized_in;
+
 private:
   constexpr static bool is_debug = is_debug_in;
   static constexpr bool use_size = is_sized_in || is_debug;
-public:
 
+public:
   constexpr Span(T *ptr, std::size_t size) : ptr_(ptr) {
     if constexpr (use_size) {
       size_ = size;
@@ -52,34 +54,26 @@ public:
 
   constexpr Span() = default;
 
-  constexpr bool empty() const { return size() == 0; }
+  ATTR_PURE constexpr bool empty() const { return size() == 0; }
 
-  constexpr std::size_t size() const {
+  ATTR_PURE constexpr std::size_t size() const {
     static_assert(is_sized, "size method can't be used if span isn't sized");
     return size_;
   }
 
-  constexpr bool checkIndex(const std::size_t index) const {
-    if constexpr (is_debug) {
-      return index < size_;
-    } else {
-      return true;
-    }
-  }
-
-  constexpr T &operator[](const std::size_t index) const {
-    debug_assert(checkIndex(index));
+  ATTR_PURE_NDEBUG constexpr T &operator[](const std::size_t index) const {
+    debug_assert(check_index(index));
     return ptr_[index];
   }
 
-  constexpr T *data() const { return ptr_; }
+  ATTR_PURE constexpr T *data() const { return ptr_; }
 
-  constexpr T *begin() const { return ptr_; }
+  ATTR_PURE constexpr T *begin() const { return ptr_; }
 
-  constexpr T *end() const { return ptr_ + size(); }
+  ATTR_PURE constexpr T *end() const { return ptr_ + size(); }
 
-  constexpr Span<T, true, is_debug> slice(std::size_t start,
-                                          std::size_t end) const {
+  ATTR_PURE_NDEBUG constexpr Span<T, true, is_debug>
+  slice(std::size_t start, std::size_t end) const {
     if constexpr (use_size) {
       debug_assert(end <= size_);
     }
@@ -89,11 +83,23 @@ public:
     return {ptr_ + start, end - start};
   }
 
-  constexpr Span<T, false, is_debug> as_unsized() const { return *this; }
+  ATTR_PURE_NDEBUG constexpr Span<T, false, is_debug> as_unsized() const {
+    return *this;
+  }
 
-  constexpr Span<const T, false, is_debug> as_const() const { return *this; }
+  ATTR_PURE_NDEBUG constexpr Span<const T, false, is_debug> as_const() const {
+    return *this;
+  }
 
 private:
+  constexpr bool check_index(const std::size_t index) const {
+    if constexpr (is_debug) {
+      return index < size_;
+    } else {
+      return true;
+    }
+  }
+
   T *ptr_;
 
   struct NoSize {};
@@ -111,20 +117,18 @@ static constexpr bool is_debug =
     true
 #endif
     ;
-}
+} // namespace detail
 
-template<typename T, bool is_sized = false>
+template <typename T, bool is_sized = false>
 using Span = detail::Span<T, is_sized, detail::is_debug>;
 
-template <SpanSpecialization SpanT> 
-requires SpanT::is_sized
-struct GetSizeImpl<SpanT> {
-  static constexpr std::size_t get(SpanT &&v) { return v.size(); }
+template <SpanSpecialization SpanT>
+requires SpanT::is_sized struct GetSizeImpl<SpanT> {
+  ATTR_PURE static constexpr std::size_t get(SpanT &&v) { return v.size(); }
 };
 
-template <SpanSpecialization SpanT>
-struct GetPtrImpl<SpanT> {
-  static constexpr auto get(SpanT &&v) { return v.data(); }
+template <SpanSpecialization SpanT> struct GetPtrImpl<SpanT> {
+  ATTR_PURE static constexpr auto get(SpanT &&v) { return v.data(); }
 };
 
 template <typename T> using SpanSized = Span<T, true>;

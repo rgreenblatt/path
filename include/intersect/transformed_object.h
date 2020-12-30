@@ -2,6 +2,7 @@
 
 #include "intersect/object.h"
 #include "intersect/ray.h"
+#include "lib/attribute.h"
 #include "lib/span.h"
 
 #include <Eigen/Geometry>
@@ -15,12 +16,12 @@ private:
 
     using InfoType = typename O::InfoType;
 
-    HOST_DEVICE inline IntersectionOp<InfoType>
+    ATTR_PURE_NDEBUG HOST_DEVICE inline IntersectionOp<InfoType>
     intersect(const Ray &ray) const {
       return object.intersect(ray.transform(ref.world_to_object()));
     }
 
-    HOST_DEVICE inline const accel::AABB &bounds() const {
+    ATTR_PURE_NDEBUG HOST_DEVICE inline const accel::AABB &bounds() const {
       return ref.bounds();
     }
   };
@@ -38,18 +39,22 @@ public:
         world_to_object_(object_to_world.inverse()),
         aabb_(object.bounds().transform(object_to_world)) {}
 
-  HOST_DEVICE inline const Eigen::Affine3f &object_to_world() const {
+  ATTR_PURE_NDEBUG HOST_DEVICE inline const Eigen::Affine3f &
+  object_to_world() const {
     return object_to_world_;
   }
 
-  HOST_DEVICE inline const Eigen::Affine3f &world_to_object() const {
+  ATTR_PURE_NDEBUG HOST_DEVICE inline const Eigen::Affine3f &
+  world_to_object() const {
     return world_to_object_;
   }
 
-  HOST_DEVICE inline const accel::AABB &bounds() const { return aabb_; }
+  ATTR_PURE_NDEBUG HOST_DEVICE inline const accel::AABB &bounds() const {
+    return aabb_;
+  }
 
   template <typename O>
-  HOST_DEVICE inline IntersectableRef<O>
+  ATTR_PURE_NDEBUG HOST_DEVICE inline IntersectableRef<O>
   get_intersectable(const O &object) const {
     return {object, *this};
   }

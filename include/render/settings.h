@@ -6,7 +6,7 @@
 #include "intersect/accel/enum_accel/settings.h"
 #include "lib/settings.h"
 #include "meta/all_values.h"
-#include "meta/one_per_instance.h"
+#include "lib/one_per_instance.h"
 #include "render/compile_time_settings.h"
 #include "render/general_settings.h"
 #include "rng/enum_rng/settings.h"

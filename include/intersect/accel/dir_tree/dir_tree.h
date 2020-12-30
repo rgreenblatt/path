@@ -3,6 +3,7 @@
 #include "intersect/accel/accel.h"
 #include "intersect/accel/dir_tree/settings.h"
 #include "intersect/accel/s_a_heuristic_settings.h"
+#include "lib/attribute.h"
 #include "meta/predicate_for_all_values.h"
 
 namespace intersect {
@@ -11,23 +12,16 @@ namespace dir_tree {
 namespace detail {
 // In this case, the Ref type doesn't depend on the ExecutionModel (at least
 // not yet...)
-class Ref {
-public:
-  // TODO: why is this constructor needed...
-  HOST_DEVICE Ref() {}
+struct Ref {
+  AABB aabb;
 
-  Ref(const AABB &aabb) : aabb_(aabb) {}
-
-  constexpr const AABB &bounds() const { return aabb_; }
+  ATTR_PURE constexpr const AABB &bounds() const { return aabb; }
 
   template <IntersectableAtIdx F>
-  HOST_DEVICE inline AccelRet<F> intersect_objects(const intersect::Ray &,
-                                                   const F &) const {
+  ATTR_PURE_NDEBUG HOST_DEVICE inline AccelRet<F>
+  intersect_objects(const intersect::Ray &, const F &) const {
     unreachable_unchecked();
   }
-
-private:
-  AABB aabb_;
 };
 } // namespace detail
 

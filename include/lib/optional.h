@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lib/assert.h"
+#include "lib/attribute.h"
 #include "meta/mock.h"
 #include "meta/specialization_of.h"
 
@@ -92,12 +93,12 @@ public:
     construct_in_place(*this, std::forward<T>(value));
   }
 
-  constexpr const T &operator*() const {
+  ATTR_PURE_NDEBUG constexpr const T &operator*() const {
     debug_assert(has_value());
     return *reinterpret_cast<const T *>(bytes_.data());
   }
 
-  constexpr T &operator*() {
+  ATTR_PURE_NDEBUG constexpr T &operator*() {
     debug_assert(has_value());
     return *reinterpret_cast<T *>(bytes_.data());
   }
@@ -106,7 +107,7 @@ public:
 
   constexpr T *operator->() { return &(**this); }
 
-  constexpr bool has_value() const { return has_value_; }
+  ATTR_PURE constexpr bool has_value() const { return has_value_; }
 
   template <typename F>
   requires std::convertible_to<decltype(std::declval<F>()()),
@@ -120,7 +121,7 @@ public:
   }
 
   // or is keyword...
-  constexpr Optional op_or(const Optional &o) const {
+  ATTR_PURE_NDEBUG constexpr Optional op_or(const Optional &o) const {
     return or_else([&]() { return o; });
   }
 
@@ -134,7 +135,7 @@ public:
     }
   }
 
-  constexpr T unwrap_or(const T &o) const {
+  ATTR_PURE_NDEBUG constexpr T unwrap_or(const T &o) const {
     return unwrap_or_else([&]() { return o; });
   }
 
@@ -197,14 +198,15 @@ constexpr auto optional_fold(FFold &&f_fold, FBase &&f_base,
 }
 
 template <typename... T>
-constexpr auto optional_min(const Optional<T> &...values) {
+ATTR_PURE_NDEBUG constexpr auto optional_min(const Optional<T> &...values) {
   return optional_fold(
       [](const auto &a, const auto &b) { return Optional(std::min(a, b)); },
       [](const auto &a) { return a; }, values...);
 }
 
 template <typename T>
-constexpr Optional<T> create_optional(bool condition, const T &v) {
+ATTR_PURE_NDEBUG constexpr Optional<T> create_optional(bool condition,
+                                                       const T &v) {
   if (condition) {
     return v;
   } else {

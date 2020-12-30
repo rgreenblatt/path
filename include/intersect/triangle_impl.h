@@ -5,7 +5,7 @@
 #include "intersect/triangle.h"
 
 namespace intersect {
-HOST_DEVICE inline IntersectionOp<Triangle::InfoType>
+ATTR_PURE_NDEBUG HOST_DEVICE inline IntersectionOp<Triangle::InfoType>
 Triangle::intersect(const Ray &ray) const {
   Eigen::Vector3f edge1 = vertices[1] - vertices[0];
   Eigen::Vector3f edge2 = vertices[2] - vertices[0];
@@ -38,7 +38,7 @@ Triangle::intersect(const Ray &ray) const {
   }
 }
 
-HOST_DEVICE inline accel::AABB Triangle::bounds() const {
+ATTR_PURE_NDEBUG HOST_DEVICE inline accel::AABB Triangle::bounds() const {
   auto min_b = max_eigen_vec();
   auto max_b = min_eigen_vec();
   for (const auto &vertex : vertices) {
@@ -49,7 +49,7 @@ HOST_DEVICE inline accel::AABB Triangle::bounds() const {
   return {min_b, max_b};
 }
 
-HOST_DEVICE inline std::array<float, 3>
+ATTR_PURE_NDEBUG HOST_DEVICE inline std::array<float, 3>
 Triangle::interpolation_values(const Eigen::Vector3f &point) const {
   Eigen::Vector3f p0 = vertices[1] - vertices[0];
   Eigen::Vector3f p1 = vertices[2] - vertices[0];

@@ -13,7 +13,7 @@ struct Settings {
     archive(NVP(exp), NVP(min_prob));
   }
 
-  constexpr bool operator==(const Settings &) const = default;
+  ATTR_PURE constexpr bool operator==(const Settings &) const = default;
 };
 
 static_assert(Setting<Settings>);

@@ -12,6 +12,7 @@
 namespace intersect {
 namespace accel {
 // TODO test!!!
+// TODO PURIFY with lib/attributes.h
 class HalfSpherePartition {
 public:
   // colatitude is from 0 - pi

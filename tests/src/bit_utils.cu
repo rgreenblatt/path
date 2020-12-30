@@ -1,5 +1,5 @@
-#include "lib/bit_utils.h"
 #include "execution_model/host_device_vector.h"
+#include "lib/bit_utils.h"
 #include "lib/span.h"
 
 #include <gtest/gtest.h>

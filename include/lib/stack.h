@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lib/assert.h"
+#include "lib/attribute.h"
 
 #include <array>
 #include <cstdint>
@@ -11,19 +12,19 @@ public:
   constexpr Stack() : size_(0) {}
 
   constexpr void push(const T &v) {
-    debug_assert(size_ < max_size);
+    debug_assert_assume(size_ < max_size);
     arr_[size_] = v;
     size_++;
   }
 
   constexpr T pop() {
-    debug_assert(size_ != 0);
+    debug_assert_assume(size_ != 0);
     size_--;
     return arr_[size_];
   }
 
-  constexpr const T &peek() const {
-    debug_assert(size_ != 0);
+  ATTR_PURE_NDEBUG constexpr const T &peek() const {
+    debug_assert_assume(size_ != 0);
     return arr_[size_ - 1];
   }
 
@@ -32,9 +33,9 @@ public:
       std::conditional_t<(max_size > std::numeric_limits<uint8_t>::max()),
                          uint16_t, uint8_t>>;
 
-  constexpr SizeType size() const { return size_; }
+  ATTR_PURE constexpr SizeType size() const { return size_; }
 
-  constexpr bool empty() const { return size_ == 0; }
+  ATTR_PURE constexpr bool empty() const { return size_ == 0; }
 
 private:
   std::array<T, max_size> arr_;

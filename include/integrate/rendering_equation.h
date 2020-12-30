@@ -15,12 +15,13 @@ struct RaySampleDistance {
   Optional<float> target_distance;
 };
 
+// TODO: initial_ray_sampler concept
 template <typename F, intersectable_scene::IntersectableScene S,
           light_sampler::LightSamplerRef<typename S::B> L,
           dir_sampler::DirSamplerRef<typename S::B> D, term_prob::TermProbRef T,
           rng::RngRef R>
-HOST_DEVICE inline Eigen::Array3f
-rendering_equation(F &&initial_ray_sampler, unsigned start_sample,
+ATTR_NO_DISCARD_PURE HOST_DEVICE inline Eigen::Array3f
+rendering_equation(const F &initial_ray_sampler, unsigned start_sample,
                    unsigned end_sample, unsigned location,
                    const RenderingEquationSettings &settings, const S &scene,
                    const L &light_sampler, const D &dir_sampler,
@@ -69,6 +70,7 @@ rendering_equation(F &&initial_ray_sampler, unsigned start_sample,
     const auto &next_intersection = *next_intersection_op;
 
     auto include_lighting = [&](const auto &intersection) {
+      // TODO generalize
       return !settings.back_cull_emission || !intersection.is_back_intersection;
     };
 
@@ -76,7 +78,6 @@ rendering_equation(F &&initial_ray_sampler, unsigned start_sample,
 
     if ((!L::performs_samples || count_emission) &&
         include_lighting(next_intersection)) {
-      // TODO generalize
       intensity += multiplier * material.emission;
     }
 

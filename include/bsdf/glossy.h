@@ -3,6 +3,7 @@
 #include "bsdf/bsdf.h"
 #include "bsdf/bsdf_sample.h"
 #include "bsdf/utils.h"
+#include "lib/attribute.h"
 #include "lib/cuda/utils.h"
 #include "lib/projection.h"
 #include "rng/rng.h"
@@ -23,11 +24,12 @@ public:
         specular_(specular), shininess_(shininess),
         inv_shininess_p_1_(1.f / (shininess_ + 1.f)) {}
 
-  constexpr bool is_brdf() const { return true; }
+  ATTR_PURE constexpr bool is_brdf() const { return true; }
 
-  HOST_DEVICE Eigen::Array3f continuous_eval(const UnitVector &incoming_dir,
-                                             const UnitVector &outgoing_dir,
-                                             const UnitVector &normal) const {
+  ATTR_PURE_NDEBUG HOST_DEVICE Eigen::Array3f
+  continuous_eval(const UnitVector &incoming_dir,
+                  const UnitVector &outgoing_dir,
+                  const UnitVector &normal) const {
     return specular_ * normalizing_factor_ *
            std::pow(std::max(reflect_over_normal(incoming_dir, normal)
                                  ->dot(*outgoing_dir),

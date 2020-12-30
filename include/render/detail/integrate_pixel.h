@@ -1,11 +1,12 @@
 #pragma once
 
 #include "integrate/rendering_equation.h"
+#include "lib/attribute.h"
 #include "render/detail/integrate_image.h"
 
 namespace render {
 namespace detail {
-HOST_DEVICE inline intersect::Ray
+ATTR_PURE_NDEBUG HOST_DEVICE inline intersect::Ray
 initial_ray(float x, float y, unsigned x_dim, unsigned y_dim,
             const Eigen::Affine3f &film_to_world) {
   const Eigen::Vector3f camera_space_film_plane(
@@ -24,7 +25,7 @@ initial_ray(float x, float y, unsigned x_dim, unsigned y_dim,
 template <intersectable_scene::IntersectableScene S,
           LightSamplerRef<typename S::B> L, DirSamplerRef<typename S::B> D,
           TermProbRef T, rng::RngRef R>
-HOST_DEVICE inline Eigen::Array3f integrate_pixel(
+ATTR_NO_DISCARD_PURE HOST_DEVICE inline Eigen::Array3f integrate_pixel(
     unsigned x, unsigned y, unsigned start_sample, unsigned end_sample,
     const integrate::RenderingEquationSettings &settings, unsigned x_dim,
     unsigned y_dim, const S &scene, const L &light_sampler,

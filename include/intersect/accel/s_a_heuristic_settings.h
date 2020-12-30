@@ -14,7 +14,8 @@ struct SAHeuristicSettings {
     archive(NVP(traversal_cost), NVP(intersection_cost));
   }
 
-  constexpr bool operator==(const SAHeuristicSettings &) const = default;
+  ATTR_PURE constexpr bool
+  operator==(const SAHeuristicSettings &) const = default;
 };
 
 static_assert(Setting<SAHeuristicSettings>);

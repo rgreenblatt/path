@@ -35,9 +35,10 @@ void downsample_to(Span<const Eigen::Array3f> intensities,
 
 // double for improved precision
 // use tone_map for error to provide a more visually relevant metric
-double compute_mean_absolute_error(Span<const Eigen::Array3f> intensities,
-                                   Span<const Eigen::Array3f> ground_truth,
-                                   unsigned width) {
+ATTR_PURE_NDEBUG double
+compute_mean_absolute_error(Span<const Eigen::Array3f> intensities,
+                            Span<const Eigen::Array3f> ground_truth,
+                            unsigned width) {
 
   double total = 0.f;
   for (unsigned i = 0; i < width; ++i) {

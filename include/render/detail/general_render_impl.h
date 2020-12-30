@@ -16,8 +16,8 @@ using namespace detail;
 template <ExecutionModel exec>
 void Renderer::Impl<exec>::general_render(
     bool output_as_bgra, Span<BGRA> pixels, Span<Eigen::Array3f> intensities,
-    const scene::Scene &s, unsigned samples_per, unsigned x_dim,
-    unsigned y_dim, const Settings &settings, bool show_progress, bool) {
+    const scene::Scene &s, unsigned samples_per, unsigned x_dim, unsigned y_dim,
+    const Settings &settings, bool show_progress, bool) {
   // only used for gpu
   WorkDivision division;
 
@@ -53,7 +53,6 @@ void Renderer::Impl<exec>::general_render(
 
   dispatch_value(
       [&](auto &&settings_tup) {
-        // TODO: consider dispatching more generically...
         constexpr CompileTimeSettings compile_time_settings =
             std::decay_t<decltype(settings_tup)>::value;
 

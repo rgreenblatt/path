@@ -40,15 +40,16 @@ template <intersect::accel::AccelRef Accel> struct Ref {
 
   using Intersection = intersect::Intersection<InfoType>;
 
-  HOST_DEVICE inline UnitVector get_normal(const Intersection &intersection,
-                                           const intersect::Ray &ray) const {
+  ATTR_PURE_NDEBUG HOST_DEVICE inline UnitVector
+  get_normal(const Intersection &intersection,
+             const intersect::Ray &ray) const {
     unsigned triangle_idx = intersection.info.idx;
 
     return triangle_data[triangle_idx].get_normal(
         intersection.intersection_point(ray), triangles[triangle_idx]);
   }
 
-  HOST_DEVICE inline const scene::Material &
+  ATTR_PURE_NDEBUG HOST_DEVICE inline const scene::Material &
   get_material(const Intersection &intersection) const {
     auto [triangle_idx, triangle_info] = intersection.info;
 

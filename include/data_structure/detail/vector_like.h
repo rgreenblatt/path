@@ -5,7 +5,6 @@
 
 #include "execution_model/device_vector.h"
 
-#include <array>
 #include <vector>
 
 namespace detail {

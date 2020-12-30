@@ -23,7 +23,7 @@ detail::Ref KDTree<execution_model>::gen_internal(const Settings &settings,
                                                   const AABB &aabb) {
   auto [nodes, permutation] = gen_->gen(settings, bounds_);
 
-  return detail::Ref(nodes, permutation, aabb);
+  return detail::Ref{nodes, permutation, aabb};
 }
 
 template class KDTree<ExecutionModel::CPU>;

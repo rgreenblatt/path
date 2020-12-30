@@ -80,7 +80,7 @@ unsigned KDTree<execution_model>::Generator::construct(unsigned start,
   if (terminate_here(start, end)) {
     auto total_bounds = get_bounding(start, end);
     unsigned index = nodes_.size();
-    nodes_.push_back(KDTreeNode({start, end}, total_bounds));
+    nodes_.push_back(KDTreeNode(std::array{start, end}, total_bounds));
 
     return index;
   }
@@ -98,7 +98,7 @@ unsigned KDTree<execution_model>::Generator::construct(unsigned start,
 
   unsigned index = nodes_.size();
   nodes_.push_back(
-      KDTreeNode(KDTreeSplit(left_index, right_index, median),
+      KDTreeNode(KDTreeSplit{left_index, right_index, median},
                  left.get_contents().union_other(right.get_contents())));
 
   return index;
@@ -127,7 +127,8 @@ KDTree<execution_model>::Generator::gen(const Settings &settings,
     indexes_[i] = i;
   }
 
-  nodes_.push_back(KDTreeNode({0, 0}, AABB{max_eigen_vec(), min_eigen_vec()}));
+  nodes_.push_back(
+      KDTreeNode(std::array{0u, 0u}, AABB{max_eigen_vec(), min_eigen_vec()}));
 
   construct(0, bounds.size(), 0);
 

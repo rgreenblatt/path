@@ -14,7 +14,7 @@ Ref::intersect_objects(const intersect::Ray &ray,
                        const F &intersectable_at_idx) const {
   AccelRet<F> best;
 
-  if (nodes_.size() == 0) {
+  if (nodes.size() == 0) {
     return nullopt_value;
   }
 
@@ -38,7 +38,7 @@ Ref::intersect_objects(const intersect::Ray &ray,
   };
 
   Stack<StackData, 64> node_stack;
-  node_stack.push(StackData{unsigned(nodes_.size() - 1u), 0u});
+  node_stack.push(StackData{unsigned(nodes.size() - 1u), 0u});
 
   Optional<std::array<unsigned, 2>> start_end = nullopt_value;
   unsigned current_idx = 0;
@@ -47,11 +47,11 @@ Ref::intersect_objects(const intersect::Ray &ray,
     while (!start_end.has_value() && !node_stack.empty()) {
       const auto stack_v = node_stack.pop();
 
-      const auto &current_node = nodes_[stack_v.node_index];
+      const auto &current_node = nodes[stack_v.node_index];
 
       auto bounding_intersection =
-          current_node.get_contents().solveBoundingIntersection(ray.origin,
-                                                                inv_direction);
+          current_node.get_contents().solve_bounding_intersection(
+              ray.origin, inv_direction);
 
       if (bounding_intersection.has_value() &&
           (!best.has_value() ||
@@ -86,7 +86,7 @@ Ref::intersect_objects(const intersect::Ray &ray,
       for (unsigned idx = (*start_end)[0]; idx < (*start_end)[1]; idx++) {
         // TODO: SPEED
         // would it be better to enforce the same ordering everywhere somehow?
-        unsigned global_idx = local_idx_to_global_idx_[idx];
+        unsigned global_idx = local_idx_to_global_idx[idx];
         auto intersection = intersectable_at_idx(global_idx, ray);
         best = optional_min(best, add_idx(intersection, global_idx));
       }

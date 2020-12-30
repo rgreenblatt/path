@@ -1,5 +1,5 @@
-#include "work_division/settings.h"
 #include "work_division/work_division.h"
+#include "work_division/settings.h"
 #include "work_division/work_division_impl.h"
 
 #include <gtest/gtest.h>
@@ -73,8 +73,9 @@ static void check_coverage(const WorkDivision &division) {
   ASSERT_EQ(y_covered_up_to, y_dim);
 }
 
-static void check_dims_as_expected(const WorkDivision &division, unsigned
-    samples_per, unsigned x_dim, unsigned y_dim) {
+static void check_dims_as_expected(const WorkDivision &division,
+                                   unsigned samples_per, unsigned x_dim,
+                                   unsigned y_dim) {
   EXPECT_EQ(division_samples_per(division), samples_per);
   EXPECT_GE(effective_x_dim(division), x_dim);
   EXPECT_GE(effective_y_dim(division), y_dim);
@@ -83,7 +84,7 @@ static void check_dims_as_expected(const WorkDivision &division, unsigned
 }
 
 TEST(WorkDivision, combination) {
-  Settings settings {64, 16, 4, 8};
+  Settings settings{64, 16, 4, 8};
 
   for (unsigned x_dim : {1, 3, 17, 72, 128}) {
     for (unsigned y_dim : {1, 3, 17, 72, 128}) {

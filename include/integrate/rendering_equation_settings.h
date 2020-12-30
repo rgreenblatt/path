@@ -10,7 +10,8 @@ struct RenderingEquationSettings {
     archive(NVP(back_cull_emission));
   }
 
-  constexpr bool operator==(const RenderingEquationSettings &) const = default;
+  ATTR_PURE constexpr bool
+  operator==(const RenderingEquationSettings &) const = default;
 };
 
 static_assert(Setting<RenderingEquationSettings>);

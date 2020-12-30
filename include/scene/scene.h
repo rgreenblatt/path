@@ -20,52 +20,58 @@ class ScenefileLoader;
 // scenes and alternate material
 class Scene {
 public:
-  const Eigen::Affine3f &film_to_world() const { return film_to_world_; }
+  ATTR_PURE const Eigen::Affine3f &film_to_world() const {
+    return film_to_world_;
+  }
 
   using Triangle = intersect::Triangle;
   using TransformedObject = intersect::TransformedObject;
   using AABB = intersect::accel::AABB;
 
-  SpanSized<const unsigned> mesh_ends() const {
+  ATTR_PURE_NDEBUG SpanSized<const unsigned> mesh_ends() const {
     return meshs_.template get<MeshT::End>();
   }
 
-  SpanSized<const AABB> mesh_aabbs() const {
+  ATTR_PURE_NDEBUG SpanSized<const AABB> mesh_aabbs() const {
     return meshs_.template get<MeshT::AABB>();
   }
 
-  SpanSized<const std::string> mesh_paths() const {
+  ATTR_PURE_NDEBUG SpanSized<const std::string> mesh_paths() const {
     return meshs_.template get<MeshT::Path>();
   }
 
-  SpanSized<const TransformedObject> transformed_mesh_objects() const {
+  ATTR_PURE_NDEBUG SpanSized<const TransformedObject>
+  transformed_mesh_objects() const {
     return transformed_objects_.template get<TransformedObjectT::Inst>();
   }
 
-  SpanSized<const unsigned> transformed_mesh_idxs() const {
+  ATTR_PURE_NDEBUG SpanSized<const unsigned> transformed_mesh_idxs() const {
     return transformed_objects_.template get<TransformedObjectT::MeshIdx>();
   }
 
-  SpanSized<const Triangle> triangles() const {
+  ATTR_PURE_NDEBUG SpanSized<const Triangle> triangles() const {
     return triangles_.template get<TriangleT::Inst>();
   }
 
-  SpanSized<const TriangleData> triangle_data() const {
+  ATTR_PURE_NDEBUG SpanSized<const TriangleData> triangle_data() const {
     return triangles_.template get<TriangleT::Data>();
   }
 
-  SpanSized<const Material> materials() const { return materials_; }
+  ATTR_PURE_NDEBUG SpanSized<const Material> materials() const {
+    return materials_;
+  }
 
-  SpanSized<const EmissiveCluster> emissive_clusters() const {
+  ATTR_PURE_NDEBUG SpanSized<const EmissiveCluster> emissive_clusters() const {
     return emissive_clusters_;
   }
 
-  SpanSized<const unsigned> emissive_cluster_ends_per_mesh() const {
+  ATTR_PURE_NDEBUG SpanSized<const unsigned>
+  emissive_cluster_ends_per_mesh() const {
     return meshs_.template get<MeshT::EmissiveClusterEnd>();
   }
 
   // Note: may not be very precise...
-  AABB overall_aabb() const { return overall_aabb_; }
+  ATTR_PURE const AABB &overall_aabb() const { return overall_aabb_; }
 
 private:
   Scene() {}

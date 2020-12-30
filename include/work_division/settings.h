@@ -19,7 +19,7 @@ struct Settings {
        NVP(target_samples_per_thread));
   }
 
-  constexpr bool operator==(const Settings &) const = default;
+  ATTR_PURE constexpr bool operator==(const Settings &) const = default;
 };
 
 static_assert(Setting<Settings>);

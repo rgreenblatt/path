@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lib/assert.h"
+#include "lib/attribute.h"
 #include "lib/span.h"
 
 #include <algorithm>
@@ -8,7 +9,7 @@
 
 // previous element less, this element greater_equal
 template <std::totally_ordered T, bool ignore_increment_guess = false>
-constexpr unsigned
+ATTR_PURE_NDEBUG constexpr unsigned
 binary_search(unsigned start, unsigned end, T target, unsigned guess,
               unsigned start_search_increment, Span<const T> values,
               bool is_increasing = true) {

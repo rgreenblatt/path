@@ -1,18 +1,19 @@
 #pragma once
 
 #include "lib/assert.h"
+#include "lib/attribute.h"
 
-#include <concepts>
-#include <limits>
 #include <climits>
+#include <concepts>
 #include <cstdint>
+#include <limits>
 
 template <std::integral T>
 inline constexpr unsigned bits_per = sizeof(T) * CHAR_BIT;
 
-template<std::unsigned_integral T>
-requires (bits_per<T> <= bits_per<unsigned long long>)
-inline constexpr uint8_t popcount(T v) {
+template <std::unsigned_integral T>
+requires(bits_per<T> <= bits_per<unsigned long long>) ATTR_PURE
+    inline constexpr uint8_t popcount(T v) {
   if constexpr (bits_per<T> <= bits_per<unsigned>) {
     return __builtin_popcount(v);
   } else if constexpr (bits_per<T> <= bits_per<unsigned long>) {
@@ -29,9 +30,9 @@ static_assert(popcount(0b11111110u) == 7);
 
 // note that the exact type matters a lot for the behavior of this function
 // see examples below
-template<std::unsigned_integral T>
-requires (bits_per<T> <= bits_per<unsigned long long>)
-inline constexpr uint8_t count_leading_zeros(T v) {
+template <std::unsigned_integral T>
+requires(bits_per<T> <= bits_per<unsigned long long>) ATTR_PURE_NDEBUG
+    inline constexpr uint8_t count_leading_zeros(T v) {
   debug_assert_assume(v != 0);
   if constexpr (bits_per<T> <= bits_per<unsigned>) {
     return __builtin_clz(v) - (bits_per<unsigned> - bits_per<T>);
@@ -50,8 +51,7 @@ static_assert(count_leading_zeros(static_cast<uint64_t>(0b1u)) == 63);
 static_assert(count_leading_zeros(0b100u) == 29);
 static_assert(count_leading_zeros(0b10111u) == 27);
 
-template<std::unsigned_integral T>
-constexpr bool power_of_2(T n) {
+template <std::unsigned_integral T> ATTR_PURE constexpr bool power_of_2(T n) {
   return (n > 0 && ((n & (n - 1)) == 0));
 };
 
@@ -64,8 +64,8 @@ static_assert(!power_of_2(0b111111u));
 static_assert(!power_of_2(0b111u));
 static_assert(!power_of_2(0b101u));
 
-template<std::unsigned_integral T>
-inline constexpr T closest_power_of_2(T n) {
+template <std::unsigned_integral T>
+ATTR_PURE_NDEBUG inline constexpr T closest_power_of_2(T n) {
   if (n == 0) {
     return 1;
   }
@@ -96,7 +96,8 @@ static_assert(closest_power_of_2(0b111u) == 0b1000u);
 static_assert(closest_power_of_2(std::numeric_limits<unsigned>::max()) ==
               1u << 31);
 
-template <std::unsigned_integral T> constexpr T bit_mask(unsigned bit_idx) {
+template <std::unsigned_integral T>
+ATTR_PURE inline constexpr T bit_mask(unsigned bit_idx) {
   return T(1) << bit_idx;
 }
 
@@ -105,7 +106,8 @@ static_assert(bit_mask<unsigned>(2) == 0b100);
 static_assert(bit_mask<unsigned>(7) == 0b10000000);
 static_assert(bit_mask<unsigned>(31) == 0b10000000000000000000000000000000u);
 
-template <std::unsigned_integral T> constexpr T up_to_mask(unsigned n) {
+template <std::unsigned_integral T>
+ATTR_PURE inline constexpr T up_to_mask(uint8_t n) {
   // in binary, 1 (n + 1) times
   // 0: 1
   // 1: 11

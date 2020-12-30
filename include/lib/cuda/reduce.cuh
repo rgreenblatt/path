@@ -1,8 +1,8 @@
 #pragma once
 
 #include "lib/assert.h"
-#include "lib/cuda/utils.h"
 #include "lib/bit_utils.h"
+#include "lib/cuda/utils.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -78,7 +78,7 @@ inline DEVICE T sub_block_reduce(T val, const F &f, unsigned thread_idx,
 // it's plausible the compile won't be able to optimize this function
 // to be as efficient as possible because sub_block_reduce is more general :(
 template <typename T, typename F>
-inline DEVICE T block_reduce(const T& val, const F &f, unsigned thread_idx,
+inline DEVICE T block_reduce(const T &val, const F &f, unsigned thread_idx,
                              unsigned block_size) {
   return sub_block_reduce(val, f, thread_idx, block_size, block_size);
 }

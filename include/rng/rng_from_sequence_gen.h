@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lib/assert.h"
+#include "lib/attribute.h"
 #include "lib/cuda/utils.h"
 #include "lib/settings.h"
 #include "lib/span.h"
@@ -9,7 +10,7 @@
 
 namespace rng {
 namespace detail {
-constexpr unsigned fnv_hash(unsigned in) {
+ATTR_PURE_NDEBUG constexpr unsigned fnv_hash(unsigned in) {
   constexpr unsigned prime = 16777619;
   constexpr unsigned offset_basis = 2166136261;
   unsigned out_hash = offset_basis;
@@ -69,8 +70,8 @@ public:
       const Ref *ref_;
     };
 
-    HOST_DEVICE inline State get_generator(unsigned sample_idx,
-                                           unsigned location) const {
+    ATTR_PURE_NDEBUG HOST_DEVICE inline State
+    get_generator(unsigned sample_idx, unsigned location) const {
       debug_assert(sample_idx < samples_per_);
 
       // the hash is used to make different locations look roughly uncorrelated.

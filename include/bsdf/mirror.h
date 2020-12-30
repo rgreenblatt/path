@@ -2,6 +2,7 @@
 
 #include "bsdf/bsdf.h"
 #include "bsdf/utils.h"
+#include "lib/attribute.h"
 #include "lib/cuda/utils.h"
 #include "rng/rng.h"
 
@@ -14,11 +15,11 @@ struct Mirror {
   static constexpr bool discrete = true;
   static constexpr bool continuous = false;
 
-  constexpr bool is_brdf() const { return true; }
+  ATTR_PURE constexpr bool is_brdf() const { return true; }
 
   template <rng::RngState R>
-  HOST_DEVICE BSDFSample discrete_sample(const UnitVector &incoming_dir,
-                                         const UnitVector &normal, R &) const {
+  ATTR_PURE_NDEBUG HOST_DEVICE BSDFSample discrete_sample(
+      const UnitVector &incoming_dir, const UnitVector &normal, R &) const {
     return {reflect_over_normal(incoming_dir, normal), specular_};
   }
 };

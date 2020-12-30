@@ -1,11 +1,10 @@
 #include "scene/camera.h"
 
 namespace scene {
-Eigen::Affine3f get_camera_transform(const UnitVector &look,
-                                     const UnitVector &up,
-                                     const Eigen::Vector3f &pos,
-                                     float height_angle,
-                                     float width_height_ratio) {
+ATTR_PURE_NDEBUG Eigen::Affine3f
+get_camera_transform(const UnitVector &look, const UnitVector &up,
+                     const Eigen::Vector3f &pos, float height_angle,
+                     float width_height_ratio) {
 
   const Eigen::Vector3f &f = *look;
   Eigen::Vector3f s = f.cross(*up);

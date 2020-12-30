@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lib/attribute.h"
 #include "meta/mock.h"
 
 #include <cereal/name_value_pair.hpp>
@@ -23,7 +24,7 @@ concept Setting = requires(T &data, MockArchive &archive) {
 struct EmptySettings {
   template <typename Archive> void serialize(Archive &) {}
 
-  constexpr bool operator==(const EmptySettings &) const = default;
+  ATTR_PURE constexpr bool operator==(const EmptySettings &) const = default;
 };
 
 static_assert(Setting<EmptySettings>);

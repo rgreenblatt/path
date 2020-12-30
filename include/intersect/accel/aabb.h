@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lib/attribute.h"
 #include "lib/cuda/utils.h"
 #include "lib/eigen_utils.h"
 #include "lib/optional.h"
@@ -10,7 +11,7 @@
 
 namespace intersect {
 namespace accel {
-inline std::tuple<Eigen::Vector3f, Eigen::Vector3f>
+ATTR_PURE_NDEBUG inline std::tuple<Eigen::Vector3f, Eigen::Vector3f>
 get_transformed_bounds(const Eigen::Affine3f &transform,
                        const Eigen::Vector3f &min_bound,
                        const Eigen::Vector3f &max_bound) {
@@ -36,34 +37,39 @@ get_transformed_bounds(const Eigen::Affine3f &transform,
 
   return {min_transformed_bound, max_transformed_bound};
 }
+
 struct AABB {
   Eigen::Vector3f min_bound;
   Eigen::Vector3f max_bound;
 
   // implementing bounded
-  HOST_DEVICE inline const AABB &bounds() const { return *this; }
+  ATTR_PURE_NDEBUG HOST_DEVICE inline const AABB &bounds() const {
+    return *this;
+  }
 
-  HOST_DEVICE inline AABB transform(const Eigen::Affine3f &transform) const {
+  ATTR_PURE_NDEBUG HOST_DEVICE inline AABB
+  transform(const Eigen::Affine3f &transform) const {
     auto [min, max] = get_transformed_bounds(transform, min_bound, max_bound);
 
     return {min, max};
   }
 
-  HOST_DEVICE inline AABB union_other(const AABB &other) const {
+  ATTR_PURE_NDEBUG HOST_DEVICE inline AABB
+  union_other(const AABB &other) const {
     return {min_bound.cwiseMin(other.min_bound),
             max_bound.cwiseMax(other.max_bound)};
   }
 
-  HOST_DEVICE float surface_area() const {
+  ATTR_PURE_NDEBUG HOST_DEVICE float surface_area() const {
     auto dims = (max_bound - min_bound).eval();
     return 2 *
            (dims.x() * dims.y() + dims.z() * dims.y() + dims.z() * dims.x());
   }
 
   // needs to be inline
-  HOST_DEVICE Optional<float>
-  solveBoundingIntersection(const Eigen::Vector3f &point,
-                            const Eigen::Vector3f &inv_direction) const {
+  ATTR_PURE_NDEBUG HOST_DEVICE Optional<float>
+  solve_bounding_intersection(const Eigen::Vector3f &point,
+                              const Eigen::Vector3f &inv_direction) const {
     auto t_0 = (min_bound - point).cwiseProduct(inv_direction).eval();
     auto t_1 = (max_bound - point).cwiseProduct(inv_direction).eval();
     auto t_min = t_0.cwiseMin(t_1);
