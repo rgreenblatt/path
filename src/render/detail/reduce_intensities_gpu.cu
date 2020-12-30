@@ -42,15 +42,16 @@ DeviceVector<Eigen::Array3f> *reduce_intensities_gpu(
   while (reduction_factor != 1) {
     always_assert(intensities_in->size() % reduction_factor == 0);
     unsigned x_dim = intensities_in->size() / reduction_factor;
-    const unsigned block_size = 256;
-    const unsigned target_x_block_size = block_size;
-    const unsigned target_y_block_size = 1;
-    // const unsigned max_samples_per_thread = 16;
-    const unsigned target_samples_per_thread = 8;
-    work_division::WorkDivision division({block_size, target_x_block_size,
-                                          target_y_block_size,
-                                          target_samples_per_thread},
-                                         reduction_factor, x_dim, 1);
+    work_division::WorkDivision division(
+        {.block_size = 256,
+         .target_x_block_size = 256,
+         .target_y_block_size = 1,
+         .force_target_samples = false,
+         .forced_target_samples_per_thread = 1,
+         .base_num_threads = 16384,
+         .samples_per_thread_scaling_power = 0.5f,
+         .max_samples_per_thread = 8},
+        reduction_factor, x_dim, 1);
     intensities_out->resize(x_dim * division.num_sample_blocks());
 
     reduce_intensities_global<<<division.total_num_blocks(),

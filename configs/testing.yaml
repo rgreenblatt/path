@@ -29,7 +29,11 @@ settings:
         block_size: 256
         target_x_block_size: 32
         target_y_block_size: 8
-        max_samples_per_thread: 16
-        target_samples_per_thread: 8
+        force_target_samples: false
+        forced_target_samples_per_thread: 8
+        # should be increased somewhat for more complex scenes
+        base_num_threads: 16384
+        samples_per_thread_scaling_power: 0.5
+        max_samples_per_thread: 32
     rendering_equation_settings:
       back_cull_emission: true

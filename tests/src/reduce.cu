@@ -81,14 +81,18 @@ TEST(Reduce, sum) {
 
             const unsigned target_x_block_size = block_size;
             const unsigned target_y_block_size = 1;
-            // const unsigned max_samples_per_thread = 16;
             unsigned target_samples_per_thread = base_target_samples_per_thread;
             WorkDivision division;
             do {
-              division =
-                  WorkDivision({block_size, target_x_block_size,
-                                target_y_block_size, target_samples_per_thread},
-                               samples_per, size, 1);
+              division = WorkDivision(
+                  {
+                      block_size,
+                      target_x_block_size,
+                      target_y_block_size,
+                      true,
+                      target_samples_per_thread,
+                  },
+                  samples_per, size, 1);
               target_samples_per_thread *= 2;
             } while (division.num_sample_blocks() != 1);
 

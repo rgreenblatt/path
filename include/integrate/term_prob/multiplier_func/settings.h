@@ -6,8 +6,8 @@ namespace integrate {
 namespace term_prob {
 namespace multiplier_func {
 struct Settings {
-  float exp = 5.0f;
-  float min_prob = 0.2f;
+  float exp = 50.0f;
+  float min_prob = 0.0f;
 
   template <typename Archive> void serialize(Archive &archive) {
     archive(NVP(exp), NVP(min_prob));

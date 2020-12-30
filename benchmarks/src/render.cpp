@@ -26,7 +26,8 @@ int main(int argc, char *argv[]) {
     unsigned max_size;
   };
 
-  std::vector<unsigned> samples = {1, 4, 8, 16, 64, 256, 512, 2048};
+  std::vector<unsigned> samples = {1,  4,  8,   12,  16,  24,  32,  48,
+                                   64, 96, 128, 192, 256, 512, 2048};
   std::vector<unsigned> desired_widths = {8, 64, 128, 256, 1024};
 
   std::vector<BenchItem> bench_items = {
@@ -34,19 +35,19 @@ int main(int argc, char *argv[]) {
           "cornell_diffuse",
           "scenes/cornell-diffuse.xml",
           8192,
-          1 << 24,
+          1 << 23,
       },
       {
           "cornell_glossy",
           "scenes/cornell-glossy.xml",
           8192,
-          1 << 24,
+          1 << 23,
       },
       {
           "cornell_glass_box",
           "scenes/cornell-glass-box.xml",
           8192,
-          1 << 23,
+          1 << 22,
       },
       {
           "cornell_glass_sphere",
@@ -78,6 +79,7 @@ int main(int argc, char *argv[]) {
 
   render::RendererFromFiles renderer;
   renderer.load_config("configs/benchmark.yaml");
+  renderer.print_config();
 
   const fs::path ground_truth_save_directory = "benchmark_ground_truth";
   const std::string ext = ".bin";
@@ -146,13 +148,20 @@ int main(int argc, char *argv[]) {
       downsample_to(ground_truth_intensities[i], ground_truth,
                     ground_truth_width, desired_width);
       for (const unsigned &n_samples : samples) {
+        uint64_t total_size =
+            static_cast<uint64_t>(n_samples) * desired_width * desired_width;
         // odd compare needed to avoid overflow
-        if (n_samples * desired_width > bench_item.max_size / desired_width) {
+        if (total_size > bench_item.max_size) {
           continue;
         }
         std::stringstream ss;
         ss << name << "_" << n_samples << "_" << desired_width << "x"
            << desired_width;
+        uint64_t base_num_iters = 5;
+        uint64_t max_num_iters = 100;
+        unsigned iterations =
+            std::min(base_num_iters * bench_item.max_size / total_size,
+                     static_cast<uint64_t>(max_num_iters));
         benchmark::RegisterBenchmark(
             ss.str().c_str(),
             [&](benchmark::State &st) {
@@ -181,7 +190,7 @@ int main(int argc, char *argv[]) {
                   bench_intensities, ground_truth, desired_width);
             })
             ->Unit(benchmark::kMillisecond)
-            ->Iterations(5);
+            ->Iterations(iterations);
       }
     }
   }

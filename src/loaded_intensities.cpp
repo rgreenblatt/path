@@ -12,7 +12,7 @@
 int main() {
   std::vector<Eigen::Array3f> intensities;
   {
-    std::ifstream file("benchmark_ground_truth/cornell_glass_sphere.bin",
+    std::ifstream file("benchmark_ground_truth/cornell_diffuse.bin",
                        std::ios::binary);
     cereal::BinaryInputArchive ar(file);
     ar(intensities);
