@@ -84,7 +84,7 @@ static void check_dims_as_expected(const WorkDivision &division,
 }
 
 TEST(WorkDivision, combination) {
-  Settings settings{64, 16, 4, 8};
+  Settings settings{64, 16, 4, true, 2};
 
   for (unsigned x_dim : {1, 3, 17, 72, 128}) {
     for (unsigned y_dim : {1, 3, 17, 72, 128}) {
