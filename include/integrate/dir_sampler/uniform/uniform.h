@@ -28,7 +28,7 @@ public:
       float v0 = rng.next();
       float v1 = rng.next();
 
-      bool need_whole_sphere = bsdf.is_bsdf();
+      bool need_whole_sphere = !bsdf.is_brdf();
 
       float phi = 2 * M_PI * v0;
       float theta = std::acos(need_whole_sphere ? 2 * v1 - 1 : v1);
