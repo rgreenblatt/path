@@ -90,10 +90,11 @@ void Renderer::Impl<exec>::general_render(
         auto rng = rngs_.template get<rng_type>().gen(
             settings.rng.template get<rng_type>(), samples_per, n_locations);
 
-        integrate_image(output_as_bgra, settings.general_settings,
-                        show_progress, division, samples_per, x_dim, y_dim,
-                        scene_ref, light_sampler, dir_sampler, term_prob, rng,
-                        output_pixels, output_intensities, s.film_to_world());
+        IntegrateImage<exec>::run(output_as_bgra, settings.general_settings,
+                                  show_progress, division, samples_per, x_dim,
+                                  y_dim, scene_ref, light_sampler, dir_sampler,
+                                  term_prob, rng, output_pixels,
+                                  output_intensities, s.film_to_world());
       },
       settings.compile_time);
 

@@ -20,14 +20,10 @@ namespace detail {
 template <intersect::accel::AccelRef Accel> struct Ref {
   using B = scene::Material::BSDFT;
 
-  Accel accel;
+  [[no_unique_address]] Accel accel;
   Span<const intersect::Triangle> triangles;
   Span<const scene::TriangleData> triangle_data;
   Span<const scene::Material> materials;
-
-  HOST_DEVICE inline intersect::accel::AABB bounds() const {
-    return accel.bounds();
-  }
 
   using InfoType = intersect::accel::IdxHolder<intersect::Triangle::InfoType>;
 
@@ -120,7 +116,6 @@ private:
   Accel accel_;
 };
 
-// TODO: consider implementing later...
 #if 0
 template <ExecutionModel exec>
 struct IsSceneGenerator

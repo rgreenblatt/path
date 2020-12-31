@@ -104,23 +104,21 @@ private:
 
   struct NoSize {};
 
-  typename std::conditional_t<use_size, std::size_t, NoSize> size_;
+  [[no_unique_address]]
+  typename std::conditional_t<use_size, std::size_t, NoSize>
+      size_;
 
   template <typename TOther, bool is_sized_other, bool is_debug_other>
   friend class Span;
 };
 
-static constexpr bool is_debug =
-#ifdef NDEBUG
-    false
-#else
-    true
-#endif
-    ;
+static_assert(sizeof(Span<unsigned, false, false>) == sizeof(int *));
+static_assert(sizeof(Span<unsigned, true, false>) == 2 * sizeof(int *));
+static_assert(sizeof(Span<unsigned, false, true>) == 2 * sizeof(int *));
 } // namespace detail
 
 template <typename T, bool is_sized = false>
-using Span = detail::Span<T, is_sized, detail::is_debug>;
+using Span = detail::Span<T, is_sized, debug_build>;
 
 template <SpanSpecialization SpanT>
 requires SpanT::is_sized struct GetSizeImpl<SpanT> {

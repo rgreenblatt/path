@@ -7,17 +7,16 @@
 
 namespace render {
 namespace detail {
+template <>
 template <intersectable_scene::IntersectableScene S,
           LightSamplerRef<typename S::B> L, DirSamplerRef<typename S::B> D,
           TermProbRef T, rng::RngRef R>
-void integrate_image(bool output_as_bgra, const GeneralSettings &settings,
-                     bool show_progress, const WorkDivision &,
-                     unsigned samples_per, unsigned x_dim, unsigned y_dim,
-                     const S &scene, const L &light_sampler,
-                     const D &direction_sampler, const T &term_prob,
-                     const R &rng, Span<BGRA> pixels,
-                     Span<Eigen::Array3f> intensities,
-                     const Eigen::Affine3f &film_to_world) {
+void IntegrateImage<ExecutionModel::CPU>::run(
+    bool output_as_bgra, const GeneralSettings &settings, bool show_progress,
+    const WorkDivision &, unsigned samples_per, unsigned x_dim, unsigned y_dim,
+    const S &scene, const L &light_sampler, const D &direction_sampler,
+    const T &term_prob, const R &rng, Span<BGRA> pixels,
+    Span<Eigen::Array3f> intensities, const Eigen::Affine3f &film_to_world) {
   ProgressBar progress_bar(x_dim * y_dim, 70);
   if (show_progress) {
     progress_bar.display();

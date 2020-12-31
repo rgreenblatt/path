@@ -19,10 +19,10 @@ __global__ void reduce_intensities_global(
 
   debug_assert(blockDim.x == division.block_size());
 
-  auto [start_sample, end_sample, x, y] =
-      division.get_thread_info(block_idx, thread_idx);
+  auto [start_sample, end_sample, x, y, exit] =
+      division.get_thread_info(block_idx, thread_idx, x_dim, 1);
 
-  if (x >= x_dim) {
+  if (exit) {
     return;
   }
 
@@ -45,7 +45,6 @@ DeviceVector<Eigen::Array3f> *reduce_intensities_gpu(
     work_division::WorkDivision division(
         {.block_size = 256,
          .target_x_block_size = 256,
-         .target_y_block_size = 1,
          .force_target_samples = false,
          .forced_target_samples_per_thread = 1,
          .base_num_threads = 16384,
@@ -60,6 +59,7 @@ DeviceVector<Eigen::Array3f> *reduce_intensities_gpu(
         samples_per, x_dim, division, *intensities_in, *intensities_out, bgras);
 
     CUDA_ERROR_CHK(cudaDeviceSynchronize());
+    CUDA_ERROR_CHK(cudaGetLastError());
 
     reduction_factor = division.num_sample_blocks();
 

@@ -40,19 +40,14 @@ constexpr Optional<unsigned> search(const float target,
 
 class Ref {
 public:
-  HOST_DEVICE Ref() = default;
-
   // SPEED: don't store triangles in here, use indices instead?
   // would requre applying transformation and taking as input.
   HOST_DEVICE Ref(const Settings &settings,
                   Span<const intersect::Triangle> triangles,
                   SpanSized<const float> cumulative_weights)
-      : binary_search_threshold_(settings.binary_search_threshold),
-        triangles_(triangles), cumulative_weights_(cumulative_weights) {}
+      : triangles_(triangles), cumulative_weights_(cumulative_weights),
+        binary_search_threshold_(settings.binary_search_threshold) {}
 
-  unsigned binary_search_threshold_;
-  Span<const intersect::Triangle> triangles_;
-  SpanSized<const float> cumulative_weights_;
   static constexpr unsigned max_sample_size = 1;
   static constexpr bool performs_samples = true;
 
@@ -121,6 +116,11 @@ public:
 
     return {{{{sample, direction_unnormalized.norm()}}}, 1};
   }
+
+private:
+  Span<const intersect::Triangle> triangles_;
+  SpanSized<const float> cumulative_weights_;
+  unsigned binary_search_threshold_;
 };
 
 enum class TWItem {

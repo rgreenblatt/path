@@ -8,8 +8,6 @@
 #include <cstdint>
 #include <limits>
 
-#include "lib/info/debug_print.h"
-
 namespace work_division {
 WorkDivision::WorkDivision(const Settings &settings, unsigned samples_per,
                            unsigned x_dim, unsigned y_dim) {
@@ -33,16 +31,13 @@ WorkDivision::WorkDivision(const Settings &settings, unsigned samples_per,
         base_target, static_cast<double>(settings.max_samples_per_thread));
   }
 
-  unsigned n_threads_per_location = closest_power_of_2(
-      static_cast<unsigned>(std::round(static_cast<double>(samples_per) /
-                                       target_samples_per_thread)));
+  unsigned n_threads_per_location =
+      closest_power_of_2(static_cast<unsigned>(std::round(
+          static_cast<double>(samples_per) / target_samples_per_thread)));
 
   base_samples_per_thread_ = samples_per / n_threads_per_location;
   n_threads_per_unit_extra_ =
       samples_per - base_samples_per_thread_ * n_threads_per_location;
-  
-  // dbg(target_samples_per_thread);
-  // dbg(base_samples_per_thread_);
 
   sample_block_size_ = std::min(n_threads_per_location, block_size_);
 

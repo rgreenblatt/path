@@ -13,10 +13,6 @@ namespace detail {
 // In this case, the Ref type doesn't depend on the ExecutionModel (at least
 // not yet...)
 struct Ref {
-  AABB aabb;
-
-  ATTR_PURE constexpr const AABB &bounds() const { return aabb; }
-
   template <IntersectableAtIdx F>
   ATTR_PURE_NDEBUG HOST_DEVICE inline AccelRet<F>
   intersect_objects(const intersect::Ray &, const F &) const {
@@ -29,7 +25,7 @@ template <ExecutionModel execution_model> class DirTree {
 public:
   template <Bounded B>
   detail::Ref gen(const Settings &settings, SpanSized<const B> objects,
-                  const AABB &aabb);
+                  const AABB &);
 };
 
 // I think dir tree might be triangle only in practice...

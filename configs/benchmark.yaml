@@ -29,7 +29,6 @@ settings:
       render_work_division:
         block_size: 256
         target_x_block_size: 32
-        target_y_block_size: 8
         force_target_samples: false
         forced_target_samples_per_thread: 8
         # should be increased somewhat for more complex scenes maybe to 262144

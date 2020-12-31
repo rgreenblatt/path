@@ -8,10 +8,10 @@ template <ExecutionModel execution_model>
 template <Bounded B>
 typename detail::Ref DirTree<execution_model>::gen(const Settings &,
                                                    SpanSized<const B>,
-                                                   const AABB &aabb) {
+                                                   const AABB &) {
   // TODO
   unreachable();
-  return detail::Ref{aabb};
+  return {};
 }
 
 template class DirTree<ExecutionModel::CPU>;

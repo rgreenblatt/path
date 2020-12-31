@@ -9,7 +9,8 @@
 
 namespace work_division {
 ATTR_PURE_NDEBUG inline HOST_DEVICE WorkDivision::ThreadInfo
-WorkDivision::get_thread_info(unsigned block_idx, unsigned thread_idx) const {
+WorkDivision::get_thread_info(unsigned block_idx, unsigned thread_idx,
+                              unsigned x_dim, unsigned y_dim) const {
   debug_assert_assume(thread_idx < block_size_);
 
   // allow for compiler optimizations at the call site
@@ -49,7 +50,7 @@ WorkDivision::get_thread_info(unsigned block_idx, unsigned thread_idx) const {
 
   unsigned end_sample = start_sample + n_samples;
 
-  return {start_sample, end_sample, x, y};
+  return {start_sample, end_sample, x, y, x >= x_dim || y >= y_dim};
 }
 
 template <typename T, typename BinOp>

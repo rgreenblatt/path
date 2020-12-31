@@ -10,8 +10,14 @@
 
 #include <cli/ProgressBar.hpp>
 
+template <unsigned> struct Printer;
+
 namespace render {
 namespace detail {
+// could remove:
+//  - block size (from division)
+//  - samples_per
+//  - rng sequence_gen samples_per
 template <intersectable_scene::IntersectableScene S,
           LightSamplerRef<typename S::B> L, DirSamplerRef<typename S::B> D,
           TermProbRef T, rng::RngRef R>
@@ -21,15 +27,22 @@ __global__ void integrate_image_global(
     unsigned y_dim, unsigned samples_per, const S scene, const L light_sampler,
     const D direction_sampler, const T term_prob, const R rng, Span<BGRA> bgras,
     Span<Eigen::Array3f> intensities, const Eigen::Affine3f film_to_world) {
+  // Printer<(sizeof(output_as_bgra) + sizeof(settings) + sizeof(start_blocks) +
+  //          sizeof(division) + sizeof(x_dim) + sizeof(y_dim) +
+  //          sizeof(samples_per) + sizeof(scene) + sizeof(light_sampler) +
+  //          sizeof(direction_sampler) + sizeof(term_prob) + sizeof(rng) +
+  //          sizeof(bgras) + sizeof(intensities) + sizeof(film_to_world))>
+  //     a;
+
   const unsigned block_idx = blockIdx.x + start_blocks;
   const unsigned thread_idx = threadIdx.x;
 
   debug_assert(blockDim.x == division.block_size());
 
-  auto [start_sample, end_sample, x, y] =
-      division.get_thread_info(block_idx, thread_idx);
+  auto [start_sample, end_sample, x, y, exit] =
+      division.get_thread_info(block_idx, thread_idx, x_dim, y_dim);
 
-  if (x >= x_dim || y >= y_dim) {
+  if (exit) {
     return;
   }
 
@@ -41,17 +54,17 @@ __global__ void integrate_image_global(
                        intensity, bgras, intensities, division, samples_per);
 }
 
+template <>
 template <intersectable_scene::IntersectableScene S,
           LightSamplerRef<typename S::B> L, DirSamplerRef<typename S::B> D,
           TermProbRef T, rng::RngRef R>
-void integrate_image(bool output_as_bgra, const GeneralSettings &settings,
-                     bool show_progress, const WorkDivision &division,
-                     unsigned samples_per, unsigned x_dim, unsigned y_dim,
-                     const S &scene, const L &light_sampler,
-                     const D &direction_sampler, const T &term_prob,
-                     const R &rng, Span<BGRA> pixels,
-                     Span<Eigen::Array3f> intensities,
-                     const Eigen::Affine3f &film_to_world) {
+void IntegrateImage<ExecutionModel::GPU>::run(
+    bool output_as_bgra, const GeneralSettings &settings, bool show_progress,
+    const WorkDivision &division, unsigned samples_per, unsigned x_dim,
+    unsigned y_dim, const S &scene, const L &light_sampler,
+    const D &direction_sampler, const T &term_prob, const R &rng,
+    Span<BGRA> pixels, Span<Eigen::Array3f> intensities,
+    const Eigen::Affine3f &film_to_world) {
   size_t total_grid = division.total_num_blocks();
 
   size_t max_launch_size = settings.computation_settings.max_blocks_per_launch;
@@ -75,6 +88,7 @@ void integrate_image(bool output_as_bgra, const GeneralSettings &settings,
         term_prob, rng, pixels, intensities, film_to_world);
 
     CUDA_ERROR_CHK(cudaDeviceSynchronize());
+    CUDA_ERROR_CHK(cudaGetLastError());
 
     if (show_progress) {
       ++progress_bar;

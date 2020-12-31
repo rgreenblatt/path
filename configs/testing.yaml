@@ -14,8 +14,9 @@ settings:
     {}
   term_prob: MultiplierFunc
   term_prob_settings:
-    exp: 5
-    min_prob: 0.2
+    exp: 50.0
+    min_prob: 0.0
+    # prob: 0.4
   rng: Sobel
   rng_settings:
     # {}
@@ -26,12 +27,11 @@ settings:
     computation_settings:
       max_blocks_per_launch: 4096
       render_work_division:
-        block_size: 256
+        block_size: 512
         target_x_block_size: 32
-        target_y_block_size: 8
         force_target_samples: false
         forced_target_samples_per_thread: 8
-        # should be increased somewhat for more complex scenes
+        # should be increased somewhat for more complex scenes maybe to 262144
         base_num_threads: 16384
         samples_per_thread_scaling_power: 0.5
         max_samples_per_thread: 32

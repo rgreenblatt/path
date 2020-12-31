@@ -34,9 +34,10 @@ static void check_coverage(const WorkDivision &division) {
        ++block_idx) {
     for (unsigned thread_idx = 0; thread_idx < division.block_size();
          ++thread_idx) {
-      auto [start_sample, end_sample, x, y] =
-          division.get_thread_info(block_idx, thread_idx);
+      auto [start_sample, end_sample, x, y, exit] =
+          division.get_thread_info(block_idx, thread_idx, x_dim, y_dim);
 
+      ASSERT_FALSE(exit);
       ASSERT_EQ(start_sample, samples_covered_up_to);
       ASSERT_EQ(x, x_covered_up_to);
       ASSERT_EQ(y, y_covered_up_to);
@@ -84,7 +85,10 @@ static void check_dims_as_expected(const WorkDivision &division,
 }
 
 TEST(WorkDivision, combination) {
-  Settings settings{64, 16, 4, true, 2};
+  Settings settings{.block_size = 64,
+                    .target_x_block_size = 16,
+                    .force_target_samples = true,
+                    .forced_target_samples_per_thread = 2};
 
   for (unsigned x_dim : {1, 3, 17, 72, 128}) {
     for (unsigned y_dim : {1, 3, 17, 72, 128}) {

@@ -12,7 +12,7 @@ namespace intersect {
 template <std::copyable InfoType> struct Intersection {
   float intersection_dist;
   bool is_back_intersection;
-  InfoType info;
+  [[no_unique_address]] InfoType info;
 
   ATTR_PURE_NDEBUG HOST_DEVICE Eigen::Vector3f
   intersection_point(const Ray &ray) const {

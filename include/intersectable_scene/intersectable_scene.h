@@ -11,7 +11,7 @@
 namespace intersectable_scene {
 template <typename T>
 concept IntersectableScene = requires(const T &t, const intersect::Ray &ray) {
-  requires intersect::Object<T>;
+  requires intersect::Intersectable<T>;
   typename T::B;
   requires bsdf::BSDF<typename T::B>;
 

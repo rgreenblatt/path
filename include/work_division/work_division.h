@@ -18,10 +18,12 @@ public:
     unsigned end_sample;
     unsigned x;
     unsigned y;
+    bool exit;
   };
 
   ATTR_PURE_NDEBUG inline HOST_DEVICE ThreadInfo
-  get_thread_info(unsigned block_idx, unsigned thread_idx) const;
+  get_thread_info(unsigned block_idx, unsigned thread_idx, unsigned x_dim,
+                  unsigned y_dim) const;
 
   template <typename T, typename BinOp>
   inline DEVICE T reduce_samples(const T &val, const BinOp &op,

@@ -19,11 +19,10 @@ KDTree<execution_model> &
 KDTree<execution_model>::operator=(KDTree &&) = default;
 
 template <ExecutionModel execution_model>
-detail::Ref KDTree<execution_model>::gen_internal(const Settings &settings,
-                                                  const AABB &aabb) {
+detail::Ref KDTree<execution_model>::gen_internal(const Settings &settings) {
   auto [nodes, permutation] = gen_->gen(settings, bounds_);
 
-  return detail::Ref{nodes, permutation, aabb};
+  return detail::Ref{nodes, permutation};
 }
 
 template class KDTree<ExecutionModel::CPU>;

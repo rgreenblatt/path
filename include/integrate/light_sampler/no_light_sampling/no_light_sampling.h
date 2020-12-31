@@ -8,10 +8,7 @@ namespace light_sampler {
 namespace no_light_sampling {
 struct NoLightSampling {
 public:
-  class Ref {
-  public:
-    HOST_DEVICE Ref() = default;
-
+  struct Ref {
     HOST_DEVICE Ref(const Settings &) {}
 
     static constexpr unsigned max_sample_size = 0;

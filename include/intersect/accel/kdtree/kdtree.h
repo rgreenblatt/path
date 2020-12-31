@@ -17,9 +17,6 @@ namespace detail {
 struct Ref {
   SpanSized<const KDTreeNode<AABB>> nodes;
   Span<const unsigned> local_idx_to_global_idx;
-  AABB aabb;
-
-  ATTR_PURE constexpr const AABB &bounds() const { return aabb; }
 
   template <IntersectableAtIdx F>
   HOST_DEVICE inline AccelRet<F>
@@ -38,7 +35,7 @@ public:
 
   template <Bounded B>
   detail::Ref gen(const Settings &settings, SpanSized<const B> objects,
-                  const AABB &aabb) {
+                  const AABB &) {
     bounds_.resize(objects.size());
 
     for (unsigned i = 0; i < objects.size(); ++i) {
@@ -46,11 +43,11 @@ public:
       bounds_[i] = {aabb, aabb.max_bound - aabb.min_bound};
     }
 
-    return gen_internal(settings, aabb);
+    return gen_internal(settings);
   }
 
 private:
-  detail::Ref gen_internal(const Settings &settings, const AABB &aabb);
+  detail::Ref gen_internal(const Settings &settings);
 
   // PIMPL
   class Generator;

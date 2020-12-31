@@ -44,9 +44,11 @@ template <ExecutionModel exec> struct Uniform {
       std::conditional_t<exec == ExecutionModel::GPU, GPUState, CPUState>
           state_;
 
-      using GPUDist = std::tuple<>; // Nothing
+      struct GPUDist {}; // Nothing
       using CPUDist = std::uniform_real_distribution<float>;
-      std::conditional_t<exec == ExecutionModel::GPU, GPUDist, CPUDist> dist_;
+      [[no_unique_address]] std::conditional_t<exec == ExecutionModel::GPU,
+                                               GPUDist, CPUDist>
+          dist_;
     };
 
     HOST_DEVICE inline State get_generator(unsigned sample_idx,

@@ -29,6 +29,7 @@ void DirTreeGeneratorImpl<execution_model>::compute_aabbs() {
 
   // TODO: Needed???
   CUDA_ERROR_CHK(cudaDeviceSynchronize());
+  CUDA_ERROR_CHK(cudaGetLastError());
 }
 
 template class DirTreeGeneratorImpl<ExecutionModel::GPU>;

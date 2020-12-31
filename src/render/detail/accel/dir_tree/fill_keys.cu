@@ -81,6 +81,7 @@ template <> void DirTreeGeneratorImpl<ExecutionModel::GPU>::fill_keys() {
 
     // TODO: Needed???
     CUDA_ERROR_CHK(cudaDeviceSynchronize());
+    CUDA_ERROR_CHK(cudaGetLastError());
   });
 
   fill_keys_timer.report("fill keys");

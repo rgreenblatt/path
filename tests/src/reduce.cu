@@ -40,10 +40,10 @@ division_sum_samples(const WorkDivision division, Span<const T> in, Span<T> out,
   always_assert(blockDim.x == division.block_size());
   always_assert(division.num_sample_blocks() == 1);
 
-  auto [start_sample, end_sample, j, unused] =
-      division.get_thread_info(block_idx, thread_idx);
+  auto [start_sample, end_sample, j, unused, exit] =
+      division.get_thread_info(block_idx, thread_idx, num_locations, 1);
 
-  if (j >= num_locations) {
+  if (exit) {
     return;
   }
 
@@ -80,19 +80,12 @@ TEST(Reduce, sum) {
             }
 
             const unsigned target_x_block_size = block_size;
-            const unsigned target_y_block_size = 1;
             unsigned target_samples_per_thread = base_target_samples_per_thread;
             WorkDivision division;
             do {
-              division = WorkDivision(
-                  {
-                      block_size,
-                      target_x_block_size,
-                      target_y_block_size,
-                      true,
-                      target_samples_per_thread,
-                  },
-                  samples_per, size, 1);
+              division = WorkDivision({block_size, target_x_block_size, true,
+                                       target_samples_per_thread},
+                                      samples_per, size, 1);
               target_samples_per_thread *= 2;
             } while (division.num_sample_blocks() != 1);
 
@@ -124,6 +117,7 @@ TEST(Reduce, sum) {
                     samples_per);
 
             CUDA_ERROR_CHK(cudaDeviceSynchronize());
+            CUDA_ERROR_CHK(cudaGetLastError());
 
             std::vector<T> expected(num_locations, 0.f);
 

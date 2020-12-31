@@ -12,10 +12,7 @@ namespace accel {
 namespace loop_all {
 struct LoopAll {
   struct Ref {
-    AABB aabb;
     unsigned size;
-
-    ATTR_PURE constexpr const AABB &bounds() const { return aabb; }
 
     template <IntersectableAtIdx F>
     HOST_DEVICE inline AccelRet<F>
@@ -32,8 +29,8 @@ struct LoopAll {
   };
 
   template <typename B>
-  Ref gen(const Settings &, SpanSized<const B> objects, const AABB &aabb) {
-    return Ref{aabb, static_cast<unsigned>(objects.size())};
+  Ref gen(const Settings &, SpanSized<const B> objects, const AABB &) {
+    return Ref{static_cast<unsigned>(objects.size())};
   }
 };
 
