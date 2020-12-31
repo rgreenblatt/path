@@ -19,6 +19,7 @@ def get_name(run):
 
 
 def main(csv_files):
+    csv_files = list(filter(lambda x: x != "compile_commands.json", csv_files))
     benchmark_dicts = [json.load(open(f))["benchmarks"] for f in csv_files]
 
     names = set()

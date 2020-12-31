@@ -68,7 +68,10 @@ def get_builder(cmake_generator, page, use_ccache, lolcat, threads,
         ]
 
         if use_ccache:
-            gen_args += ["-DCMAKE_CXX_COMPILER_LAUNCHER=ccache"]
+            gen_args += [
+                "-DCMAKE_CXX_COMPILER_LAUNCHER=ccache",
+                "-DCMAKE_CUDA_COMPILER_LAUNCHER=ccache"
+            ]
 
         if cpu_only:
             gen_args += ["-DCPU_ONLY=ON"]
