@@ -68,7 +68,6 @@ DeviceVector<Eigen::Array3f> *reduce_intensities_gpu(
 
   return intensities_in;
 }
-
 } // namespace detail
 } // namespace render
 #endif
