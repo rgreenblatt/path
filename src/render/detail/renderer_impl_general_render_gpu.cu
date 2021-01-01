@@ -10,8 +10,6 @@
 
 #include <cli/ProgressBar.hpp>
 
-template <unsigned> struct Printer;
-
 namespace render {
 namespace detail {
 // could remove:
@@ -27,13 +25,6 @@ __global__ void integrate_image_global(
     unsigned y_dim, unsigned samples_per, const S scene, const L light_sampler,
     const D direction_sampler, const T term_prob, const R rng, Span<BGRA> bgras,
     Span<Eigen::Array3f> intensities, const Eigen::Affine3f film_to_world) {
-  // Printer<(sizeof(output_as_bgra) + sizeof(settings) + sizeof(start_blocks) +
-  //          sizeof(division) + sizeof(x_dim) + sizeof(y_dim) +
-  //          sizeof(samples_per) + sizeof(scene) + sizeof(light_sampler) +
-  //          sizeof(direction_sampler) + sizeof(term_prob) + sizeof(rng) +
-  //          sizeof(bgras) + sizeof(intensities) + sizeof(film_to_world))>
-  //     a;
-
   const unsigned block_idx = blockIdx.x + start_blocks;
   const unsigned thread_idx = threadIdx.x;
 
