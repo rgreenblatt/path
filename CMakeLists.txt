@@ -21,6 +21,7 @@ add_link_options(-fuse-ld=lld)
 
 # unfortunately required with c++20
 add_compile_options(-isystem ${CMAKE_SOURCE_DIR}/system/include/)
+add_compile_options(-DMAGIC_ENUM_RANGE_MIN=0 -DMAGIC_ENUM_RANGE_MAX=8)
 
 # required for Eigen
 add_compile_options(-Wno-deprecated-copy)
