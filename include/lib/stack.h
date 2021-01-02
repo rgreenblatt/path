@@ -1,44 +1,35 @@
 #pragma once
 
+#include "array_vec.h"
 #include "lib/assert.h"
 #include "lib/attribute.h"
 
-#include <array>
-#include <cstdint>
-#include <limits>
+#include <concepts>
 
-template <typename T, uint32_t max_size> class Stack {
+template <std::semiregular T, unsigned max_size> class Stack {
 public:
-  constexpr Stack() : size_(0) {}
-
-  constexpr void push(const T &v) {
-    debug_assert_assume(size_ < max_size);
-    arr_[size_] = v;
-    size_++;
-  }
+  constexpr void push(const T &v) { vec_.push_back(v); }
 
   constexpr T pop() {
-    debug_assert_assume(size_ != 0);
-    size_--;
-    return arr_[size_];
+    debug_assert_assume(vec_.size() != 0);
+    T out = vec_[last_idx()];
+    vec_.resize(last_idx());
+    return out;
   }
 
   ATTR_PURE_NDEBUG constexpr const T &peek() const {
-    debug_assert_assume(size_ != 0);
-    return arr_[size_ - 1];
+    debug_assert_assume(vec_.size() != 0);
+    return vec_[last_idx()];
   }
 
-  using SizeType = std::conditional_t<
-      (max_size > std::numeric_limits<uint16_t>::max()), uint32_t,
-      std::conditional_t<(max_size > std::numeric_limits<uint8_t>::max()),
-                         uint16_t, uint8_t>>;
+  ATTR_PURE_NDEBUG constexpr auto size() const { return vec_.size(); }
 
-  ATTR_PURE constexpr SizeType size() const { return size_; }
-
-  ATTR_PURE constexpr bool empty() const { return size_ == 0; }
+  ATTR_PURE_NDEBUG constexpr bool empty() const { return vec_.empty(); }
 
 private:
-  std::array<T, max_size> arr_;
+  ATTR_PURE_NDEBUG constexpr unsigned last_idx() const {
+    return vec_.size() - 1;
+  }
 
-  SizeType size_;
+  ArrayVec<T, max_size> vec_;
 };

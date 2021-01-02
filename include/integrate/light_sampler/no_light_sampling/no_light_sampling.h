@@ -15,10 +15,10 @@ public:
     static constexpr bool performs_samples = false;
 
     template <bsdf::BSDF B, rng::RngState R>
-    HOST_DEVICE LightSamples<max_sample_size>
+    HOST_DEVICE ArrayVec<LightSample, max_sample_size>
     operator()(const Eigen::Vector3f &, const bsdf::Material<B> &,
                const UnitVector &, const UnitVector &, R &) const {
-      return {{}, 0};
+      return {};
     }
   };
 

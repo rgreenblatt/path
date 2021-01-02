@@ -16,6 +16,12 @@ concept Intersectable = requires(const T &t, const Ray &ray) {
   ->DecaysTo<IntersectionOp<typename T::InfoType>>;
 };
 
+template <typename T, typename InfoType>
+concept IntersectableWithInfoType = requires {
+  requires Intersectable<T>;
+  requires std::same_as<typename T::InfoType, InfoType>;
+};
+
 struct MockIntersectable : MockNoRequirements {
   struct InfoType : MockSemiregular {};
 

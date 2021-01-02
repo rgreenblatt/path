@@ -5,6 +5,7 @@
 #include "integrate/dir_sample.h"
 #include "intersect/object.h"
 #include "intersect/transformed_object.h"
+#include "lib/array_vec.h"
 #include "lib/span.h"
 #include "lib/unit_vector.h"
 #include "rng/rng.h"
@@ -22,11 +23,6 @@ struct LightSample {
   float target_distance;
 };
 
-template <unsigned n> struct LightSamples {
-  std::array<LightSample, n> samples;
-  unsigned num_samples;
-};
-
 template <typename T, typename B>
 concept LightSamplerRef = requires(const T &light_sampler,
                                    const Eigen::Vector3f &position,
@@ -40,7 +36,7 @@ concept LightSamplerRef = requires(const T &light_sampler,
   T::performs_samples;
 
   { light_sampler(position, material, incoming_dir, normal, rng) }
-  ->DecaysTo<LightSamples<T::max_sample_size>>;
+  ->DecaysTo<ArrayVec<LightSample, T::max_sample_size>>;
 };
 
 // this concept is very dependent on the scene representation...

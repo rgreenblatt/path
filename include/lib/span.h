@@ -61,9 +61,9 @@ public:
     return size_;
   }
 
-  ATTR_PURE_NDEBUG constexpr T &operator[](const std::size_t index) const {
-    debug_assert(check_index(index));
-    return ptr_[index];
+  ATTR_PURE_NDEBUG constexpr T &operator[](const std::size_t idx) const {
+    debug_assert(check_index(idx));
+    return ptr_[idx];
   }
 
   ATTR_PURE constexpr T *data() const { return ptr_; }
@@ -112,9 +112,9 @@ private:
   friend class Span;
 };
 
-static_assert(sizeof(Span<unsigned, false, false>) == sizeof(int *));
-static_assert(sizeof(Span<unsigned, true, false>) == 2 * sizeof(int *));
-static_assert(sizeof(Span<unsigned, false, true>) == 2 * sizeof(int *));
+static_assert(sizeof(Span<int, false, false>) == sizeof(int *));
+static_assert(sizeof(Span<int, true, false>) == 2 * sizeof(int *));
+static_assert(sizeof(Span<int, false, true>) == 2 * sizeof(int *));
 } // namespace detail
 
 template <typename T, bool is_sized = false>

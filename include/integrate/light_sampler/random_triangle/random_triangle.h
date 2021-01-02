@@ -16,26 +16,21 @@ namespace integrate {
 namespace light_sampler {
 namespace random_triangle {
 namespace detail {
-constexpr Optional<unsigned> search(const float target,
-                                    SpanSized<const float> values,
-                                    const unsigned binary_search_threshold) {
-  Optional<unsigned> solution;
-
+constexpr unsigned search(const float target, SpanSized<const float> values,
+                          const unsigned binary_search_threshold) {
   if (values.size() < binary_search_threshold) {
     for (unsigned i = 0; i < values.size(); ++i) {
       if (values[i] >= target) {
-        solution = i;
-        break;
+        return i;
       }
     }
 
+    unreachable_unchecked();
   } else {
     // binary search
     // UNIMPLEMENTED...
     unreachable_unchecked();
   }
-
-  return solution;
 }
 
 class Ref {
@@ -52,69 +47,70 @@ public:
   static constexpr bool performs_samples = true;
 
   template <bsdf::BSDF B, rng::RngState R>
-  HOST_DEVICE LightSamples<max_sample_size>
+  HOST_DEVICE ArrayVec<LightSample, max_sample_size>
   operator()(const Eigen::Vector3f &position, const bsdf::Material<B> & /*mat*/,
              const UnitVector & /*incoming_dir*/, const UnitVector &normal,
              R &rng) const {
     if (cumulative_weights_.size() == 0) {
-      return LightSamples<max_sample_size>{{}, 0};
+      return {};
     }
 
     // TODO: SPEED, complexity, ...
 
-    const float search_value = rng.next();
-    const auto sample_idx_op = detail::search(search_value, cumulative_weights_,
-                                              binary_search_threshold_);
+    ArrayVec<LightSample, max_sample_size> out;
+    for (unsigned i = 0; i < max_sample_size; ++i) {
+      const float search_value = rng.next();
+      const unsigned sample_idx = detail::search(
+          search_value, cumulative_weights_, binary_search_threshold_);
 
-    if (!sample_idx_op.has_value()) {
-      return LightSamples<max_sample_size>{{}, 0};
+      debug_assert(sample_idx < cumulative_weights_.size());
+
+      const auto &triangle = triangles_[sample_idx];
+
+      float weight0 = rng.next();
+      float weight1 = rng.next();
+
+      if (weight0 + weight1 > 1.f) {
+        weight0 = 1 - weight0;
+        weight1 = 1 - weight1;
+      }
+
+      const auto &vertices = triangle.vertices;
+
+      // SPEED: cache vecs?
+      const auto vec0 = vertices[1] - vertices[0];
+      const auto vec1 = vertices[2] - vertices[0];
+
+      const auto point = vertices[0] + vec0 * weight0 + vec1 * weight1;
+
+      const Eigen::Vector3f direction_unnormalized = point - position;
+      const UnitVector direction =
+          UnitVector::new_normalize(direction_unnormalized);
+
+      // SPEED: cache normal?
+      const Eigen::Vector3f triangle_normal = triangle.normal_scaled_by_area();
+
+      const float prob_this_triangle =
+          get_size<float>(sample_idx, cumulative_weights_);
+
+      const float normal_weight =
+          std::abs(normal->dot(*direction) * triangle_normal.dot(*direction));
+
+      // case where we sample from the current triangle (or a parallel triangle)
+      if (normal_weight < 1e-8) {
+        // we could instead try to find a different sample, but that would
+        // increase divergence on the gpu and could result in an infinite loop
+        // if we aren't careful...
+        continue;
+      }
+
+      const float weight = normal_weight / direction_unnormalized.squaredNorm();
+
+      const FSample sample = {direction, prob_this_triangle / weight};
+      out.push_back({sample, direction_unnormalized.norm()});
     }
 
-    const unsigned sample_idx = *sample_idx_op;
-
-    debug_assert(sample_idx < cumulative_weights_.size());
-
-    const auto &triangle = triangles_[sample_idx];
-
-    float weight0 = rng.next();
-    float weight1 = rng.next();
-
-    if (weight0 + weight1 > 1.f) {
-      weight0 = 1 - weight0;
-      weight1 = 1 - weight1;
-    }
-
-    const auto &vertices = triangle.vertices;
-
-    // SPEED: cache vecs?
-    const auto vec0 = vertices[1] - vertices[0];
-    const auto vec1 = vertices[2] - vertices[0];
-
-    const Eigen::Vector3f point = vertices[0] + vec0 * weight0 + vec1 * weight1;
-
-    const Eigen::Vector3f direction_unnormalized = point - position;
-    const UnitVector direction =
-        UnitVector::new_normalize(direction_unnormalized);
-
-    // SPEED: cache normal?
-    const Eigen::Vector3f triangle_normal = triangle.normal_scaled_by_area();
-
-    const float prob_this_triangle =
-        get_size<float>(sample_idx, cumulative_weights_);
-
-    const float normal_weight =
-        std::abs(normal->dot(*direction) * triangle_normal.dot(*direction));
-
-    // case where we sample from the current triangle (or a parallel triangle)
-    if (normal_weight < 1e-8) {
-      return {{}, 0};
-    }
-
-    const float weight = normal_weight / direction_unnormalized.squaredNorm();
-
-    const FSample sample = {direction, prob_this_triangle / weight};
-
-    return {{{{sample, direction_unnormalized.norm()}}}, 1};
+    return out;
   }
 
 private:

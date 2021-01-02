@@ -2,6 +2,7 @@
 
 #include "lib/assert.h"
 #include "lib/attribute.h"
+#include "meta/aggregate_constructable_from.h"
 #include "meta/all_values.h"
 #include "meta/decays_to.h"
 #include "meta/get_idx.h"
@@ -31,6 +32,9 @@ template <typename First, typename... Rest>
 union VariadicUnion<First, Rest...> {
 public:
   constexpr VariadicUnion() : first_{} {}
+
+  // delegated to holder - must be manually destructed
+  constexpr ~VariadicUnion() {}
 
   template <std::size_t idx, typename... Args>
   requires(idx <=
@@ -73,30 +77,35 @@ private:
 
   template <E type> using Type = __type_pack_element<get_idx(type), T...>;
 
+  template <DecaysTo<TaggedUnion>... Ts, typename F>
+  static constexpr decltype(auto) visit_n_at_idx(unsigned idx, F &&f,
+                                                 Ts &&...vals) {
+    return sequential_look_up<values.size()>(idx, [&](auto value) {
+      constexpr unsigned idx = decltype(value)::value;
+      return f(ac::get<idx>(vals.union_)...);
+    });
+  }
+
   template <DecaysTo<TaggedUnion> First, DecaysTo<TaggedUnion>... Rest,
             typename F>
   static constexpr decltype(auto) visit_n(F &&f, First &&first,
                                           Rest &&...rest) {
     debug_assert(((first.idx_ == rest.idx_) && ... && true));
-    return sequential_look_up<values.size()>(first.idx_, [&](auto value) {
-      constexpr unsigned idx = decltype(value)::value;
-      return f(ac::get<idx>(first.union_), ac::get<idx>(rest.union_)...);
-    });
+    return visit_n_at_idx(first.idx_, f, first, rest...);
   }
 
 public:
   template <E tag, typename... Args>
-  requires(std::constructible_from<Type<tag>, Args...>) constexpr TaggedUnion(
+  requires(AggregateConstrucableFrom<Type<tag>, Args...>) constexpr TaggedUnion(
       Tag<tag>, Args &&...args)
       : idx_(get_idx(tag)), union_(std::in_place_index_t<get_idx(tag)>{},
                                    std::forward<Args>(args)...) {}
 
-  template <E tag>
-  constexpr TaggedUnion(Tag<tag>, Type<tag> &&value)
-      : idx_(get_idx(tag)), union_(std::in_place_index_t<get_idx(tag)>{},
-                                   std::forward<Type<tag>>(value)) {}
-
   constexpr TaggedUnion() : TaggedUnion(Tag<values[0]>{}) {}
+
+  constexpr ~TaggedUnion() {
+    visit([](auto &in) { destroy_input(in); });
+  }
 
   constexpr TaggedUnion(TaggedUnion &&other) : idx_(other.idx_) {
     visit_n([](auto &&l, auto &&r) { l = std::move(r); }, *this,
@@ -109,6 +118,7 @@ public:
 
   constexpr TaggedUnion &operator=(const TaggedUnion &other) {
     if (this != &other) {
+      this->TaggedUnion::~TaggedUnion();
       idx_ = other.idx_;
       visit_n([](auto &&l, auto &&r) { l = r; }, *this, other);
     }
@@ -117,15 +127,12 @@ public:
 
   constexpr TaggedUnion &operator=(TaggedUnion &&other) {
     if (this != &other) {
+      this->TaggedUnion::~TaggedUnion();
       idx_ = other.idx_;
       visit_n([](auto &&l, auto &&r) { l = std::move(r); }, *this,
               std::forward<TaggedUnion>(other));
     }
     return *this;
-  }
-
-  template <E type> constexpr static TaggedUnion create(Type<type> &&value) {
-    return TaggedUnion(Tag<type>{}, std::forward<Type<type>>(value));
   }
 
   template <E type, typename... Args>
@@ -151,6 +158,16 @@ public:
     return visit([&](auto &&v) { return f(type(), v); });
   }
 
+  template <E type> constexpr auto &get() {
+    debug_assert_assume(get_idx(type) == idx_);
+    return ac::get<get_idx(type)>(union_);
+  }
+
+  template <E type> constexpr const auto &get() const {
+    debug_assert_assume(get_idx(type) == idx_);
+    return ac::get<get_idx(type)>(union_);
+  }
+
   constexpr auto operator<=>(const TaggedUnion &other) const
       requires(... &&std::totally_ordered<T>) {
     if (idx_ != other.idx_) {
@@ -162,6 +179,8 @@ public:
   }
 
 private:
+  template <typename C> static constexpr void destroy_input(C &v) { v.C::~C(); }
+
   unsigned idx_;
   detail::VariadicUnion<T...> union_;
 };

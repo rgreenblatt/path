@@ -58,7 +58,7 @@ void Renderer::Impl<exec>::general_render(
 
         constexpr auto flat_accel_type = compile_time_settings.flat_accel_type;
 
-        auto scene_ref =
+        auto intersectable_scene =
             stored_scene_generators_.template get<flat_accel_type>().gen(
                 intersectable_scene::flat_triangle::Settings<
                     intersect::accel::enum_accel::Settings<flat_accel_type>>{
@@ -92,8 +92,8 @@ void Renderer::Impl<exec>::general_render(
 
         IntegrateImage<exec>::run(output_as_bgra, settings.general_settings,
                                   show_progress, division, samples_per, x_dim,
-                                  y_dim, scene_ref, light_sampler, dir_sampler,
-                                  term_prob, rng, output_pixels,
+                                  y_dim, intersectable_scene, light_sampler,
+                                  dir_sampler, term_prob, rng, output_pixels,
                                   output_intensities, s.film_to_world());
       },
       settings.compile_time);

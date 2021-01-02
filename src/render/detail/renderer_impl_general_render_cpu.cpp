@@ -14,7 +14,7 @@ template <intersectable_scene::IntersectableScene S,
 void IntegrateImage<ExecutionModel::CPU>::run(
     bool output_as_bgra, const GeneralSettings &settings, bool show_progress,
     const WorkDivision &, unsigned samples_per, unsigned x_dim, unsigned y_dim,
-    const S &scene, const L &light_sampler, const D &direction_sampler,
+    S &scene, const L &light_sampler, const D &direction_sampler,
     const T &term_prob, const R &rng, Span<BGRA> pixels,
     Span<Eigen::Array3f> intensities, const Eigen::Affine3f &film_to_world) {
   ProgressBar progress_bar(x_dim * y_dim, 70);
@@ -31,8 +31,8 @@ void IntegrateImage<ExecutionModel::CPU>::run(
           output_as_bgra, pixels, intensities, 0, 1, x, y, x_dim, samples_per,
           integrate_pixel(x, y, 0, samples_per,
                           settings.rendering_equation_settings, x_dim, y_dim,
-                          scene, light_sampler, direction_sampler, term_prob,
-                          rng, film_to_world));
+                          scene.intersectable(), scene.scene(), light_sampler,
+                          direction_sampler, term_prob, rng, film_to_world));
       if (show_progress) {
 #pragma omp critical
         {

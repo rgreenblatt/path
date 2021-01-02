@@ -29,9 +29,9 @@ template <ExecutionModel exec> struct IntegrateImage {
   static void run(bool output_as_bgra, const GeneralSettings &settings,
                   bool show_progress, const WorkDivision &division,
                   unsigned samples_per, unsigned x_dim, unsigned y_dim,
-                  const S &scene, const L &light_sampler,
-                  const D &direction_sampler, const T &term_prob, const R &rng,
-                  Span<BGRA> pixels, Span<Eigen::Array3f> intensities,
+                  S &scene, const L &light_sampler, const D &direction_sampler,
+                  const T &term_prob, const R &rng, Span<BGRA> pixels,
+                  Span<Eigen::Array3f> intensities,
                   const Eigen::Affine3f &film_to_world);
 };
 } // namespace detail

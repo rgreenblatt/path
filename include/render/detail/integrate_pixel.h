@@ -22,28 +22,29 @@ initial_ray(float x, float y, unsigned x_dim, unsigned y_dim,
   return ray;
 }
 
-template <intersectable_scene::IntersectableScene S,
+template <intersect::Intersectable I,
+          intersectable_scene::SceneRef<typename I::InfoType> S,
           LightSamplerRef<typename S::B> L, DirSamplerRef<typename S::B> D,
           TermProbRef T, rng::RngRef R>
 ATTR_NO_DISCARD_PURE HOST_DEVICE inline Eigen::Array3f integrate_pixel(
     unsigned x, unsigned y, unsigned start_sample, unsigned end_sample,
     const integrate::RenderingEquationSettings &settings, unsigned x_dim,
-    unsigned y_dim, const S &scene, const L &light_sampler,
-    const D &dir_sampler, const T &term_prob, const R &rng_ref,
-    const Eigen::Affine3f &film_to_world) {
-  auto initial_ray_sampler = [&](auto &rng) -> integrate::RaySampleDistance {
+    unsigned y_dim, const I &intersectable, const S &scene,
+    const L &light_sampler, const D &dir_sampler, const T &term_prob,
+    const R &rng_ref, const Eigen::Affine3f &film_to_world) {
+  auto initial_ray_sampler = [&](auto &rng) -> integrate::FRayRayInfo {
     float x_offset = rng.next();
     float y_offset = rng.next();
 
     float multiplier = 1.f;
     return {
         initial_ray(x + x_offset, y + y_offset, x_dim, y_dim, film_to_world),
-        multiplier, nullopt_value};
+        {multiplier, nullopt_value}};
   };
 
   return integrate::rendering_equation(
       initial_ray_sampler, start_sample, end_sample, x + y * x_dim, settings,
-      scene, light_sampler, dir_sampler, term_prob, rng_ref);
+      intersectable, scene, light_sampler, dir_sampler, term_prob, rng_ref);
 }
 } // namespace detail
 } // namespace render

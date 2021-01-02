@@ -17,24 +17,15 @@
 namespace intersectable_scene {
 namespace flat_triangle {
 namespace detail {
-template <intersect::accel::AccelRef Accel> struct Ref {
-  using B = scene::Material::BSDFT;
+using InfoType = intersect::accel::IdxHolder<intersect::Triangle::InfoType>;
+using Intersection = intersect::Intersection<InfoType>;
 
-  [[no_unique_address]] Accel accel;
+struct SceneRef {
   Span<const intersect::Triangle> triangles;
   Span<const scene::TriangleData> triangle_data;
   Span<const scene::Material> materials;
 
-  using InfoType = intersect::accel::IdxHolder<intersect::Triangle::InfoType>;
-
-  HOST_DEVICE inline auto intersect(const intersect::Ray &ray) const {
-    return accel.intersect_objects(
-        ray, [&](unsigned idx, const intersect::Ray &ray) {
-          return triangles[idx].intersect(ray);
-        });
-  }
-
-  using Intersection = intersect::Intersection<InfoType>;
+  using B = scene::Material::BSDFT;
 
   ATTR_PURE_NDEBUG HOST_DEVICE inline UnitVector
   get_normal(const Intersection &intersection,
@@ -50,6 +41,48 @@ template <intersect::accel::AccelRef Accel> struct Ref {
     auto [triangle_idx, triangle_info] = intersection.info;
 
     return materials[triangle_data[triangle_idx].material_idx()];
+  }
+};
+
+template <intersect::accel::AccelRef Accel> struct Ref {
+  [[no_unique_address]] Accel accel;
+  Span<const intersect::Triangle> triangles;
+  Span<const scene::TriangleData> triangle_data;
+  Span<const scene::Material> materials;
+
+  static constexpr bool individually_intersectable = true;
+
+  using InfoType = InfoType;
+  using B = scene::Material::BSDFT;
+
+  struct IntersectableRef {
+    [[no_unique_address]] Accel accel;
+    Span<const intersect::Triangle> triangles;
+
+    using InfoType = InfoType;
+
+    ATTR_PURE_NDEBUG HOST_DEVICE inline auto
+    intersect(const intersect::Ray &ray) const {
+      return accel.intersect_objects(
+          ray, [&](unsigned idx, const intersect::Ray &ray) {
+            return triangles[idx].intersect(ray);
+          });
+    }
+  };
+
+  ATTR_PURE_NDEBUG IntersectableRef intersectable() const {
+    return IntersectableRef{
+        accel,
+        triangles,
+    };
+  }
+
+  ATTR_PURE_NDEBUG SceneRef scene() const {
+    return SceneRef{
+        triangles,
+        triangle_data,
+        materials,
+    };
   }
 };
 

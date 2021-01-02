@@ -54,7 +54,7 @@ Material tinyobj_material_conversion(const tinyobj::material_t &material) {
                     emission};
   } else if (diffuse_non_zero && !specular_non_zero) {
     // ideal diffuse
-    return Material{{Union::create<BSDFType::Diffuse>({diffuse})}, emission};
+    return Material{{Union::create<BSDFType::Diffuse>(diffuse)}, emission};
   } else if (shininess > shininess_threshold) {
     if (diffuse_non_zero || !specular_non_zero) {
       std::cerr << "diffuse values non-zero or specular values zero for mirror "
@@ -64,7 +64,7 @@ Material tinyobj_material_conversion(const tinyobj::material_t &material) {
     }
 
     // ideal specular
-    return Material{{Union::create<BSDFType::Mirror>({specular})}, emission};
+    return Material{{Union::create<BSDFType::Mirror>(specular)}, emission};
   } else if (specular_non_zero /*&& !diffuse_non_zero*/) {
     return Material{{Union::create<BSDFType::Glossy>(specular, shininess)},
                     emission};

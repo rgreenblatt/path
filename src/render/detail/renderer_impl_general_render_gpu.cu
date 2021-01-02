@@ -16,14 +16,16 @@ namespace detail {
 //  - block size (from division)
 //  - samples_per
 //  - rng sequence_gen samples_per
-template <intersectable_scene::IntersectableScene S,
+template <intersect::Intersectable I,
+          intersectable_scene::SceneRef<typename I::InfoType> S,
           LightSamplerRef<typename S::B> L, DirSamplerRef<typename S::B> D,
           TermProbRef T, rng::RngRef R>
 __global__ void integrate_image_global(
     bool output_as_bgra, const integrate::RenderingEquationSettings settings,
     unsigned start_blocks, const WorkDivision division, unsigned x_dim,
-    unsigned y_dim, unsigned samples_per, const S scene, const L light_sampler,
-    const D direction_sampler, const T term_prob, const R rng, Span<BGRA> bgras,
+    unsigned y_dim, unsigned samples_per, const I &intersectable,
+    const S &scene, const L light_sampler, const D direction_sampler,
+    const T term_prob, const R rng, Span<BGRA> bgras,
     Span<Eigen::Array3f> intensities, const Eigen::Affine3f film_to_world) {
   const unsigned block_idx = blockIdx.x + start_blocks;
   const unsigned thread_idx = threadIdx.x;
@@ -38,8 +40,8 @@ __global__ void integrate_image_global(
   }
 
   auto intensity = integrate_pixel(
-      x, y, start_sample, end_sample, settings, x_dim, y_dim, scene,
-      light_sampler, direction_sampler, term_prob, rng, film_to_world);
+      x, y, start_sample, end_sample, settings, x_dim, y_dim, intersectable,
+      scene, light_sampler, direction_sampler, term_prob, rng, film_to_world);
 
   reduce_assign_output(thread_idx, block_idx, output_as_bgra, x, y, y_dim,
                        intensity, bgras, intensities, division, samples_per);
@@ -52,7 +54,7 @@ template <intersectable_scene::IntersectableScene S,
 void IntegrateImage<ExecutionModel::GPU>::run(
     bool output_as_bgra, const GeneralSettings &settings, bool show_progress,
     const WorkDivision &division, unsigned samples_per, unsigned x_dim,
-    unsigned y_dim, const S &scene, const L &light_sampler,
+    unsigned y_dim, S &scene, const L &light_sampler,
     const D &direction_sampler, const T &term_prob, const R &rng,
     Span<BGRA> pixels, Span<Eigen::Array3f> intensities,
     const Eigen::Affine3f &film_to_world) {
@@ -73,10 +75,12 @@ void IntegrateImage<ExecutionModel::GPU>::run(
     unsigned end = std::min((i + 1) * blocks_per, total_grid);
     unsigned grid = end - start;
 
+    // TODO
     integrate_image_global<<<grid, division.block_size()>>>(
         output_as_bgra, settings.rendering_equation_settings, start, division,
-        x_dim, y_dim, samples_per, scene, light_sampler, direction_sampler,
-        term_prob, rng, pixels, intensities, film_to_world);
+        x_dim, y_dim, samples_per, scene.intersectable(), scene.scene(),
+        light_sampler, direction_sampler, term_prob, rng, pixels, intensities,
+        film_to_world);
 
     CUDA_ERROR_CHK(cudaDeviceSynchronize());
     CUDA_ERROR_CHK(cudaGetLastError());
