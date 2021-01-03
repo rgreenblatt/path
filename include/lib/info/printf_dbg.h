@@ -97,6 +97,14 @@ constexpr auto combine(const First &first, const Rest &...rest) {
                          std::tuple_cat(std::get<1>(first), std::get<1>(rec)));
 }
 
+template <class T> constexpr std::string_view type_name() {
+#ifndef __clang__
+  static_assert(false);
+#endif
+  std::string_view p = __PRETTY_FUNCTION__;
+  return std::string_view(p.data() + 34, p.size() - 34 - 1);
+}
+
 template <typename First, typename... Rest>
 HOST_DEVICE inline decltype(auto)
 debug_print(std::string_view file_name, int line_number, std::string_view func,
@@ -125,7 +133,6 @@ debug_print(std::string_view file_name, int line_number, std::string_view func,
 
   return std::forward<First>(ret_val);
 }
-
 } // namespace detail
 } // namespace printf_dbg
 
