@@ -23,8 +23,8 @@ template <intersect::Intersectable I,
 __global__ void integrate_image_global(
     bool output_as_bgra, const integrate::RenderingEquationSettings settings,
     unsigned start_blocks, const WorkDivision division, unsigned x_dim,
-    unsigned y_dim, unsigned samples_per, const I &intersectable,
-    const S &scene, const L light_sampler, const D direction_sampler,
+    unsigned y_dim, unsigned samples_per, const I intersectable,
+    const S scene, const L light_sampler, const D direction_sampler,
     const T term_prob, const R rng, Span<BGRA> bgras,
     Span<Eigen::Array3f> intensities, const Eigen::Affine3f film_to_world) {
   const unsigned block_idx = blockIdx.x + start_blocks;

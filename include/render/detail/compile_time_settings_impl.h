@@ -13,8 +13,11 @@ private:
 
 public:
   // compile times don't change much from small constant values to 1...
-  static constexpr std::array<render::CompileTimeSettings, 1> values = {{
+  static constexpr std::array<render::CompileTimeSettings, 2> values = {{
       {AccelType::KDTree, LightSamplerType::RandomTriangle,
+       DirSamplerType::BSDF, TermProbType::MultiplierFunc,
+       rng::enum_rng::RngType::Sobel},
+      {AccelType::KDTree, LightSamplerType::NoLightSampling,
        DirSamplerType::BSDF, TermProbType::MultiplierFunc,
        rng::enum_rng::RngType::Sobel},
       // {AccelType::LoopAll, LightSamplerType::RandomTriangle,
