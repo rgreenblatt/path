@@ -95,7 +95,10 @@ rendering_equation_iteration(
     return !settings.back_cull_emission || !intersection.is_back_intersection;
   };
 
-  auto intensity = old_intensity;
+  RenderingEquationState<L::max_sample_size> new_state;
+  new_state.iters = iters + 1;
+  new_state.intensity = old_intensity;
+  auto& intensity = new_state.intensity;
 
   debug_assert_assume(light_samples.size() ==
                       intersections.size() - has_next_sample);
@@ -109,7 +112,8 @@ rendering_equation_iteration(
       continue;
     }
 
-    intensity += scene.get_material(*intersection_op).emission * multiplier;
+    intensity += scene.get_material(*intersection_op).emission *
+                 multiplier;
   }
 
   auto finish = [&] {
@@ -143,9 +147,6 @@ rendering_equation_iteration(
   }
 
   const auto &&normal = scene.get_normal(next_intersection, last_ray);
-
-  RenderingEquationState<L::max_sample_size> new_state;
-  new_state.iters = iters + 1;
 
   using B = typename S::B;
 
@@ -243,6 +244,7 @@ ATTR_NO_DISCARD_PURE HOST_DEVICE inline Eigen::Array3f rendering_equation(
     if (finished) {
       rng = rng_ref.get_generator(sample_idx, location);
       auto [ray_v, sample] = initial_ray_sampler(rng);
+      rays.resize(0);
       rays.push_back(ray_v);
       state = RenderingEquationState<L::max_sample_size>::initial_state(sample);
       finished = false;
