@@ -1,6 +1,7 @@
 #include "render/renderer_from_files.h"
 #include "lib/assert.h"
 #include "lib/serialize_enum.h"
+#include "lib/serialize_tagged_union.h"
 #include "render/renderer.h"
 #include "render/settings.h"
 #include "scene/scenefile_compat/scenefile_loader.h"

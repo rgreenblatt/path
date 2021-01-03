@@ -64,20 +64,19 @@ private:
   SizeType size_;
 };
 
-template <typename T> struct GetPtrImpl;
-template <typename T> struct GetSizeImpl;
+template <typename> struct is_array_vec : std::false_type {};
 
-template <std::semiregular T, unsigned max_size>
-struct GetPtrImpl<ArrayVec<T, max_size>> {
-  ATTR_PURE_NDEBUG static constexpr auto get(ArrayVec<T, max_size> &&v) {
-    return v.data();
-  }
+template <typename T, unsigned max_size>
+struct is_array_vec<ArrayVec<T, max_size>> : std::true_type {};
+
+template <typename T>
+concept ArrayVecSpecialization = is_array_vec<std::decay_t<T>>::value;
+
+template <ArrayVecSpecialization T> struct GetPtrImpl<T> {
+  ATTR_PURE_NDEBUG static constexpr auto get(T &&v) { return v.data(); }
 };
-template <std::semiregular T, unsigned max_size>
-struct GetSizeImpl<ArrayVec<T, max_size>> {
-  ATTR_PURE_NDEBUG constexpr static auto get(ArrayVec<T, max_size> &&v) {
-    return v.size();
-  }
+template <ArrayVecSpecialization T> struct GetSizeImpl<T> {
+  ATTR_PURE_NDEBUG constexpr static auto get(const T &v) { return v.size(); }
 };
 
 static_assert(GetPtr<ArrayVec<MockSemiregular, 0>, MockSemiregular>);

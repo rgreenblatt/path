@@ -1,9 +1,8 @@
 #pragma once
 
 #include "lib/attribute.h"
+#include "lib/serialize.h"
 #include "meta/mock.h"
-
-#include <cereal/name_value_pair.hpp>
 
 #include <concepts>
 #include <type_traits>
@@ -28,6 +27,3 @@ struct EmptySettings {
 };
 
 static_assert(Setting<EmptySettings>);
-
-// convenience macro for use in serialize
-#define NVP(T) CEREAL_NVP(T)

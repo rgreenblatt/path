@@ -9,9 +9,6 @@
 #include <type_traits>
 #include <utility>
 
-// useful utility for the above
-template <bool v> using BoolWrapper = std::integral_constant<bool, v>;
-
 // apply predicate to all values and return true if it holds for all of them
 template <AllValuesEnumerable... T> struct PredicateForAllValues {
   static constexpr auto values = AllValues<std::tuple<T...>>;
@@ -29,3 +26,6 @@ template <AllValuesEnumerable... T> struct PredicateForAllValues {
         }(i));
       });
 };
+
+// useful utility for the above
+template <bool v> using BoolWrapper = std::integral_constant<bool, v>;

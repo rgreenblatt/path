@@ -41,10 +41,10 @@ public:
       (GetSize<V> ||
        (!is_sized && SpanSpecialization<V> &&
         std::decay_t<V>::is_debug == is_debug)) constexpr Span(V &&v)
-      : ptr_(GetPtrT<V, T>::get(std::forward<V>(v))) {
+      : ptr_(get_ptr<T>(std::forward<V>(v))) {
     if constexpr (use_size) {
       if constexpr (GetSize<V>) {
-        size_ = GetSizeT<V>::get(std::forward<V>(v));
+        size_ = get_size(v);
       } else {
         size_ = v.size_;
         static_assert(SpanSpecialization<V>);
@@ -87,7 +87,8 @@ public:
     return *this;
   }
 
-  ATTR_PURE_NDEBUG constexpr Span<const T, false, is_debug> as_const() const {
+  ATTR_PURE_NDEBUG constexpr Span<const T, is_sized, is_debug>
+  as_const() const {
     return *this;
   }
 
@@ -120,13 +121,24 @@ static_assert(sizeof(Span<int, false, true>) == 2 * sizeof(int *));
 template <typename T, bool is_sized = false>
 using Span = detail::Span<T, is_sized, debug_build>;
 
-template <SpanSpecialization SpanT>
-requires SpanT::is_sized struct GetSizeImpl<SpanT> {
-  ATTR_PURE static constexpr std::size_t get(SpanT &&v) { return v.size(); }
+template <typename T> using SpanSized = Span<T, true>;
+
+template <typename T> concept SizedSpanSpecialization = requires {
+  requires SpanSpecialization<T>;
+  requires std::decay_t<T>::is_sized;
+};
+
+template <SizedSpanSpecialization SpanT> struct GetSizeImpl<SpanT> {
+  ATTR_PURE static constexpr std::size_t get(const SpanT &v) {
+    return v.size();
+  }
 };
 
 template <SpanSpecialization SpanT> struct GetPtrImpl<SpanT> {
   ATTR_PURE static constexpr auto get(SpanT &&v) { return v.data(); }
 };
 
-template <typename T> using SpanSized = Span<T, true>;
+static_assert(!SizedSpanSpecialization<Span<bool>>);
+static_assert(!GetSize<Span<bool>>);
+static_assert(SizedSpanSpecialization<SpanSized<bool>>);
+static_assert(GetSize<SpanSized<bool>>);

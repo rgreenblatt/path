@@ -78,11 +78,10 @@ rendering_equation_iteration(
     const RenderingEquationState<L::max_sample_size> &state, R &rng,
     const ArrayVec<intersect::IntersectionOp<InfoType>, L::max_sample_size + 1>
         &intersections,
-    const RenderingEquationSettings &settings,
-    const S &scene, const L &light_sampler, const D &dir_sampler,
-    const T &term_prob) {
-  const auto &[iters, count_emission, has_next_sample, ray_ray_info, light_samples,
-               old_intensity] = state;
+    const RenderingEquationSettings &settings, const S &scene,
+    const L &light_sampler, const D &dir_sampler, const T &term_prob) {
+  const auto &[iters, count_emission, has_next_sample, ray_ray_info,
+               light_samples, old_intensity] = state;
 
   auto use_intersection = [&](const auto &intersection,
                               Optional<float> target_distance) {
@@ -100,7 +99,7 @@ rendering_equation_iteration(
   RenderingEquationState<L::max_sample_size> new_state;
   new_state.iters = iters + 1;
   new_state.intensity = old_intensity;
-  auto& intensity = new_state.intensity;
+  auto &intensity = new_state.intensity;
 
   debug_assert_assume(light_samples.size() ==
                       intersections.size() - has_next_sample);
@@ -114,27 +113,21 @@ rendering_equation_iteration(
       continue;
     }
 
-    intensity += scene.get_material(*intersection_op).emission *
-                 multiplier;
+    intensity += scene.get_material(*intersection_op).emission * multiplier;
   }
 
-  auto finish = [&] {
-    return IterationOutput<L::max_sample_size>::template create<
-        IterationOutputType::Finished>(intensity);
-  };
-
   if (!has_next_sample) {
-    return finish();
+    return {TAG(IterationOutputType::Finished), intensity};
   }
 
   debug_assert(intersections.size() > 0);
 
-  const auto& ray = ray_ray_info.ray;
+  const auto &ray = ray_ray_info.ray;
   const auto &next_intersection_op = intersections[intersections.size() - 1];
 
   if (!use_intersection(next_intersection_op,
                         ray_ray_info.info.target_distance)) {
-    return finish();
+    return {TAG(IterationOutputType::Finished), intensity};
   }
 
   const auto &next_intersection = *next_intersection_op;
@@ -211,17 +204,16 @@ rendering_equation_iteration(
     debug_assert(new_multiplier.y() >= 0.0f);
     debug_assert(new_multiplier.z() >= 0.0f);
 
-    intersect::Ray new_ray {intersection_point, sample.sample.direction};
+    intersect::Ray new_ray{intersection_point, sample.sample.direction};
     new_state.ray_ray_info = {new_ray, {new_multiplier, nullopt_value}};
     new_rays.push_back(new_ray);
   } else {
     if (new_rays.size() == 0) {
-      return finish();
+      return {TAG(IterationOutputType::Finished), intensity};
     }
   }
 
-  return IterationOutput<L::max_sample_size>::template create<
-      IterationOutputType::NextIteration>(new_state, new_rays);
+  return {TAG(IterationOutputType::NextIteration), new_state, new_rays};
 }
 
 template <typename F, intersect::Intersectable I,
@@ -267,19 +259,19 @@ ATTR_NO_DISCARD_PURE HOST_DEVICE inline Eigen::Array3f rendering_equation(
     debug_assert_assume(intersections.size() == rays.size());
     debug_assert_assume(rays.size() > 0);
 
-    auto output = rendering_equation_iteration(
-        state, rng, intersections, settings, scene,
-        light_sampler, dir_sampler, term_prob);
+    auto output =
+        rendering_equation_iteration(state, rng, intersections, settings, scene,
+                                     light_sampler, dir_sampler, term_prob);
 
     switch (output.type()) {
     case IterationOutputType::NextIteration: {
       auto [new_state, new_rays] =
-          output.template get<IterationOutputType::NextIteration>();
+          output.get(TAG(IterationOutputType::NextIteration));
       state = new_state;
       rays = new_rays;
     } break;
     case IterationOutputType::Finished:
-      intensity += output.template get<IterationOutputType::Finished>();
+      intensity += output.get(TAG(IterationOutputType::Finished));
       finished = true;
       break;
     };

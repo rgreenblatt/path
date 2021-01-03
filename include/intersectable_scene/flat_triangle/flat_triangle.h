@@ -124,14 +124,14 @@ public:
     host_triangle_values_.copy_to_other(triangle_values_);
     copy_to_vec(scene.materials(), materials_);
 
-    auto accel_ref = accel_.template gen<intersect::Triangle>(
-        settings.accel_settings,
-        host_triangle_values_.template get<TriItem::Triangle>(),
-        scene.overall_aabb());
+    auto accel_ref =
+        accel_.gen(settings.accel_settings,
+                   host_triangle_values_.get(TAG(TriItem::Triangle)).as_const(),
+                   scene.overall_aabb());
 
     return detail::Ref<std::decay_t<decltype(accel_ref)>>{
-        accel_ref, triangle_values_.template get<TriItem::Triangle>(),
-        triangle_values_.template get<TriItem::Data>(), materials_};
+        accel_ref, triangle_values_.get(TAG(TriItem::Triangle)),
+        triangle_values_.get(TAG(TriItem::Data)), materials_};
   }
 
 private:

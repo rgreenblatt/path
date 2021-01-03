@@ -4,7 +4,7 @@
 #include "data_structure/vector.h"
 #include "lib/span.h"
 #include "meta/all_values.h"
-#include "meta/get_idx.h"
+#include "meta/tag.h"
 
 #include <boost/hana/ext/std/array.hpp>
 #include <boost/hana/ext/std/tuple.hpp>
@@ -38,27 +38,14 @@ public:
 
   unsigned size() const { return std::get<0>(data_).size(); }
 
-  template <E value>
-  SpanSized<__type_pack_element<get_idx(value), T...>> get() {
-    return std::get<get_idx(value)>(data_);
+  template <unsigned idx>
+  SpanSized<__type_pack_element<idx, T...>> get(Tag<E, idx>) {
+    return std::get<idx>(data_);
   }
 
-  template <E value>
-  SpanSized<const __type_pack_element<get_idx(value), T...>> get() const {
-    return std::get<get_idx(value)>(data_);
-  }
-
-  template <E value> using Tag = Tag<E, value>;
-
-  template <E value>
-  SpanSized<__type_pack_element<get_idx(value), T...>> get(Tag<value>) {
-    return get<value>();
-  }
-
-  template <E value>
-  SpanSized<const __type_pack_element<get_idx(value), T...>>
-  get(Tag<value>) const {
-    return get<value>();
+  template <unsigned idx>
+  SpanSized<const __type_pack_element<idx, T...>> get(Tag<E, idx>) const {
+    return std::get<idx>(data_);
   }
 
   SpanSized<FirstType> operator[](unsigned i) requires(all_types_same) {

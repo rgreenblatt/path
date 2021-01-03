@@ -3,14 +3,10 @@
 #include "lib/assert.h"
 #include "meta/all_values.h"
 #include "meta/sequential_look_up.h"
+#include "meta/tag.h"
 
 #include <iostream>
 #include <map>
-
-template <AllValuesEnumerable T, unsigned idx> struct Holder {
-  static_assert(idx < AllValues<T>.size());
-  static constexpr auto value = AllValues<T>[idx];
-};
 
 template <typename F, AllValuesEnumerable T>
 auto dispatch_value(const F &f, T value) {
@@ -42,5 +38,5 @@ auto dispatch_value(const F &f, T value) {
   }
 
   return sequential_look_up<AllValues<T>.size()>(
-      it->second, [&](auto i) { return f(Holder<T, decltype(i)::value>{}); });
+      it->second, [&](auto i) { return f(Tag<T, decltype(i)::value>{}); });
 }

@@ -4,7 +4,6 @@
 #include "intersect/triangle_impl.h"
 #include "lib/group.h"
 #include "meta/dispatch_value.h"
-#include "render/detail/compile_time_settings_impl.h"
 #include "render/detail/integrate_image.h"
 #include "render/detail/reduce_intensities_gpu.h"
 #include "render/detail/renderer_impl.h"
@@ -52,43 +51,45 @@ void Renderer::Impl<exec>::general_render(
   }
 
   dispatch_value(
-      [&](auto &&settings_tup) {
-        constexpr CompileTimeSettings compile_time_settings =
-            std::decay_t<decltype(settings_tup)>::value;
+      [&](auto compile_time_holder) {
+        constexpr auto compile_time = decltype(compile_time_holder)::value;
 
-        constexpr auto flat_accel_type = compile_time_settings.flat_accel_type;
+        constexpr auto flat_accel_type = compile_time.flat_accel_type;
 
+        // TODO: Clean up template??
         auto intersectable_scene =
-            stored_scene_generators_.template get<flat_accel_type>().gen(
-                intersectable_scene::flat_triangle::Settings<
-                    intersect::accel::enum_accel::Settings<flat_accel_type>>{
-                    settings.flat_accel.template get<flat_accel_type>()},
-                s);
+            stored_scene_generators_.get(TAG(flat_accel_type))
+                .gen(
+                    intersectable_scene::flat_triangle::Settings<
+                        intersect::accel::enum_accel::Settings<
+                            flat_accel_type>>{
+                        settings.flat_accel.get(TAG(flat_accel_type))},
+                    s);
 
-        constexpr auto light_sampler_type =
-            compile_time_settings.light_sampler_type;
-        constexpr auto dir_sampler_type =
-            compile_time_settings.dir_sampler_type;
-        constexpr auto term_prob_type = compile_time_settings.term_prob_type;
-        constexpr auto rng_type = compile_time_settings.rng_type;
+        constexpr auto light_sampler_type = compile_time.light_sampler_type;
+        constexpr auto dir_sampler_type = compile_time.dir_sampler_type;
+        constexpr auto term_prob_type = compile_time.term_prob_type;
+        constexpr auto rng_type = compile_time.rng_type;
 
         auto light_sampler =
-            light_samplers_.template get<light_sampler_type>().gen(
-                settings.light_sampler.template get<light_sampler_type>(),
-                s.emissive_clusters(), s.emissive_cluster_ends_per_mesh(),
-                s.materials().as_unsized(), s.transformed_mesh_objects(),
-                s.transformed_mesh_idxs(), s.triangles().as_unsized());
+            light_samplers_.get(TAG(light_sampler_type))
+                .gen(settings.light_sampler.get(TAG(light_sampler_type)),
+                     s.emissive_clusters(), s.emissive_cluster_ends_per_mesh(),
+                     s.materials().as_unsized(), s.transformed_mesh_objects(),
+                     s.transformed_mesh_idxs(), s.triangles().as_unsized());
 
-        auto dir_sampler = dir_samplers_.template get<dir_sampler_type>().gen(
-            settings.dir_sampler.template get<dir_sampler_type>());
+        auto dir_sampler =
+            dir_samplers_.get(TAG(dir_sampler_type))
+                .gen(settings.dir_sampler.get(TAG(dir_sampler_type)));
 
-        auto term_prob = term_probs_.template get<term_prob_type>().gen(
-            settings.term_prob.template get<term_prob_type>());
+        auto term_prob = term_probs_.get(TAG(term_prob_type))
+                             .gen(settings.term_prob.get(TAG(term_prob_type)));
 
         unsigned n_locations = x_dim * y_dim;
 
-        auto rng = rngs_.template get<rng_type>().gen(
-            settings.rng.template get<rng_type>(), samples_per, n_locations);
+        auto rng =
+            rngs_.get(TAG(rng_type))
+                .gen(settings.rng.get(TAG(rng_type)), samples_per, n_locations);
 
         IntegrateImage<exec>::run(output_as_bgra, settings.general_settings,
                                   show_progress, division, samples_per, x_dim,
@@ -96,7 +97,7 @@ void Renderer::Impl<exec>::general_render(
                                   dir_sampler, term_prob, rng, output_pixels,
                                   output_intensities, s.film_to_world());
       },
-      settings.compile_time);
+      settings.compile_time());
 
   if constexpr (exec == ExecutionModel::GPU) {
     auto intensities_gpu = reduce_intensities_gpu(

@@ -6,6 +6,7 @@
 #include "intersect/triangle_impl.h"
 #include "lib/optional.h"
 #include "lib/span.h"
+#include "meta/tag.h"
 
 #include <gtest/gtest.h>
 #include <thrust/device_vector.h>
@@ -23,18 +24,17 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
 
   using Test = std::tuple<Ray, Optional<unsigned>>;
 
-  auto run_tests = [&]<ExecutionModel execution_model>(
-                       const HostDeviceVector<Triangle> &triangles,
+  auto run_tests = [&](auto exec_tag, SpanSized<const Triangle> triangles,
                        const HostDeviceVector<Test> &test_expected) {
-    EnumAccel<type, execution_model> inst;
+    constexpr auto exec = decltype(exec_tag)::value;
+    EnumAccel<type, exec> inst;
 
     // Perhaps test partial
-    auto ref = inst.template gen<Triangle>(settings, triangles, AABB());
+    auto ref = inst.gen(settings, triangles, AABB());
 
     HostDeviceVector<Optional<unsigned>> results(test_expected.size());
-    Span<const Triangle> triangles_span = triangles;
 
-    ThrustData<execution_model> data;
+    ThrustData<exec> data;
 
     thrust::transform(
         data.execution_policy(), test_expected.data(),
@@ -43,7 +43,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
           auto [ray, _] = test;
           auto a =
               ref.intersect_objects(ray, [&](unsigned idx, const Ray &ray) {
-                return triangles_span[idx].intersect(ray);
+                return triangles[idx].intersect(ray);
               });
           return a.op_map([](const auto &v) { return v.info.idx; });
         });
@@ -70,7 +70,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
         {Ray{{0.1, 0.1, -1}, UnitVector::new_normalize({0, 0, 1})}, 0},
     };
 
-    run_tests.template operator()<ExecutionModel::CPU>(triangles, tests);
+    run_tests(TAG(ExecutionModel::CPU), triangles, tests);
   }
 
   const unsigned num_trials = 10;
@@ -82,7 +82,8 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
     for (unsigned trial_idx = 0; trial_idx < num_trials; ++trial_idx) {
       unsigned num_triangles = num_triangles_gen(gen);
 
-      HostDeviceVector<Triangle> triangles(num_triangles);
+      HostDeviceVector<Triangle> triangles_vec(num_triangles);
+      SpanSized<Triangle> triangles = triangles_vec;
 
       auto random_vec = [&] {
         return Eigen::Vector3f{float_gen(gen), float_gen(gen), float_gen(gen)};
@@ -96,8 +97,8 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
 
       EnumAccel<AccelType::LoopAll, ExecutionModel::CPU> loop_all_inst;
 
-      auto loop_all_ref = loop_all_inst.template gen<Triangle>(
-          Settings<AccelType::LoopAll>(), triangles, AABB());
+      auto loop_all_ref = loop_all_inst.gen(Settings<AccelType::LoopAll>(),
+                                            triangles.as_const(), AABB());
 
       auto get_ground_truth = [&](const Ray &ray) -> Optional<unsigned> {
         auto a = loop_all_ref.intersect_objects(
@@ -119,9 +120,9 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
       }
 
       if (is_gpu) {
-        run_tests.template operator()<ExecutionModel::GPU>(triangles, tests);
+        run_tests(TAG(ExecutionModel::GPU), triangles, tests);
       } else {
-        run_tests.template operator()<ExecutionModel::CPU>(triangles, tests);
+        run_tests(TAG(ExecutionModel::CPU), triangles, tests);
       }
     }
   }

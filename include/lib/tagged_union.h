@@ -9,6 +9,7 @@
 #include "meta/per_instance.h"
 #include "meta/sequential_look_up.h"
 #include "meta/specialization_of.h"
+#include "meta/tag.h"
 
 #include <boost/hana/fold_left.hpp>
 #include <boost/hana/unpack.hpp>
@@ -42,10 +43,10 @@ public:
   requires(idx <=
            sizeof...(Rest)) constexpr VariadicUnion(std::in_place_index_t<idx>,
                                                     Args &&...args)
-      : rest_(std::in_place_index_t<idx - 1>{}, std::forward<Args>(args)...) {}
+      : rest_(std::in_place_index_t<idx - 1u>{}, std::forward<Args>(args)...) {}
 
   template <typename... Args>
-  constexpr VariadicUnion(std::in_place_index_t<std::size_t(0)>, Args &&...args)
+  constexpr VariadicUnion(std::in_place_index_t<0u>, Args &&...args)
       : first_{std::forward<Args>(args)...} {}
 
 private:
@@ -56,7 +57,7 @@ private:
 };
 
 struct access {
-  template <std::size_t idx, SpecializationOf<VariadicUnion> UnionType>
+  template <unsigned idx, SpecializationOf<VariadicUnion> UnionType>
   static constexpr auto &&get(UnionType &&v) {
     if constexpr (idx == 0) {
       return v.first_;
@@ -74,40 +75,40 @@ requires(AllValues<E>.size() == sizeof...(T) &&
 private:
   static constexpr auto values = AllValues<E>;
 
-  template <E tag> using Tag = Tag<E, tag>;
-
   using ac = tagged_union::detail::access;
 
-  template <E type> using Type = __type_pack_element<get_idx(type), T...>;
-
-  template <DecaysTo<TaggedUnion>... Ts, typename F>
-  static constexpr decltype(auto) visit_n_at_idx(unsigned idx, F &&f,
-                                                 Ts &&...vals) {
-    return sequential_look_up<values.size()>(idx, [&](auto value) {
-      constexpr unsigned idx = decltype(value)::value;
-      return f(ac::get<idx>(vals.union_)...);
-    });
-  }
+  template <unsigned idx> using Type = __type_pack_element<idx, T...>;
 
   template <DecaysTo<TaggedUnion> First, DecaysTo<TaggedUnion>... Rest,
             typename F>
   static constexpr decltype(auto) visit_n(F &&f, First &&first,
                                           Rest &&...rest) {
     debug_assert(((first.idx_ == rest.idx_) && ... && true));
-    return visit_n_at_idx(first.idx_, f, first, rest...);
+    return [&](auto &&...vals) {
+      return sequential_look_up<values.size()>(first.idx_, [&](auto value) {
+        constexpr unsigned idx = decltype(value)::value;
+        return f(ac::get<idx>(vals.union_)...);
+      });
+    }(first, rest...);
   }
 
 public:
-  template <E tag, typename... Args>
-  requires(AggregateConstrucableFrom<Type<tag>, Args...>) constexpr TaggedUnion(
-      Tag<tag>, Args &&...args)
-      : idx_(get_idx(tag)), union_(std::in_place_index_t<get_idx(tag)>{},
-                                   std::forward<Args>(args)...) {}
+  template <unsigned idx, typename... Args>
+  requires(AggregateConstrucableFrom<Type<idx>, Args...>) constexpr TaggedUnion(
+      Tag<E, idx>, Args &&...args)
+      : idx_(idx),
+        union_(std::in_place_index_t<idx>{}, std::forward<Args>(args)...) {}
 
-  constexpr TaggedUnion() : TaggedUnion(Tag<values[0]>{}) {}
+  constexpr TaggedUnion() : TaggedUnion(Tag<E, 0>{}) {}
 
   constexpr ~TaggedUnion() {
-    visit([](auto &in) { destroy_input(in); });
+    // while c++ isn't clever enough to realize that this can make
+    // TaggedUnion trivially destructible, this does allow for copying
+    // to an uninitialized TaggedUnion with operator= without running
+    // into issues with the uninitialized index...
+    if constexpr ((... || !std::is_trivially_destructible_v<T>)) {
+      visit([](auto &in) { destroy_input(in); });
+    }
   }
 
   constexpr TaggedUnion(TaggedUnion &&other) : idx_(other.idx_) {
@@ -138,11 +139,6 @@ public:
     return *this;
   }
 
-  template <E type, typename... Args>
-  constexpr static TaggedUnion create(Args &&...args) {
-    return TaggedUnion(Tag<type>{}, std::forward<Args>(args)...);
-  }
-
   ATTR_PURE_NDEBUG constexpr E type() const { return values[idx_]; }
 
   template <typename F> constexpr decltype(auto) visit(F &&f) const {
@@ -161,14 +157,16 @@ public:
     return visit([&](auto &&v) { return f(type(), v); });
   }
 
-  template <E type> constexpr auto &get() {
-    debug_assert_assume(get_idx(type) == idx_);
-    return ac::get<get_idx(type)>(union_);
+  template <unsigned idx>
+  ATTR_PURE_NDEBUG constexpr decltype(auto) get(Tag<E, idx>) {
+    debug_assert_assume(idx == idx_);
+    return ac::get<idx>(union_);
   }
 
-  template <E type> constexpr const auto &get() const {
-    debug_assert_assume(get_idx(type) == idx_);
-    return ac::get<get_idx(type)>(union_);
+  template <unsigned idx>
+  ATTR_PURE_NDEBUG constexpr decltype(auto) get(Tag<E, idx>) const {
+    debug_assert_assume(idx == idx_);
+    return ac::get<idx>(union_);
   }
 
   constexpr auto operator<=>(const TaggedUnion &other) const
@@ -178,6 +176,16 @@ public:
     }
 
     return visit_n([](const auto &l, const auto &r) { return l <=> r; }, *this,
+                   other);
+  }
+
+  constexpr bool operator==(const TaggedUnion &other) const
+      requires(... &&std::equality_comparable<T>) {
+    if (idx_ != other.idx_) {
+      return false;
+    }
+
+    return visit_n([](const auto &l, const auto &r) { return l == r; }, *this,
                    other);
   }
 
@@ -192,8 +200,7 @@ namespace tagged_union {
 namespace detail {
 template <AllValuesEnumerable T, template <T> class TypeOver>
 struct TaggedUnionPerInstanceImpl {
-  template<typename...Ts>
-  using Impl = TaggedUnion<T, Ts...>;
+  template <typename... Ts> using Impl = TaggedUnion<T, Ts...>;
 
   using type = PerInstance<T, TypeOver, Impl>;
 };

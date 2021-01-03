@@ -25,6 +25,12 @@ template <typename T> concept AllValuesEnumerable = requires {
   requires StdArrayOfType<decltype(AllValuesImpl<T>::values), T>;
 };
 
+template <typename T>
+requires StdArrayOfType<decltype(T::all_values_array),
+                        T> struct AllValuesImpl<T> {
+  static constexpr auto values = T::all_values_array;
+};
+
 template <AllValuesEnumerable T>
 constexpr auto AllValues = AllValuesImpl<T>::values;
 
@@ -68,8 +74,4 @@ public:
         return std::array<T, static_cast<std::size_t>(max) + 1>{
             static_cast<T>(v)..., max};
       });
-};
-
-template <AllValuesEnumerable E, E tag_in> struct Tag {
-  static constexpr E tag = tag_in;
 };

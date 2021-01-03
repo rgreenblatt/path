@@ -10,6 +10,8 @@ struct PerInstanceImpl {
   static constexpr auto values = AllValues<T>;
   static constexpr unsigned size = AllValues<T>.size();
 
+  // TODO: this approach is gross and would fail if the type isn't default
+  // initializable...
   template <std::size_t... i>
   static constexpr auto items_helper(std::integer_sequence<std::size_t, i...>) {
     return V<TypeOver<values[i]>...>{};

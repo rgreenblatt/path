@@ -14,8 +14,6 @@ concept RayWriter = requires(T &t, unsigned idx, const intersect::Ray &ray) {
 struct SpanRayWriter {
   Span<intersect::Ray> rays;
 
-  void write_at(unsigned idx, const intersect::Ray &ray) {
-    rays[idx] = ray;
-  }
+  void write_at(unsigned idx, const intersect::Ray &ray) { rays[idx] = ray; }
 };
 } // namespace intersectable_scene

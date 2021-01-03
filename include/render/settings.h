@@ -4,72 +4,117 @@
 #include "integrate/light_sampler/enum_light_sampler/settings.h"
 #include "integrate/term_prob/enum_term_prob/settings.h"
 #include "intersect/accel/enum_accel/settings.h"
-#include "lib/one_per_instance.h"
 #include "lib/settings.h"
+#include "lib/tagged_union.h"
 #include "meta/all_values.h"
-#include "render/compile_time_settings.h"
+#include "meta/tag.h"
 #include "render/general_settings.h"
 #include "rng/enum_rng/settings.h"
 
-#include <string>
-
 namespace render {
+namespace enum_accel = intersect::accel::enum_accel;
+namespace enum_dir_sampler = integrate::dir_sampler::enum_dir_sampler;
+namespace enum_light_sampler = integrate::light_sampler::enum_light_sampler;
+namespace enum_term_prob = integrate::term_prob::enum_term_prob;
+
+using enum_accel::AccelType;
+using enum_dir_sampler::DirSamplerType;
+using enum_light_sampler::LightSamplerType;
+using enum_term_prob::TermProbType;
+using rng::enum_rng::RngType;
+
 struct Settings {
-private:
-  using AllAccelSettings = OnePerInstance<AccelType, enum_accel::Settings>;
-
-  using AllLightSamplerSettings =
-      OnePerInstance<LightSamplerType, enum_light_sampler::Settings>;
-
-  using AllDirSamplerSettings =
-      OnePerInstance<DirSamplerType, enum_dir_sampler::Settings>;
-
-  using AllTermProbSettings =
-      OnePerInstance<TermProbType, enum_term_prob::Settings>;
-
-  using AllRngSettings = OnePerInstance<RngType, rng::enum_rng::Settings>;
-
-  static constexpr CompileTimeSettings default_compile_time = {
-      AccelType::KDTree, LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
-      TermProbType::MultiplierFunc, RngType::Sobel};
-
 public:
-  AllAccelSettings flat_accel;
+  TaggedUnionPerInstance<AccelType, enum_accel::Settings> flat_accel = {
+      TAG(AccelType::KDTree)};
 
-  AllLightSamplerSettings light_sampler;
+  TaggedUnionPerInstance<LightSamplerType, enum_light_sampler::Settings>
+      light_sampler = {TAG(LightSamplerType::RandomTriangle)};
 
-  AllDirSamplerSettings dir_sampler;
+  TaggedUnionPerInstance<DirSamplerType, enum_dir_sampler::Settings>
+      dir_sampler = {TAG(DirSamplerType::BSDF)};
 
-  AllTermProbSettings term_prob;
+  TaggedUnionPerInstance<TermProbType, enum_term_prob::Settings> term_prob = {
+      TAG(TermProbType::MultiplierFunc)};
 
-  AllRngSettings rng;
-
-  CompileTimeSettings compile_time = default_compile_time;
+  TaggedUnionPerInstance<RngType, rng::enum_rng::Settings> rng = {
+      TAG(RngType::Sobel)};
 
   GeneralSettings general_settings;
 
-  template <typename Archive> void serialize(Archive &archive) {
-    auto serialize_item = [&](const auto &name, auto &type, auto &settings) {
-      archive(::cereal::make_nvp(name, type));
-      settings.visit(
-          [&](auto &item) {
-            archive(::cereal::make_nvp(
-                (std::string(name) + "_settings").c_str(), item));
-          },
-          type);
-    };
-
-    serialize_item("flat_accel", compile_time.flat_accel_type, flat_accel);
-    serialize_item("light_sampler", compile_time.light_sampler_type,
-                   light_sampler);
-    serialize_item("dir_sampler", compile_time.dir_sampler_type, dir_sampler);
-    serialize_item("term_prob", compile_time.term_prob_type, term_prob);
-    serialize_item("rng", compile_time.rng_type, rng);
-    archive(NVP(general_settings));
+  template <typename Archive> void serialize(Archive &ar) {
+    ar(NVP(flat_accel), NVP(light_sampler), NVP(dir_sampler), NVP(term_prob),
+       NVP(rng), NVP(general_settings));
   }
 
   constexpr bool operator==(const Settings &) const = default;
+
+  struct CompileTime {
+    AccelType flat_accel_type;
+    LightSamplerType light_sampler_type;
+    DirSamplerType dir_sampler_type;
+    TermProbType term_prob_type;
+    RngType rng_type;
+
+    ATTR_PURE constexpr auto
+    operator<=>(const CompileTime &other) const = default;
+  };
+
+  CompileTime compile_time() const {
+    return {
+        .flat_accel_type = flat_accel.type(),
+        .light_sampler_type = light_sampler.type(),
+        .dir_sampler_type = dir_sampler.type(),
+        .term_prob_type = term_prob.type(),
+        .rng_type = rng.type(),
+    };
+  }
 };
 
 static_assert(Setting<Settings>);
 } // namespace render
+
+template <> struct AllValuesImpl<render::Settings::CompileTime> {
+private:
+  using AccelType = render::AccelType;
+  using DirSamplerType = render::DirSamplerType;
+  using LightSamplerType = render::LightSamplerType;
+  using TermProbType = render::TermProbType;
+  using RngType = render::RngType;
+
+public:
+  // compile times don't change much from small constant values to 1...
+  static constexpr std::array<render::Settings::CompileTime, 2> values = {{
+      {AccelType::KDTree, LightSamplerType::RandomTriangle,
+       DirSamplerType::BSDF, TermProbType::MultiplierFunc,
+       rng::enum_rng::RngType::Sobel},
+      {AccelType::KDTree, LightSamplerType::NoLightSampling,
+       DirSamplerType::BSDF, TermProbType::MultiplierFunc,
+       rng::enum_rng::RngType::Sobel},
+      // {AccelType::LoopAll, LightSamplerType::RandomTriangle,
+      //  DirSamplerType::BSDF, TermProbType::MultiplierFunc,
+      //  rng::enum_rng::RngType::Sobel},
+      // {AccelType::KDTree, LightSamplerType::RandomTriangle,
+      //  DirSamplerType::Uniform, TermProbType::MultiplierFunc,
+      //  rng::enum_rng::RngType::Sobel},
+      // {AccelType::LoopAll, LightSamplerType::RandomTriangle,
+      //  DirSamplerType::Uniform, TermProbType::MultiplierFunc,
+      //  rng::enum_rng::RngType::Sobel},
+  }};
+};
+
+static_assert(AllValuesEnumerable<render::Settings::CompileTime>);
+
+// All values are unique
+static_assert([] {
+  auto values = AllValues<render::Settings::CompileTime>;
+  for (unsigned i = 0; i < values.size(); ++i) {
+    for (unsigned j = 0; j < i; ++j) {
+      if (values[i] == values[j]) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}());

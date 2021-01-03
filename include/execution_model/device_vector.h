@@ -20,13 +20,12 @@ struct uninitialized_allocator : thrust::device_allocator<T> {
 } // namespace device_vector
 
 template <typename T>
-using DeviceVector =
-    thrust::device_vector<T
-    // how much perf does this get?
+using DeviceVector = thrust::device_vector<T
+// how much perf does this get?
 #if 0
     , device_vector::detail::uninitialized_allocator<T>
 #endif
-    >;
+                                           >;
 #else
 // Shouldn't be used, just a placeholder for cpu builds
 template <typename T> struct DeviceVector : MockNoRequirements {};

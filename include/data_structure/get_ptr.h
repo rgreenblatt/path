@@ -25,5 +25,6 @@ template <typename T, typename Elem> concept GetPtr = requires(T &&t) {
   ->std::convertible_to<Elem *>;
 };
 
-template <typename T, typename Elem>
-requires GetPtr<T, Elem> struct GetPtrT : GetPtrImpl<T> {};
+template <typename Elem, GetPtr<Elem> T> constexpr Elem *get_ptr(T &&t) {
+  return GetPtrImpl<T>::get(std::forward<T>(t));
+}
