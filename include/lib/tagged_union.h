@@ -6,6 +6,7 @@
 #include "meta/all_values.h"
 #include "meta/decays_to.h"
 #include "meta/get_idx.h"
+#include "meta/per_instance.h"
 #include "meta/sequential_look_up.h"
 #include "meta/specialization_of.h"
 
@@ -23,6 +24,7 @@
 // Also, there isn't a version of std::visit(std::variant) which is constexpr
 // (but that can be worked around...)
 
+namespace tagged_union {
 namespace detail {
 template <typename... Rest> union VariadicUnion;
 
@@ -64,6 +66,7 @@ struct access {
   }
 };
 } // namespace detail
+} // namespace tagged_union
 
 template <AllValuesEnumerable E, std::movable... T>
 requires(AllValues<E>.size() == sizeof...(T) &&
@@ -73,7 +76,7 @@ private:
 
   template <E tag> using Tag = Tag<E, tag>;
 
-  using ac = detail::access;
+  using ac = tagged_union::detail::access;
 
   template <E type> using Type = __type_pack_element<get_idx(type), T...>;
 
@@ -182,10 +185,27 @@ private:
   template <typename C> static constexpr void destroy_input(C &v) { v.C::~C(); }
 
   unsigned idx_;
-  detail::VariadicUnion<T...> union_;
+  tagged_union::detail::VariadicUnion<T...> union_;
 };
 
-template <Enum E, AllValuesEnumerable... Types>
+namespace tagged_union {
+namespace detail {
+template <AllValuesEnumerable T, template <T> class TypeOver>
+struct TaggedUnionPerInstanceImpl {
+  template<typename...Ts>
+  using Impl = TaggedUnion<T, Ts...>;
+
+  using type = PerInstance<T, TypeOver, Impl>;
+};
+} // namespace detail
+} // namespace tagged_union
+
+template <AllValuesEnumerable T, template <T> class TypeOver>
+using TaggedUnionPerInstance =
+    typename tagged_union::detail::TaggedUnionPerInstanceImpl<T,
+                                                              TypeOver>::type;
+
+template <AllValuesEnumerable E, AllValuesEnumerable... Types>
 struct AllValuesImpl<TaggedUnion<E, Types...>> {
 private:
   static constexpr unsigned num_elements = sizeof...(Types);

@@ -4,9 +4,7 @@
 
 namespace work_division {
 struct Settings {
-  // SPEED: tune?
-  // maybe max is incorrect paradigm
-  // consider target and the usage of partial reductions...
+  // This is tunned to a decent extent...
   unsigned block_size = 256;
   unsigned target_x_block_size = 32;
   bool force_target_samples = false;

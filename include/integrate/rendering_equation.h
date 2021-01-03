@@ -18,7 +18,7 @@ template <typename T> struct RayInfo {
 
 template <typename T> struct RayRayInfo {
   intersect::Ray ray;
-  RayInfo<T> ray_info;
+  RayInfo<T> info;
 };
 } // namespace detail
 
@@ -30,13 +30,15 @@ using ArrRayRayInfo = detail::RayRayInfo<Eigen::Array3f>;
 // this should probably be a class with a friend struct...
 template <unsigned n_light_samples> struct RenderingEquationState {
   HOST_DEVICE static RenderingEquationState
-  initial_state(const FRayInfo &ray_info) {
+  initial_state(const FRayRayInfo &ray_ray_info) {
     return RenderingEquationState{
         .iters = 0,
         .count_emission = true,
         .has_next_sample = true,
-        .ray_info = {Eigen::Array3f::Constant(ray_info.multiplier),
-                     ray_info.target_distance},
+        .ray_ray_info = {ray_ray_info.ray,
+                         {Eigen::Array3f::Constant(
+                              ray_ray_info.info.multiplier),
+                          ray_ray_info.info.target_distance}},
         .light_samples = {},
         .intensity = Eigen::Array3f::Zero(),
     };
@@ -45,7 +47,7 @@ template <unsigned n_light_samples> struct RenderingEquationState {
   unsigned iters;
   bool count_emission;
   bool has_next_sample;
-  ArrRayInfo ray_info;
+  ArrRayRayInfo ray_ray_info;
   ArrayVec<ArrRayInfo, n_light_samples> light_samples;
   Eigen::Array3f intensity;
 };
@@ -76,10 +78,10 @@ rendering_equation_iteration(
     const RenderingEquationState<L::max_sample_size> &state, R &rng,
     const ArrayVec<intersect::IntersectionOp<InfoType>, L::max_sample_size + 1>
         &intersections,
-    const intersect::Ray &last_ray, const RenderingEquationSettings &settings,
+    const RenderingEquationSettings &settings,
     const S &scene, const L &light_sampler, const D &dir_sampler,
     const T &term_prob) {
-  const auto &[iters, count_emission, has_next_sample, ray_info, light_samples,
+  const auto &[iters, count_emission, has_next_sample, ray_ray_info, light_samples,
                old_intensity] = state;
 
   auto use_intersection = [&](const auto &intersection,
@@ -127,16 +129,17 @@ rendering_equation_iteration(
 
   debug_assert(intersections.size() > 0);
 
-  const auto &[multiplier, target_distance] = ray_info;
+  const auto& ray = ray_ray_info.ray;
   const auto &next_intersection_op = intersections[intersections.size() - 1];
 
-  if (!use_intersection(next_intersection_op, target_distance)) {
+  if (!use_intersection(next_intersection_op,
+                        ray_ray_info.info.target_distance)) {
     return finish();
   }
 
   const auto &next_intersection = *next_intersection_op;
-  const auto &ray = last_ray;
   const auto &intersection_point = next_intersection.intersection_point(ray);
+  Eigen::Array3f multiplier = ray_ray_info.info.multiplier;
 
   // FIXME references...
   const auto &material = scene.get_material(next_intersection);
@@ -146,7 +149,7 @@ rendering_equation_iteration(
     intensity += multiplier * material.emission;
   }
 
-  const auto &&normal = scene.get_normal(next_intersection, last_ray);
+  const auto &&normal = scene.get_normal(next_intersection, ray);
 
   using B = typename S::B;
 
@@ -208,8 +211,9 @@ rendering_equation_iteration(
     debug_assert(new_multiplier.y() >= 0.0f);
     debug_assert(new_multiplier.z() >= 0.0f);
 
-    new_state.ray_info = {new_multiplier, nullopt_value};
-    new_rays.push_back({intersection_point, sample.sample.direction});
+    intersect::Ray new_ray {intersection_point, sample.sample.direction};
+    new_state.ray_ray_info = {new_ray, {new_multiplier, nullopt_value}};
+    new_rays.push_back(new_ray);
   } else {
     if (new_rays.size() == 0) {
       return finish();
@@ -243,10 +247,11 @@ ATTR_NO_DISCARD_PURE HOST_DEVICE inline Eigen::Array3f rendering_equation(
   while (!finished || sample_idx != end_sample) {
     if (finished) {
       rng = rng_ref.get_generator(sample_idx, location);
-      auto [ray_v, sample] = initial_ray_sampler(rng);
+      auto initial_sample = initial_ray_sampler(rng);
       rays.resize(0);
-      rays.push_back(ray_v);
-      state = RenderingEquationState<L::max_sample_size>::initial_state(sample);
+      rays.push_back(initial_sample.ray);
+      state = RenderingEquationState<L::max_sample_size>::initial_state(
+          initial_sample);
       finished = false;
       sample_idx++;
     }
@@ -263,7 +268,7 @@ ATTR_NO_DISCARD_PURE HOST_DEVICE inline Eigen::Array3f rendering_equation(
     debug_assert_assume(rays.size() > 0);
 
     auto output = rendering_equation_iteration(
-        state, rng, intersections, rays[rays.size() - 1], settings, scene,
+        state, rng, intersections, settings, scene,
         light_sampler, dir_sampler, term_prob);
 
     switch (output.type()) {

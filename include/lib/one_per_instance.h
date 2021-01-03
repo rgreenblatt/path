@@ -3,6 +3,7 @@
 #include "meta/all_values.h"
 #include "meta/get_idx.h"
 #include "meta/sequential_look_up.h"
+#include "meta/per_instance.h"
 
 #include <compare>
 #include <tuple>
@@ -10,18 +11,8 @@
 
 template <AllValuesEnumerable T, template <T> class TypeOver>
 class OnePerInstance {
-private:
-  static constexpr auto values = AllValues<T>;
-  static constexpr unsigned size = AllValues<T>.size();
-
-  template <std::size_t... i>
-  static constexpr auto items_helper(std::integer_sequence<std::size_t, i...>) {
-    return std::tuple<TypeOver<values[i]>...>{};
-  }
-
 public:
-  using Items =
-      decltype(OnePerInstance::items_helper(std::make_index_sequence<size>{}));
+  using Items = PerInstance<T, TypeOver, std::tuple>;
 
   constexpr OnePerInstance(){};
 
@@ -47,7 +38,7 @@ public:
   }
 
   template <typename F> constexpr auto visit(const F &f, const T &value) {
-    return sequential_look_up<size>(get_idx(value), [&](auto idx) {
+    return sequential_look_up<AllValues<T>.size()>(get_idx(value), [&](auto idx) {
       return f(std::get<decltype(idx)::value>(items_));
     });
   }
