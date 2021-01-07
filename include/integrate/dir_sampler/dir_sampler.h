@@ -31,8 +31,9 @@ concept DirSamplerRef = requires(const T &dir_sampler,
                                  rng::MockRngState &rng) {
   requires ::bsdf::BSDF<B>;
   requires std::copyable<T>;
-  { dir_sampler(position, bsdf, incoming_dir, normal, rng) }
-  ->DecaysTo<Sample>;
+  {
+    dir_sampler(position, bsdf, incoming_dir, normal, rng)
+    } -> DecaysTo<Sample>;
 };
 
 template <typename T, typename S, typename B>
@@ -41,8 +42,7 @@ concept DirSampler = requires(T &dir_sampler, const S &settings) {
   requires std::movable<T>;
   requires std::default_initializable<T>;
 
-  { dir_sampler.gen(settings) }
-  ->DirSamplerRef<B>;
+  { dir_sampler.gen(settings) } -> DirSamplerRef<B>;
 };
 
 template <typename T>
@@ -53,13 +53,13 @@ concept ContinuousDirSampler = DirSampler<T, S, bsdf::MockContinuousBSDF>;
 
 template <typename T>
 concept GeneralDirSamplerRef =
-    ContinuousDirSamplerRef<T> &&DirSamplerRef<T, bsdf::MockDiscreteBSDF>
-        &&DirSamplerRef<T, bsdf::MockContinuousDiscreteBSDF>;
+    ContinuousDirSamplerRef<T> && DirSamplerRef<T, bsdf::MockDiscreteBSDF> &&
+    DirSamplerRef<T, bsdf::MockContinuousDiscreteBSDF>;
 
 template <typename T, typename S>
 concept GeneralDirSampler =
-    ContinuousDirSampler<T, S> &&DirSampler<T, S, bsdf::MockDiscreteBSDF>
-        &&DirSampler<T, S, bsdf::MockContinuousDiscreteBSDF>;
+    ContinuousDirSampler<T, S> && DirSampler<T, S, bsdf::MockDiscreteBSDF> &&
+    DirSampler<T, S, bsdf::MockContinuousDiscreteBSDF>;
 
 struct MockContinuousDirSamplerRef : MockCopyable {
   template <bsdf::ContinuousBSDF B, rng::RngState R>

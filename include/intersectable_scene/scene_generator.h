@@ -17,8 +17,9 @@ concept SceneGenerator = requires(T &gen, const Settings &settings,
   typename T::Intersector;
   typename T::SceneRef;
 
-  { gen.gen(settings, scene) }
-  ->std::same_as<
-      IntersectableScene<typename T::Intersector, typename T::SceneRef>>;
+  {
+    gen.gen(settings, scene)
+    } -> std::same_as<
+        IntersectableScene<typename T::Intersector, typename T::SceneRef>>;
 };
 } // namespace intersectable_scene

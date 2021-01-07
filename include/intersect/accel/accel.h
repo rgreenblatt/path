@@ -16,8 +16,7 @@ template <typename T> struct IdxHolder {
 template <typename T>
 concept IntersectableAtIdx = requires(const T &ref, unsigned idx,
                                       const Ray &ray) {
-  { *ref(idx, ray) }
-  ->SpecializationOf<Intersection>;
+  { *ref(idx, ray) } -> SpecializationOf<Intersection>;
 };
 
 struct MockInfoType : MockCopyable {};
@@ -38,27 +37,28 @@ concept AccelRef =
              const MockIntersectableAtIdx &intersectable_at_idx) {
   requires std::copyable<V>;
 
-  { accel_ref.intersect_objects(ray, intersectable_at_idx) }
-  ->DecaysTo<AccelRet<MockIntersectableAtIdx>>;
+  {
+    accel_ref.intersect_objects(ray, intersectable_at_idx)
+    } -> DecaysTo<AccelRet<MockIntersectableAtIdx>>;
 };
 
 namespace detail {
-// Settings type is the same for each object, so we don't use an associated
-// type
-template <typename T, typename Settings, typename B>
-concept GeneralAccel = requires(T &accel, const Settings &settings,
-                                SpanSized<const B> objects, const AABB &aabb) {
-  requires Bounded<B>;
-  requires std::default_initializable<T>;
-  requires std::movable<T>;
-  requires Setting<Settings>;
-  typename T::Ref;
-  requires AccelRef<typename T::Ref>;
+  // Settings type is the same for each object, so we don't use an associated
+  // type
+  template <typename T, typename Settings, typename B>
+  concept GeneralAccel =
+      requires(T & accel, const Settings &settings, SpanSized<const B> objects,
+               const AABB &aabb) {
+    requires Bounded<B>;
+    requires std::default_initializable<T>;
+    requires std::movable<T>;
+    requires Setting<Settings>;
+    typename T::Ref;
+    requires AccelRef<typename T::Ref>;
 
-  // generation
-  { accel.gen(settings, objects, aabb) }
-  ->std::same_as<typename T::Ref>;
-};
+    // generation
+    { accel.gen(settings, objects, aabb) } -> std::same_as<typename T::Ref>;
+  };
 } // namespace detail
 
 // Accel which only uses bounds and which works on any objects/bounds on input

@@ -11,8 +11,7 @@ template <typename T>
 concept TermProbRef = requires(const T &term_prob, unsigned iters,
                                const Eigen::Array3f &multiplier) {
   requires std::copyable<T>;
-  { term_prob(iters, multiplier) }
-  ->std::convertible_to<float>;
+  { term_prob(iters, multiplier) } -> std::convertible_to<float>;
 };
 
 template <typename T, typename S>
@@ -21,8 +20,7 @@ concept TermProb = requires(T &term_prob, const S &settings) {
   requires std::movable<T>;
   requires std::default_initializable<T>;
 
-  { term_prob.gen(settings) }
-  ->TermProbRef;
+  { term_prob.gen(settings) } -> TermProbRef;
 };
 
 struct MockTermProb : MockDefaultInitMovable {

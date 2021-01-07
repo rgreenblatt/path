@@ -17,7 +17,8 @@
 
 template <typename T> struct AllValuesImpl;
 
-template <typename T> concept AllValuesEnumerable = requires {
+template <typename T>
+concept AllValuesEnumerable = requires {
   requires std::equality_comparable<T>;
   requires std::totally_ordered<T>;
 
@@ -26,8 +27,8 @@ template <typename T> concept AllValuesEnumerable = requires {
 };
 
 template <typename T>
-requires StdArrayOfType<decltype(T::all_values_array),
-                        T> struct AllValuesImpl<T> {
+requires StdArrayOfType<decltype(T::all_values_array), T>
+struct AllValuesImpl<T> {
   static constexpr auto values = T::all_values_array;
 };
 

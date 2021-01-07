@@ -8,16 +8,16 @@
 #include <tuple>
 
 template <typename T>
-    requires std::integral<T> ||
-    std::floating_point<T> ATTR_PURE_NDEBUG HOST_DEVICE inline T
-    get_previous(unsigned i, Span<const T> vals) {
+requires std::integral<T> || std::floating_point<T>
+    ATTR_PURE_NDEBUG HOST_DEVICE inline T get_previous(unsigned i,
+                                                       Span<const T> vals) {
   return i == 0 ? T(0) : vals[i - 1];
 }
 
 template <typename T>
-    requires std::integral<T> ||
-    std::floating_point<T> ATTR_PURE_NDEBUG HOST_DEVICE inline T
-    get_size(unsigned i, Span<const T> vals) {
+requires std::integral<T> || std::floating_point<T>
+    ATTR_PURE_NDEBUG HOST_DEVICE inline T get_size(unsigned i,
+                                                   Span<const T> vals) {
   return vals[i] - get_previous(i, vals);
 }
 

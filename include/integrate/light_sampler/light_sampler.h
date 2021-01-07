@@ -35,8 +35,9 @@ concept LightSamplerRef = requires(const T &light_sampler,
   T::max_sample_size;
   T::performs_samples;
 
-  { light_sampler(position, material, incoming_dir, normal, rng) }
-  ->DecaysTo<ArrayVec<LightSample, T::max_sample_size>>;
+  {
+    light_sampler(position, material, incoming_dir, normal, rng)
+    } -> DecaysTo<ArrayVec<LightSample, T::max_sample_size>>;
 };
 
 // this concept is very dependent on the scene representation...
@@ -57,16 +58,15 @@ concept LightSampler = requires(
     light_sampler.gen(settings, emissive_groups, emissive_group_ends_per_mesh,
                       materials, transformed_mesh_objects,
                       transformed_mesh_idxs, objects)
-  }
-  ->LightSamplerRef<B>;
+    } -> LightSamplerRef<B>;
 };
 
 // works for all bsdfs
 template <typename T, typename S, typename O>
 concept GeneralBSDFLightSampler =
-    LightSampler<T, S, O, bsdf::MockContinuousBSDF>
-        &&LightSampler<T, S, O, bsdf::MockDiscreteBSDF>
-            &&LightSampler<T, S, O, bsdf::MockContinuousDiscreteBSDF>;
+    LightSampler<T, S, O, bsdf::MockContinuousBSDF> &&
+    LightSampler<T, S, O, bsdf::MockDiscreteBSDF> &&
+    LightSampler<T, S, O, bsdf::MockContinuousDiscreteBSDF>;
 
 // works for all objects
 template <typename T, typename S, typename B>

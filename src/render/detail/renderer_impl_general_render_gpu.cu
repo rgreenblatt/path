@@ -40,8 +40,7 @@ integrate_image_global(unsigned start_blocks,
                        intensity);
 }
 
-template <>
-template <ExactSpecializationOf<IntegrateImageInputs> Inp>
+template <> template <ExactSpecializationOf<IntegrateImageInputs> Inp>
 requires Inp::I::individually_intersectable void
 IntegrateImage<ExecutionModel::GPU>::run_individual(Inp inp) {
   unsigned total_grid = inp.items.base.division.total_num_blocks();

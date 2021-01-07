@@ -7,26 +7,25 @@
 #include <concepts>
 
 namespace rng {
-template <typename T> concept RngState = requires(T &state) {
+template <typename T>
+concept RngState = requires(T &state) {
   requires std::semiregular<T>;
-  { state.next() }
-  ->std::same_as<float>;
+  { state.next() } -> std::same_as<float>;
 };
 
 template <typename T>
 concept RngRef = requires(const T &ref, unsigned sample_idx,
                           unsigned location) {
   requires std::copyable<T>;
-  { ref.get_generator(sample_idx, location) }
-  ->RngState;
+  { ref.get_generator(sample_idx, location) } -> RngState;
 };
 
-template <typename T, typename S> concept Rng = requires {
+template <typename T, typename S>
+concept Rng = requires {
   requires Setting<S>;
   requires requires(T & rng, const S &settings, unsigned samples_per,
                     unsigned n_locations) {
-    { rng.gen(settings, samples_per, n_locations) }
-    ->RngRef;
+    { rng.gen(settings, samples_per, n_locations) } -> RngRef;
   };
 };
 

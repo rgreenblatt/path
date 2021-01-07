@@ -12,8 +12,7 @@ template <typename T>
 concept Intersectable = requires(const T &t, const Ray &ray) {
   typename T::InfoType;
   requires std::semiregular<typename T::InfoType>;
-  { t.intersect(ray) }
-  ->DecaysTo<IntersectionOp<typename T::InfoType>>;
+  { t.intersect(ray) } -> DecaysTo<IntersectionOp<typename T::InfoType>>;
 };
 
 template <typename T, typename InfoType>

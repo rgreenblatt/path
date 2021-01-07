@@ -17,7 +17,8 @@ inline constexpr auto nullopt_value = NulloptT{};
 
 template <typename T> class Optional;
 
-template <typename T> concept IsOptional = SpecializationOf<T, Optional>;
+template <typename T>
+concept IsOptional = SpecializationOf<T, Optional>;
 
 // Can't use std::optional and thrust::optional takes decades to
 // compile so instead we implement optional...
@@ -135,9 +136,8 @@ public:
   ATTR_PURE constexpr bool has_value() const { return has_value_; }
 
   template <typename F>
-  requires std::convertible_to<decltype(std::declval<F>()()),
-                               Optional> constexpr Optional
-  or_else(const F &f) const {
+  requires std::convertible_to<decltype(std::declval<F>()()), Optional>
+  constexpr Optional or_else(const F &f) const {
     if (has_value()) {
       return *this;
     } else {
@@ -151,8 +151,8 @@ public:
   }
 
   template <typename F>
-  requires std::convertible_to<decltype(std::declval<F>()()), T> constexpr T
-  unwrap_or_else(const F &f) const {
+  requires std::convertible_to<decltype(std::declval<F>()()), T>
+  constexpr T unwrap_or_else(const F &f) const {
     if (has_value()) {
       return **this;
     } else {
@@ -183,9 +183,9 @@ public:
     }
   }
 
-private:
-  template <typename V>
-  constexpr static void construct_in_place(Optional &cls, V &&v) {
+private : template <typename V>
+          constexpr static void
+          construct_in_place(Optional &cls, V &&v) {
     new (&cls.value) T(std::forward<V>(v));
   }
 

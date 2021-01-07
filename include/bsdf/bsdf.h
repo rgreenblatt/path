@@ -12,28 +12,23 @@ template <typename T>
 concept BSDF = requires(const T &bsdf, const UnitVector &incoming_dir,
                         const UnitVector &outgoing_dir,
                         const UnitVector &normal, rng::MockRngState &r) {
-  { T::continuous }
-  ->DecaysTo<bool>;
-  { T::discrete }
-  ->DecaysTo<bool>;
+  { T::continuous } -> DecaysTo<bool>;
+  { T::discrete } -> DecaysTo<bool>;
   // is it a brdf or a full bsdf? (hemisphere vs full sphere)
-  { bsdf.is_brdf() }
-  ->DecaysTo<bool>;
+  { bsdf.is_brdf() } -> DecaysTo<bool>;
 
   // must have some distribution (note that it can be both)
   requires T::continuous || T::discrete;
 
   requires requires {
-    { bsdf.continuous_eval(incoming_dir, outgoing_dir, normal) }
-    ->DecaysTo<Eigen::Array3f>;
-  }
-  || !T::continuous;
+    {
+      bsdf.continuous_eval(incoming_dir, outgoing_dir, normal)
+      } -> DecaysTo<Eigen::Array3f>;
+  } || !T::continuous;
 
   requires requires {
-    { bsdf.prob_continuous(incoming_dir, normal) }
-    ->DecaysTo<float>;
-  }
-  || !(T::continuous && T::discrete);
+    { bsdf.prob_continuous(incoming_dir, normal) } -> DecaysTo<float>;
+  } || !(T::continuous && T::discrete);
 
   // perhaps samples should be made part of a separate concept?
 
@@ -41,19 +36,18 @@ concept BSDF = requires(const T &bsdf, const UnitVector &incoming_dir,
     // samples according to the distribution
     // multiplier is the value of the brdf / probability of the sample,
     // so this is just the brdf coefficient term
-    { bsdf.continuous_sample(incoming_dir, normal, r) }
-    ->DecaysTo<bsdf::BSDFSample>;
-  }
-  || !T::continuous;
+    {
+      bsdf.continuous_sample(incoming_dir, normal, r)
+      } -> DecaysTo<bsdf::BSDFSample>;
+  } || !T::continuous;
 
   requires requires {
-    { bsdf.discrete_sample(incoming_dir, normal, r) }
-    ->DecaysTo<BSDFSample>;
-  }
-  || !T::discrete;
+    { bsdf.discrete_sample(incoming_dir, normal, r) } -> DecaysTo<BSDFSample>;
+  } || !T::discrete;
 };
 
-template <typename T> concept ContinuousBSDF = BSDF<T> &&T::continuous;
+template <typename T>
+concept ContinuousBSDF = BSDF<T> && T::continuous;
 
 // other possible functions to put in a different concept which might allow for
 // clever sampling strategies:

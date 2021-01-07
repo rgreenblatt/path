@@ -30,8 +30,7 @@ template <typename SG, typename S>
 concept SequenceGen = requires(SG &gen, const S &settings, unsigned dimension,
                                unsigned count) {
   requires Setting<S>;
-  { gen.gen(settings, dimension, count) }
-  ->std::same_as<SequenceGenOutput>;
+  { gen.gen(settings, dimension, count) } -> std::same_as<SequenceGenOutput>;
 };
 
 struct RngFromSequenceGenRef {
@@ -81,7 +80,8 @@ struct RngFromSequenceGenRef {
 };
 
 template <typename SG, Setting S>
-requires SequenceGen<SG, S> class RngFromSequenceGen {
+requires SequenceGen<SG, S>
+class RngFromSequenceGen {
 public:
   RngFromSequenceGen() {}
 

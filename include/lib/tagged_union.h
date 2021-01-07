@@ -238,8 +238,9 @@ public:
                    *this, other);
   }
 
-private:
-  template <typename C> static constexpr void destroy_input(C &v) { v.C::~C(); }
+private : template <typename C> static constexpr void destroy_input(C &v) {
+    v.C::~C();
+  }
 
   unsigned idx_;
   tagged_union::detail::VariadicUnion<T...> union_;

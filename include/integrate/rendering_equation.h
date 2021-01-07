@@ -155,8 +155,7 @@ rendering_equation_iteration(
 
 template <typename T>
 concept InitialRaySampler = requires(const T &v, rng::MockRngState &rng) {
-  { v(rng) }
-  ->std::same_as<FRayRayInfo>;
+  { v(rng) } -> std::same_as<FRayRayInfo>;
 };
 
 template <InitialRaySampler F, rng::RngRef R, intersect::Intersectable I,

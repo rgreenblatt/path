@@ -2,4 +2,5 @@
 
 #include <magic_enum.hpp>
 
-template <typename T> concept Enum = magic_enum::is_scoped_enum_v<T>;
+template <typename T>
+concept Enum = magic_enum::is_scoped_enum_v<T>;

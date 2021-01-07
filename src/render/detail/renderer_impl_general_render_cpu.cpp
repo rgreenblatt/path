@@ -8,8 +8,7 @@
 
 namespace render {
 namespace detail {
-template <>
-template <ExactSpecializationOf<IntegrateImageInputs> Inp>
+template <> template <ExactSpecializationOf<IntegrateImageInputs> Inp>
 requires Inp::I::individually_intersectable void
 IntegrateImage<ExecutionModel::CPU>::run_individual(Inp inp) {
   ProgressBar progress_bar(inp.items.base.x_dim * inp.items.base.y_dim, 70);
