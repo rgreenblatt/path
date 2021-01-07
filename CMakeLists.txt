@@ -52,11 +52,11 @@ endif ()
 # disable ptxas warnings
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcuda-ptxas '-w' -g")
 
-set(CMAKE_CUDA_FLAGS_DEBUG 
-  "${CMAKE_CUDA_FLAGS_DEBUG} -fsanitize=address,undefined")
+# set(CMAKE_CUDA_FLAGS_DEBUG 
+#   "${CMAKE_CUDA_FLAGS_DEBUG} -fsanitize=address,undefined")
 
-set(CMAKE_CXX_FLAGS_DEBUG
-  "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address,undefined")
+# set(CMAKE_CXX_FLAGS_DEBUG
+#   "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address,undefined")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
