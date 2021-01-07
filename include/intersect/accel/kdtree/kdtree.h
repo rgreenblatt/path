@@ -33,13 +33,15 @@ public:
   KDTree(KDTree &&);
   KDTree &operator=(KDTree &&);
 
+  using Ref = detail::Ref;
+
   template <Bounded B>
   detail::Ref gen(const Settings &settings, SpanSized<const B> objects,
                   const AABB &) {
     bounds_.resize(objects.size());
 
     for (unsigned i = 0; i < objects.size(); ++i) {
-      auto &&aabb = objects[i].bounds();
+      decltype(auto) aabb = objects[i].bounds();
       bounds_[i] = {aabb, aabb.max_bound - aabb.min_bound};
     }
 

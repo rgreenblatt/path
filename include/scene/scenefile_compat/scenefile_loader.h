@@ -5,14 +5,21 @@
 #include "scene/scenefile_compat/CS123SceneData.h"
 
 #include <map>
+#include <optional>
 #include <string>
 
 namespace scene {
 namespace scenefile_compat {
 class ScenefileLoader {
 public:
-  Optional<Scene> load_scene(const std::string &filename,
-                             float width_height_ratio, bool quiet = false);
+// requires Conditionally Trivial Special Member Functions - P0848R3
+#if 0
+Optional<Scene>
+#else
+  std::optional<Scene>
+#endif
+  load_scene(const std::string &filename, float width_height_ratio,
+             bool quiet = false);
 
 private:
   bool parse_tree(Scene &scene_v, const CS123SceneNode &root,

@@ -2,6 +2,7 @@
 
 #include "lib/assert.h"
 #include "lib/attribute.h"
+#include "meta/container_concepts.h"
 #include "meta/mock.h"
 #include "meta/specialization_of.h"
 
@@ -14,7 +15,7 @@ struct NulloptT {};
 
 inline constexpr auto nullopt_value = NulloptT{};
 
-template <std::movable T> class Optional;
+template <typename T> class Optional;
 
 template <typename T> concept IsOptional = SpecializationOf<T, Optional>;
 
@@ -27,24 +28,51 @@ template <typename T> concept IsOptional = SpecializationOf<T, Optional>;
 //
 // Note that this optional implements many methods (from rust) which aren't part
 // of std::optional
-template <std::movable T> class Optional {
+template <typename T> class Optional {
 public:
   constexpr Optional() : has_value_(false) {}
 
-  constexpr Optional(const Optional &other) : has_value_(other.has_value_) {
+  constexpr Optional(const NulloptT &) : Optional() {}
+
+  constexpr Optional(const T &value) requires CopyConstructable<T>
+      : has_value_(true) {
+    construct_in_place(*this, value);
+  }
+
+  constexpr Optional(T &&value) requires MoveConstructable<T>
+      : has_value_(true) {
+    construct_in_place(*this, std::forward<T>(value));
+  }
+
+  constexpr Optional(const Optional &other) requires(
+      TriviallyCopyConstructable<T>) = default;
+
+  constexpr Optional(const Optional &other) requires(
+      !TriviallyCopyConstructable<T> && CopyConstructable<T>)
+      : has_value_(other.has_value_) {
     if (has_value_) {
       construct_in_place(*this, *other);
     }
   }
 
-  constexpr Optional(Optional &&other) : has_value_(other.has_value_) {
+  constexpr Optional(Optional &&other) requires(TriviallyMoveConstructable<T>) =
+      default;
+
+  constexpr Optional(Optional &&other) requires(
+      !TriviallyMoveConstructable<T> && MoveConstructable<T>)
+      : has_value_(other.has_value_) {
     if (has_value_) {
       construct_in_place(*this, std::move(*other));
       other.has_value_ = false;
     }
   }
 
-  constexpr Optional &operator=(const Optional &other) {
+  constexpr Optional &operator=(const Optional &other) requires(
+      TriviallyCopyAssignable<T>) = default;
+
+  constexpr Optional &
+  operator=(const Optional &other) requires(!TriviallyCopyAssignable<T> &&
+                                            CopyAssignable<T>) {
     if (this != &other) {
       if (has_value_ && other.has_value_) {
         **this = *other;
@@ -60,7 +88,12 @@ public:
     return *this;
   }
 
-  constexpr Optional &operator=(Optional &&other) {
+  constexpr Optional &
+  operator=(Optional &&other) requires(TriviallyMoveAssignable<T>) = default;
+
+  constexpr Optional &
+  operator=(Optional &&other) requires(!TriviallyMoveAssignable<T> &&
+                                       MoveAssignable<T>) {
     if (this != &other) {
       if (has_value_ && other.has_value_) {
         **this = std::move(*other);
@@ -76,31 +109,23 @@ public:
     return *this;
   }
 
-  constexpr ~Optional() {
+  constexpr ~Optional() requires(TriviallyDestructable<T>) = default;
+
+  constexpr ~Optional() requires(!TriviallyDestructable<T> && Destructable<T>) {
     // destruct
     if (has_value_) {
-      reinterpret_cast<T *>(bytes_.data())->~T();
+      value.~T();
     }
-  }
-
-  constexpr Optional(const NulloptT &) : Optional() {}
-
-  constexpr Optional(const T &value) : has_value_(true) {
-    construct_in_place(*this, value);
-  }
-
-  constexpr Optional(T &&value) : has_value_(true) {
-    construct_in_place(*this, std::forward<T>(value));
   }
 
   ATTR_PURE_NDEBUG constexpr const T &operator*() const {
     debug_assert(has_value());
-    return *reinterpret_cast<const T *>(bytes_.data());
+    return value;
   }
 
   ATTR_PURE_NDEBUG constexpr T &operator*() {
     debug_assert(has_value());
-    return *reinterpret_cast<T *>(bytes_.data());
+    return value;
   }
 
   constexpr const T *operator->() const { return &(**this); }
@@ -140,9 +165,6 @@ public:
   }
 
   template <typename F>
-  using TypeCalledOnT = decltype(std::declval<F>()(std::declval<T>()));
-
-  template <typename F>
   constexpr auto op_map(F &&f) const -> Optional<decltype(f(**this))> {
     if (has_value()) {
       return f(**this);
@@ -164,10 +186,15 @@ public:
 private:
   template <typename V>
   constexpr static void construct_in_place(Optional &cls, V &&v) {
-    ::new (reinterpret_cast<void *>(cls.bytes_.data())) T(std::forward<V>(v));
+    new (&cls.value) T(std::forward<V>(v));
   }
 
-  alignas(T) std::array<std::byte, sizeof(T)> bytes_;
+  struct EmptyT {};
+
+  [[no_unique_address]] union {
+    [[no_unique_address]] EmptyT empty;
+    [[no_unique_address]] T value;
+  };
   bool has_value_;
 };
 

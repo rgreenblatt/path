@@ -14,7 +14,11 @@ concept SceneGenerator = requires(T &gen, const Settings &settings,
   requires std::movable<T>;
   requires Setting<Settings>;
 
+  typename T::Intersector;
+  typename T::SceneRef;
+
   { gen.gen(settings, scene) }
-  ->IntersectableSceneForBSDF<scene::Material::BSDFT>;
+  ->std::same_as<
+      IntersectableScene<typename T::Intersector, typename T::SceneRef>>;
 };
 } // namespace intersectable_scene

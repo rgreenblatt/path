@@ -17,7 +17,7 @@ concept Intersectable = requires(const T &t, const Ray &ray) {
 };
 
 template <typename T, typename InfoType>
-concept IntersectableWithInfoType = requires {
+concept IntersectableForInfoType = requires {
   requires Intersectable<T>;
   requires std::same_as<typename T::InfoType, InfoType>;
 };

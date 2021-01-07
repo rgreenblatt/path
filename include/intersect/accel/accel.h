@@ -43,7 +43,8 @@ concept AccelRef =
 };
 
 namespace detail {
-// Settings type is the same for each object, so we don't use an associated type
+// Settings type is the same for each object, so we don't use an associated
+// type
 template <typename T, typename Settings, typename B>
 concept GeneralAccel = requires(T &accel, const Settings &settings,
                                 SpanSized<const B> objects, const AABB &aabb) {
@@ -51,10 +52,12 @@ concept GeneralAccel = requires(T &accel, const Settings &settings,
   requires std::default_initializable<T>;
   requires std::movable<T>;
   requires Setting<Settings>;
+  typename T::Ref;
+  requires AccelRef<typename T::Ref>;
 
   // generation
   { accel.gen(settings, objects, aabb) }
-  ->AccelRef;
+  ->std::same_as<typename T::Ref>;
 };
 } // namespace detail
 

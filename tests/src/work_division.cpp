@@ -34,8 +34,9 @@ static void check_coverage(const WorkDivision &division) {
        ++block_idx) {
     for (unsigned thread_idx = 0; thread_idx < division.block_size();
          ++thread_idx) {
-      auto [start_sample, end_sample, x, y, exit] =
+      auto [info, exit] =
           division.get_thread_info(block_idx, thread_idx, x_dim, y_dim);
+      auto [start_sample, end_sample, x, y] = info;
 
       ASSERT_FALSE(exit);
       ASSERT_EQ(start_sample, samples_covered_up_to);

@@ -4,9 +4,11 @@
 #include "integrate/light_sampler/enum_light_sampler/settings.h"
 #include "integrate/term_prob/enum_term_prob/settings.h"
 #include "intersect/accel/enum_accel/settings.h"
+#include "intersectable_scene/to_bulk.h"
 #include "lib/settings.h"
 #include "lib/tagged_union.h"
 #include "meta/all_values.h"
+#include "meta/dispatch_value.h"
 #include "meta/tag.h"
 #include "render/general_settings.h"
 #include "rng/enum_rng/settings.h"
@@ -23,10 +25,31 @@ using enum_light_sampler::LightSamplerType;
 using enum_term_prob::TermProbType;
 using rng::enum_rng::RngType;
 
+enum class IntersectionApproach {
+  MegaKernel,
+  StreamingFromGeneral,
+};
+
 struct Settings {
-public:
-  TaggedUnionPerInstance<AccelType, enum_accel::Settings> flat_accel = {
-      TAG(AccelType::KDTree)};
+  using FlatAccelSettings =
+      TaggedUnionPerInstance<AccelType, enum_accel::Settings>;
+
+  struct ToBulkSettings {
+    intersectable_scene::ToBulkSettings to_bulk_settings;
+    FlatAccelSettings accel;
+
+    AccelType type() const { return accel.type(); }
+
+    template <typename Archive> void serialize(Archive &ar) {
+      ar(NVP(to_bulk_settings), NVP(accel));
+    }
+
+    constexpr bool operator==(const ToBulkSettings &) const = default;
+  };
+
+  TaggedUnion<IntersectionApproach, FlatAccelSettings, ToBulkSettings>
+      intersection = {TAG(IntersectionApproach::MegaKernel),
+                      TAG(AccelType::KDTree)};
 
   TaggedUnionPerInstance<LightSamplerType, enum_light_sampler::Settings>
       light_sampler = {TAG(LightSamplerType::RandomTriangle)};
@@ -43,14 +66,17 @@ public:
   GeneralSettings general_settings;
 
   template <typename Archive> void serialize(Archive &ar) {
-    ar(NVP(flat_accel), NVP(light_sampler), NVP(dir_sampler), NVP(term_prob),
+    ar(NVP(intersection), NVP(light_sampler), NVP(dir_sampler), NVP(term_prob),
        NVP(rng), NVP(general_settings));
   }
 
   constexpr bool operator==(const Settings &) const = default;
 
+  using IntersectionType =
+      TaggedUnion<IntersectionApproach, AccelType, AccelType>;
+
   struct CompileTime {
-    AccelType flat_accel_type;
+    IntersectionType intersection_type;
     LightSamplerType light_sampler_type;
     DirSamplerType dir_sampler_type;
     TermProbType term_prob_type;
@@ -60,9 +86,12 @@ public:
     operator<=>(const CompileTime &other) const = default;
   };
 
-  CompileTime compile_time() const {
+  constexpr CompileTime compile_time() const {
     return {
-        .flat_accel_type = flat_accel.type(),
+        .intersection_type =
+            intersection.visit_tagged([&](auto tag, const auto &value) {
+              return IntersectionType(tag, value.type());
+            }),
         .light_sampler_type = light_sampler.type(),
         .dir_sampler_type = dir_sampler.type(),
         .term_prob_type = term_prob.type(),
@@ -73,48 +102,3 @@ public:
 
 static_assert(Setting<Settings>);
 } // namespace render
-
-template <> struct AllValuesImpl<render::Settings::CompileTime> {
-private:
-  using AccelType = render::AccelType;
-  using DirSamplerType = render::DirSamplerType;
-  using LightSamplerType = render::LightSamplerType;
-  using TermProbType = render::TermProbType;
-  using RngType = render::RngType;
-
-public:
-  // compile times don't change much from small constant values to 1...
-  static constexpr std::array<render::Settings::CompileTime, 2> values = {{
-      {AccelType::KDTree, LightSamplerType::RandomTriangle,
-       DirSamplerType::BSDF, TermProbType::MultiplierFunc,
-       rng::enum_rng::RngType::Sobel},
-      {AccelType::KDTree, LightSamplerType::NoLightSampling,
-       DirSamplerType::BSDF, TermProbType::MultiplierFunc,
-       rng::enum_rng::RngType::Sobel},
-      // {AccelType::LoopAll, LightSamplerType::RandomTriangle,
-      //  DirSamplerType::BSDF, TermProbType::MultiplierFunc,
-      //  rng::enum_rng::RngType::Sobel},
-      // {AccelType::KDTree, LightSamplerType::RandomTriangle,
-      //  DirSamplerType::Uniform, TermProbType::MultiplierFunc,
-      //  rng::enum_rng::RngType::Sobel},
-      // {AccelType::LoopAll, LightSamplerType::RandomTriangle,
-      //  DirSamplerType::Uniform, TermProbType::MultiplierFunc,
-      //  rng::enum_rng::RngType::Sobel},
-  }};
-};
-
-static_assert(AllValuesEnumerable<render::Settings::CompileTime>);
-
-// All values are unique
-static_assert([] {
-  auto values = AllValues<render::Settings::CompileTime>;
-  for (unsigned i = 0; i < values.size(); ++i) {
-    for (unsigned j = 0; j < i; ++j) {
-      if (values[i] == values[j]) {
-        return false;
-      }
-    }
-  }
-
-  return true;
-}());

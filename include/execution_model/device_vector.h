@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lib/cuda/utils.h"
+#include "meta/container_concepts.h"
 #include "meta/mock.h"
 
 #ifdef __CUDACC__
@@ -19,7 +20,9 @@ struct uninitialized_allocator : thrust::device_allocator<T> {
 } // namespace detail
 } // namespace device_vector
 
-template <typename T>
+// if we need to expand to more general type, we can use an
+// uninitialized allocator for just TriviallyDestructable types
+template <TriviallyDestructable T>
 using DeviceVector = thrust::device_vector<T
 // how much perf does this get?
 #if 0

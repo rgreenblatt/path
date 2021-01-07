@@ -2,49 +2,29 @@
 
 #include "integrate/rendering_equation.h"
 #include "lib/attribute.h"
-#include "render/detail/integrate_image.h"
+#include "render/detail/initial_ray_sample.h"
+#include "render/detail/integrate_image_items.h"
+#include "work_division/grid_location_info.h"
+#include "work_division/location_info.h"
 
 namespace render {
 namespace detail {
-ATTR_PURE_NDEBUG HOST_DEVICE inline intersect::Ray
-initial_ray(float x, float y, unsigned x_dim, unsigned y_dim,
-            const Eigen::Affine3f &film_to_world) {
-  const Eigen::Vector3f camera_space_film_plane(
-      (2.0f * x) / x_dim - 1.0f, (-2.0f * y) / y_dim + 1.0f, -1.0f);
-  const auto world_space_film_plane = film_to_world * camera_space_film_plane;
-
-  intersect::Ray ray;
-
-  ray.origin = film_to_world.translation();
-  ray.direction =
-      UnitVector::new_normalize(world_space_film_plane - ray.origin);
-
-  return ray;
-}
-
 template <intersect::Intersectable I,
-          intersectable_scene::SceneRef<typename I::InfoType> S,
-          LightSamplerRef<typename S::B> L, DirSamplerRef<typename S::B> D,
-          TermProbRef T, rng::RngRef R>
-ATTR_NO_DISCARD_PURE HOST_DEVICE inline Eigen::Array3f integrate_pixel(
-    unsigned x, unsigned y, unsigned start_sample, unsigned end_sample,
-    const integrate::RenderingEquationSettings &settings, unsigned x_dim,
-    unsigned y_dim, const I &intersectable, const S &scene,
-    const L &light_sampler, const D &dir_sampler, const T &term_prob,
-    const R &rng_ref, const Eigen::Affine3f &film_to_world) {
-  auto initial_ray_sampler = [&](auto &rng) -> integrate::FRayRayInfo {
-    float x_offset = rng.next();
-    float y_offset = rng.next();
-
-    float multiplier = 1.f;
-    return {
-        initial_ray(x + x_offset, y + y_offset, x_dim, y_dim, film_to_world),
-        {multiplier, nullopt_value}};
+          ExactSpecializationOf<IntegrateImageItems> Items>
+ATTR_NO_DISCARD_PURE HOST_DEVICE inline Eigen::Array3f
+integrate_pixel(const work_division::GridLocationInfo &info,
+                const integrate::RenderingEquationSettings settings,
+                const I &intersectable, const Items &items) {
+  auto initial_ray_sampler = [&](auto &rng) {
+    return initial_ray_sample(rng, info.x, info.y, items.base.x_dim,
+                              items.base.y_dim, items.film_to_world);
   };
 
   return integrate::rendering_equation(
-      initial_ray_sampler, start_sample, end_sample, x + y * x_dim, settings,
-      intersectable, scene, light_sampler, dir_sampler, term_prob, rng_ref);
+      work_division::LocationInfo::from_grid_location_info(info,
+                                                           items.base.x_dim),
+      settings, initial_ray_sampler, items.rng, intersectable,
+      items.components);
 }
 } // namespace detail
 } // namespace render

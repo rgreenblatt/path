@@ -2,11 +2,13 @@
 
 #include "intersect/accel/enum_accel/enum_accel_impl.h"
 #include "intersect/triangle_impl.h"
+#include "intersectable_scene/to_bulk_impl.h"
 #include "lib/group.h"
 #include "meta/dispatch_value.h"
 #include "render/detail/integrate_image.h"
 #include "render/detail/reduce_intensities_gpu.h"
 #include "render/detail/renderer_impl.h"
+#include "render/detail/settings_compile_time_impl.h"
 #include "work_division/work_division.h"
 
 namespace render {
@@ -17,14 +19,9 @@ void Renderer::Impl<exec>::general_render(
     bool output_as_bgra, Span<BGRA> pixels, Span<Eigen::Array3f> intensities,
     const scene::Scene &s, unsigned samples_per, unsigned x_dim, unsigned y_dim,
     const Settings &settings, bool show_progress, bool) {
-  // only used for gpu
-  WorkDivision division;
-
-  if (exec == ExecutionModel::GPU) {
-    division = WorkDivision(
-        settings.general_settings.computation_settings.render_work_division,
-        samples_per, x_dim, y_dim);
-  }
+  WorkDivision division = WorkDivision(
+      settings.general_settings.computation_settings.render_work_division,
+      samples_per, x_dim, y_dim);
 
   Span<BGRA> output_pixels;
   Span<Eigen::Array3f> output_intensities;
@@ -54,22 +51,49 @@ void Renderer::Impl<exec>::general_render(
       [&](auto compile_time_holder) {
         constexpr auto compile_time = decltype(compile_time_holder)::value;
 
-        constexpr auto flat_accel_type = compile_time.flat_accel_type;
-
-        // TODO: Clean up template??
-        auto intersectable_scene =
-            stored_scene_generators_.get(TAG(flat_accel_type))
-                .gen(
-                    intersectable_scene::flat_triangle::Settings<
-                        intersect::accel::enum_accel::Settings<
-                            flat_accel_type>>{
-                        settings.flat_accel.get(TAG(flat_accel_type))},
-                    s);
-
+        constexpr auto intersection_type = compile_time.intersection_type;
         constexpr auto light_sampler_type = compile_time.light_sampler_type;
         constexpr auto dir_sampler_type = compile_time.dir_sampler_type;
         constexpr auto term_prob_type = compile_time.term_prob_type;
         constexpr auto rng_type = compile_time.rng_type;
+
+        // this will need to change somewhat... when another value is added...
+        static_assert(AllValues<IntersectionApproach>.size() == 2);
+        constexpr auto intersection_approach = intersection_type.type();
+        constexpr auto accel_type =
+            intersection_type.get(TAG(intersection_approach));
+
+        const auto &all_intersection_settings =
+            settings.intersection.get(TAG(intersection_approach));
+        const auto &accel_settings = [&]() -> const auto & {
+          if constexpr (intersection_approach ==
+                        IntersectionApproach::MegaKernel) {
+            return all_intersection_settings;
+          } else if constexpr (intersection_approach ==
+                               IntersectionApproach::StreamingFromGeneral) {
+            return all_intersection_settings.accel;
+          }
+        }
+        ().get(TAG(accel_type));
+
+        auto intersectable_scene = stored_scene_generators_.get(TAG(accel_type))
+                                       .gen({accel_settings}, s);
+
+        auto &intersector = [&]() -> auto & {
+          if constexpr (intersection_approach ==
+                        IntersectionApproach::MegaKernel) {
+            return intersectable_scene.intersector;
+          } else if constexpr (intersection_approach ==
+                               IntersectionApproach::StreamingFromGeneral) {
+            auto &out = to_bulk_.get(TAG(accel_type));
+            out.set_settings_intersectable(
+                all_intersection_settings.to_bulk_settings,
+                intersectable_scene.intersector);
+
+            return out;
+          }
+        }
+        ();
 
         auto light_sampler =
             light_samplers_.get(TAG(light_sampler_type))
@@ -91,11 +115,45 @@ void Renderer::Impl<exec>::general_render(
             rngs_.get(TAG(rng_type))
                 .gen(settings.rng.get(TAG(rng_type)), samples_per, n_locations);
 
-        IntegrateImage<exec>::run(output_as_bgra, settings.general_settings,
-                                  show_progress, division, samples_per, x_dim,
-                                  y_dim, intersectable_scene, light_sampler,
-                                  dir_sampler, term_prob, rng, output_pixels,
-                                  output_intensities, s.film_to_world());
+#if 1
+        // TODO: won't be needed when P1021R4
+        // (http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p1021r4.html)
+        // is implemented
+        using Components = integrate::RenderingEquationComponents<
+            decltype(intersectable_scene.scene), decltype(light_sampler),
+            decltype(dir_sampler), decltype(term_prob)>;
+        using Items = IntegrateImageItems<decltype(rng), Components>;
+        using Inp =
+            IntegrateImageInputs<Items, std::decay_t<decltype(intersector)>>;
+
+        IntegrateImage<exec>::run(Inp{
+            .show_progress = show_progress,
+            .settings = settings.general_settings,
+            .items =
+                Items{
+                    .base =
+                        {
+                            .output_as_bgra = output_as_bgra,
+                            .samples_per = samples_per,
+                            .x_dim = x_dim,
+                            .y_dim = y_dim,
+                            .division = division,
+                            .pixels = output_pixels,
+                            .intensities = output_intensities,
+                        },
+                    .rng = rng,
+                    .film_to_world = s.film_to_world(),
+                    .components =
+                        Components{
+                            .scene = intersectable_scene.scene,
+                            .light_sampler = light_sampler,
+                            .dir_sampler = dir_sampler,
+                            .term_prob = term_prob,
+                        },
+                },
+            .intersector = intersector,
+        });
+#endif
       },
       settings.compile_time());
 

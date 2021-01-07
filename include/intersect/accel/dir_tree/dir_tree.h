@@ -23,9 +23,14 @@ struct Ref {
 
 template <ExecutionModel execution_model> class DirTree {
 public:
+  using Ref = detail::Ref;
+
   template <Bounded B>
-  detail::Ref gen(const Settings &settings, SpanSized<const B> objects,
-                  const AABB &);
+  detail::Ref gen(const Settings &, SpanSized<const B>, const AABB &) {
+    // TODO
+    unreachable();
+    return {};
+  }
 };
 
 // I think dir tree might be triangle only in practice...

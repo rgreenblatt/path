@@ -5,8 +5,6 @@
 #include "lib/optional.h"
 #include "lib/settings.h"
 
-#include <thrust/transform.h>
-
 namespace intersectable_scene {
 struct ToBulkSettings {
   unsigned max_size = 2097152;
@@ -16,43 +14,51 @@ struct ToBulkSettings {
   ATTR_PURE constexpr bool operator==(const ToBulkSettings &) const = default;
 };
 
-template <ExecutionModel exec, IntersectableScene S>
-requires S::individually_intersectable class ToBulkGen {
+template <ExecutionModel exec, intersect::Intersectable I> struct ToBulkGen {
 public:
-  using IntersectionOp = intersect::IntersectionOp<typename S::InfoType>;
+  ToBulkGen() = default;
+  ToBulkGen(const ToBulkGen &) = delete;
+  ToBulkGen &operator=(const ToBulkGen &) = delete;
 
-  ToBulkGen set_settings(const ToBulkSettings &settings) {
-    settings_ = settings;
+  using InfoType = typename I::InfoType;
+  using IntersectionOp = intersect::IntersectionOp<InfoType>;
+
+  void set_settings_intersectable(const ToBulkSettings &settings,
+                                  const I &intersectable) {
+    scene_intersectable_ = SceneSettings{
+        .settings = settings,
+        .intersectable = intersectable,
+    };
   }
 
   unsigned max_size() const {
-    always_assert(settings_.has_value());
-    return settings_->max_size;
+    always_assert(scene_intersectable_.has_value());
+    return scene_intersectable_->settings.max_size;
   }
 
-  SpanRayWriter ray_writer(unsigned size) const {
+  SpanRayWriter ray_writer(unsigned size) {
     rays_.resize(size);
     return {rays_};
   }
 
-  Span<const IntersectionOp> get_intersections() {
-    thrust::transform(
-        rays_.begin(), rays_.end(), intersections_.begin(),
-        [intersectable = scene_.intersectable()](const intersect::Ray &ray) {
-          intersectable.intersect(ray);
-        });
-  }
+  Span<const IntersectionOp> get_intersections();
 
   static constexpr bool individually_intersectable = false;
 
 private:
-  Optional<ToBulkSettings> settings_;
+  struct SceneSettings {
+    ToBulkSettings settings;
+    I intersectable;
+  };
+
+  Optional<SceneSettings> scene_intersectable_;
 
   template <typename T> using ExecVecT = ExecVector<exec, T>;
-
-  S scene_;
 
   ExecVecT<intersect::Ray> rays_;
   ExecVecT<IntersectionOp> intersections_;
 };
+
+static_assert(BulkIntersector<
+              ToBulkGen<ExecutionModel::CPU, intersect::MockIntersectable>>);
 } // namespace intersectable_scene

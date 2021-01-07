@@ -1,28 +1,36 @@
 settings:
-  flat_accel: KDTree
-  flat_accel_settings:
-    s_a_heuristic:
-      traversal_cost: 1
-      intersection_cost: 1
-    use_s_a_heuritic: false
-    num_objects_terminate: 2
-  light_sampler: RandomTriangle
-  light_sampler_settings:
-    binary_search_threshold: 2147483648
-  dir_sampler: BSDF
-  dir_sampler_settings:
-    {}
-  term_prob: MultiplierFunc
-  term_prob_settings:
-    exp: 50.0
-    min_prob: 0.0
-    # prob: 0.4
-  rng: Sobel
-  rng_settings:
-    # {}
-    sequence_settings:
-      {}
-    max_sample_size: 256
+  intersection:
+    type: MegaKernel
+    value:
+      # to_bulk_settings:
+      #   max_size: 2097152
+      # accel:
+        type: KDTree
+        value:
+          s_a_heuristic:
+            traversal_cost: 1
+            intersection_cost: 1
+          use_s_a_heuritic: false
+          num_objects_terminate: 2
+  light_sampler: 
+    type: RandomTriangle
+    value:
+      binary_search_threshold: 2147483648
+  dir_sampler: 
+    type: BSDF
+    value: {}
+  term_prob: 
+    type: MultiplierFunc
+    value:
+      exp: 50.0
+      min_prob: 0.03
+      # prob: 0.4
+  rng: 
+    type: Sobel
+    value: 
+      sequence_settings:
+        {}
+      max_sample_size: 256
   general_settings:
     computation_settings:
       max_blocks_per_launch: 4096

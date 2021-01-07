@@ -45,23 +45,26 @@ struct AllValuesImpl<std::tuple<Types...>> {
       boost::hana::cartesian_product(std::make_tuple(AllValues<Types>...)));
 };
 
-template <std::unsigned_integral T, T up_to> struct UpTo {
+template <std::unsigned_integral T, T up_to> struct UpToGen {
   T value;
-  constexpr UpTo() requires(up_to > 0) : value{} {}
-  constexpr UpTo(T value) requires(up_to > 0) : value{value} {
-    debug_assert(value < up_to);
-  }
+  constexpr UpToGen() : value{} {}
+  constexpr UpToGen(T value) : value{value} { debug_assert(value < up_to); }
   constexpr operator T() const { return value; }
   constexpr operator T &() { return value; }
 };
 
+template <unsigned up_to> using UpTo = UpToGen<unsigned, up_to>;
+
 template <std::unsigned_integral T, T up_to>
-struct AllValuesImpl<UpTo<T, up_to>> {
-  static constexpr auto values = boost::hana::unpack(
-      std::make_integer_sequence<T, up_to>{}, [](auto... v) {
-        return std::array<UpTo<T, up_to>, static_cast<std::size_t>(up_to) + 1>{
-            v()...};
-      });
+struct AllValuesImpl<UpToGen<T, up_to>> {
+  static constexpr auto values = [] {
+    std::array<UpToGen<T, up_to>, up_to> arr;
+    for (std::size_t i = 0; i < arr.size(); ++i) {
+      arr[i] = i;
+    }
+
+    return arr;
+  }();
 };
 
 template <std::unsigned_integral T> struct AllValuesImpl<T> {
@@ -69,9 +72,12 @@ private:
   static constexpr T max = std::numeric_limits<T>::max();
 
 public:
-  static constexpr auto values =
-      boost::hana::unpack(std::make_integer_sequence<T, max>{}, [](auto... v) {
-        return std::array<T, static_cast<std::size_t>(max) + 1>{
-            static_cast<T>(v)..., max};
-      });
+  static constexpr auto values = [] {
+    std::array<T, static_cast<std::size_t>(max) + 1> arr;
+    for (std::size_t i = 0; i < arr.size(); ++i) {
+      arr[i] = i;
+    }
+
+    return arr;
+  }();
 };

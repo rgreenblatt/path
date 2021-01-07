@@ -7,6 +7,7 @@
 #include "integrate/term_prob/enum_term_prob/enum_term_prob.h"
 #include "intersect/accel/enum_accel/enum_accel.h"
 #include "intersectable_scene/flat_triangle/flat_triangle.h"
+#include "intersectable_scene/to_bulk.h"
 #include "lib/bgra.h"
 #include "lib/one_per_instance.h"
 #include "render/renderer.h"
@@ -46,6 +47,12 @@ private:
 
   OnePerInstance<AccelType, IntersectableSceneGenerator>
       stored_scene_generators_;
+
+  template <AccelType type>
+  using BulkIntersectableSceneGenerator = intersectable_scene::ToBulkGen<
+      exec, typename IntersectableSceneGenerator<type>::Intersector>;
+
+  OnePerInstance<AccelType, BulkIntersectableSceneGenerator> to_bulk_;
 
   template <LightSamplerType type>
   using LightSamplerT = EnumLightSampler<type, exec>;

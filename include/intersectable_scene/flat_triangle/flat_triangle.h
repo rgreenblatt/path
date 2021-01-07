@@ -20,15 +20,22 @@ namespace detail {
 using InfoType = intersect::accel::IdxHolder<intersect::Triangle::InfoType>;
 using Intersection = intersect::Intersection<InfoType>;
 
+enum class TriItem {
+  Triangle,
+  Data,
+};
+} // namespace detail
+
 struct SceneRef {
   Span<const intersect::Triangle> triangles;
   Span<const scene::TriangleData> triangle_data;
   Span<const scene::Material> materials;
 
   using B = scene::Material::BSDFT;
+  using InfoType = detail::InfoType;
 
   ATTR_PURE_NDEBUG HOST_DEVICE inline UnitVector
-  get_normal(const Intersection &intersection,
+  get_normal(const detail::Intersection &intersection,
              const intersect::Ray &ray) const {
     unsigned triangle_idx = intersection.info.idx;
 
@@ -37,60 +44,29 @@ struct SceneRef {
   }
 
   ATTR_PURE_NDEBUG HOST_DEVICE inline const scene::Material &
-  get_material(const Intersection &intersection) const {
+  get_material(const detail::Intersection &intersection) const {
     auto [triangle_idx, triangle_info] = intersection.info;
 
     return materials[triangle_data[triangle_idx].material_idx()];
   }
 };
 
-template <intersect::accel::AccelRef Accel> struct Ref {
+template <intersect::accel::AccelRef Accel> struct IntersectableRef {
   [[no_unique_address]] Accel accel;
   Span<const intersect::Triangle> triangles;
-  Span<const scene::TriangleData> triangle_data;
-  Span<const scene::Material> materials;
 
   static constexpr bool individually_intersectable = true;
 
-  using InfoType = InfoType;
-  using B = scene::Material::BSDFT;
+  using InfoType = detail::InfoType;
 
-  struct IntersectableRef {
-    [[no_unique_address]] Accel accel;
-    Span<const intersect::Triangle> triangles;
-
-    using InfoType = InfoType;
-
-    ATTR_PURE_NDEBUG HOST_DEVICE inline auto
-    intersect(const intersect::Ray &ray) const {
-      return accel.intersect_objects(
-          ray, [&](unsigned idx, const intersect::Ray &ray) {
-            return triangles[idx].intersect(ray);
-          });
-    }
-  };
-
-  ATTR_PURE_NDEBUG IntersectableRef intersectable() const {
-    return IntersectableRef{
-        accel,
-        triangles,
-    };
-  }
-
-  ATTR_PURE_NDEBUG SceneRef scene() const {
-    return SceneRef{
-        triangles,
-        triangle_data,
-        materials,
-    };
+  ATTR_PURE_NDEBUG HOST_DEVICE inline intersect::IntersectionOp<InfoType>
+  intersect(const intersect::Ray &ray) const {
+    return accel.intersect_objects(
+        ray, [&](unsigned idx, const intersect::Ray &ray) {
+          return triangles[idx].intersect(ray);
+        });
   }
 };
-
-enum class TriItem {
-  Triangle,
-  Data,
-};
-} // namespace detail
 
 template <
     ExecutionModel exec, Setting AccelSettings,
@@ -101,8 +77,11 @@ public:
   Generator(){};
 
   using Settings = Settings<AccelSettings>;
+  using Intersector = IntersectableRef<typename Accel::Ref>;
+  using SceneRef = SceneRef;
 
-  auto gen(const Settings &settings, const scene::Scene &scene) {
+  IntersectableScene<Intersector, SceneRef> gen(const Settings &settings,
+                                                const scene::Scene &scene) {
     host_triangle_values_.clear_all();
 
     auto objects = scene.transformed_mesh_objects();
@@ -124,14 +103,25 @@ public:
     host_triangle_values_.copy_to_other(triangle_values_);
     copy_to_vec(scene.materials(), materials_);
 
-    auto accel_ref =
-        accel_.gen(settings.accel_settings,
-                   host_triangle_values_.get(TAG(TriItem::Triangle)).as_const(),
-                   scene.overall_aabb());
+    auto triangles = triangle_values_.get(TAG(TriItem::Triangle));
 
-    return detail::Ref<std::decay_t<decltype(accel_ref)>>{
-        accel_ref, triangle_values_.get(TAG(TriItem::Triangle)),
-        triangle_values_.get(TAG(TriItem::Data)), materials_};
+    return {
+        .intersector =
+            {
+                .accel =
+                    accel_.gen(settings.accel_settings,
+                               host_triangle_values_.get(TAG(TriItem::Triangle))
+                                   .as_const(),
+                               scene.overall_aabb()),
+                .triangles = triangles,
+            },
+        .scene =
+            {
+                .triangles = triangles,
+                .triangle_data = triangle_values_.get(TAG(TriItem::Data)),
+                .materials = materials_,
+            },
+    };
   }
 
 private:

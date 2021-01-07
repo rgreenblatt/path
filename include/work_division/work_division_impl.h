@@ -38,19 +38,22 @@ WorkDivision::get_thread_info(unsigned block_idx, unsigned thread_idx,
 
   unsigned sample_idx =
       thread_idx_sample + block_idx_sample * sample_block_size_;
-  unsigned x = thread_idx_x + block_idx_x * x_block_size_;
-  unsigned y = thread_idx_y + block_idx_y * y_block_size_;
+
+  GridLocationInfo info;
+
+  info.x = thread_idx_x + block_idx_x * x_block_size_;
+  info.y = thread_idx_y + block_idx_y * y_block_size_;
 
   unsigned base_samples_before = sample_idx * base_samples_per_thread_;
   unsigned n_extra_sample_before =
       std::min(n_threads_per_unit_extra_, sample_idx);
-  unsigned start_sample = base_samples_before + n_extra_sample_before;
+  info.start_sample = base_samples_before + n_extra_sample_before;
   bool has_extra_sample = sample_idx < n_threads_per_unit_extra_;
-  unsigned n_samples = base_samples_per_thread_ + (has_extra_sample ? 1 : 0);
+  unsigned n_samples_this_thread =
+      base_samples_per_thread_ + (has_extra_sample ? 1 : 0);
+  info.end_sample = info.start_sample + n_samples_this_thread;
 
-  unsigned end_sample = start_sample + n_samples;
-
-  return {start_sample, end_sample, x, y, x >= x_dim || y >= y_dim};
+  return {.info = info, .exit = info.x >= x_dim || info.y >= y_dim};
 }
 
 template <typename T, typename BinOp>

@@ -40,8 +40,9 @@ division_sum_samples(const WorkDivision division, Span<const T> in, Span<T> out,
   always_assert(blockDim.x == division.block_size());
   always_assert(division.num_sample_blocks() == 1);
 
-  auto [start_sample, end_sample, j, unused, exit] =
+  auto [info, exit] =
       division.get_thread_info(block_idx, thread_idx, num_locations, 1);
+  auto [start_sample, end_sample, j, unused] = info;
 
   if (exit) {
     return;

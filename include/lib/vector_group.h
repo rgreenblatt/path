@@ -4,6 +4,7 @@
 #include "data_structure/vector.h"
 #include "lib/span.h"
 #include "meta/all_values.h"
+#include "meta/pack_element.h"
 #include "meta/tag.h"
 
 #include <boost/hana/ext/std/array.hpp>
@@ -16,7 +17,7 @@ template <template <typename> class VecT, AllValuesEnumerable E, typename... T>
 requires((... && Vector<VecT<T>>)&&(AllValues<E>.size() == sizeof...(T) &&
                                     sizeof...(T) > 0)) class VectorGroup {
 public:
-  using FirstType = __type_pack_element<0, T...>;
+  using FirstType = PackElement<0, T...>;
   static constexpr bool all_types_same = (... && std::same_as<FirstType, T>);
 
   void resize_all(unsigned size) {
@@ -38,13 +39,12 @@ public:
 
   unsigned size() const { return std::get<0>(data_).size(); }
 
-  template <unsigned idx>
-  SpanSized<__type_pack_element<idx, T...>> get(Tag<E, idx>) {
+  template <unsigned idx> SpanSized<PackElement<idx, T...>> get(Tag<E, idx>) {
     return std::get<idx>(data_);
   }
 
   template <unsigned idx>
-  SpanSized<const __type_pack_element<idx, T...>> get(Tag<E, idx>) const {
+  SpanSized<const PackElement<idx, T...>> get(Tag<E, idx>) const {
     return std::get<idx>(data_);
   }
 

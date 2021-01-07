@@ -28,6 +28,7 @@ add_compile_options(-Wno-deprecated-copy)
 add_compile_options(-Wno-deprecated-anon-enum-enum-conversion)
 
 add_compile_options(-fconstexpr-steps=80000000 -fbracket-depth=512)
+# add_compile_options(-fmodules)
 # I think -ffast-math is enabled by -Ofast, but the documentation isn't
 # perfectly clear (certainly most options of -ffast-math are enabled by
 # -Ofast, but I'm not sure about the cuda specific ones)
@@ -51,16 +52,11 @@ endif ()
 # disable ptxas warnings
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcuda-ptxas '-w' -g")
 
-# theoretical this should reduce compile times, but it doesn't
-# set(CUDA_EXTRA_DEBUG_ARGS
-#   "-O0 -Xcuda-ptxas '--allow-expensive-optimizations=false'")
+set(CMAKE_CUDA_FLAGS_DEBUG 
+  "${CMAKE_CUDA_FLAGS_DEBUG} -fsanitize=address,undefined")
 
-# set(CUDA_EXTRA_DEBUG_ARGS
-#   "${CUDA_EXTRA_DEBUG_ARGS} -fsanitize=address,undefined")
-set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} ${CUDA_EXTRA_DEBUG_ARGS}")
-
-# set(CMAKE_CXX_FLAGS_DEBUG
-#   "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address,undefined")
+set(CMAKE_CXX_FLAGS_DEBUG
+  "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address,undefined")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

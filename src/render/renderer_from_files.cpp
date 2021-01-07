@@ -36,6 +36,9 @@ void RendererFromFiles::load_scene(const std::filesystem::path &scene_file_path,
 void RendererFromFiles::load_config(
     const std::filesystem::path &config_file_path) {
   std::ifstream i(config_file_path);
+  always_assert(!i.fail());
+  always_assert(!i.bad());
+  always_assert(i.is_open());
   cereal::YAMLInputArchive archive(i);
   archive(cereal::make_nvp("settings", *settings_));
 }

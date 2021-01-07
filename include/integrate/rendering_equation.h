@@ -1,87 +1,24 @@
 #pragma once
 
 #include "integrate/dir_sample.h"
-#include "integrate/dir_sampler/dir_sampler.h"
-#include "integrate/light_sampler/light_sampler.h"
+#include "integrate/rendering_equation_components.h"
 #include "integrate/rendering_equation_settings.h"
-#include "integrate/term_prob/term_prob.h"
-#include "intersectable_scene/intersectable_scene.h"
+#include "integrate/rendering_equation_state.h"
 #include "lib/assert.h"
 #include "lib/tagged_union.h"
+#include "work_division/location_info.h"
 
 namespace integrate {
-namespace detail {
-template <typename T> struct RayInfo {
-  T multiplier;
-  Optional<float> target_distance;
-};
-
-template <typename T> struct RayRayInfo {
-  intersect::Ray ray;
-  RayInfo<T> info;
-};
-} // namespace detail
-
-using FRayInfo = detail::RayInfo<float>;
-using ArrRayInfo = detail::RayInfo<Eigen::Array3f>;
-using FRayRayInfo = detail::RayRayInfo<float>;
-using ArrRayRayInfo = detail::RayRayInfo<Eigen::Array3f>;
-
-// this should probably be a class with a friend struct...
-template <unsigned n_light_samples> struct RenderingEquationState {
-  HOST_DEVICE static RenderingEquationState
-  initial_state(const FRayRayInfo &ray_ray_info) {
-    return RenderingEquationState{
-        .iters = 0,
-        .count_emission = true,
-        .has_next_sample = true,
-        .ray_ray_info = {ray_ray_info.ray,
-                         {Eigen::Array3f::Constant(
-                              ray_ray_info.info.multiplier),
-                          ray_ray_info.info.target_distance}},
-        .light_samples = {},
-        .intensity = Eigen::Array3f::Zero(),
-    };
-  }
-
-  unsigned iters;
-  bool count_emission;
-  bool has_next_sample;
-  ArrRayRayInfo ray_ray_info;
-  ArrayVec<ArrRayInfo, n_light_samples> light_samples;
-  Eigen::Array3f intensity;
-};
-
-template <unsigned n_light_samples> struct RenderingEquationNextIteration {
-  RenderingEquationState<n_light_samples> state;
-  ArrayVec<intersect::Ray, n_light_samples + 1> rays;
-};
-
-enum class IterationOutputType {
-  NextIteration,
-  Finished,
-};
-
-template <unsigned n_light_samples>
-using IterationOutput =
-    TaggedUnion<IterationOutputType,
-                RenderingEquationNextIteration<n_light_samples>,
-                Eigen::Array3f>;
-
-// TODO: initial_ray_sampler concept
-template <typename InfoType, intersectable_scene::SceneRef<InfoType> S,
-          light_sampler::LightSamplerRef<typename S::B> L,
-          dir_sampler::DirSamplerRef<typename S::B> D, term_prob::TermProbRef T,
-          rng::RngState R>
-ATTR_NO_DISCARD_PURE HOST_DEVICE inline IterationOutput<L::max_sample_size>
+template <rng::RngState R, ExactSpecializationOf<RenderingEquationComponents> C>
+ATTR_NO_DISCARD_PURE HOST_DEVICE inline IterationOutput<C::L::max_sample_size>
 rendering_equation_iteration(
-    const RenderingEquationState<L::max_sample_size> &state, R &rng,
-    const ArrayVec<intersect::IntersectionOp<InfoType>, L::max_sample_size + 1>
-        &intersections,
-    const RenderingEquationSettings &settings, const S &scene,
-    const L &light_sampler, const D &dir_sampler, const T &term_prob) {
+    const RenderingEquationState<C::L::max_sample_size> &state, R &rng,
+    const ArrayVec<intersect::IntersectionOp<typename C::InfoType>,
+                   C::L::max_sample_size + 1> &intersections,
+    const RenderingEquationSettings &settings, const C &inp) {
   const auto &[iters, count_emission, has_next_sample, ray_ray_info,
                light_samples, old_intensity] = state;
+  const auto &[scene, light_sampler, dir_sampler, term_prob] = inp;
 
   auto use_intersection = [&](const auto &intersection,
                               Optional<float> target_distance) {
@@ -96,14 +33,14 @@ rendering_equation_iteration(
     return !settings.back_cull_emission || !intersection.is_back_intersection;
   };
 
-  RenderingEquationState<L::max_sample_size> new_state;
+  RenderingEquationState<C::L::max_sample_size> new_state;
   new_state.iters = iters + 1;
   new_state.intensity = old_intensity;
   auto &intensity = new_state.intensity;
 
   debug_assert_assume(light_samples.size() ==
                       intersections.size() - has_next_sample);
-  debug_assert_assume(light_samples.size() <= L::max_sample_size);
+  debug_assert_assume(light_samples.size() <= C::L::max_sample_size);
   for (unsigned i = 0; i < light_samples.size(); ++i) {
     const auto &[multiplier, target_distance] = light_samples[i];
     const auto &intersection_op = intersections[i];
@@ -134,25 +71,24 @@ rendering_equation_iteration(
   const auto &intersection_point = next_intersection.intersection_point(ray);
   Eigen::Array3f multiplier = ray_ray_info.info.multiplier;
 
-  // FIXME references...
-  const auto &material = scene.get_material(next_intersection);
+  decltype(auto) material = scene.get_material(next_intersection);
 
-  if ((!L::performs_samples || count_emission) &&
+  if ((!C::L::performs_samples || count_emission) &&
       include_lighting(next_intersection)) {
     intensity += multiplier * material.emission;
   }
 
-  const auto &&normal = scene.get_normal(next_intersection, ray);
+  decltype(auto) normal = scene.get_normal(next_intersection, ray);
 
-  using B = typename S::B;
+  using B = typename C::B;
 
-  ArrayVec<intersect::Ray, L::max_sample_size + 1> new_rays;
+  ArrayVec<intersect::Ray, C::L::max_sample_size + 1> new_rays;
 
   if constexpr (B::continuous) {
     auto add_direct_lighting = [&, &multiplier =
                                        multiplier](float prob_continuous) {
-      const auto samples = light_sampler(intersection_point, material,
-                                         ray.direction, normal, rng);
+      const auto samples = inp.light_sampler(intersection_point, material,
+                                             ray.direction, normal, rng);
       for (const auto &[dir_sample, light_target_distance] : samples) {
         debug_assert(material.bsdf.is_brdf());
         // TODO: BSDF case
@@ -164,10 +100,11 @@ rendering_equation_iteration(
 
         // FIXME: CHECK ME... multiplier
         const auto light_multiplier =
-            multiplier *
-            material.bsdf.continuous_eval(ray.direction, light_ray.direction,
-                                          normal) *
-            prob_continuous / dir_sample.multiplier;
+            (multiplier *
+             material.bsdf.continuous_eval(ray.direction, light_ray.direction,
+                                           normal) *
+             prob_continuous / dir_sample.multiplier)
+                .eval();
 
         new_state.light_samples.push_back(
             {light_multiplier, light_target_distance});
@@ -216,24 +153,29 @@ rendering_equation_iteration(
   return {TAG(IterationOutputType::NextIteration), new_state, new_rays};
 }
 
-template <typename F, intersect::Intersectable I,
-          intersectable_scene::SceneRef<typename I::InfoType> S,
-          light_sampler::LightSamplerRef<typename S::B> L,
-          dir_sampler::DirSamplerRef<typename S::B> D, term_prob::TermProbRef T,
-          rng::RngRef R>
-ATTR_NO_DISCARD_PURE HOST_DEVICE inline Eigen::Array3f rendering_equation(
-    const F &initial_ray_sampler, unsigned start_sample, unsigned end_sample,
-    unsigned location, const RenderingEquationSettings &settings,
-    const I &intersectable, const S &scene, const L &light_sampler,
-    const D &dir_sampler, const T &term_prob, const R &rng_ref) {
+template <typename T>
+concept InitialRaySampler = requires(const T &v, rng::MockRngState &rng) {
+  { v(rng) }
+  ->std::same_as<FRayRayInfo>;
+};
+
+template <InitialRaySampler F, rng::RngRef R, intersect::Intersectable I,
+          ExactSpecializationOf<RenderingEquationComponents> C>
+ATTR_NO_DISCARD_PURE HOST_DEVICE inline Eigen::Array3f
+rendering_equation(const work_division::LocationInfo &location_info,
+                   const RenderingEquationSettings &settings,
+                   const F &initial_ray_sampler, const R &rng_ref,
+                   const I &intersectable, const C &inp) {
+  const auto &[start_sample, end_sample, location] = location_info;
+
   unsigned sample_idx = start_sample;
   bool finished = true;
 
   typename R::State rng;
 
-  ArrayVec<intersect::Ray, L::max_sample_size + 1> rays;
+  ArrayVec<intersect::Ray, C::L::max_sample_size + 1> rays;
 
-  RenderingEquationState<L::max_sample_size> state;
+  RenderingEquationState<C::L::max_sample_size> state;
 
   auto intensity = Eigen::Array3f::Zero().eval();
   while (!finished || sample_idx != end_sample) {
@@ -242,14 +184,14 @@ ATTR_NO_DISCARD_PURE HOST_DEVICE inline Eigen::Array3f rendering_equation(
       auto initial_sample = initial_ray_sampler(rng);
       rays.resize(0);
       rays.push_back(initial_sample.ray);
-      state = RenderingEquationState<L::max_sample_size>::initial_state(
+      state = RenderingEquationState<C::L::max_sample_size>::initial_state(
           initial_sample);
       finished = false;
       sample_idx++;
     }
 
     ArrayVec<intersect::IntersectionOp<typename I::InfoType>,
-             L::max_sample_size + 1>
+             C::L::max_sample_size + 1>
         intersections;
 
     for (const auto &ray : rays) {
@@ -260,8 +202,7 @@ ATTR_NO_DISCARD_PURE HOST_DEVICE inline Eigen::Array3f rendering_equation(
     debug_assert_assume(rays.size() > 0);
 
     auto output =
-        rendering_equation_iteration(state, rng, intersections, settings, scene,
-                                     light_sampler, dir_sampler, term_prob);
+        rendering_equation_iteration(state, rng, intersections, settings, inp);
 
     switch (output.type()) {
     case IterationOutputType::NextIteration: {

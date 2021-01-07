@@ -3,6 +3,7 @@
 #include "lib/attribute.h"
 #include "lib/cuda/utils.h"
 #include "lib/settings.h"
+#include "work_division/grid_location_info.h"
 #include "work_division/settings.h"
 
 namespace work_division {
@@ -14,10 +15,7 @@ public:
                unsigned y_dim);
 
   struct ThreadInfo {
-    unsigned start_sample;
-    unsigned end_sample;
-    unsigned x;
-    unsigned y;
+    GridLocationInfo info;
     bool exit;
   };
 

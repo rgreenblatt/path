@@ -21,9 +21,14 @@
 
 namespace scene {
 namespace scenefile_compat {
-Optional<Scene> ScenefileLoader::load_scene(const std::string &filename,
-                                            float width_height_ratio,
-                                            bool quiet) {
+// requires Conditionally Trivial Special Member Functions - P0848R3
+#if 0
+Optional<Scene>
+#else
+std::optional<Scene>
+#endif
+ScenefileLoader::load_scene(const std::string &filename,
+                            float width_height_ratio, bool quiet) {
   quiet_ = quiet;
   loaded_meshes_.clear();
 
@@ -32,7 +37,7 @@ Optional<Scene> ScenefileLoader::load_scene(const std::string &filename,
 
   CS123XmlSceneParser parser(filename);
   if (!parser.parse(quiet)) {
-    return nullopt_value;
+    return {};
   }
   CS123SceneCameraData cameraData;
   parser.get_camera_data(cameraData);
@@ -52,14 +57,14 @@ Optional<Scene> ScenefileLoader::load_scene(const std::string &filename,
   for (int i = 0, size = parser.get_num_lights(); i < size; ++i) {
     parser.get_light_data(i, light_data);
     if (!add_light(scene_v, light_data)) {
-      return nullopt_value;
+      return {};
     }
   }
 
   QFileInfo info(filename.c_str());
   std::string dir = info.path().toStdString();
   if (!parse_tree(scene_v, *parser.get_root_node(), dir + "/")) {
-    return nullopt_value;
+    return {};
   }
 
   scene_v.overall_aabb_ = {overall_min_b_transformed_,

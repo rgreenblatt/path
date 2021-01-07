@@ -1,4 +1,8 @@
+#pragma once
+
 #include "meta/enum.h"
+#include "meta/pack_element.h"
+
 #include <magic_enum.hpp>
 
 template <Enum E, E type, typename... T>

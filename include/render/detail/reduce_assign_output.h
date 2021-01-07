@@ -1,32 +1,28 @@
 #pragma once
 
-#include "lib/bgra.h"
 #include "lib/cuda/utils.h"
+#include "meta/specialization_of.h"
 #include "render/detail/assign_output.h"
-#include "work_division/work_division.h"
+#include "render/detail/integrate_image_base_items.h"
 #include "work_division/work_division_impl.h"
 
 #include <Eigen/Core>
 
 namespace render {
 namespace detail {
-DEVICE void reduce_assign_output(
-    unsigned thread_idx, unsigned block_idx, bool output_as_bgra, unsigned x,
-    unsigned y, unsigned x_dim, const Eigen::Array3f &intensity,
-    Span<BGRA> bgras, Span<Eigen::Array3f> intensities,
-    const work_division::WorkDivision &division, unsigned samples_per) {
+DEVICE void reduce_assign_output(unsigned thread_idx, unsigned block_idx,
+                                 const IntegrateImageBaseItems &b, unsigned x,
+                                 unsigned y, const Eigen::Array3f &intensity) {
 
   Eigen::Array3f totals;
   for (unsigned axis = 0; axis < 3; axis++) {
     auto add = [](auto lhs, auto rhs) { return lhs + rhs; };
-    totals[axis] = division.reduce_samples(intensity[axis], add, thread_idx);
+    totals[axis] = b.division.reduce_samples(intensity[axis], add, thread_idx);
   }
 
-  if (division.assign_sample(thread_idx)) {
-    assign_output(output_as_bgra, bgras, intensities,
-                  division.sample_block_idx(block_idx),
-                  division.num_sample_blocks(), x, y, x_dim, samples_per,
-                  totals);
+  if (b.division.assign_sample(thread_idx)) {
+    assign_output(b, b.division.sample_block_idx(block_idx),
+                  b.division.num_sample_blocks(), x, y, totals);
   }
 }
 } // namespace detail
