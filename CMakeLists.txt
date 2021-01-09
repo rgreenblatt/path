@@ -12,7 +12,7 @@ cmake_minimum_required(VERSION 3.18)
 set(CMAKE_VERBOSE_MAKEFILE TRUE)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
-add_compile_options(-Wall -Wextra -fsized-deallocation -g)
+add_compile_options(-Wall -Wextra -fsized-deallocation)
 add_link_options(-fuse-ld=lld)
 
 # use libc++ for this project and submodules
@@ -50,7 +50,7 @@ endif ()
 
 # TODO: convert to generator...
 # disable ptxas warnings
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcuda-ptxas '-w' -g")
+# set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcuda-ptxas '-w'")
 
 # set(CMAKE_CUDA_FLAGS_DEBUG 
 #   "${CMAKE_CUDA_FLAGS_DEBUG} -fsanitize=address,undefined")
