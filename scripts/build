@@ -22,7 +22,6 @@ class PathCMakeBuild(BaseCMakeBuilder):
                             action='store_false',
                             help='build for the cpu and gpu')
 
-
         return parser
 
     @staticmethod
