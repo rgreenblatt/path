@@ -49,16 +49,6 @@
 namespace cereal
 {
   // ######################################################################
-  //! Creates a name value pair
-  /*! @relates NameValuePair
-      @ingroup Utility */
-  template <class T> inline
-  NameValuePair<T> make_nvp( std::string const & name, T && value )
-  {
-    return {name.c_str(), std::forward<T>(value)};
-  }
-
-  // ######################################################################
   //! Convenience function to create binary data for both const and non const pointers
   /*! @param data Pointer to beginning of the data
       @param size The size in bytes of the data

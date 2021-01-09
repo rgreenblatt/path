@@ -31,6 +31,7 @@
 
 #include <type_traits>
 #include <utility>
+#include <string>
 
 namespace cereal {
   // ######################################################################
@@ -136,6 +137,16 @@ namespace cereal {
       char const * name;
       Type value;
   };
+
+  // ######################################################################
+  //! Creates a name value pair
+  /*! @relates NameValuePair
+      @ingroup Utility */
+  template <class T> inline
+  NameValuePair<T> make_nvp( std::string const & name, T && value )
+  {
+    return {name.c_str(), std::forward<T>(value)};
+  }
 
   //! Creates a name value pair
   /*! @relates NameValuePair
