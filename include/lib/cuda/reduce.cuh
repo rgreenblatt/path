@@ -5,13 +5,20 @@
 #include "lib/cuda/utils.h"
 
 #include <algorithm>
+#include <concepts>
 #include <cstdint>
 
 constexpr uint32_t full_mask = 0xffffffff;
 
-template <typename T, typename F>
-inline DEVICE T warp_reduce(T val, const F &f,
-                            unsigned sub_block_size = warp_size) {
+template<typename F, typename T>
+concept ReducableBinOp = requires(const F& f, const T& l, const T& r) {
+  requires std::copyable<T>;
+  { f(l, r) } -> std::convertible_to<T>;
+};
+
+template <typename T, ReducableBinOp<T> F>
+inline __device__ T warp_reduce(T val, const F &f,
+                                unsigned sub_block_size = warp_size) {
   debug_assert_assume(warp_size % sub_block_size == 0);
   debug_assert_assume(power_of_2(sub_block_size));
   // equivalent to above, the compiler isn't quite smart enough to realize...
@@ -24,9 +31,10 @@ inline DEVICE T warp_reduce(T val, const F &f,
   return val;
 }
 
-template <typename T, typename F>
-inline DEVICE T sub_block_reduce(T val, const F &f, unsigned thread_idx,
-                                 unsigned block_size, unsigned sub_block_size) {
+template <typename T, ReducableBinOp<T> F>
+inline __device__ T sub_block_reduce(T val, const F &f, unsigned thread_idx,
+                                     unsigned block_size,
+                                     unsigned sub_block_size) {
   debug_assert_assume(thread_idx < block_size);
   debug_assert_assume(block_size % sub_block_size == 0);
   debug_assert_assume(block_size % warp_size == 0);
@@ -56,7 +64,8 @@ inline DEVICE T sub_block_reduce(T val, const F &f, unsigned thread_idx,
     shared[warp_idx] = val; // Write reduced value to shared memory
   }
 
-  syncthreads_wrapped(); // Wait for all partial reductions
+  // TODO: why language server error here?
+  __syncthreads(); // Wait for all partial reductions
 
   unsigned n_warps_per_sub_group = sub_block_size / warp_size;
   unsigned sub_block_thread_idx = thread_idx % sub_block_size;
@@ -77,8 +86,8 @@ inline DEVICE T sub_block_reduce(T val, const F &f, unsigned thread_idx,
 
 // it's plausible the compile won't be able to optimize this function
 // to be as efficient as possible because sub_block_reduce is more general :(
-template <typename T, typename F>
-inline DEVICE T block_reduce(const T &val, const F &f, unsigned thread_idx,
-                             unsigned block_size) {
+template <typename T, ReducableBinOp<T> F>
+inline __device__ T block_reduce(const T &val, const F &f, unsigned thread_idx,
+                                 unsigned block_size) {
   return sub_block_reduce(val, f, thread_idx, block_size, block_size);
 }
