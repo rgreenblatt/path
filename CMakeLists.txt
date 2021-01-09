@@ -183,8 +183,8 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
   package_add_test(group_test "${PROJECT_SOURCE_DIR}/tests/src/group.cpp")
   package_add_test(device_vector_test
     "${PROJECT_SOURCE_DIR}/tests/src/device_vector.cu")
-  package_add_test(lambda_check
-    "${PROJECT_SOURCE_DIR}/tests/src/lambda_check.cu")
+  package_add_test(lambda_test
+    "${PROJECT_SOURCE_DIR}/tests/src/lambda.cu")
   # package_add_test(sphere_partition
   #   "${PROJECT_SOURCE_DIR}/tests/src/sphere_partition.cpp")
   # target_link_libraries(sphere_partition PRIVATE renderer)
