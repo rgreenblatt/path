@@ -1,7 +1,6 @@
 #pragma once
 
 #include "lib/assert.h"
-#include "lib/cuda/reduce.cuh"
 #include "lib/cuda/utils.h"
 #include "work_division/work_division.h"
 
@@ -9,8 +8,7 @@
 
 namespace work_division {
 ATTR_PURE_NDEBUG inline HOST_DEVICE WorkDivision::ThreadInfo
-WorkDivision::get_thread_info(unsigned block_idx, unsigned thread_idx,
-                              unsigned x_dim, unsigned y_dim) const {
+WorkDivision::get_thread_info(unsigned block_idx, unsigned thread_idx) const {
   debug_assert_assume(thread_idx < block_size_);
 
   // allow for compiler optimizations at the call site
@@ -53,12 +51,6 @@ WorkDivision::get_thread_info(unsigned block_idx, unsigned thread_idx,
       base_samples_per_thread_ + (has_extra_sample ? 1 : 0);
   info.end_sample = info.start_sample + n_samples_this_thread;
 
-  return {.info = info, .exit = info.x >= x_dim || info.y >= y_dim};
-}
-
-template <typename T, typename BinOp>
-inline DEVICE T WorkDivision::reduce_samples(const T &val, const BinOp &op,
-                                             unsigned thread_idx) const {
-  return sub_block_reduce(val, op, thread_idx, block_size_, sample_block_size_);
+  return {.info = info, .exit = info.x >= x_dim_ || info.y >= y_dim_};
 }
 } // namespace work_division

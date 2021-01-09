@@ -1,40 +1,16 @@
 #ifndef CPU_ONLY
 #include "lib/assert.h"
 #include "render/detail/integrate_image_base_items.h"
-#include "render/detail/reduce_assign_output.h"
+#include "render/detail/reduce_assign_output.cuh"
 #include "render/detail/reduce_intensities_gpu.h"
+#include "work_division/kernel_launch.h"
+#include "work_division/kernel_launch_impl_gpu.cuh"
 #include "work_division/work_division.h"
-#include "work_division/work_division_impl.h"
 
 #include "data_structure/copyable_to_vec.h"
 
 namespace render {
 namespace detail {
-__global__ void
-reduce_intensities_global(const IntegrateImageBaseItems b,
-                          unsigned reduction_factor,
-                          Span<const Eigen::Array3f> intensities_in) {
-  const unsigned block_idx = blockIdx.x;
-  const unsigned thread_idx = threadIdx.x;
-
-  debug_assert(blockDim.x == b.division.block_size());
-
-  auto [info, exit] =
-      b.division.get_thread_info(block_idx, thread_idx, b.x_dim, 1);
-  auto [start_sample, end_sample, x, y] = info;
-
-  if (exit) {
-    return;
-  }
-
-  Eigen::Array3f total = Eigen::Array3f::Zero();
-  for (unsigned i = start_sample; i < end_sample; ++i) {
-    total += intensities_in[i + x * reduction_factor];
-  }
-
-  reduce_assign_output(thread_idx, block_idx, b, x, 0, total);
-}
-
 DeviceVector<Eigen::Array3f> *reduce_intensities_gpu(
     bool output_as_bgra, unsigned reduction_factor, unsigned samples_per,
     DeviceVector<Eigen::Array3f> *intensities_in,
@@ -54,19 +30,29 @@ DeviceVector<Eigen::Array3f> *reduce_intensities_gpu(
         reduction_factor, x_dim, 1);
     intensities_out->resize(x_dim * division.num_sample_blocks());
 
-    reduce_intensities_global<<<division.total_num_blocks(),
-                                division.block_size()>>>(
-        {.output_as_bgra = output_as_bgra && division.num_sample_blocks() == 1,
-         .samples_per = samples_per,
-         .x_dim = x_dim,
-         .y_dim = 1,
-         .division = division,
-         .pixels = bgras,
-         .intensities = *intensities_out},
-        reduction_factor, *intensities_in);
+    IntegrateImageBaseItems items{
+        .output_as_bgra = output_as_bgra && division.num_sample_blocks() == 1,
+        .samples_per = samples_per,
+        .pixels = bgras,
+        .intensities = *intensities_out};
 
-    CUDA_ERROR_CHK(cudaDeviceSynchronize());
-    CUDA_ERROR_CHK(cudaGetLastError());
+    Span<const Eigen::Array3f> in_span = *intensities_in;
+
+    work_division::KernelLaunch<ExecutionModel::GPU>::run(
+        division, 0, division.total_num_blocks(),
+        [=] __device__(const work_division::WorkDivision &division,
+                       const work_division::GridLocationInfo &info,
+                       const unsigned block_idx, const unsigned thread_idx) {
+          auto [start_sample, end_sample, x, y] = info;
+
+          Eigen::Array3f total = Eigen::Array3f::Zero();
+          for (unsigned i = start_sample; i < end_sample; ++i) {
+            total += in_span[i + x * reduction_factor];
+          }
+
+          reduce_assign_output(items, division, thread_idx, block_idx, x, 0,
+                               total);
+        });
 
     reduction_factor = division.num_sample_blocks();
 

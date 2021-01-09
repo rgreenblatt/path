@@ -48,13 +48,16 @@ WorkDivision::WorkDivision(const Settings &settings, unsigned samples_per,
   always_assert(power_of_2(sample_block_size_));
   always_assert(power_of_2(x_block_size_));
   always_assert(power_of_2(y_block_size_));
+  always_assert(n_threads_per_location % sample_block_size_ == 0);
 
-  num_sample_blocks_ = std::max(n_threads_per_location / block_size_, 1u);
+  num_sample_blocks_ = n_threads_per_location / sample_block_size_;
   num_x_blocks_ = ceil_divide(x_dim, x_block_size_);
   num_y_blocks_ = ceil_divide(y_dim, y_block_size_);
 
-  always_assert(static_cast<uint64_t>(num_sample_blocks_) * num_x_blocks_ *
-                    num_y_blocks_ <
+  x_dim_ = x_dim;
+  y_dim_ = y_dim;
+
+  always_assert(static_cast<uint64_t>(num_sample_blocks_) * x_dim * y_dim <
                 static_cast<uint64_t>(std::numeric_limits<unsigned>::max()));
 }
 } // namespace work_division

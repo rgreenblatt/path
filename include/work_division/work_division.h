@@ -20,12 +20,7 @@ public:
   };
 
   ATTR_PURE_NDEBUG inline HOST_DEVICE ThreadInfo
-  get_thread_info(unsigned block_idx, unsigned thread_idx, unsigned x_dim,
-                  unsigned y_dim) const;
-
-  template <typename T, typename BinOp>
-  inline DEVICE T reduce_samples(const T &val, const BinOp &op,
-                                 unsigned thread_idx) const;
+  get_thread_info(unsigned block_idx, unsigned thread_idx) const;
 
   ATTR_PURE inline HOST_DEVICE bool assign_sample(unsigned thread_idx) const {
     return thread_idx % sample_block_size_ == 0;
@@ -57,6 +52,8 @@ public:
   ATTR_PURE HOST_DEVICE unsigned total_num_blocks() const {
     return num_sample_blocks_ * num_x_blocks_ * num_y_blocks_;
   }
+  ATTR_PURE HOST_DEVICE unsigned x_dim() const { return x_dim_; }
+  ATTR_PURE HOST_DEVICE unsigned y_dim() const { return y_dim_; }
 
 private:
   unsigned block_size_;
@@ -68,5 +65,7 @@ private:
   unsigned num_sample_blocks_;
   unsigned num_x_blocks_;
   unsigned num_y_blocks_;
+  unsigned x_dim_;
+  unsigned y_dim_;
 };
 } // namespace work_division

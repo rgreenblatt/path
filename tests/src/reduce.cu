@@ -3,8 +3,10 @@
 #include "lib/cuda/reduce.cuh"
 #include "lib/cuda/utils.h"
 #include "lib/span.h"
+#include "work_division/kernel_launch.h"
+#include "work_division/kernel_launch_impl_gpu.cuh"
+#include "work_division/reduce_samples.cuh"
 #include "work_division/work_division.h"
-#include "work_division/work_division_impl.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -30,35 +32,6 @@ __global__ void sum_sub_blocks(Span<const T> in, Span<T> out,
   }
 }
 
-template <typename T>
-__global__ void
-division_sum_samples(const WorkDivision division, Span<const T> in, Span<T> out,
-                     unsigned num_locations, unsigned samples_per) {
-  unsigned thread_idx = threadIdx.x;
-  unsigned block_idx = blockIdx.x;
-
-  always_assert(blockDim.x == division.block_size());
-  always_assert(division.num_sample_blocks() == 1);
-
-  auto [info, exit] =
-      division.get_thread_info(block_idx, thread_idx, num_locations, 1);
-  auto [start_sample, end_sample, j, unused] = info;
-
-  if (exit) {
-    return;
-  }
-
-  T total = 0;
-  for (unsigned i = start_sample; i < end_sample; ++i) {
-    total += in[i + j * samples_per];
-  }
-
-  auto add = [](auto lhs, auto rhs) { return lhs + rhs; };
-  total = division.reduce_samples(total, add, thread_idx);
-  if (division.assign_sample(thread_idx)) {
-    out[j] = total;
-  }
-}
 #define EXPECT_FLOATS_EQ(expected, actual)                                     \
   EXPECT_EQ(expected.size(), actual.size()) << "Sizes differ.";                \
   for (size_t idx = 0; idx < std::min(expected.size(), actual.size());         \
@@ -89,6 +62,7 @@ TEST(Reduce, sum) {
                                       samples_per, size, 1);
               target_samples_per_thread *= 2;
             } while (division.num_sample_blocks() != 1);
+            ASSERT_EQ(division.num_sample_blocks(), 1);
 
             std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
 
@@ -101,21 +75,38 @@ TEST(Reduce, sum) {
 
             HostDeviceVector<T> out_vals(num_locations);
 
+            Span<const T> in = vals;
+            Span<T> out = out_vals;
+
             bool use_direct_approach =
                 block_size % samples_per == 0 && size % block_size == 0;
             if (use_direct_approach) {
               unsigned num_blocks = size / block_size;
               always_assert(num_blocks * block_size == size);
               sum_sub_blocks<T>
-                  <<<num_blocks, block_size>>>(vals, out_vals, samples_per);
+                  <<<num_blocks, block_size>>>(in, out, samples_per);
             }
 
             HostDeviceVector<T> out_vals_division(num_locations);
 
-            division_sum_samples<T>
-                <<<division.total_num_blocks(), block_size>>>(
-                    division, vals, out_vals_division, num_locations,
-                    samples_per);
+            work_division::KernelLaunch<ExecutionModel::GPU>::run(
+                division, 0, division.total_num_blocks(),
+                [=](const WorkDivision &division,
+                    const work_division::GridLocationInfo &info,
+                    const unsigned /*block_idx*/, const unsigned thread_idx) {
+                  auto [start_sample, end_sample, j, unused] = info;
+
+                  T total = 0;
+                  for (unsigned i = start_sample; i < end_sample; ++i) {
+                    total += in[i + j * samples_per];
+                  }
+
+                  auto add = [](auto lhs, auto rhs) { return lhs + rhs; };
+                  total = reduce_samples(division, total, add, thread_idx);
+                  if (division.assign_sample(thread_idx)) {
+                    out[j] = total;
+                  }
+                });
 
             CUDA_ERROR_CHK(cudaDeviceSynchronize());
             CUDA_ERROR_CHK(cudaGetLastError());

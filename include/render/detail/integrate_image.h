@@ -4,8 +4,10 @@
 #include "intersectable_scene/intersector.h"
 #include "render/detail/integrate_image_items.h"
 #include "render/general_settings.h"
+#include "work_division/work_division.h"
 
 namespace render {
+using work_division::WorkDivision;
 namespace detail {
 template <
     ExactSpecializationOf<IntegrateImageItems> Items,
@@ -13,10 +15,11 @@ template <
 struct IntegrateImageInputs {
   using I = IIn;
 
-  bool show_progress;
-  const GeneralSettings &settings;
   const Items &items;
   I &intersector;
+  const WorkDivision &division;
+  const GeneralSettings &settings;
+  bool show_progress;
 };
 
 template <ExecutionModel exec> class IntegrateImage {

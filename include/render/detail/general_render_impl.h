@@ -122,36 +122,34 @@ void Renderer::Impl<exec>::general_render(
         using Components = integrate::RenderingEquationComponents<
             decltype(intersectable_scene.scene), decltype(light_sampler),
             decltype(dir_sampler), decltype(term_prob)>;
-        using Items = IntegrateImageItems<decltype(rng), Components>;
+        using Items = IntegrateImageItems<Components, decltype(rng)>;
         using Inp =
             IntegrateImageInputs<Items, std::decay_t<decltype(intersector)>>;
 
         IntegrateImage<exec>::run(Inp{
-            .show_progress = show_progress,
-            .settings = settings.general_settings,
             .items =
-                Items{
+                {
                     .base =
                         {
                             .output_as_bgra = output_as_bgra,
                             .samples_per = samples_per,
-                            .x_dim = x_dim,
-                            .y_dim = y_dim,
-                            .division = division,
                             .pixels = output_pixels,
                             .intensities = output_intensities,
                         },
-                    .rng = rng,
-                    .film_to_world = s.film_to_world(),
                     .components =
-                        Components{
+                        {
                             .scene = intersectable_scene.scene,
                             .light_sampler = light_sampler,
                             .dir_sampler = dir_sampler,
                             .term_prob = term_prob,
                         },
+                    .rng = rng,
+                    .film_to_world = s.film_to_world(),
                 },
             .intersector = intersector,
+            .division = division,
+            .settings = settings.general_settings,
+            .show_progress = show_progress,
         });
 #endif
       },
