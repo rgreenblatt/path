@@ -15,10 +15,13 @@ def command_exists(cmd):
 base_build_dir = "build"
 
 
-def get_directory(is_release, cpu_only, forced):
+def get_directory(is_release, cpu_only, forced, forced_base=None):
     if forced is not None:
         return forced
-    out = "release" if is_release else "debug"
+    if forced_base is not None:
+        out = forced_base
+    else:
+        out = "release" if is_release else "debug"
     if cpu_only:
         out += "_cpu_only"
 
@@ -111,13 +114,15 @@ def get_builder(cmake_generator, page, use_ccache, lolcat, threads,
     return build
 
 
-def build_default_command_parser(description, release_default=False):
+def build_default_command_parser(description, release_default=False,
+                                 has_release=True):
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument('--release',
-                        default=release_default,
-                        dest='release',
-                        action='store_true')
-    parser.add_argument('--debug', dest='release', action='store_false')
+    if has_release:
+        parser.add_argument('--release',
+                            default=release_default,
+                            dest='release',
+                            action='store_true')
+        parser.add_argument('--debug', dest='release', action='store_false')
     parser.add_argument('--cpu-only',
                         dest='cpu_only',
                         action='store_true',
@@ -167,7 +172,7 @@ def test_command(builder, remaining_args, forced_directory):
             args.cpu_only,
             get_directory(args.release, args.cpu_only, forced_directory),
             additional_gen_args=["-DBUILD_TESTING=ON"],
-            additional_build_args=["--target", "check"])
+            additional_build_args=["--target", "run_build_tests"])
 
 
 def bench_command(builder, remaining_args, forced_directory):
@@ -207,8 +212,19 @@ def cc_command(builder, remaining_args, _forced_directory):
                    "compile_commands.json")
 
 
-# def check_command(builder, _):
-#     builder(False, "check", additional_gen_args=["-DSYNTAX_ONLY=ON"])
+def check_command(builder, remaining_args, forced_directory):
+    parser = build_default_command_parser('check (syntax only) project',
+                                          has_release=False)
+    args = parser.parse_args(remaining_args)
+    builder(False,
+            args.cpu_only,
+            get_directory(False,
+                          args.cpu_only,
+                          forced_directory,
+                          forced_base="check"),
+            additional_gen_args=["-DSYNTAX_ONLY=ON"])
+
+
 
 
 def clean_command(_builder, remaining_args, forced_directory):
@@ -276,7 +292,7 @@ def main():
         "test": test_command,
         "bench": bench_command,
         "compile_commands": cc_command,
-        # "check": check_command,
+        "check": check_command,
         "clean": clean_command,
         "format": format_command,
     }

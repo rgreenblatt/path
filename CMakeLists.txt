@@ -72,13 +72,46 @@ find_package(Qt5 COMPONENTS Widgets Xml REQUIRED)
 find_package(OpenMP REQUIRED)
 # find_package(OpenCV REQUIRED)
 find_package(Threads REQUIRED)
-add_subdirectory("${PROJECT_SOURCE_DIR}/extern/docopt.cpp")
-add_subdirectory("${PROJECT_SOURCE_DIR}/extern/yaml-cpp")
 
 set(BUILD_SHARED_LIBS OFF)
 
-option(SYNTAX_ONLY "Only check syntax" OFF)
+option(SYNTAX_ONLY "only check syntax (-fsyntax-only)" OFF)
 option(CPU_ONLY "don't build for the gpu" OFF)
+
+if(SYNTAX_ONLY)
+  add_compile_options(-fsyntax-only)
+  add_link_options(-fsyntax-only)
+  set(CMAKE_CXX_COMPILE_OBJECT "${CMAKE_CXX_COMPILE_OBJECT} && touch <OBJECT>")
+  set(CMAKE_CXX_CREATE_SHARED_LIBRARY "touch <TARGET>")
+  set(CMAKE_CXX_CREATE_SHARED_MODULE "touch <TARGET>")
+  set(CMAKE_CXX_LINK_EXECUTABLE "touch <TARGET>")
+  set(CMAKE_CXX_ARCHIVE_CREATE "touch <TARGET>")
+  set(CMAKE_CXX_ARCHIVE_APPEND "touch <TARGET>")
+  set(CMAKE_CXX_ARCHIVE_FINISH "touch <TARGET>")
+  set(CMAKE_CXX_COMPILER_LAUNCHER "")
+
+  set(CMAKE_CUDA_COMPILE_OBJECT 
+    "${CMAKE_CUDA_COMPILE_OBJECT} && touch <OBJECT>")
+  set(CMAKE_CUDA_COMPILE_PTX_COMPILATION 
+    "${CMAKE_CUDA_COMPILE_PTX_COMPILATION} && touch <OBJECT>")
+  set(CMAKE_CUDA_COMPILE_SEPARABLE_COMPILATION 
+    "${CMAKE_CUDA_COMPILE_SEPARABLE_COMPILATION} && touch <OBJECT>")
+  set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION 
+    "${CMAKE_CUDA_COMPILE_WHOLE_COMPILATION} && touch <OBJECT>")
+  set(CMAKE_CUDA_CREATE_SHARED_LIBRARY "touch <TARGET>")
+  set(CMAKE_CUDA_CREATE_SHARED_MODULE "touch <TARGET>")
+  set(CMAKE_CUDA_LINK_EXECUTABLE "touch <TARGET>")
+  set(CMAKE_CUDA_ARCHIVE_CREATE "touch <TARGET>")
+  set(CMAKE_CUDA_ARCHIVE_APPEND "touch <TARGET>")
+  set(CMAKE_CUDA_ARCHIVE_FINISH "touch <TARGET>")
+  set(CMAKE_CUDA_DEVICE_LINK_EXECUTABLE "touch <TARGET>")
+  set(CMAKE_CUDA_DEVICE_LINK_LIBRARY "touch <TARGET>")
+  set(CMAKE_CUDA_DEVICE_LINK_COMPILE "touch <TARGET>")
+  set(CMAKE_CUDA_COMPILER_LAUNCHER "")
+endif()
+
+add_subdirectory("${PROJECT_SOURCE_DIR}/extern/docopt.cpp")
+add_subdirectory("${PROJECT_SOURCE_DIR}/extern/yaml-cpp")
 
 if(CPU_ONLY)
   add_definitions(-DCPU_ONLY)
@@ -167,10 +200,14 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
   macro(package_add_test TEST_NAME)
     add_executable(${TEST_NAME} ${ARGN})
     target_link_libraries(${TEST_NAME} PRIVATE gtest gmock gtest_main)
+    if(SYNTAX_ONLY)
+    else()
     gtest_discover_tests(${TEST_NAME}
       WORKING_DIRECTORY ${PROJECT_DIR}
       PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_DIR}"
       )
+    endif()
+
     set_target_properties(${TEST_NAME} PROPERTIES FOLDER tests)
     target_add_standard_include(${TEST_NAME})
     list(APPEND TEST_LIST ${TEST_NAME})
@@ -200,7 +237,7 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
     "${PROJECT_SOURCE_DIR}/tests/src/work_division.cpp")
   target_link_libraries(work_division_test PRIVATE renderer)
 
-  add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND}
+  add_custom_target(run_build_tests COMMAND ${CMAKE_CTEST_COMMAND}
     DEPENDS "${TEST_LIST}")
 endif()
 
