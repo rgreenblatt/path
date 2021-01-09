@@ -9,9 +9,6 @@ project(path VERSION 0.1 LANGUAGES CUDA CXX)
 
 cmake_minimum_required(VERSION 3.18)
 
-set(CMAKE_VERBOSE_MAKEFILE TRUE)
-set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
-
 add_compile_options(-Wall -Wextra -fsized-deallocation)
 add_link_options(-fuse-ld=lld)
 
