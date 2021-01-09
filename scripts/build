@@ -7,306 +7,88 @@ import shutil
 import os
 import sys
 
-
-def command_exists(cmd):
-    return shutil.which(cmd) is not None
+from cmake_cli.base_cmake_builder import BaseCMakeBuilder
 
 
-base_build_dir = "build"
+class PathCMakeBuild(BaseCMakeBuilder):
+    def build_default_command_parser(self, description, **kwargs):
+        parser = super().build_default_command_parser(description, **kwargs)
+        parser.add_argument('--cpu-only',
+                            dest='cpu_only',
+                            action='store_true',
+                            help='only build for the cpu')
+        parser.add_argument('--no-cpu-only',
+                            dest='cpu_only',
+                            action='store_false',
+                            help='build for the cpu and gpu')
 
 
-def get_directory(is_release, cpu_only, forced, forced_base=None):
-    if forced is not None:
-        return forced
-    if forced_base is not None:
-        out = forced_base
-    else:
-        out = "release" if is_release else "debug"
-    if cpu_only:
-        out += "_cpu_only"
+        return parser
 
-    return os.path.join(base_build_dir, out)
-
-
-def get_builder(cmake_generator, page, use_ccache, lolcat, threads,
-                cuda_archs):
-    def build(is_release,
-              cpu_only,
-              directory,
-              additional_gen_args=None,
-              additional_build_args=None,
-              skip_build=False):
-        extra_cmds = []
-
-        if lolcat:
-            if command_exists("lolcat"):
-                extra_cmds.append(["lolcat", "--force"])
-
-        if page:
-            # if command_exists("bat"):
-            #     extra_cmds.append(["bat", "-p"])
-            if command_exists("less"):
-                extra_cmds.append(["less", "-R"])
-            elif command_exists("more"):
-                extra_cmds.append(["more"])
-
-        build_type = "RelWithDebInfo" if is_release else "Debug"
-
-        unbuffer_cmd = [
-            "unbuffer", "cmake"
-        ] if command_exists("unbuffer") and page else ["cmake"]
-
-        if additional_gen_args is None:
-            additional_gen_args = []
-
-        if additional_build_args is None:
-            additional_build_args = []
-
-        gen_args = [
-            "-H.",
-            "-G" + cmake_generator,
-            "-B" + directory,
-            "-DCMAKE_BUILD_TYPE=" + build_type,
-            "-DCMAKE_CUDA_ARCHITECTURES=" + cuda_archs,
-        ]
-
-        if use_ccache:
-            gen_args += [
-                "-DCMAKE_CXX_COMPILER_LAUNCHER=ccache",
-                "-DCMAKE_CUDA_COMPILER_LAUNCHER=ccache"
-            ]
-
-        if cpu_only:
-            gen_args += ["-DCPU_ONLY=ON"]
+    @staticmethod
+    def extend_directory(args):
+        if args.cpu_only:
+            return "_cpu_only"
         else:
-            gen_args += ["-DCPU_ONLY=OFF"]
+            return ""
 
-        gen_cmd = unbuffer_cmd + gen_args + additional_gen_args
+    def extend_piped_commands(self, piped_commands):
+        if self.args.lolcat:
+            if exists_in_path_warn("lolcat"):
+                piped_commands.append(["lolcat", "--force"])
 
-        build_cmd = unbuffer_cmd + ["--build", directory, "-j",
-                                    str(threads)] + additional_build_args
+    @staticmethod
+    def extend_main_parser(main_parser):
+        main_parser.add_argument('--cuda-archs',
+                                 default='75',
+                                 help='cuda architectures (sm_*)')
+        main_parser.add_argument('-l',
+                                 '--lolcat',
+                                 action='store_true',
+                                 help='lolcat output')
 
-        def runner(cmd):
-            cmds = [cmd] + extra_cmds
+    def extend_gen_cmd(self, sub_args, gen_cmd):
+        gen_cmd += ["-DCMAKE_CUDA_ARCHITECTURES=" + self.args.cuda_archs]
+        if sub_args.cpu_only:
+            gen_cmd += ["-DCPU_ONLY=ON"]
 
-            processes = []
-            cmd_process = None
-            print("running:", cmds)
-            for i, c in enumerate(cmds):
-                last = i == len(cmds) - 1
-                first = cmd_process is None
-                cmd_process = subprocess.Popen(
-                    c,
-                    stdout=None if last else subprocess.PIPE,
-                    stderr=None if last else subprocess.STDOUT,
-                    stdin=None if first else cmd_process.stdout)
-                processes.append(cmd_process)
+    def test_command(self, remaining_args):
+        parser = self.build_default_command_parser('run all tests').parse_args(
+            remaining_args)
+        self.build(args,
+                   self.get_directory(args),
+                   additional_gen_args=["-DBUILD_TESTING=ON"],
+                   additional_build_args=["--target", "run_build_tests"])
 
-            for process in reversed(processes):
-                process.wait()
-                if process.returncode != 0:
-                    sys.exit(process.returncode)
+    def bench_command(self, remaining_args):
+        parser = build_default_command_parser('run benchmarks',
+                                              release_default=True)
+        parser.add_argument('executable', help='benchmark to run')
+        parser.add_argument('executable_args', nargs=argparse.REMAINDER)
+        args = parser.parse_args(remaining_args)
+        directory = self.get_directory(args)
+        self.build(args,
+                   directory,
+                   additional_gen_args=["-DBUILD_BENCHMARKS=ON"],
+                   additional_build_args=["--target", args.executable])
+        self.runner([os.path.join(directory, args.executable)] +
+                    args.executable_args)
 
-        runner(gen_cmd)
-        if not skip_build:
-            runner(build_cmd)
+    def check_command(self, remaining_args):
+        args = self.build_default_command_parser(
+            'check (syntax only) project',
+            has_release=False).parse_args(remaining_args)
+        self.build(args,
+                   self.get_directory(args, forced_base="check"),
+                   additional_gen_args=["-DSYNTAX_ONLY=ON"])
 
-    return build
-
-
-def build_default_command_parser(description, release_default=False,
-                                 has_release=True):
-    parser = argparse.ArgumentParser(description=description)
-    if has_release:
-        parser.add_argument('--release',
-                            default=release_default,
-                            dest='release',
-                            action='store_true')
-        parser.add_argument('--debug', dest='release', action='store_false')
-    parser.add_argument('--cpu-only',
-                        dest='cpu_only',
-                        action='store_true',
-                        help='only build for the cpu')
-    parser.add_argument('--no-cpu-only',
-                        dest='cpu_only',
-                        action='store_false',
-                        help='build for the cpu and gpu')
-
-    return parser
-
-
-def parse_no_args(description, remaining_args):
-    parser = argparse.ArgumentParser(description=description)
-    parser.parse_args(remaining_args)
-
-
-def build_command(builder, remaining_args, forced_directory):
-    parser = build_default_command_parser('build project')
-    args = parser.parse_args(remaining_args)
-    builder(args.release, args.cpu_only,
-            get_directory(args.release, args.cpu_only, forced_directory))
-
-
-def run_command(builder, remaining_args, forced_directory):
-    parser = build_default_command_parser('run executable')
-    parser.add_argument('executable', help='bin to run')
-    parser.add_argument('executable_args', nargs=argparse.REMAINDER)
-    args = parser.parse_args(remaining_args)
-    directory = get_directory(args.release, args.cpu_only, forced_directory)
-    builder(args.release,
-            args.cpu_only,
-            directory,
-            additional_build_args=["--target", args.executable])
-    try:
-        subprocess.run([os.path.join(directory, args.executable)] +
-                       args.executable_args,
-                       check=True)
-    except subprocess.CalledProcessError as e:
-        sys.exit(e.returncode)
-
-
-def test_command(builder, remaining_args, forced_directory):
-    parser = build_default_command_parser('run all tests')
-    args = parser.parse_args(remaining_args)
-    builder(args.release,
-            args.cpu_only,
-            get_directory(args.release, args.cpu_only, forced_directory),
-            additional_gen_args=["-DBUILD_TESTING=ON"],
-            additional_build_args=["--target", "run_build_tests"])
-
-
-def bench_command(builder, remaining_args, forced_directory):
-    parser = build_default_command_parser('run benchmarks',
-                                          release_default=True)
-    parser.add_argument('executable', help='benchmark to run')
-    parser.add_argument('executable_args', nargs=argparse.REMAINDER)
-    args = parser.parse_args(remaining_args)
-    directory = get_directory(args.release, args.cpu_only, forced_directory)
-    builder(args.release,
-            args.cpu_only,
-            directory,
-            additional_gen_args=["-DBUILD_BENCHMARKS=ON"],
-            additional_build_args=["--target", args.executable])
-    try:
-        subprocess.run([os.path.join(directory, args.executable)] +
-                       args.executable_args,
-                       check=True)
-    except subprocess.CalledProcessError as e:
-        sys.exit(e.returncode)
-
-
-def cc_command(builder, remaining_args, _forced_directory):
-    parser = argparse.ArgumentParser(
-        description='generate compile_commands.json')
-    parser.parse_args(remaining_args)
-    directory = "build/compile_commands_dir"
-    builder(False,
-            False,
-            directory,
-            additional_gen_args=["-DCMAKE_EXPORT_COMPILE_COMMANDS=YES"],
-            skip_build=True)
-    if os.path.exists("compile_commands.json"):
-        print("compile_commands.json exists - not overriding")
-    else:
-        os.symlink(os.path.join(directory, "compile_commands.json"),
-                   "compile_commands.json")
-
-
-def check_command(builder, remaining_args, forced_directory):
-    parser = build_default_command_parser('check (syntax only) project',
-                                          has_release=False)
-    args = parser.parse_args(remaining_args)
-    builder(False,
-            args.cpu_only,
-            get_directory(False,
-                          args.cpu_only,
-                          forced_directory,
-                          forced_base="check"),
-            additional_gen_args=["-DSYNTAX_ONLY=ON"])
-
-
-
-
-def clean_command(_builder, remaining_args, forced_directory):
-    parser = build_default_command_parser('clean project')
-    args = parser.parse_args(remaining_args)
-    shutil.rmtree(base_build_dir, ignore_errors=True)
-
-
-def format_command(*_):
-    subprocess.run(
-        ['bash', '-c', 'clang-format -i $(fd -e cu -e cpp -e h -e cuh)'],
-        check=True)
-
-
-def main():
-    name = "build"
-
-    main_parser = argparse.ArgumentParser(
-        description='Simple cmake wrapper',
-        usage='''{} [OPTIONS] <COMMAND> [<SUBOPTIONS>]
-'''.format(name))
-    main_parser.add_argument('command', help='subcommand to run')
-    main_parser.add_argument('--cuda-archs',
-                             default='75',
-                             help='cuda architectures (sm_*)')
-    main_parser.add_argument(
-        '--generator',
-        default='Ninja',
-        help='cmake generator (Ninja, Unix Makefiles, ...)')
-    main_parser.add_argument('-p',
-                             '--pager',
-                             dest='pager',
-                             action='store_true',
-                             help='page output')
-    main_parser.add_argument('-P',
-                             '--no-pager',
-                             dest='pager',
-                             action='store_false',
-                             help="don't page output")
-    main_parser.add_argument('--ccache',
-                             dest='ccache',
-                             action='store_false',
-                             default=True,
-                             help='use ccache')
-    main_parser.add_argument('--no-ccache',
-                             dest='ccache',
-                             action='store_true',
-                             default=True,
-                             help="don't use ccache")
-    main_parser.add_argument('-l',
-                             '--lolcat',
-                             action='store_true',
-                             help='lolcat output')
-    main_parser.add_argument('-j',
-                             '--threads',
-                             type=int,
-                             default=multiprocessing.cpu_count(),
-                             help='set num threads')
-    main_parser.add_argument('--directory', help='force specific directory')
-
-    args, unknown = main_parser.parse_known_args()
-    commands = {
-        "build": build_command,
-        "run": run_command,
-        "test": test_command,
-        "bench": bench_command,
-        "compile_commands": cc_command,
-        "check": check_command,
-        "clean": clean_command,
-        "format": format_command,
-    }
-    try:
-        cmd = commands[args.command]
-    except KeyError:
-        print("{0}: '{1}' is not a command. See '{0} --help'.".format(
-            name, args.command))
-        sys.exit(1)
-    cmd(
-        get_builder(args.generator, args.pager, args.ccache,
-                    args.lolcat, args.threads, args.cuda_archs), unknown,
-        args.directory)
+    def extend_commands(self, commands):
+        commands.update({
+            "test": self.test_command,
+            "bench": self.bench_command,
+            "check": self.check_command,
+        })
 
 
 if __name__ == "__main__":
-    main()
+    PathCMakeBuild()
