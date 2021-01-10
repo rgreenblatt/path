@@ -1,11 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-import subprocess
-import multiprocessing
-import shutil
 import os
-import sys
 
 from cmake_cli.base_cmake_builder import BaseCMakeBuilder
 
@@ -28,12 +24,11 @@ class PathCMakeBuild(BaseCMakeBuilder):
     def extend_directory(args):
         if args.cpu_only:
             return "_cpu_only"
-        else:
-            return ""
+        return ""
 
     def extend_piped_commands(self, piped_commands):
         if self.args.lolcat:
-            if exists_in_path_warn("lolcat"):
+            if self.exists_in_path_warn("lolcat"):
                 piped_commands.append(["lolcat", "--force"])
 
     @staticmethod
@@ -52,7 +47,7 @@ class PathCMakeBuild(BaseCMakeBuilder):
             gen_cmd += ["-DCPU_ONLY=ON"]
 
     def test_command(self, remaining_args):
-        parser = self.build_default_command_parser('run all tests').parse_args(
+        args = self.build_default_command_parser('run all tests').parse_args(
             remaining_args)
         self.build(args,
                    self.get_directory(args),
@@ -60,8 +55,8 @@ class PathCMakeBuild(BaseCMakeBuilder):
                    additional_build_args=["--target", "run_build_tests"])
 
     def bench_command(self, remaining_args):
-        parser = build_default_command_parser('run benchmarks',
-                                              release_default=True)
+        parser = self.build_default_command_parser('run benchmarks',
+                                                   release_default=True)
         parser.add_argument('executable', help='benchmark to run')
         parser.add_argument('executable_args', nargs=argparse.REMAINDER)
         args = parser.parse_args(remaining_args)
@@ -77,6 +72,7 @@ class PathCMakeBuild(BaseCMakeBuilder):
         args = self.build_default_command_parser(
             'check (syntax only) project',
             has_release=False).parse_args(remaining_args)
+        self.args.ccache = False
         self.build(args,
                    self.get_directory(args, forced_base="check"),
                    additional_gen_args=["-DSYNTAX_ONLY=ON"])
@@ -87,6 +83,10 @@ class PathCMakeBuild(BaseCMakeBuilder):
             "bench": self.bench_command,
             "check": self.check_command,
         })
+
+    @staticmethod
+    def ccache_default():
+        return True
 
 
 if __name__ == "__main__":
