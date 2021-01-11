@@ -1,4 +1,3 @@
-#include "boost/hana/for_each.hpp"
 #include "intersect/accel/accel.h"
 #include "intersect/accel/enum_accel/enum_accel.h"
 #include "intersect/accel/enum_accel/enum_accel_impl.h"
@@ -12,7 +11,6 @@
 #include <thrust/device_vector.h>
 
 #include <random>
-#include <tuple>
 
 using namespace intersect;
 using namespace intersect::accel;
@@ -22,7 +20,10 @@ template <AccelType type>
 static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
                              bool is_gpu) {
 
-  using Test = std::tuple<Ray, Optional<unsigned>>;
+  struct Test {
+    Ray ray;
+    Optional<unsigned> expected_idx;
+  };
 
   auto run_tests = [&](auto exec_tag, SpanSized<const Triangle> triangles,
                        const HostDeviceVector<Test> &test_expected) {
