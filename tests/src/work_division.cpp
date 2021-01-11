@@ -37,7 +37,7 @@ static void check_coverage(const WorkDivision &division) {
       auto [info, exit] = division.get_thread_info(block_idx, thread_idx);
       auto [start_sample, end_sample, x, y] = info;
 
-      ASSERT_FALSE(exit);
+      ASSERT_EQ(exit, x >= division.x_dim() || y >= division.y_dim());
       ASSERT_EQ(start_sample, samples_covered_up_to);
       ASSERT_EQ(x, x_covered_up_to);
       ASSERT_EQ(y, y_covered_up_to);
@@ -93,7 +93,7 @@ TEST(WorkDivision, combination) {
   for (unsigned x_dim : {1, 3, 17, 72, 128}) {
     for (unsigned y_dim : {1, 3, 17, 72, 128}) {
       for (unsigned samples_per : {1, 3, 17, 72, 128, 2048}) {
-        WorkDivision division(settings, samples_per, x_dim, y_dim);
+        WorkDivision division{settings, samples_per, x_dim, y_dim};
         check_dims_as_expected(division, samples_per, x_dim, y_dim);
         check_coverage(division);
       }
