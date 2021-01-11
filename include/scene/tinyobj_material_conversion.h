@@ -11,8 +11,6 @@
 namespace scene {
 Material tinyobj_material_conversion(const tinyobj::material_t &material) {
   using bsdf::BSDFType;
-  using Union = bsdf::UnionBSDF::Union;
-
   auto to_eigen = [](const tinyobj::real_t *reals) {
     return Eigen::Array3f(reals[0], reals[1], reals[2]);
   };
@@ -49,12 +47,13 @@ Material tinyobj_material_conversion(const tinyobj::material_t &material) {
     /* } */
 
     // refractive
-    return Material{{Union(TAG(BSDFType::DielectricRefractive),
-                           Eigen::Vector3f::Ones(), ior)},
-                    emission};
+    return {
+        {{TAG(BSDFType::DielectricRefractive), Eigen::Vector3f::Ones(), ior}},
+        emission,
+    };
   } else if (diffuse_non_zero && !specular_non_zero) {
     // ideal diffuse
-    return Material{{Union(TAG(BSDFType::Diffuse), diffuse)}, emission};
+    return {{{TAG(BSDFType::Diffuse), diffuse}}, emission};
   } else if (shininess > shininess_threshold) {
     if (diffuse_non_zero || !specular_non_zero) {
       std::cerr << "diffuse values non-zero or specular values zero for mirror "
@@ -64,9 +63,9 @@ Material tinyobj_material_conversion(const tinyobj::material_t &material) {
     }
 
     // ideal specular
-    return Material{{Union(TAG(BSDFType::Mirror), specular)}, emission};
+    return {{{TAG(BSDFType::Mirror), specular}}, emission};
   } else if (specular_non_zero /*&& !diffuse_non_zero*/) {
-    return Material{{Union(TAG(BSDFType::Glossy), specular, shininess)},
+    return {{{TAG(BSDFType::Glossy), specular, shininess}},
                     emission};
   } else {
     // TODO
