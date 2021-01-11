@@ -3,6 +3,7 @@
 #include "meta/all_values.h"
 #include "meta/get_idx.h"
 
+// allow for using an index directly
 template<unsigned idx_in> struct NTag {
   static constexpr unsigned idx = idx_in;
 };
@@ -14,6 +15,7 @@ requires(idx_in < AllValues<E>.size()) struct Tag {
 
   Tag() = default;
 
+  // implicit conversion
   Tag(NTag<idx_in>) {}
 };
 

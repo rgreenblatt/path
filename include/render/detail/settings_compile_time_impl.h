@@ -15,8 +15,10 @@ private:
 public:
   // compile times don't change much from small constant values to 1...
   // compile times do substantially increase for large number of possibilities
-#if 1
-  constexpr static std::array<render::Settings::CompileTime, 1> values = {{
+// #define FORCE_BUILD_ALL
+
+#if !defined(BUILD_ALL) && !defined(FORCE_BUILD_ALL)
+  constexpr static std::array<render::Settings::CompileTime, 2> values = {{
     {IntersectionType(TAG(IntersectionApproach::MegaKernel), AccelType::KDTree),
      LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
      TermProbType::MultiplierFunc, RngType::Sobel},
@@ -41,10 +43,9 @@ public:
     //  LightSamplerType::NoLightSampling, DirSamplerType::BSDF,
     //  TermProbType::MultiplierFunc, RngType::Sobel},
 
-    // {IntersectionType(TAG(IntersectionApproach::MegaKernel),
-    //                   AccelType::KDTree),
-    //  LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
-    //  TermProbType::MultiplierFunc, RngType::Uniform},
+    {IntersectionType(TAG(IntersectionApproach::MegaKernel), AccelType::KDTree),
+     LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
+     TermProbType::MultiplierFunc, RngType::Uniform},
     // {IntersectionType(TAG(IntersectionApproach::MegaKernel),
     //                   AccelType::KDTree),
     //  LightSamplerType::NoLightSampling, DirSamplerType::BSDF,
@@ -71,14 +72,15 @@ public:
   // Note that this SUBSTANTIALLY increases compile times
   constexpr static auto values = [] {
     constexpr auto tuple_values =
-        AllValues<std::tuple<IntersectionType, LightSamplerType, DirSamplerType,
-                             TermProbType, RngType>>;
+        AllValues<MetaTuple<IntersectionType, LightSamplerType, DirSamplerType,
+                            TermProbType, RngType>>;
     std::array<render::Settings::CompileTime, tuple_values.size()> out;
     std::transform(tuple_values.begin(), tuple_values.end(), out.begin(),
-                   [](auto in) -> render::Settings::CompileTime {
-                     auto [i, l, d, t, r] = in;
-
-                     return {i, l, d, t, r};
+                   [](auto in) {
+                     return boost::hana::unpack(
+                         in, [](auto &&...v) -> render::Settings::CompileTime {
+                           return {v...};
+                         });
                    });
 
     return out;

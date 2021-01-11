@@ -76,6 +76,8 @@ option(SYNTAX_ONLY "only check syntax (-fsyntax-only)" OFF)
 option(CPU_ONLY "don't build for the gpu" OFF)
 
 if(SYNTAX_ONLY)
+  # builds are fast enough to check all combinations with syntax only
+  add_definitions(-DBUILD_ALL)
   add_compile_options(-fsyntax-only)
   add_link_options(-fsyntax-only)
   set(CMAKE_CXX_COMPILE_OBJECT "${CMAKE_CXX_COMPILE_OBJECT} && touch <OBJECT>")
@@ -132,8 +134,7 @@ macro(target_add_standard_include TARGET_NAME)
     "${PROJECT_SOURCE_DIR}/system/include/"
     "${PROJECT_SOURCE_DIR}/extern/eigen/"
     "${PROJECT_SOURCE_DIR}/extern/include/"
-    "/opt/cuda/include/"
-    "${QT5_INCLUDE_DIR}")
+    "/opt/cuda/include/")
 endmacro()
 
 add_library(

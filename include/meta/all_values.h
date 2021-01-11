@@ -4,23 +4,22 @@
 #include "meta/sequential_look_up.h"
 #include "meta/std_array_specialization.h"
 #include "meta/to_array.h"
+#include "meta/tuple.h"
 
 #include <boost/hana/cartesian_product.hpp>
 #include <boost/hana/ext/std/array.hpp>
 #include <boost/hana/ext/std/integer_sequence.hpp>
-#include <boost/hana/ext/std/tuple.hpp>
 #include <magic_enum.hpp>
 
 #include <concepts>
-#include <tuple>
 #include <utility>
 
 template <typename T> struct AllValuesImpl;
 
 template <typename T>
-concept AllValuesEnumerable = requires {
+concept AllValuesEnumerable = requires(const T& t) {
   requires std::equality_comparable<T>;
-  requires std::totally_ordered<T>;
+  { t < t } -> std::convertible_to<bool>; // less
 
   typename AllValuesImpl<T>;
   requires StdArrayOfType<decltype(AllValuesImpl<T>::values), T>;
@@ -41,9 +40,9 @@ template <Enum T> struct AllValuesImpl<T> {
 };
 
 template <AllValuesEnumerable... Types>
-struct AllValuesImpl<std::tuple<Types...>> {
+struct AllValuesImpl<MetaTuple<Types...>> {
   static constexpr auto values = to_array(
-      boost::hana::cartesian_product(std::make_tuple(AllValues<Types>...)));
+      boost::hana::cartesian_product(make_meta_tuple(AllValues<Types>...)));
 };
 
 template <std::unsigned_integral T, T up_to> struct UpToGen {
