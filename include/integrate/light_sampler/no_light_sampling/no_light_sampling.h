@@ -11,11 +11,11 @@ public:
   struct Ref {
     HOST_DEVICE Ref(const Settings &) {}
 
-    static constexpr unsigned max_sample_size = 0;
+    static constexpr unsigned max_num_samples = 0;
     static constexpr bool performs_samples = false;
 
     template <bsdf::BSDF B, rng::RngState R>
-    HOST_DEVICE ArrayVec<LightSample, max_sample_size>
+    HOST_DEVICE ArrayVec<LightSample, max_num_samples>
     operator()(const Eigen::Vector3f &, const bsdf::Material<B> &,
                const UnitVector &, const UnitVector &, R &) const {
       return {};

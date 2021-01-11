@@ -32,12 +32,12 @@ concept LightSamplerRef = requires(const T &light_sampler,
                                    rng::MockRngState &rng) {
   requires bsdf::BSDF<B>;
   requires std::copyable<T>;
-  T::max_sample_size;
+  T::max_num_samples;
   T::performs_samples;
 
   {
     light_sampler(position, material, incoming_dir, normal, rng)
-    } -> DecaysTo<ArrayVec<LightSample, T::max_sample_size>>;
+    } -> DecaysTo<ArrayVec<LightSample, T::max_num_samples>>;
 };
 
 // this concept is very dependent on the scene representation...
@@ -54,11 +54,14 @@ concept LightSampler = requires(
   requires Setting<S>;
   requires intersect::Object<O>;
 
+  typename T::Ref;
+  LightSamplerRef<typename T::Ref, B>;
+
   {
     light_sampler.gen(settings, emissive_groups, emissive_group_ends_per_mesh,
                       materials, transformed_mesh_objects,
                       transformed_mesh_idxs, objects)
-    } -> LightSamplerRef<B>;
+    } -> std::same_as<typename T::Ref>;
 };
 
 // works for all bsdfs

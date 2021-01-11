@@ -43,11 +43,11 @@ public:
       : triangles_(triangles), cumulative_weights_(cumulative_weights),
         binary_search_threshold_(settings.binary_search_threshold) {}
 
-  static constexpr unsigned max_sample_size = 1;
+  static constexpr unsigned max_num_samples = 1;
   static constexpr bool performs_samples = true;
 
   template <bsdf::BSDF B, rng::RngState R>
-  HOST_DEVICE ArrayVec<LightSample, max_sample_size>
+  HOST_DEVICE ArrayVec<LightSample, max_num_samples>
   operator()(const Eigen::Vector3f &position, const bsdf::Material<B> & /*mat*/,
              const UnitVector & /*incoming_dir*/, const UnitVector &normal,
              R &rng) const {
@@ -57,8 +57,8 @@ public:
 
     // TODO: SPEED, complexity, ...
 
-    ArrayVec<LightSample, max_sample_size> out;
-    for (unsigned i = 0; i < max_sample_size; ++i) {
+    ArrayVec<LightSample, max_num_samples> out;
+    for (unsigned i = 0; i < max_num_samples; ++i) {
       const float search_value = rng.next();
       const unsigned sample_idx = detail::search(
           search_value, cumulative_weights_, binary_search_threshold_);
@@ -133,6 +133,8 @@ private:
   using TWGroup = VectorGroup<VecT, TWItem, intersect::Triangle, float>;
 
 public:
+  using Ref = detail::Ref;
+
   // need to be implementated when ExecStorage is defined
   RandomTriangle();
   ~RandomTriangle();
@@ -183,7 +185,7 @@ public:
   }
 
 private:
-  detail::Ref finish_gen_internal(const Settings &settings);
+  Ref finish_gen_internal(const Settings &settings);
 
   // used to avoid instantiating device vectors in cpp files
   struct ExecStorage;

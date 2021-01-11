@@ -30,7 +30,7 @@ using FRayRayInfo = detail::RayRayInfo<float>;
 using ArrRayRayInfo = detail::RayRayInfo<Eigen::Array3f>;
 
 // this should probably be a class with a friend struct...
-template <unsigned n_light_samples> struct RenderingEquationState {
+template <unsigned max_num_light_samples> struct RenderingEquationState {
   HOST_DEVICE static RenderingEquationState
   initial_state(const FRayRayInfo &ray_ray_info) {
     return RenderingEquationState{
@@ -50,15 +50,15 @@ template <unsigned n_light_samples> struct RenderingEquationState {
   bool count_emission;
   bool has_next_sample;
   ArrRayRayInfo ray_ray_info;
-  ArrayVec<ArrRayInfo, n_light_samples> light_samples;
+  ArrayVec<ArrRayInfo, max_num_light_samples> light_samples;
   Eigen::Array3f intensity;
 };
 
 static_assert(std::semiregular<RenderingEquationState<3>>);
 
-template <unsigned n_light_samples> struct RenderingEquationNextIteration {
-  RenderingEquationState<n_light_samples> state;
-  ArrayVec<intersect::Ray, n_light_samples + 1> rays;
+template <unsigned max_num_light_samples> struct RenderingEquationNextIteration {
+  RenderingEquationState<max_num_light_samples> state;
+  ArrayVec<intersect::Ray, max_num_light_samples + 1> rays;
 };
 
 enum class IterationOutputType {
@@ -66,9 +66,9 @@ enum class IterationOutputType {
   Finished,
 };
 
-template <unsigned n_light_samples>
+template <unsigned max_num_light_samples>
 using IterationOutput =
     TaggedUnion<IterationOutputType,
-                RenderingEquationNextIteration<n_light_samples>,
+                RenderingEquationNextIteration<max_num_light_samples>,
                 Eigen::Array3f>;
 } // namespace integrate

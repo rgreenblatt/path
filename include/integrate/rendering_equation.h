@@ -10,11 +10,11 @@
 
 namespace integrate {
 template <rng::RngState R, ExactSpecializationOf<RenderingEquationComponents> C>
-ATTR_NO_DISCARD_PURE HOST_DEVICE inline IterationOutput<C::L::max_sample_size>
+ATTR_NO_DISCARD_PURE HOST_DEVICE inline IterationOutput<C::L::max_num_samples>
 rendering_equation_iteration(
-    const RenderingEquationState<C::L::max_sample_size> &state, R &rng,
+    const RenderingEquationState<C::L::max_num_samples> &state, R &rng,
     const ArrayVec<intersect::IntersectionOp<typename C::InfoType>,
-                   C::L::max_sample_size + 1> &intersections,
+                   C::L::max_num_samples + 1> &intersections,
     const RenderingEquationSettings &settings, const C &inp) {
   const auto &[iters, count_emission, has_next_sample, ray_ray_info,
                light_samples, old_intensity] = state;
@@ -33,14 +33,14 @@ rendering_equation_iteration(
     return !settings.back_cull_emission || !intersection.is_back_intersection;
   };
 
-  RenderingEquationState<C::L::max_sample_size> new_state;
+  RenderingEquationState<C::L::max_num_samples> new_state;
   new_state.iters = iters + 1;
   new_state.intensity = old_intensity;
   auto &intensity = new_state.intensity;
 
   debug_assert_assume(light_samples.size() ==
                       intersections.size() - has_next_sample);
-  debug_assert_assume(light_samples.size() <= C::L::max_sample_size);
+  debug_assert_assume(light_samples.size() <= C::L::max_num_samples);
   for (unsigned i = 0; i < light_samples.size(); ++i) {
     const auto &[multiplier, target_distance] = light_samples[i];
     const auto &intersection_op = intersections[i];
@@ -82,7 +82,7 @@ rendering_equation_iteration(
 
   using B = typename C::B;
 
-  ArrayVec<intersect::Ray, C::L::max_sample_size + 1> new_rays;
+  ArrayVec<intersect::Ray, C::L::max_num_samples + 1> new_rays;
 
   if constexpr (B::continuous) {
     auto add_direct_lighting = [&, &multiplier =
@@ -172,9 +172,9 @@ rendering_equation(const work_division::LocationInfo &location_info,
 
   typename R::State rng;
 
-  ArrayVec<intersect::Ray, C::L::max_sample_size + 1> rays;
+  ArrayVec<intersect::Ray, C::L::max_num_samples + 1> rays;
 
-  RenderingEquationState<C::L::max_sample_size> state;
+  RenderingEquationState<C::L::max_num_samples> state;
 
   auto intensity = Eigen::Array3f::Zero().eval();
   while (!finished || sample_idx != end_sample) {
@@ -183,14 +183,14 @@ rendering_equation(const work_division::LocationInfo &location_info,
       auto initial_sample = initial_ray_sampler(rng);
       rays.resize(0);
       rays.push_back(initial_sample.ray);
-      state = RenderingEquationState<C::L::max_sample_size>::initial_state(
+      state = RenderingEquationState<C::L::max_num_samples>::initial_state(
           initial_sample);
       finished = false;
       sample_idx++;
     }
 
     ArrayVec<intersect::IntersectionOp<typename I::InfoType>,
-             C::L::max_sample_size + 1>
+             C::L::max_num_samples + 1>
         intersections;
 
     for (const auto &ray : rays) {
