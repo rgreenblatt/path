@@ -83,16 +83,17 @@ template <typename SG, Setting S>
 requires SequenceGen<SG, S>
 class RngFromSequenceGen {
 public:
+  using Ref = RngFromSequenceGenRef;
+
   RngFromSequenceGen() {}
 
-  RngFromSequenceGenRef gen(const RngFromSequenceGenSettings<S> &settings,
-                            unsigned samples_per, unsigned /*n_locations*/) {
+  Ref gen(const RngFromSequenceGenSettings<S> &settings, unsigned samples_per,
+          unsigned /*n_locations*/) {
     auto [vals, initial_dimension_bound] = gen_.gen(
         settings.sequence_settings, settings.max_sample_size, samples_per);
 
-    return RngFromSequenceGenRef{
-        samples_per, settings.max_sample_size,
-        std::min(initial_dimension_bound, settings.max_sample_size), vals};
+    return {samples_per, settings.max_sample_size,
+            std::min(initial_dimension_bound, settings.max_sample_size), vals};
   }
 
 private:
