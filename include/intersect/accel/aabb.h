@@ -11,33 +11,6 @@
 
 namespace intersect {
 namespace accel {
-ATTR_PURE_NDEBUG inline std::tuple<Eigen::Vector3f, Eigen::Vector3f>
-get_transformed_bounds(const Eigen::Affine3f &transform,
-                       const Eigen::Vector3f &min_bound,
-                       const Eigen::Vector3f &max_bound) {
-  auto min_transformed_bound = max_eigen_vec();
-  auto max_transformed_bound = min_eigen_vec();
-  for (auto x_is_min : {false, true}) {
-    for (auto y_is_min : {false, true}) {
-      for (auto z_is_min : {false, true}) {
-        auto get_axis = [&](bool is_min, uint8_t axis) {
-          return is_min ? min_bound[axis] : max_bound[axis];
-        };
-        Eigen::Vector3f transformed_edge =
-            transform * Eigen::Vector3f(get_axis(x_is_min, 0),
-                                        get_axis(y_is_min, 1),
-                                        get_axis(z_is_min, 2));
-        min_transformed_bound =
-            min_transformed_bound.cwiseMin(transformed_edge);
-        max_transformed_bound =
-            max_transformed_bound.cwiseMax(transformed_edge);
-      }
-    }
-  }
-
-  return {min_transformed_bound, max_transformed_bound};
-}
-
 struct AABB {
   Eigen::Vector3f min_bound;
   Eigen::Vector3f max_bound;
@@ -49,9 +22,27 @@ struct AABB {
 
   ATTR_PURE_NDEBUG HOST_DEVICE inline AABB
   transform(const Eigen::Affine3f &transform) const {
-    auto [min, max] = get_transformed_bounds(transform, min_bound, max_bound);
+    auto min_transformed_bound = max_eigen_vec();
+    auto max_transformed_bound = min_eigen_vec();
+    for (auto x_is_min : {false, true}) {
+      for (auto y_is_min : {false, true}) {
+        for (auto z_is_min : {false, true}) {
+          auto get_axis = [&](bool is_min, uint8_t axis) {
+            return is_min ? min_bound[axis] : max_bound[axis];
+          };
+          Eigen::Vector3f transformed_point =
+              transform * Eigen::Vector3f(get_axis(x_is_min, 0),
+                                          get_axis(y_is_min, 1),
+                                          get_axis(z_is_min, 2));
+          min_transformed_bound =
+              min_transformed_bound.cwiseMin(transformed_point);
+          max_transformed_bound =
+              max_transformed_bound.cwiseMax(transformed_point);
+        }
+      }
+    }
 
-    return {min, max};
+    return {min_transformed_bound, max_transformed_bound};
   }
 
   ATTR_PURE_NDEBUG HOST_DEVICE inline AABB
