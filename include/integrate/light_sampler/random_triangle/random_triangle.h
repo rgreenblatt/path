@@ -5,7 +5,7 @@
 #include "integrate/light_sampler/random_triangle/settings.h"
 #include "integrate/light_sampler/triangle_light_sampler.h"
 #include "lib/assert.h"
-#include "lib/group.h"
+#include "lib/edges.h"
 #include "lib/optional.h"
 #include "lib/vector_group.h"
 #include "meta/predicate_for_all_values.h"
@@ -91,7 +91,7 @@ public:
       const Eigen::Vector3f triangle_normal = triangle.normal_scaled_by_area();
 
       const float prob_this_triangle =
-          get_size<float>(sample_idx, cumulative_weights_);
+          edges_get_size<float>(sample_idx, cumulative_weights_);
 
       const float normal_weight =
           std::abs(normal->dot(*direction) * triangle_normal.dot(*direction));
@@ -153,7 +153,7 @@ public:
     for (unsigned object_idx = 0; object_idx < transformed_mesh_objects.size();
          ++object_idx) {
       const auto &transformed_object = transformed_mesh_objects[object_idx];
-      auto [start, end] = group_start_end(transformed_mesh_idxs[object_idx],
+      auto [start, end] = edges_start_end(transformed_mesh_idxs[object_idx],
                                           emissive_group_ends_per_mesh);
       for (unsigned i = start; i < end; i++) {
         auto group = emissive_groups[i];

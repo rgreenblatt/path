@@ -9,7 +9,7 @@
 #include "intersectable_scene/intersectable_scene.h"
 #include "intersectable_scene/scene_generator.h"
 #include "lib/cuda/utils.h"
-#include "lib/group.h"
+#include "lib/edges.h"
 #include "lib/vector_group.h"
 #include "scene/scene.h"
 #include "scene/triangle_data.h"
@@ -93,7 +93,7 @@ public:
     for (unsigned i = 0; i < objects.size(); ++i) {
       unsigned mesh_idx = object_mesh_idxs[i];
       const auto &transform = objects[i].object_to_world();
-      for (unsigned j = get_previous<unsigned>(mesh_idx, mesh_ends);
+      for (unsigned j = edges_get_previous(mesh_idx, mesh_ends.as_unsized());
            j < mesh_ends[i]; ++j) {
         host_triangle_values_.push_back_all(
             scene_triangles[j].transform(transform), scene_triangle_data[j]);

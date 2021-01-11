@@ -213,7 +213,7 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
   package_add_test(reduce_test "${PROJECT_SOURCE_DIR}/tests/src/reduce.cu")
   target_link_libraries(reduce_test PRIVATE work_division)
 
-  package_add_test(group_test "${PROJECT_SOURCE_DIR}/tests/src/group.cpp")
+  package_add_test(edges_test "${PROJECT_SOURCE_DIR}/tests/src/edges.cpp")
   package_add_test(device_vector_test
     "${PROJECT_SOURCE_DIR}/tests/src/device_vector.cu")
   package_add_test(lambda_test
