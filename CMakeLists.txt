@@ -209,7 +209,7 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
     list(APPEND TEST_LIST ${TEST_NAME})
   endmacro()
 
-  package_add_test(bitset_test "${PROJECT_SOURCE_DIR}/tests/src/bitset.cu")
+  package_add_test(bitset_test "${PROJECT_SOURCE_DIR}/tests/src/bitset.cpp")
   package_add_test(reduce_test "${PROJECT_SOURCE_DIR}/tests/src/reduce.cu")
   target_link_libraries(reduce_test PRIVATE work_division)
 
