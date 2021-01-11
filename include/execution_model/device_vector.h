@@ -25,7 +25,7 @@ struct uninitialized_allocator : thrust::device_allocator<T> {
 template <TriviallyDestructable T>
 using DeviceVector = thrust::device_vector<T
 // how much perf does this get?
-#if 0
+#if 1
     , device_vector::detail::uninitialized_allocator<T>
 #endif
                                            >;
