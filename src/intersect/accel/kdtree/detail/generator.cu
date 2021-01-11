@@ -1,12 +1,10 @@
-#include "intersect/accel/kdtree/generator.h"
+#include "intersect/accel/kdtree/detail/generator.h"
 #include "lib/assert.h"
 #include "lib/eigen_utils.h"
 
 namespace intersect {
 namespace accel {
 namespace kdtree {
-using namespace detail;
-
 // inspired by https://www.geeksforgeeks.org/quickselect-algorithm/
 template <ExecutionModel execution_model>
 unsigned KDTree<execution_model>::Generator::partition(unsigned start,
@@ -80,7 +78,10 @@ unsigned KDTree<execution_model>::Generator::construct(unsigned start,
   if (terminate_here(start, end)) {
     auto total_bounds = get_bounding(start, end);
     unsigned index = nodes_.size();
-    nodes_.push_back(KDTreeNode(std::array{start, end}, total_bounds));
+    nodes_.push_back({
+        .value = {TAG(NodeType::Items), {.start = start, .end = end}},
+        .aabb = total_bounds,
+    });
 
     return index;
   }
@@ -97,17 +98,22 @@ unsigned KDTree<execution_model>::Generator::construct(unsigned start,
   auto &right = nodes_[right_index];
 
   unsigned index = nodes_.size();
-  nodes_.push_back(
-      KDTreeNode(KDTreeSplit{left_index, right_index, median},
-                 left.get_contents().union_other(right.get_contents())));
+  nodes_.push_back({
+      .value = {TAG(NodeType::Split),
+                {
+                    .left_index = left_index,
+                    .right_index = right_index,
+                    .division_point = median,
+                }},
+      .aabb = left.aabb.union_other(right.aabb),
+  });
 
   return index;
 }
 
 template <ExecutionModel execution_model>
-std::tuple<SpanSized<const KDTreeNode<AABB>>, Span<const unsigned>>
-KDTree<execution_model>::Generator::gen(const Settings &settings,
-                                        SpanSized<Bounds> bounds) {
+Ref KDTree<execution_model>::Generator::gen(const Settings &settings,
+                                            SpanSized<Bounds> bounds) {
   settings_ = settings;
   settings_.num_objects_terminate =
       std::max(settings_.num_objects_terminate, 1u);
@@ -127,8 +133,10 @@ KDTree<execution_model>::Generator::gen(const Settings &settings,
     indexes_[i] = i;
   }
 
-  nodes_.push_back(
-      KDTreeNode(std::array{0u, 0u}, AABB{max_eigen_vec(), min_eigen_vec()}));
+  nodes_.push_back({
+      .value = {TAG(NodeType::Items), {.start = 0, .end = 0}},
+      .aabb = {.min_bound = max_eigen_vec(), .max_bound = min_eigen_vec()},
+  });
 
   construct(0, bounds.size(), 0);
 
@@ -140,9 +148,9 @@ KDTree<execution_model>::Generator::gen(const Settings &settings,
     thrust::copy(indexes_.data(), indexes_.data() + indexes_.size(),
                  indexes_out_.begin());
 
-    return {nodes_out_, indexes_out_};
+    return {.nodes = nodes_out_, .local_idx_to_global_idx = indexes_out_};
   } else {
-    return {nodes_, indexes_};
+    return {.nodes = nodes_, .local_idx_to_global_idx = indexes_};
   }
 }
 

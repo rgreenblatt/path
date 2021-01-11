@@ -3,7 +3,7 @@
 #include "execution_model/execution_model_vector_type.h"
 #include "execution_model/thrust_data.h"
 #include "intersect/accel/accel.h"
-#include "intersect/accel/kdtree/node.h"
+#include "intersect/accel/kdtree/detail/node.h"
 #include "intersect/accel/kdtree/settings.h"
 #include "lib/attribute.h"
 
@@ -15,7 +15,7 @@ namespace kdtree {
 namespace detail {
 // In this case, the Ref type doesn't depend on the ExecutionModel
 struct Ref {
-  SpanSized<const KDTreeNode<AABB>> nodes;
+  SpanSized<const Node> nodes;
   Span<const unsigned> local_idx_to_global_idx;
 
   template <IntersectableAtIdx F>

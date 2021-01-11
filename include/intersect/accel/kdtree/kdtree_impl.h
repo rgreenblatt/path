@@ -3,6 +3,7 @@
 #include "intersect/accel/add_idx.h"
 #include "intersect/accel/kdtree/kdtree.h"
 #include "lib/stack.h"
+#include "lib/start_end.h"
 
 namespace intersect {
 namespace accel {
@@ -40,7 +41,7 @@ Ref::intersect_objects(const intersect::Ray &ray,
   Stack<StackData, 64> node_stack;
   node_stack.push(StackData{unsigned(nodes.size() - 1u), 0u});
 
-  Optional<std::array<unsigned, 2>> start_end = nullopt_value;
+  Optional<StartEnd<unsigned>> start_end = nullopt_value;
   unsigned current_idx = 0;
 
   while (!node_stack.empty() || start_end.has_value()) {
@@ -50,22 +51,23 @@ Ref::intersect_objects(const intersect::Ray &ray,
       const auto &current_node = nodes[stack_v.node_index];
 
       auto bounding_intersection =
-          current_node.get_contents().solve_bounding_intersection(
+          current_node.aabb.solve_bounding_intersection(
               ray.origin, inv_direction);
 
       if (bounding_intersection.has_value() &&
           (!best.has_value() ||
            best->intersection_dist > *bounding_intersection)) {
-        current_node.case_split_or_data(
-            [&](const KDTreeSplit &split) {
+        current_node.value.visit_tagged(
+            [&](auto tag, const auto &v) {
+            if constexpr (decltype(tag)::value == NodeType::Split) {
               const uint8_t axis = stack_v.depth % 3;
               const auto intersection_point =
                   ray.origin[axis] +
                   (*ray.direction)[axis] * *bounding_intersection;
-              auto first = split.left_index;
-              auto second = split.right_index;
+              auto first = v.left_index;
+              auto second = v.right_index;
 
-              if (intersection_point > split.division_point) {
+              if (intersection_point > v.division_point) {
                 auto temp = first;
                 first = second;
                 second = temp;
@@ -74,16 +76,16 @@ Ref::intersect_objects(const intersect::Ray &ray,
               uint8_t new_depth = stack_v.depth + 1;
               node_stack.push(StackData{second, new_depth});
               node_stack.push(StackData{first, new_depth});
-            },
-            [&](const std::array<unsigned, 2> &data) {
-              start_end = data;
-              current_idx = data[0];
-            });
+            } else {
+              static_assert(decltype(tag)::value == NodeType::Items);
+              start_end = v;
+              current_idx = v.start;
+            }});
       }
     }
 
     if (start_end.has_value()) {
-      for (unsigned idx = (*start_end)[0]; idx < (*start_end)[1]; idx++) {
+      for (unsigned idx = start_end->start; idx < start_end->end; idx++) {
         // TODO: SPEED
         // would it be better to enforce the same ordering everywhere somehow?
         unsigned global_idx = local_idx_to_global_idx[idx];

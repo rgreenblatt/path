@@ -137,7 +137,7 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/kdtree/kdtree.cu"
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/sphere_partition.cpp"
 
-  "${PROJECT_SOURCE_DIR}/src/intersect/accel/kdtree/generator.cu"
+  "${PROJECT_SOURCE_DIR}/src/intersect/accel/kdtree/detail/generator.cu"
   )
 target_add_standard_include(intersect)
 target_link_libraries(intersect PRIVATE OpenMP::OpenMP_CXX)

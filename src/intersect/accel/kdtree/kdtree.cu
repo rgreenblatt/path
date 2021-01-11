@@ -1,4 +1,4 @@
-#include "intersect/accel/kdtree/generator.h"
+#include "intersect/accel/kdtree/detail/generator.h"
 #include "intersect/accel/kdtree/kdtree.h"
 
 namespace intersect {
