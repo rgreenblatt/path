@@ -103,6 +103,17 @@ public:
       : idx_(idx),
         union_(std::in_place_index_t<idx>{}, std::forward<Args>(args)...) {}
 
+  template <unsigned idx>
+  requires std::copyable<Type<idx>>
+  constexpr TaggedUnion(Tag<E, idx>, const Type<idx> &v)
+      : idx_(idx), union_(std::in_place_index_t<idx>{}, v) {}
+
+  template <unsigned idx>
+  requires std::movable<Type<idx>>
+  constexpr TaggedUnion(Tag<E, idx>, Type<idx> &&v)
+      : idx_(idx),
+        union_(std::in_place_index_t<idx>{}, std::forward<Type<idx>>(v)) {}
+
   constexpr TaggedUnion() : TaggedUnion(Tag<E, 0>{}) {}
 
   constexpr TaggedUnion(const TaggedUnion &other) requires(
