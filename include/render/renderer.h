@@ -11,6 +11,7 @@
 #include <memory>
 
 namespace render {
+namespace detail {
 class Renderer {
 public:
   // need to implementated when Impl is defined
@@ -38,6 +39,13 @@ private:
   template <ExecutionModel execution_model> class Impl;
 
   std::unique_ptr<Impl<ExecutionModel::CPU>> cpu_renderer_impl_;
+
+  struct EmptyT {};
+
+  // NOTE this makes it invalid to use a renderer in different compilation
+  // units with different values of CPU_ONLY
+#ifndef CPU_ONLY
   std::unique_ptr<Impl<ExecutionModel::GPU>> gpu_renderer_impl_;
+#endif
 };
 } // namespace render

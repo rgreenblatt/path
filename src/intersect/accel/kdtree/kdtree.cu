@@ -26,7 +26,9 @@ detail::Ref KDTree<execution_model>::gen_internal(const Settings &settings) {
 }
 
 template class KDTree<ExecutionModel::CPU>;
+#ifndef CPU_ONLY
 template class KDTree<ExecutionModel::GPU>;
+#endif
 } // namespace kdtree
 } // namespace accel
 } // namespace intersect

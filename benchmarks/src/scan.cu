@@ -1,3 +1,4 @@
+#ifndef CPU_ONLY
 // must be included first to avoid issues with cub...
 #include "lib/cuda/utils.h"
 
@@ -188,4 +189,5 @@ BENCHMARK_TEMPLATE(bitset_popcount_keys, uint32_t)->Range(s_range, e_range);
 // and be correct
 BENCHMARK_TEMPLATE(bitset_popcount_keys, uint16_t)->Range(s_range, e_range);
 BENCHMARK_TEMPLATE(bitset_popcount_keys, uint8_t)->Range(s_range, e_range);
+#endif
 #endif

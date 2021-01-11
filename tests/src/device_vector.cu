@@ -1,3 +1,4 @@
+#ifndef CPU_ONLY
 #include "execution_model/vector_type.h"
 
 #include <gtest/gtest.h>
@@ -44,3 +45,4 @@ TEST(DeviceVector, expand_preserves) {
   ASSERT_EQ(vals[first_size], 1u);
   ASSERT_EQ(vals[next_size - 1], 1u);
 }
+#endif

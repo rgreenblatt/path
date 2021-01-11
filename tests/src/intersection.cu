@@ -8,7 +8,6 @@
 #include "meta/tag.h"
 
 #include <gtest/gtest.h>
-#include <thrust/device_vector.h>
 
 #include <random>
 
@@ -40,7 +39,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
     thrust::transform(
         data.execution_policy(), test_expected.data(),
         test_expected.data() + test_expected.size(), results.data(),
-        [=] __host__ __device__(const auto &test) {
+        [=] HOST_DEVICE (const auto &test) {
           auto [ray, _] = test;
           auto a =
               ref.intersect_objects(ray, [&](unsigned idx, const Ray &ray) {
@@ -121,7 +120,9 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
       }
 
       if (is_gpu) {
+#ifndef CPU_ONLY
         run_tests(TAG(ExecutionModel::GPU), triangles, tests);
+#endif
       } else {
         run_tests(TAG(ExecutionModel::CPU), triangles, tests);
       }

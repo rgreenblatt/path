@@ -12,7 +12,7 @@ class PathCMakeBuild(BaseCMakeBuilder):
         parser.add_argument('--cpu-only',
                             dest='cpu_only',
                             action='store_true',
-                            help='only build for the cpu')
+                            help='only build for the cpu -- GROSS AND HACKY')
         parser.add_argument('--no-cpu-only',
                             dest='cpu_only',
                             action='store_false',
@@ -44,6 +44,7 @@ class PathCMakeBuild(BaseCMakeBuilder):
     def extend_gen_cmd(self, sub_args, gen_cmd):
         gen_cmd += ["-DCMAKE_CUDA_ARCHITECTURES=" + self.args.cuda_archs]
         if sub_args.cpu_only:
+            print("WARN: building CPU_ONLY which is very hacky...")
             gen_cmd += ["-DCPU_ONLY=ON"]
 
     def test_command(self, remaining_args):

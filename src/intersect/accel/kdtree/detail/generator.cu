@@ -155,7 +155,9 @@ Ref KDTree<execution_model>::Generator::gen(const Settings &settings,
 }
 
 template class KDTree<ExecutionModel::CPU>::Generator;
+#ifndef CPU_ONLY
 template class KDTree<ExecutionModel::GPU>::Generator;
+#endif
 } // namespace kdtree
 } // namespace accel
 } // namespace intersect

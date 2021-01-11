@@ -20,6 +20,7 @@ template <ExecutionModel exec> class SobelSequenceGen<exec>::Generator {
 public:
   rng::detail::SequenceGenOutput gen(const SobelSettings &,
                                      unsigned dimension_bound, unsigned count) {
+#ifndef CPU_ONLY
     curandDirectionVectors32_t *host_vectors_32_ptr;
     unsigned *host_scramble_constants_32_ptr;
 
@@ -77,13 +78,22 @@ public:
 
       return {vals_, initial_dimension_bound};
     }
+#else
+    std::cerr << "Sobel can't be used if CPU_ONLY is enabled!" << std::endl;
+    (void)dimension_bound;
+    (void)count;
+    // can't be used!!!
+    unreachable();
+#endif
   }
 
 private:
+#ifndef CPU_ONLY
   DeviceVector<unsigned> vectors_32_;
   DeviceVector<unsigned long long> scramble_constants_32_;
   DeviceVector<float> gpu_vals_;
   ExecVector<exec, float> vals_;
+#endif
 };
 
 template <ExecutionModel exec>
@@ -108,7 +118,9 @@ SobelSequenceGen<exec> &
 SobelSequenceGen<exec>::operator=(SobelSequenceGen &&) = default;
 
 template class SobelSequenceGen<ExecutionModel::CPU>;
+#ifndef CPU_ONLY
 template class SobelSequenceGen<ExecutionModel::GPU>;
+#endif
 } // namespace detail
 } // namespace sobel
 } // namespace rng

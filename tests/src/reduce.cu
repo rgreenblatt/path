@@ -1,3 +1,4 @@
+#ifndef CPU_ONLY
 #include "execution_model/host_device_vector.h"
 #include "lib/assert.h"
 #include "lib/cuda/reduce.cuh"
@@ -137,3 +138,4 @@ TEST(Reduce, sum) {
              EXPECT_THAT(expected, testing::ElementsAreArray(actual));
            });
 }
+#endif

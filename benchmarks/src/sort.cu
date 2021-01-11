@@ -1,3 +1,4 @@
+#ifndef CPU_ONLY
 // must be included first to avoid issues with cub...
 #include "lib/cuda/utils.h"
 
@@ -40,3 +41,4 @@ BENCHMARK_TEMPLATE(standard, uint8_t)->Range(s_range, e_range);
 BENCHMARK_TEMPLATE(reverse_order, uint64_t)->Range(s_range, e_range);
 BENCHMARK_TEMPLATE(reverse_order, uint32_t)->Range(s_range, e_range);
 BENCHMARK_TEMPLATE(reverse_order, uint8_t)->Range(s_range, e_range);
+#endif

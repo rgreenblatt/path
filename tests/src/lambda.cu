@@ -1,3 +1,4 @@
+#ifndef CPU_ONLY
 #include "execution_model/thrust_data.h"
 #include "execution_model/vector_type.h"
 #include "lib/span.h"
@@ -92,3 +93,4 @@ TEST(LambdaCaptureWorks, list_args) {
     }
   }
 }
+#endif

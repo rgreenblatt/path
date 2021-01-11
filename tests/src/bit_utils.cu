@@ -1,3 +1,4 @@
+#ifndef CPU_ONLY
 #include "execution_model/host_device_vector.h"
 #include "lib/bit_utils.h"
 #include "lib/span.h"
@@ -83,3 +84,4 @@ TEST(Bitset, count_leading_zeros) {
   count_leading_zeros_test<uint32_t>(gen);
   count_leading_zeros_test<uint64_t>(gen);
 }
+#endif

@@ -34,7 +34,9 @@ RandomTriangle<exec>::finish_gen_internal(const Settings &settings) {
 }
 
 template class RandomTriangle<ExecutionModel::CPU>;
+#ifndef CPU_ONLY
 template class RandomTriangle<ExecutionModel::GPU>;
+#endif
 } // namespace random_triangle
 } // namespace light_sampler
 } // namespace integrate

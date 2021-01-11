@@ -87,6 +87,7 @@ if(SYNTAX_ONLY)
   set(CMAKE_CXX_ARCHIVE_FINISH "touch <TARGET>")
   set(CMAKE_CXX_COMPILER_LAUNCHER "")
 
+  # first one isn't actually used as far as I know...
   set(CMAKE_CUDA_COMPILE_OBJECT 
     "${CMAKE_CUDA_COMPILE_OBJECT} && touch <OBJECT>")
   set(CMAKE_CUDA_COMPILE_PTX_COMPILATION 
@@ -112,6 +113,10 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/extern/yaml-cpp")
 
 if(CPU_ONLY)
   add_definitions(-DCPU_ONLY)
+  # very hacky, but saves a decent amount of compile time...
+  set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION "${CMAKE_CXX_COMPILE_OBJECT}")
+  add_compile_options(-xc++ -isystem/opt/cuda/include/ 
+    -Wno-unused-command-line-argument)
 endif()
 
 # qt5_wrap_cpp(UI_MAINWINDOW "${PROJECT_SOURCE_DIR}/include/ui/mainwindow.h")
