@@ -42,10 +42,11 @@ public:
   }
 
 private:
-  std::conditional_t<execution_model == ExecutionModel::CPU, std::tuple<>,
-                     std::unique_ptr<Stream>>
-      stream_v;
   CachingThrustAllocator<execution_model> alloc;
+  struct EmptyT {};
+  [[no_unique_address]] std::conditional_t<
+      execution_model == ExecutionModel::CPU, EmptyT, std::unique_ptr<Stream>>
+      stream_v;
 };
 
 template <ExecutionModel exec>
