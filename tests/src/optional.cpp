@@ -1,4 +1,3 @@
-#if 0
 #include "lib/optional.h"
 #include "lib/assert.h"
 #include "meta/mock.h"
@@ -20,6 +19,7 @@ TEST(Optional, basic) {
   EXPECT_EQ(*c, 2);
 }
 
+#if 0
 template <bool copy_allowed> class CountCalls {
 public:
   CountCalls() = delete;
