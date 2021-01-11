@@ -1,7 +1,6 @@
 #include "scene/scenefile_compat/scenefile_loader.h"
 #include "lib/assert.h"
 #include "lib/eigen_utils.h"
-#include "lib/group.h"
 #include "lib/optional.h"
 #include "lib/unit_vector.h"
 #include "scene/camera.h"
