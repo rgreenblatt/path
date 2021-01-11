@@ -3,11 +3,13 @@
 #include <gtest/gtest.h>
 
 TEST(DeviceVector, no_default_init) {
+  constexpr unsigned random_constant = 1288973872;
+
   class OneIfDefaultConstructed {
   public:
     unsigned val;
 
-    HOST_DEVICE OneIfDefaultConstructed() { val = 1; }
+    HOST_DEVICE OneIfDefaultConstructed() { val = random_constant; }
   };
 
   unsigned size = 10;
@@ -17,7 +19,7 @@ TEST(DeviceVector, no_default_init) {
 
     // technically this could fail...
     for (const auto &v : vals) {
-      ASSERT_NE(OneIfDefaultConstructed(v).val, 1u);
+      ASSERT_NE(OneIfDefaultConstructed(v).val, random_constant);
     }
   }
 
@@ -25,7 +27,7 @@ TEST(DeviceVector, no_default_init) {
     thrust::device_vector<OneIfDefaultConstructed> vals(size);
 
     for (const auto &v : vals) {
-      ASSERT_EQ(OneIfDefaultConstructed(v).val, 1u);
+      ASSERT_EQ(OneIfDefaultConstructed(v).val, random_constant);
     }
   }
 }
