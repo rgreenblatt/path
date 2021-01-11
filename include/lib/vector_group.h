@@ -12,6 +12,8 @@
 #include <boost/hana/for_each.hpp>
 #include <boost/hana/zip.hpp>
 
+#include <tuple>
+
 // useful for a struct of vecs which all have the same size
 template <template <typename> class VecT, AllValuesEnumerable E, typename... T>
 requires((... && Vector<VecT<T>>)&&(AllValues<E>.size() == sizeof...(T) &&
