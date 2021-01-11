@@ -9,11 +9,10 @@
 #include <map>
 
 template <typename F, AllValuesEnumerable T>
+requires (AllValues<T>.size() != 0)
 auto dispatch_value(const F &f, T value) {
   const static auto lookup = [] {
     constexpr auto values = AllValues<T>;
-
-    static_assert(values.size() != 0);
 
     std::map<T, unsigned> lookup;
 

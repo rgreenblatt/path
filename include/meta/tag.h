@@ -3,10 +3,18 @@
 #include "meta/all_values.h"
 #include "meta/get_idx.h"
 
-template <AllValuesEnumerable E, unsigned idx_in> struct Tag {
+template<unsigned idx_in> struct NTag {
   static constexpr unsigned idx = idx_in;
-  static_assert(idx < AllValues<E>.size());
+};
+
+template <AllValuesEnumerable E, unsigned idx_in>
+requires(idx_in < AllValues<E>.size()) struct Tag {
+  static constexpr unsigned idx = idx_in;
   static constexpr E value = AllValues<E>[idx];
+
+  Tag() = default;
+
+  Tag(NTag<idx_in>) {}
 };
 
 // convenience macro for using tags
