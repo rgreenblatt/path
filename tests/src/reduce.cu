@@ -59,7 +59,7 @@ TEST(Reduce, sum) {
             do {
               division = WorkDivision({block_size, target_x_block_size, true,
                                        target_samples_per_thread},
-                                      samples_per, size, 1);
+                                      samples_per, num_locations, 1);
               target_samples_per_thread *= 2;
             } while (division.num_sample_blocks() != 1);
             ASSERT_EQ(division.num_sample_blocks(), 1);
@@ -89,9 +89,11 @@ TEST(Reduce, sum) {
 
             HostDeviceVector<T> out_vals_division(num_locations);
 
+            Span<T> out_division = out_vals_division;
+
             work_division::KernelLaunch<ExecutionModel::GPU>::run(
                 division, 0, division.total_num_blocks(),
-                [=](const WorkDivision &division,
+                [=] HOST_DEVICE (const WorkDivision &division,
                     const work_division::GridLocationInfo &info,
                     const unsigned /*block_idx*/, const unsigned thread_idx) {
                   auto [start_sample, end_sample, j, unused] = info;
@@ -104,12 +106,9 @@ TEST(Reduce, sum) {
                   auto add = [](auto lhs, auto rhs) { return lhs + rhs; };
                   total = reduce_samples(division, total, add, thread_idx);
                   if (division.assign_sample(thread_idx)) {
-                    out[j] = total;
+                    out_division[j] = total;
                   }
                 });
-
-            CUDA_ERROR_CHK(cudaDeviceSynchronize());
-            CUDA_ERROR_CHK(cudaGetLastError());
 
             std::vector<T> expected(num_locations, 0.f);
 
