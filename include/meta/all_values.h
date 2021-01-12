@@ -17,10 +17,12 @@
 template <typename T> struct AllValuesImpl;
 
 template <typename T>
-concept AllValuesEnumerable = requires(const T& t) {
+concept AllValuesEnumerable = requires(const T &t) {
   requires std::equality_comparable<T>;
   { t < t } -> std::convertible_to<bool>; // less
 
+  // having an array of all values is likely not compile time efficient
+  // for some types (integers for examples)
   typename AllValuesImpl<T>;
   requires StdArrayOfType<decltype(AllValuesImpl<T>::values), T>;
 };
