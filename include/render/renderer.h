@@ -11,7 +11,6 @@
 #include <memory>
 
 namespace render {
-namespace detail {
 class Renderer {
 public:
   // need to implementated when Impl is defined
