@@ -23,12 +23,14 @@ struct uninitialized_allocator : thrust::device_allocator<T> {
 // if we need to expand to more general type, we can use an
 // uninitialized allocator for just TriviallyDestructable types
 template <TriviallyDestructable T>
-using DeviceVector = thrust::device_vector<T
+using DeviceVector =
+    thrust::device_vector<T
 // how much perf does this get?
 #if 1
-    , device_vector::detail::uninitialized_allocator<T>
+                          ,
+                          device_vector::detail::uninitialized_allocator<T>
 #endif
-                                           >;
+                          >;
 #else
 // Shouldn't be used, just a placeholder for cpu builds
 template <typename T> struct DeviceVector : MockNoRequirements {};
