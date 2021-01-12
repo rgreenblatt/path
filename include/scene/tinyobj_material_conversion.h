@@ -65,8 +65,7 @@ Material tinyobj_material_conversion(const tinyobj::material_t &material) {
     // ideal specular
     return {{{TAG(BSDFType::Mirror), specular}}, emission};
   } else if (specular_non_zero /*&& !diffuse_non_zero*/) {
-    return {{{TAG(BSDFType::Glossy), specular, shininess}},
-                    emission};
+    return {{{TAG(BSDFType::Glossy), specular, shininess}}, emission};
   } else {
     // TODO
     std::cerr << "unhandled material settings" << std::endl;
