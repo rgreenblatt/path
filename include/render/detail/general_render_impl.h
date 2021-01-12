@@ -35,6 +35,7 @@ void Renderer::Impl<exec>::general_render(
       bgra_.resize(x_dim * y_dim);
       output_pixels = bgra_;
     } else {
+      static_assert(exec == ExecutionModel::CPU);
       output_pixels = pixels;
     }
   } else {
@@ -42,6 +43,7 @@ void Renderer::Impl<exec>::general_render(
       intensities_.resize(division.num_sample_blocks() * x_dim * y_dim);
       output_intensities = intensities_;
     } else {
+      static_assert(exec == ExecutionModel::CPU);
       output_intensities = intensities;
     }
   }
@@ -70,6 +72,8 @@ void Renderer::Impl<exec>::general_render(
             return all_intersection_settings;
           } else if constexpr (intersection_approach ==
                                IntersectionApproach::StreamingFromGeneral) {
+            static_assert(intersection_approach ==
+                          IntersectionApproach::StreamingFromGeneral);
             return all_intersection_settings.accel;
           }
         }
