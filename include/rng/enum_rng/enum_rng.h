@@ -9,9 +9,8 @@
 namespace rng {
 namespace enum_rng {
 template <RngType type, ExecutionModel execution_model>
-struct EnumRng
-    : public PickType<RngType, type, uniform::Uniform<execution_model>,
-                      sobel::Sobel<execution_model>> {};
+struct EnumRng : public PickType<type, uniform::Uniform<execution_model>,
+                                 sobel::Sobel<execution_model>> {};
 
 template <RngType type, ExecutionModel exec>
 struct IsRng : BoolWrapper<Rng<EnumRng<type, exec>, Settings<type>>> {};

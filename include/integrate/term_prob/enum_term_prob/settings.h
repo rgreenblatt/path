@@ -12,9 +12,8 @@ namespace integrate {
 namespace term_prob {
 namespace enum_term_prob {
 template <TermProbType type>
-struct Settings
-    : public PickType<TermProbType, type, constant::Settings, n_iters::Settings,
-                      multiplier_func::Settings> {};
+struct Settings : public PickType<type, constant::Settings, n_iters::Settings,
+                                  multiplier_func::Settings> {};
 
 template <TermProbType type>
 struct SettingsValid : BoolWrapper<Setting<Settings<type>>> {};

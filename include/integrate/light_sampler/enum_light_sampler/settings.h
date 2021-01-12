@@ -11,9 +11,8 @@ namespace integrate {
 namespace light_sampler {
 namespace enum_light_sampler {
 template <LightSamplerType type>
-struct Settings
-    : public PickType<LightSamplerType, type, no_light_sampling::Settings,
-                      random_triangle::Settings> {};
+struct Settings : public PickType<type, no_light_sampling::Settings,
+                                  random_triangle::Settings> {};
 
 template <LightSamplerType type>
 struct SettingsValid : BoolWrapper<Setting<Settings<type>>> {};

@@ -11,8 +11,8 @@ namespace integrate {
 namespace dir_sampler {
 namespace enum_dir_sampler {
 template <DirSamplerType type>
-struct Settings : public PickType<DirSamplerType, type, uniform::Settings,
-                                  bsdf_sampler::Settings> {};
+struct Settings
+    : public PickType<type, uniform::Settings, bsdf_sampler::Settings> {};
 
 template <DirSamplerType type>
 struct SettingsValid : BoolWrapper<Setting<Settings<type>>> {};

@@ -16,7 +16,7 @@ namespace accel {
 namespace enum_accel {
 template <AccelType type, ExecutionModel exec>
 struct EnumAccel
-    : public PickType<AccelType, type, loop_all::LoopAll, kdtree::KDTree<exec>,
+    : public PickType<type, loop_all::LoopAll, kdtree::KDTree<exec>,
                       dir_tree::DirTree<exec>> {};
 
 template <AccelType type, ExecutionModel exec>

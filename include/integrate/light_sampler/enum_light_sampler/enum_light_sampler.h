@@ -14,8 +14,7 @@ namespace light_sampler {
 namespace enum_light_sampler {
 template <LightSamplerType type, ExecutionModel exec>
 struct EnumLightSampler
-    : public PickType<LightSamplerType, type,
-                      no_light_sampling::NoLightSampling,
+    : public PickType<type, no_light_sampling::NoLightSampling,
                       random_triangle::RandomTriangle<exec>> {};
 
 template <LightSamplerType type, ExecutionModel exec>
