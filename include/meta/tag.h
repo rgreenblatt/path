@@ -28,7 +28,7 @@ requires(AllValuesEnumerable<decltype(value_in)> &&get_idx(value_in) <
   // implicit conversion - must be defined here because TTag may not
   // exist (if type isn't structural) while Tag always exists...
   operator Tag<decltype(value_in), idx>() const { return {}; }
-  TTag (Tag<decltype(value_in), idx>) { }
+  TTag(Tag<decltype(value_in), idx>) {}
 };
 
 // convenience macros for using tags
