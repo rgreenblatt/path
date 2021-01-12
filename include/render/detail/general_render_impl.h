@@ -3,7 +3,6 @@
 #include "intersect/accel/enum_accel/enum_accel_impl.h"
 #include "intersect/triangle_impl.h"
 #include "intersectable_scene/to_bulk_impl.h"
-#include "lib/group.h"
 #include "meta/dispatch_value.h"
 #include "render/detail/integrate_image.h"
 #include "render/detail/reduce_intensities_gpu.h"
