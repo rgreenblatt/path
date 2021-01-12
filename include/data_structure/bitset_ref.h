@@ -3,6 +3,7 @@
 #include "data_structure/get_size.h"
 #include "lib/attribute.h"
 #include "lib/bit_utils.h"
+#include "lib/cuda/utils.h"
 #include "lib/span.h"
 #include "meta/specialization_of.h"
 

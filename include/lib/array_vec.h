@@ -79,5 +79,7 @@ template <ArrayVecSpecialization T> struct GetSizeImpl<T> {
   ATTR_PURE_NDEBUG constexpr static auto get(const T &v) { return v.size(); }
 };
 
-static_assert(GetPtr<ArrayVec<MockSemiregular, 0>, MockSemiregular>);
+static_assert(GetPtrForElem<ArrayVec<MockSemiregular, 0>, MockSemiregular>);
+static_assert(
+    GetPtrForElem<const ArrayVec<MockSemiregular, 0>, const MockSemiregular>);
 static_assert(GetSize<ArrayVec<MockSemiregular, 0>>);

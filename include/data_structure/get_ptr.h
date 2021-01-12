@@ -19,12 +19,25 @@ template <detail::IsDeviceVector T> struct GetPtrImpl<T> {
 };
 #endif
 
-template <typename T, typename Elem>
+template <typename T>
+concept IsPointer = std::is_pointer_v<T>;
+
+template <typename T>
 concept GetPtr = requires(T &&t) {
   typename GetPtrImpl<T>;
-  { GetPtrImpl<T>::get(std::forward<T>(t)) } -> std::convertible_to<Elem *>;
+  { GetPtrImpl<T>::get(std::forward<T>(t)) } -> IsPointer;
 };
 
-template <typename Elem, GetPtr<Elem> T> constexpr Elem *get_ptr(T &&t) {
+template <GetPtr T> constexpr auto get_ptr(T &&t) {
   return GetPtrImpl<T>::get(std::forward<T>(t));
 }
+
+template <GetPtr T>
+using PointerElemType =
+    std::remove_reference_t<decltype(*get_ptr(std::declval<T>()))>;
+
+template <typename T, typename Elem>
+concept GetPtrForElem = requires(T &&t) {
+  requires GetPtr<T>;
+  { get_ptr(t) } -> std::convertible_to<Elem *>;
+};
