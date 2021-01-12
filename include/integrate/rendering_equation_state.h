@@ -56,7 +56,8 @@ template <unsigned max_num_light_samples> struct RenderingEquationState {
 
 static_assert(std::semiregular<RenderingEquationState<3>>);
 
-template <unsigned max_num_light_samples> struct RenderingEquationNextIteration {
+template <unsigned max_num_light_samples>
+struct RenderingEquationNextIteration {
   RenderingEquationState<max_num_light_samples> state;
   ArrayVec<intersect::Ray, max_num_light_samples + 1> rays;
 };

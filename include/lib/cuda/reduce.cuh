@@ -10,8 +10,8 @@
 
 constexpr uint32_t full_mask = 0xffffffff;
 
-template<typename F, typename T>
-concept ReducableBinOp = requires(const F& f, const T& l, const T& r) {
+template <typename F, typename T>
+concept ReducableBinOp = requires(const F &f, const T &l, const T &r) {
   requires std::copyable<T>;
   { f(l, r) } -> std::convertible_to<T>;
 };

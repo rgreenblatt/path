@@ -1,8 +1,8 @@
 #pragma once
 
 #include "intersect/accel/aabb.h"
-#include "lib/tagged_union.h"
 #include "lib/start_end.h"
+#include "lib/tagged_union.h"
 
 namespace intersect {
 namespace accel {

@@ -2,8 +2,8 @@
 
 #include "execution_model/execution_model_vector_type.h"
 #include "intersect/accel/aabb.h"
-#include "intersect/accel/kdtree/kdtree.h"
 #include "intersect/accel/kdtree/detail/node.h"
+#include "intersect/accel/kdtree/kdtree.h"
 #include "intersect/accel/kdtree/settings.h"
 #include "lib/span.h"
 

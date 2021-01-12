@@ -51,36 +51,36 @@ Ref::intersect_objects(const intersect::Ray &ray,
       const auto &current_node = nodes[stack_v.node_index];
 
       auto bounding_intersection =
-          current_node.aabb.solve_bounding_intersection(
-              ray.origin, inv_direction);
+          current_node.aabb.solve_bounding_intersection(ray.origin,
+                                                        inv_direction);
 
       if (bounding_intersection.has_value() &&
           (!best.has_value() ||
            best->intersection_dist > *bounding_intersection)) {
-        current_node.value.visit_tagged(
-            [&](auto tag, const auto &v) {
-            if constexpr (decltype(tag)::value == NodeType::Split) {
-              const uint8_t axis = stack_v.depth % 3;
-              const auto intersection_point =
-                  ray.origin[axis] +
-                  (*ray.direction)[axis] * *bounding_intersection;
-              auto first = v.left_index;
-              auto second = v.right_index;
+        current_node.value.visit_tagged([&](auto tag, const auto &v) {
+          if constexpr (decltype(tag)::value == NodeType::Split) {
+            const uint8_t axis = stack_v.depth % 3;
+            const auto intersection_point =
+                ray.origin[axis] +
+                (*ray.direction)[axis] * *bounding_intersection;
+            auto first = v.left_index;
+            auto second = v.right_index;
 
-              if (intersection_point > v.division_point) {
-                auto temp = first;
-                first = second;
-                second = temp;
-              }
+            if (intersection_point > v.division_point) {
+              auto temp = first;
+              first = second;
+              second = temp;
+            }
 
-              uint8_t new_depth = stack_v.depth + 1;
-              node_stack.push(StackData{second, new_depth});
-              node_stack.push(StackData{first, new_depth});
-            } else {
-              static_assert(decltype(tag)::value == NodeType::Items);
-              start_end = v;
-              current_idx = v.start;
-            }});
+            uint8_t new_depth = stack_v.depth + 1;
+            node_stack.push(StackData{second, new_depth});
+            node_stack.push(StackData{first, new_depth});
+          } else {
+            static_assert(decltype(tag)::value == NodeType::Items);
+            start_end = v;
+            current_idx = v.start;
+          }
+        });
       }
     }
 
