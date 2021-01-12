@@ -94,9 +94,10 @@ TEST(Reduce, sum) {
 
             work_division::KernelLaunch<ExecutionModel::GPU>::run(
                 division, 0, division.total_num_blocks(),
-                [=] HOST_DEVICE (const WorkDivision &division,
-                    const work_division::GridLocationInfo &info,
-                    const unsigned /*block_idx*/, const unsigned thread_idx) {
+                [=] HOST_DEVICE(const WorkDivision &division,
+                                const work_division::GridLocationInfo &info,
+                                const unsigned /*block_idx*/,
+                                const unsigned thread_idx) {
                   auto [start_sample, end_sample, j, unused] = info;
 
                   T total = 0;

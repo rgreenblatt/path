@@ -39,7 +39,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
     thrust::transform(
         data.execution_policy(), test_expected.data(),
         test_expected.data() + test_expected.size(), results.data(),
-        [=] HOST_DEVICE (const auto &test) {
+        [=] HOST_DEVICE(const auto &test) {
           auto [ray, _] = test;
           auto a =
               ref.intersect_objects(ray, [&](unsigned idx, const Ray &ray) {

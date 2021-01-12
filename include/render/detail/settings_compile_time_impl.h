@@ -15,7 +15,7 @@ private:
 public:
   // compile times don't change much from small constant values to 1...
   // compile times do substantially increase for large number of possibilities
-// #define FORCE_BUILD_ALL
+  // #define FORCE_BUILD_ALL
 
 #if !defined(BUILD_ALL) && !defined(FORCE_BUILD_ALL)
   constexpr static std::array<render::Settings::CompileTime, 2> values = {{
