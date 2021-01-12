@@ -91,6 +91,7 @@ class PathCMakeBuild(BaseCMakeBuilder):
             "test": self.test_command,
             "bench": self.bench_command,
             "check": self.check_command,
+            "run": self.run_command,
         })
 
     @staticmethod
