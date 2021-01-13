@@ -48,8 +48,9 @@ class PathCMakeBuild(BaseCMakeBuilder):
             gen_cmd += ["-DCPU_ONLY=ON"]
 
     def test_command(self, remaining_args):
-        args = self.build_default_command_parser('run all tests').parse_args(
-            remaining_args)
+        args = self.build_default_command_parser(
+            'run all tests',
+            has_build_testing=False).parse_args(remaining_args)
         self.build(args,
                    self.get_directory(args),
                    additional_gen_args=["-DBUILD_TESTING=ON"],
@@ -100,4 +101,4 @@ class PathCMakeBuild(BaseCMakeBuilder):
 
 
 if __name__ == "__main__":
-    PathCMakeBuild()
+    PathCMakeBuild().run_with_cli_args()
