@@ -10,6 +10,7 @@
 #include "intersectable_scene/to_bulk.h"
 #include "lib/bgra.h"
 #include "lib/one_per_instance.h"
+#include "render/detail/integrate_image_bulk_state.h"
 #include "render/renderer.h"
 #include "render/settings.h"
 #include "rng/enum_rng/enum_rng.h"
@@ -48,12 +49,6 @@ private:
   OnePerInstance<AccelType, IntersectableSceneGenerator>
       stored_scene_generators_;
 
-  template <AccelType type>
-  using BulkIntersectableSceneGenerator = intersectable_scene::ToBulkGen<
-      exec, typename IntersectableSceneGenerator<type>::Intersector>;
-
-  OnePerInstance<AccelType, BulkIntersectableSceneGenerator> to_bulk_;
-
   template <LightSamplerType type>
   using LightSamplerT = EnumLightSampler<type, exec>;
 
@@ -72,6 +67,21 @@ private:
   template <RngType type> using Rng = rng::enum_rng::EnumRng<type, exec>;
 
   OnePerInstance<RngType, Rng> rngs_;
+
+  template <AccelType type>
+  using BulkIntersectableSceneGenerator = intersectable_scene::ToBulkGen<
+      exec, typename IntersectableSceneGenerator<type>::Intersector>;
+
+  OnePerInstance<AccelType, BulkIntersectableSceneGenerator> to_bulk_;
+
+  using BulkStateType = MetaTuple<LightSamplerType, RngType>;
+
+  template <BulkStateType type>
+  using IntegrateImageBulkState = detail::IntegrateImageBulkState<
+      exec, LightSamplerT<meta_tuple_at<0>(type)>::Ref::max_num_samples,
+      typename Rng<meta_tuple_at<1>(type)>::Ref>;
+
+  OnePerInstance<BulkStateType, IntegrateImageBulkState> bulk_state_;
 
   ThrustData<exec> thrust_data_;
 

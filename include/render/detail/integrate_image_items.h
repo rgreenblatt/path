@@ -10,14 +10,17 @@
 namespace render {
 namespace detail {
 // allow for named arguments and avoid some repeated definition code
-template <ExactSpecializationOf<integrate::RenderingEquationComponents> C,
-          rng::RngRef R>
+template <ExactSpecializationOf<integrate::RenderingEquationComponents> CIn,
+          rng::RngRef RIn>
 struct IntegrateImageItems {
+  using C = CIn;
+  using R = RIn;
+  using InfoType = typename C::InfoType;
+
   IntegrateImageBaseItems base;
   C components;
   R rng;
   Eigen::Affine3f film_to_world;
-  using InfoType = typename C::InfoType;
 };
 } // namespace detail
 } // namespace render

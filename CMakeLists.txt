@@ -165,8 +165,10 @@ target_add_standard_include(work_division)
 add_library(
   renderer
   STATIC
-  "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl_general_render_gpu.cu"
-  "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl_general_render_cpu.cpp"
+  "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl_general_render_individual_gpu.cu"
+  "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl_general_render_individual_cpu.cpp"
+  "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl_general_render_bulk_gpu.cu"
+  "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl_general_render_bulk_cpu.cpp"
 
   "${PROJECT_SOURCE_DIR}/src/render/renderer.cu"
 
@@ -247,10 +249,8 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
   package_add_test(work_division_test
     "${PROJECT_SOURCE_DIR}/tests/src/work_division.cpp")
   target_link_libraries(work_division_test PRIVATE renderer)
-  package_add_test(span_test
-    "${PROJECT_SOURCE_DIR}/tests/src/span.cpp")
-  package_add_test(dispatch_test
-    "${PROJECT_SOURCE_DIR}/tests/src/dispatch.cpp")
+  package_add_test(span_test "${PROJECT_SOURCE_DIR}/tests/src/span.cpp")
+  package_add_test(tag_test "${PROJECT_SOURCE_DIR}/tests/src/tag.cpp")
 
   add_custom_target(run_build_tests COMMAND ${CMAKE_CTEST_COMMAND}
     DEPENDS "${TEST_LIST}")

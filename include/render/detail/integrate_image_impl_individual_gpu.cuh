@@ -11,19 +11,21 @@
 
 namespace render {
 namespace detail {
-template <> template <ExactSpecializationOf<IntegrateImageInputs> Inp>
-requires Inp::I::individually_intersectable void
-IntegrateImage<ExecutionModel::GPU>::run_individual(Inp inp) {
-  unsigned total_grid = inp.division.total_num_blocks();
+template <>
+template <typename... T>
+void IntegrateImage<ExecutionModel::GPU>::run(
+    IntegrateImageIndividualInputs<T...> inp) {
+  auto val = inp.val;
+  unsigned total_grid = val.division.total_num_blocks();
 
   unsigned max_launch_size =
-      inp.settings.computation_settings.max_blocks_per_launch;
+      val.settings.computation_settings.max_blocks_per_launch;
 
   unsigned num_launches = ceil_divide(total_grid, max_launch_size);
   unsigned blocks_per = total_grid / num_launches;
 
   ProgressBar progress_bar(num_launches, 70);
-  if (inp.show_progress) {
+  if (val.show_progress) {
     progress_bar.display();
   }
 
@@ -31,11 +33,13 @@ IntegrateImage<ExecutionModel::GPU>::run_individual(Inp inp) {
     unsigned start = i * blocks_per;
     unsigned end = std::min((i + 1) * blocks_per, total_grid);
 
+    auto items = val.items;
+    auto intersectable = val.intersector;
+    auto settings = val.settings.rendering_equation_settings;
+
     work_division::KernelLaunch<ExecutionModel::GPU>::run(
-        inp.division, start, end,
-        [=, items = inp.items, intersectable = inp.intersector,
-         settings = inp.settings.rendering_equation_settings](
-            const WorkDivision &division,
+        val.division, start, end,
+        [=](const WorkDivision &division,
             const work_division::GridLocationInfo &info,
             const unsigned block_idx, const unsigned thread_idx) {
           auto intensity =
@@ -45,13 +49,13 @@ IntegrateImage<ExecutionModel::GPU>::run_individual(Inp inp) {
                                info.x, info.y, intensity);
         });
 
-    if (inp.show_progress) {
+    if (val.show_progress) {
       ++progress_bar;
       progress_bar.display();
     }
   }
 
-  if (inp.show_progress) {
+  if (val.show_progress) {
     progress_bar.done();
   }
 }
