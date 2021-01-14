@@ -10,7 +10,7 @@
 
 constexpr uint32_t full_mask = 0xffffffff;
 
-template <typename T, ReducableBinOp<T> F>
+template <typename T, BinOp<T> F>
 inline __device__ T warp_reduce(T val, const F &f,
                                 unsigned sub_block_size = warp_size) {
   debug_assert_assume(warp_size % sub_block_size == 0);
@@ -25,7 +25,7 @@ inline __device__ T warp_reduce(T val, const F &f,
   return val;
 }
 
-template <typename T, ReducableBinOp<T> F>
+template <typename T, BinOp<T> F>
 inline __device__ T sub_block_reduce(T val, const F &f, unsigned thread_idx,
                                      unsigned block_size,
                                      unsigned sub_block_size) {
@@ -80,7 +80,7 @@ inline __device__ T sub_block_reduce(T val, const F &f, unsigned thread_idx,
 
 // it's plausible the compile won't be able to optimize this function
 // to be as efficient as possible because sub_block_reduce is more general :(
-template <typename T, ReducableBinOp<T> F>
+template <typename T, BinOp<T> F>
 inline __device__ T block_reduce(const T &val, const F &f, unsigned thread_idx,
                                  unsigned block_size) {
   return sub_block_reduce(val, f, thread_idx, block_size, block_size);
