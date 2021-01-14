@@ -75,6 +75,10 @@ find_package(Threads REQUIRED)
 
 set(BUILD_SHARED_LIBS OFF)
 
+# remove _CMAKE_COMPILE_AS_CUDA_FLAG to support ccache
+# set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION
+#     "<CMAKE_CUDA_COMPILER> ${_CMAKE_CUDA_EXTRA_FLAGS} <DEFINES> <INCLUDES> <FLAGS> -c <SOURCE> -o <OBJECT>")
+
 option(SYNTAX_ONLY "only check syntax (-fsyntax-only)" OFF)
 option(CPU_ONLY "don't build for the gpu" OFF)
 
