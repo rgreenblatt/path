@@ -3,18 +3,12 @@
 #include "lib/assert.h"
 #include "lib/bit_utils.h"
 #include "lib/cuda/utils.h"
+#include "lib/reducible_bin_op.h"
 
 #include <algorithm>
-#include <concepts>
 #include <cstdint>
 
 constexpr uint32_t full_mask = 0xffffffff;
-
-template <typename F, typename T>
-concept ReducableBinOp = requires(const F &f, const T &l, const T &r) {
-  requires std::copyable<T>;
-  { f(l, r) } -> std::convertible_to<T>;
-};
 
 template <typename T, ReducableBinOp<T> F>
 inline __device__ T warp_reduce(T val, const F &f,
