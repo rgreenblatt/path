@@ -52,6 +52,10 @@ template <unsigned max_num_light_samples> struct RenderingEquationState {
   ArrRayRayInfo ray_ray_info;
   ArrayVec<ArrRayInfo, max_num_light_samples> light_samples;
   Eigen::Array3f intensity;
+
+  HOST_DEVICE unsigned num_samples() const {
+    return light_samples.size() + has_next_sample;
+  }
 };
 
 static_assert(std::semiregular<RenderingEquationState<3>>);
