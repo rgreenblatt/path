@@ -12,7 +12,10 @@ cmake_minimum_required(VERSION 3.18)
 add_compile_options(-Wall -Wextra -fsized-deallocation)
 add_link_options(-fuse-ld=lld)
 
-# use libc++ for this project and submodules
+# set(CMAKE_VERBOSE_MAKEFILE ON CACHE BOOL "ON" FORCE)
+
+# use libc++ for this project and submodules 
+# won't work until libc++ has concepts
 # set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -stdlib=libc++")
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 
