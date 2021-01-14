@@ -9,7 +9,7 @@
 #include "intersectable_scene/flat_triangle/flat_triangle.h"
 #include "intersectable_scene/to_bulk.h"
 #include "lib/bgra.h"
-#include "lib/one_per_instance.h"
+#include "lib/tagged_tuple.h"
 #include "render/detail/integrate_image_bulk_state.h"
 #include "render/renderer.h"
 #include "render/settings.h"
@@ -46,33 +46,33 @@ private:
       intersectable_scene::flat_triangle::Generator<
           exec, enum_accel::Settings<type>, EnumAccel<type, exec>>;
 
-  OnePerInstance<AccelType, IntersectableSceneGenerator>
+  TaggedTuplePerInstance<AccelType, IntersectableSceneGenerator>
       stored_scene_generators_;
 
   template <LightSamplerType type>
   using LightSamplerT = EnumLightSampler<type, exec>;
 
-  OnePerInstance<LightSamplerType, LightSamplerT> light_samplers_;
+  TaggedTuplePerInstance<LightSamplerType, LightSamplerT> light_samplers_;
 
   template <DirSamplerType type> using DirSamplerT = EnumDirSampler<type>;
 
-  OnePerInstance<DirSamplerType, DirSamplerT> dir_samplers_;
+  TaggedTuplePerInstance<DirSamplerType, DirSamplerT> dir_samplers_;
 
   template <TermProbType type> using TermProbT = EnumTermProb<type>;
 
-  OnePerInstance<TermProbType, TermProbT> term_probs_;
+  TaggedTuplePerInstance<TermProbType, TermProbT> term_probs_;
 
   using RngType = rng::enum_rng::RngType;
 
   template <RngType type> using Rng = rng::enum_rng::EnumRng<type, exec>;
 
-  OnePerInstance<RngType, Rng> rngs_;
+  TaggedTuplePerInstance<RngType, Rng> rngs_;
 
   template <AccelType type>
   using BulkIntersectableSceneGenerator = intersectable_scene::ToBulkGen<
       exec, typename IntersectableSceneGenerator<type>::Intersector>;
 
-  OnePerInstance<AccelType, BulkIntersectableSceneGenerator> to_bulk_;
+  TaggedTuplePerInstance<AccelType, BulkIntersectableSceneGenerator> to_bulk_;
 
   using BulkStateType = MetaTuple<LightSamplerType, RngType>;
 
@@ -81,7 +81,7 @@ private:
       exec, LightSamplerT<meta_tuple_at<0>(type)>::Ref::max_num_samples,
       typename Rng<meta_tuple_at<1>(type)>::Ref>;
 
-  OnePerInstance<BulkStateType, IntegrateImageBulkState> bulk_state_;
+  TaggedTuplePerInstance<BulkStateType, IntegrateImageBulkState> bulk_state_;
 
   ThrustData<exec> thrust_data_;
 

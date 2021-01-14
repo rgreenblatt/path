@@ -261,21 +261,8 @@ private : template <typename C> static constexpr void destroy_input(C &v) {
   tagged_union::detail::VariadicUnion<T...> union_;
 };
 
-namespace tagged_union {
-namespace detail {
 template <AllValuesEnumerable T, template <T> class TypeOver>
-struct TaggedUnionPerInstanceImpl {
-  template <typename... Ts> using Impl = TaggedUnion<T, Ts...>;
-
-  using type = PerInstance<T, TypeOver, Impl>;
-};
-} // namespace detail
-} // namespace tagged_union
-
-template <AllValuesEnumerable T, template <T> class TypeOver>
-using TaggedUnionPerInstance =
-    typename tagged_union::detail::TaggedUnionPerInstanceImpl<T,
-                                                              TypeOver>::type;
+using TaggedUnionPerInstance = PerInstanceTakesType<T, TypeOver, TaggedUnion>;
 
 template <AllValuesEnumerable E, AllValuesEnumerable... Types>
 struct AllValuesImpl<TaggedUnion<E, Types...>> {
