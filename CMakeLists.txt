@@ -82,7 +82,11 @@ if(SYNTAX_ONLY)
   # builds are fast enough to check all combinations with syntax only
   add_definitions(-DBUILD_ALL)
   add_compile_options(-fsyntax-only)
-  add_link_options(-fsyntax-only)
+
+  # building only host should yield almost all diagnostics while also
+  # being much faster
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --cuda-host-only")
+
   set(CMAKE_CXX_COMPILE_OBJECT "${CMAKE_CXX_COMPILE_OBJECT} && touch <OBJECT>")
   set(CMAKE_CXX_CREATE_SHARED_LIBRARY "touch <TARGET>")
   set(CMAKE_CXX_CREATE_SHARED_MODULE "touch <TARGET>")
