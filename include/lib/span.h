@@ -11,13 +11,18 @@
 template <typename T, bool is_sized_in = false, bool is_debug = debug_build>
 class Span;
 
-template <typename> struct is_span : std::false_type {};
+namespace span_name {
+namespace detail {
+template <typename> struct IsSpanImpl : std::false_type {};
 
 template <typename T, bool is_sized, bool is_debug>
-struct is_span<Span<T, is_sized, is_debug>> : std::true_type {};
+struct IsSpanImpl<Span<T, is_sized, is_debug>> : std::true_type {};
+} // namespace detail
+} // namespace span_name
 
 template <typename T>
-concept SpanSpecialization = is_span<std::decay_t<T>>::value;
+concept SpanSpecialization =
+    span_name::detail::IsSpanImpl<std::decay_t<T>>::value;
 
 template <typename T, bool is_sized_in, bool is_debug_in> class Span {
 public:
