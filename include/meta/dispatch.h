@@ -9,33 +9,9 @@
 #include <iostream>
 #include <map>
 
-namespace dispatch_name {
-namespace detail {
-// needed to avoid issues with fully checking constexpr if
-template <bool is_tag> struct DispatchValue;
-
-template <> struct DispatchValue<false> {
-  template <unsigned idx, AllValuesEnumerable T, typename F>
-  static decltype(auto) run(const F &f) {
-    return f(TTag<AllValues<T>[idx]> {});
-  }
-};
-
-template <> struct DispatchValue<true> {
-  template <unsigned idx, AllValuesEnumerable T, typename F>
-  static decltype(auto) run(const F &f) {
-    return f(Tag<T, idx>{});
-  }
-};
-} // namespace detail
-} // namespace dispatch_name
-
-template <typename T, typename F>
-concept Dispatchable = TTagDispatchable<T, F> || TagDispatchable<T, F>;
-
 // this probably isn't a very efficient implementation (double dispatch...)
 template <AllValuesEnumerable T, typename F>
-requires(AllValues<T>.size() != 0 && Dispatchable<T, F>) decltype(auto)
+requires(AllValues<T>.size() != 0 && TagDispatchable<T, F>) decltype(auto)
     dispatch(T value, F &&f) {
   const static auto lookup = [] {
     constexpr auto values = AllValues<T>;
@@ -63,8 +39,5 @@ requires(AllValues<T>.size() != 0 && Dispatchable<T, F>) decltype(auto)
   }
 
   return sequential_dispatch<AllValues<T>.size()>(
-      it->second, [&]<unsigned idx>(NTag<idx>) {
-        return dispatch_name::detail::DispatchValue<
-            TagDispatchable<T, F>>::template run<idx, T>(f);
-      });
+      it->second, [&]<unsigned idx>(NTag<idx>) { return f(Tag<T, idx>{}); });
 }

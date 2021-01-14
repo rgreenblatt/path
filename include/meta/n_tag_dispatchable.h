@@ -9,8 +9,7 @@ namespace dispatch_name {
 namespace detail {
 template <typename F, unsigned... idxs>
 concept NTagDispatchablePack = requires(F &&f) {
-  (f(NTag<idxs>{}), ...);
-  AllTypesSame<decltype(f(NTag<idxs>{}))...>;
+  requires AllTypesSame<decltype(f(NTag<idxs>{}))...>;
 };
 
 template <typename F, unsigned... idxs>

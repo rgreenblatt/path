@@ -249,6 +249,8 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
   target_link_libraries(work_division_test PRIVATE renderer)
   package_add_test(span_test
     "${PROJECT_SOURCE_DIR}/tests/src/span.cpp")
+  package_add_test(dispatch_test
+    "${PROJECT_SOURCE_DIR}/tests/src/dispatch.cpp")
 
   add_custom_target(run_build_tests COMMAND ${CMAKE_CTEST_COMMAND}
     DEPENDS "${TEST_LIST}")
