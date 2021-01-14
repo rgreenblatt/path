@@ -59,3 +59,10 @@ TEST(dispatch, TagDispatchable) {
   static_assert(TagDispatchable<UpTo<1>, decltype(return_type_varies)>);
   static_assert(!TagDispatchable<UpTo<0>, decltype(any_dispatchable)>);
 }
+
+TEST(convert, convert) {
+  static_assert(std::same_as<decltype(to_tag(TTag<false>{})), Tag<bool, 0>>);
+  static_assert(std::same_as<decltype(to_tag(TTag<true>{})), Tag<bool, 1>>);
+  static_assert(std::same_as<decltype(to_tag<bool>(NTag<0>{})), Tag<bool, 0>>);
+  static_assert(std::same_as<decltype(to_tag<bool>(NTag<1>{})), Tag<bool, 1>>);
+}

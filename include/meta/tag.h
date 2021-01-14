@@ -34,3 +34,12 @@ requires(AllValuesEnumerable<decltype(value_in)> &&get_idx(value_in) <
 // convenience macros for using tags
 #define TAGT(tag) Tag<std::decay_t<decltype(tag)>, get_idx(tag)>
 #define TAG(tag) TAGT(tag)()
+
+template <typename T, unsigned idx> Tag<T, idx> to_tag(NTag<idx>) { return {}; }
+template <typename T, T v> TAGT(v) to_tag(TTag<v>) { return {}; }
+
+template<typename T, typename E>
+concept TagType = requires(T v){
+  requires AllValuesEnumerable<E>;
+  to_tag<E>(v);
+};
