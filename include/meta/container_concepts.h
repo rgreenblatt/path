@@ -49,9 +49,9 @@ concept TriviallyDefaultConstructable =
 // can be copied by memcpy and similar
 // https://en.cppreference.com/w/cpp/named_req/TriviallyCopyable
 template <typename... T>
-concept TriviallyCopyable = TriviallyCopyConstructable<T...>
-    &&TriviallyMoveConstructable<T...> &&TriviallyCopyAssignable<T...>
-        &&TriviallyMoveAssignable<T...> &&TriviallyDestructable<T...>;
+concept TriviallyCopyable = TriviallyCopyConstructable<T...> &&
+    TriviallyMoveConstructable<T...> && TriviallyCopyAssignable<T...> &&
+    TriviallyMoveAssignable<T...> && TriviallyDestructable<T...>;
 
 template <typename... T>
 concept TrivialType =
