@@ -11,7 +11,7 @@ concept BinOp = requires(const F &f, const T &l, const T &r) {
 };
 
 template <typename T> struct MockBinOp : MockNoRequirements {
-  T operator()(const T& l, const T& r) const;
+  T operator()(const T &l, const T &r) const;
 };
 
 static_assert(BinOp<MockBinOp<int>, int>);
