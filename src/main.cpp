@@ -1,4 +1,5 @@
 #include "lib/assert.h"
+#include "lib/cuda/utils.h"
 #include "lib/info/timer.h"
 #include "render/renderer_from_files.h"
 
