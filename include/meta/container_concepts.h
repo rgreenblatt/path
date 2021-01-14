@@ -42,7 +42,17 @@ concept TriviallyCopyAssignable = (... &&
 template <typename... T>
 concept CopyAssignable = (... && std::is_copy_assignable_v<T>);
 
-// template <typename... T>
-// concept TriviallyRelocatable = TriviallyDestructable<T...>
-//     &&TriviallyCopyConstructable<T...> &&TriviallyMoveConstructable<T...>
-//         &&TriviallyCopyAssignable<T...> &&TriviallyMoveAssignable<T...>;
+template <typename... T>
+concept TriviallyDefaultConstructable =
+    (... && std::is_trivially_default_constructible_v<T>);
+
+// can be copied by memcpy and similar
+// https://en.cppreference.com/w/cpp/named_req/TriviallyCopyable
+template <typename... T>
+concept TriviallyCopyable = TriviallyCopyConstructable<T...>
+    &&TriviallyMoveConstructable<T...> &&TriviallyCopyAssignable<T...>
+        &&TriviallyMoveAssignable<T...> &&TriviallyDestructable<T...>;
+
+template <typename... T>
+concept TrivialType =
+    TriviallyCopyable<T...> && TriviallyDefaultConstructable<T...>;
