@@ -195,6 +195,8 @@ target_add_standard_include(renderer_from_files)
 target_link_libraries(renderer_from_files PRIVATE yaml-cpp renderer
   scenefile_compat)
 
+option(BUILD_TESTING "" OFF)
+
 if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
   enable_testing()
 
