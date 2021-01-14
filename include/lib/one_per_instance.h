@@ -3,7 +3,7 @@
 #include "meta/all_values.h"
 #include "meta/get_idx.h"
 #include "meta/per_instance.h"
-#include "meta/sequential_look_up.h"
+#include "meta/sequential_dispatch.h"
 #include "meta/tag.h"
 
 #include <compare>
@@ -27,9 +27,9 @@ struct OnePerInstance {
   }
 
   template <typename F> constexpr auto visit(const F &f, const E &value) {
-    return sequential_look_up<AllValues<E>.size()>(
+    return sequential_dispatch<AllValues<E>.size()>(
         get_idx(value),
-        [&](auto idx) { return f(std::get<decltype(idx)::value>(items)); });
+        [&]<unsigned idx>(NTag<idx>) { return f(std::get<idx>(items)); });
   }
 
   constexpr bool operator==(const OnePerInstance &other) const = default;

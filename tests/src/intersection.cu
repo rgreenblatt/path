@@ -24,39 +24,39 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
     Optional<unsigned> expected_idx;
   };
 
-  auto run_tests = [&](auto exec_tag, SpanSized<const Triangle> triangles,
-                       const HostDeviceVector<Test> &test_expected) {
-    constexpr auto exec = decltype(exec_tag)::value;
-    EnumAccel<type, exec> inst;
+  auto run_tests =
+      [&]<ExecutionModel exec>(TTag<exec>, SpanSized<const Triangle> triangles,
+                               const HostDeviceVector<Test> &test_expected) {
+        EnumAccel<type, exec> inst;
 
-    // Perhaps test partial
-    auto ref = inst.gen(settings, triangles, AABB());
+        // Perhaps test partial
+        auto ref = inst.gen(settings, triangles, AABB());
 
-    HostDeviceVector<Optional<unsigned>> results(test_expected.size());
+        HostDeviceVector<Optional<unsigned>> results(test_expected.size());
 
-    ThrustData<exec> data;
+        ThrustData<exec> data;
 
-    thrust::transform(
-        data.execution_policy(), test_expected.data(),
-        test_expected.data() + test_expected.size(), results.data(),
-        [=] HOST_DEVICE(const auto &test) {
-          auto [ray, _] = test;
-          auto a =
-              ref.intersect_objects(ray, [&](unsigned idx, const Ray &ray) {
-                return triangles[idx].intersect(ray);
-              });
-          return a.op_map([](const auto &v) { return v.info.idx; });
-        });
+        thrust::transform(
+            data.execution_policy(), test_expected.data(),
+            test_expected.data() + test_expected.size(), results.data(),
+            [=] HOST_DEVICE(const Test &test) {
+              auto [ray, _] = test;
+              auto a =
+                  ref.intersect_objects(ray, [&](unsigned idx, const Ray &ray) {
+                    return triangles[idx].intersect(ray);
+                  });
+              return a.op_map([](const auto &v) { return v.info.idx; });
+            });
 
-    for (unsigned i = 0; i < test_expected.size(); i++) {
-      auto [ray, expected] = test_expected[i];
-      auto result = results[i];
-      EXPECT_EQ(result.has_value(), expected.has_value());
-      if (result.has_value() && expected.has_value()) {
-        EXPECT_EQ(*result, *expected);
-      }
-    }
-  };
+        for (unsigned i = 0; i < test_expected.size(); i++) {
+          auto [ray, expected] = test_expected[i];
+          auto result = results[i];
+          EXPECT_EQ(result.has_value(), expected.has_value());
+          if (result.has_value() && expected.has_value()) {
+            EXPECT_EQ(*result, *expected);
+          }
+        }
+      };
 
   {
     HostDeviceVector<Triangle> triangles = {
@@ -70,7 +70,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
         {Ray{{0.1, 0.1, -1}, UnitVector::new_normalize({0, 0, 1})}, 0},
     };
 
-    run_tests(TAG(ExecutionModel::CPU), triangles, tests);
+    run_tests(TTag<ExecutionModel::CPU>{}, triangles, tests);
   }
 
   const unsigned num_trials = 10;
@@ -121,10 +121,10 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
 
       if (is_gpu) {
 #ifndef CPU_ONLY
-        run_tests(TAG(ExecutionModel::GPU), triangles, tests);
+        run_tests(TTag<ExecutionModel::GPU>{}, triangles, tests);
 #endif
       } else {
-        run_tests(TAG(ExecutionModel::CPU), triangles, tests);
+        run_tests(TTag<ExecutionModel::CPU>{}, triangles, tests);
       }
     }
   }

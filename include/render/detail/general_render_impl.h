@@ -3,7 +3,7 @@
 #include "intersect/accel/enum_accel/enum_accel_impl.h"
 #include "intersect/triangle_impl.h"
 #include "intersectable_scene/to_bulk_impl.h"
-#include "meta/dispatch_value.h"
+#include "meta/dispatch.h"
 #include "render/detail/integrate_image.h"
 #include "render/detail/reduce_intensities_gpu.h"
 #include "render/detail/renderer_impl.h"
@@ -48,115 +48,117 @@ void Renderer::Impl<exec>::general_render(
     }
   }
 
-  dispatch_value(
-      [&](auto compile_time_holder) {
-        constexpr auto compile_time = decltype(compile_time_holder)::value;
+  dispatch(settings.compile_time(), [&](auto tag) {
+    constexpr auto compile_time = decltype(tag)::value;
 
-        constexpr auto intersection_type = compile_time.intersection_type;
-        constexpr auto light_sampler_type = compile_time.light_sampler_type;
-        constexpr auto dir_sampler_type = compile_time.dir_sampler_type;
-        constexpr auto term_prob_type = compile_time.term_prob_type;
-        constexpr auto rng_type = compile_time.rng_type;
+    constexpr auto intersection_type = compile_time.intersection_type;
+    constexpr auto light_sampler_type = compile_time.light_sampler_type;
+    constexpr auto dir_sampler_type = compile_time.dir_sampler_type;
+    constexpr auto term_prob_type = compile_time.term_prob_type;
+    constexpr auto rng_type = compile_time.rng_type;
 
-        // this will need to change somewhat... when another value is added...
-        static_assert(AllValues<IntersectionApproach>.size() == 2);
-        constexpr auto intersection_approach = intersection_type.type();
-        constexpr auto accel_type =
-            intersection_type.get(TAG(intersection_approach));
+    // this will need to change somewhat... when another value is added...
+    static_assert(AllValues<IntersectionApproach>.size() == 2);
+    constexpr auto intersection_approach = intersection_type.type();
+    constexpr auto accel_type =
+        intersection_type.get(TAG(intersection_approach));
 
-        const auto &all_intersection_settings =
-            settings.intersection.get(TAG(intersection_approach));
-        const auto &accel_settings = [&]() -> const auto & {
-          if constexpr (intersection_approach ==
-                        IntersectionApproach::MegaKernel) {
-            return all_intersection_settings;
-          } else if constexpr (intersection_approach ==
-                               IntersectionApproach::StreamingFromGeneral) {
-            static_assert(intersection_approach ==
-                          IntersectionApproach::StreamingFromGeneral);
-            return all_intersection_settings.accel;
-          }
-        }
-        ().get(TAG(accel_type));
+    const auto &all_intersection_settings =
+        settings.intersection.get(TAG(intersection_approach));
+    const auto &accel_settings = [&]() -> const auto & {
+      if constexpr (intersection_approach == IntersectionApproach::MegaKernel) {
+        return all_intersection_settings;
+      } else if constexpr (intersection_approach ==
+                           IntersectionApproach::StreamingFromGeneral) {
+        static_assert(intersection_approach ==
+                      IntersectionApproach::StreamingFromGeneral);
+        return all_intersection_settings.accel;
+      }
+    }
+    ().get(TAG(accel_type));
 
-        auto intersectable_scene = stored_scene_generators_.get(TAG(accel_type))
-                                       .gen({accel_settings}, s);
+    auto intersectable_scene =
+        stored_scene_generators_.get(TAG(accel_type)).gen({accel_settings}, s);
 
-        auto &intersector = [&]() -> auto & {
-          if constexpr (intersection_approach ==
-                        IntersectionApproach::MegaKernel) {
-            return intersectable_scene.intersector;
-          } else if constexpr (intersection_approach ==
-                               IntersectionApproach::StreamingFromGeneral) {
-            auto &out = to_bulk_.get(TAG(accel_type));
-            out.set_settings_intersectable(
-                all_intersection_settings.to_bulk_settings,
-                intersectable_scene.intersector);
+    decltype(auto) intersector = [&]() -> decltype(auto) {
+      if constexpr (intersection_approach == IntersectionApproach::MegaKernel) {
+        return intersectable_scene.intersector;
+      } else if constexpr (intersection_approach ==
+                           IntersectionApproach::StreamingFromGeneral) {
+        auto &out = to_bulk_.get(TAG(accel_type));
+        out.set_settings_intersectable(
+            all_intersection_settings.to_bulk_settings,
+            intersectable_scene.intersector);
 
-            return out;
-          }
-        }
-        ();
+        return out;
+      }
+    }();
 
-        auto light_sampler =
-            light_samplers_.get(TAG(light_sampler_type))
-                .gen(settings.light_sampler.get(TAG(light_sampler_type)),
-                     s.emissive_clusters(), s.emissive_cluster_ends_per_mesh(),
-                     s.materials().as_unsized(), s.transformed_mesh_objects(),
-                     s.transformed_mesh_idxs(), s.triangles().as_unsized());
+    auto light_sampler =
+        light_samplers_.get(TAG(light_sampler_type))
+            .gen(settings.light_sampler.get(TAG(light_sampler_type)),
+                 s.emissive_clusters(), s.emissive_cluster_ends_per_mesh(),
+                 s.materials().as_unsized(), s.transformed_mesh_objects(),
+                 s.transformed_mesh_idxs(), s.triangles().as_unsized());
 
-        auto dir_sampler =
-            dir_samplers_.get(TAG(dir_sampler_type))
-                .gen(settings.dir_sampler.get(TAG(dir_sampler_type)));
+    auto dir_sampler =
+        dir_samplers_.get(TAG(dir_sampler_type))
+            .gen(settings.dir_sampler.get(TAG(dir_sampler_type)));
 
-        auto term_prob = term_probs_.get(TAG(term_prob_type))
-                             .gen(settings.term_prob.get(TAG(term_prob_type)));
+    auto term_prob = term_probs_.get(TAG(term_prob_type))
+                         .gen(settings.term_prob.get(TAG(term_prob_type)));
 
-        unsigned n_locations = x_dim * y_dim;
+    unsigned n_locations = x_dim * y_dim;
 
-        auto rng =
-            rngs_.get(TAG(rng_type))
-                .gen(settings.rng.get(TAG(rng_type)), samples_per, n_locations);
+    auto rng =
+        rngs_.get(TAG(rng_type))
+            .gen(settings.rng.get(TAG(rng_type)), samples_per, n_locations);
 
-#if 1
-        // TODO: won't be needed when P1021R4
-        // (http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p1021r4.html)
-        // is implemented
-        using Components = integrate::RenderingEquationComponents<
-            decltype(intersectable_scene.scene), decltype(light_sampler),
-            decltype(dir_sampler), decltype(term_prob)>;
-        using Items = IntegrateImageItems<Components, decltype(rng)>;
-        using Inp =
-            IntegrateImageInputs<Items, std::decay_t<decltype(intersector)>>;
+    decltype(auto) state = [&]() -> decltype(auto) {
+      if constexpr (intersection_approach == IntersectionApproach::MegaKernel) {
+        return IntegrateImageEmptyState{};
+      } else {
+        unreachable();
+        static_assert(intersection_approach ==
+                      IntersectionApproach::StreamingFromGeneral);
+        return bulk_state_.get(
+            TAG(make_meta_tuple(light_sampler_type, rng_type)));
+      }
+    }();
 
-        IntegrateImage<exec>::run(Inp{
-            .items =
-                {
-                    .base =
-                        {
-                            .output_as_bgra = output_as_bgra,
-                            .samples_per = samples_per,
-                            .pixels = output_pixels,
-                            .intensities = output_intensities,
-                        },
-                    .components =
-                        {
-                            .scene = intersectable_scene.scene,
-                            .light_sampler = light_sampler,
-                            .dir_sampler = dir_sampler,
-                            .term_prob = term_prob,
-                        },
-                    .rng = rng,
-                    .film_to_world = s.film_to_world(),
-                },
-            .intersector = intersector,
-            .division = division,
-            .settings = settings.general_settings,
-            .show_progress = show_progress,
-        });
-#endif
-      },
-      settings.compile_time());
+    // not really any good way to infer these arguments...
+    using Components = integrate::RenderingEquationComponents<
+        decltype(intersectable_scene.scene), decltype(light_sampler),
+        decltype(dir_sampler), decltype(term_prob)>;
+    using Items = IntegrateImageItems<Components, decltype(rng)>;
+
+    IntegrateImage<exec>::template run<Items, decltype(intersector)>({{
+        .items =
+            {
+                .base =
+                    {
+                        .output_as_bgra = output_as_bgra,
+                        .samples_per = samples_per,
+                        .pixels = output_pixels,
+                        .intensities = output_intensities,
+                    },
+                .components =
+                    {
+                        .scene = intersectable_scene.scene,
+                        .light_sampler = light_sampler,
+                        .dir_sampler = dir_sampler,
+                        .term_prob = term_prob,
+                    },
+                .rng = rng,
+                .film_to_world = s.film_to_world(),
+            },
+        .intersector = intersector,
+        .division = division,
+        .settings = settings.general_settings,
+        .show_progress = show_progress,
+        .state = state,
+    }});
+  });
 
   if constexpr (exec == ExecutionModel::GPU) {
     auto intensities_gpu = reduce_intensities_gpu(

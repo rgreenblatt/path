@@ -25,7 +25,7 @@ __global__ void sum_sub_blocks(Span<const T> in, Span<T> out,
   unsigned block_size = blockDim.x;
   unsigned overall_idx = thread_idx + block_idx * block_size;
   unsigned sub_block_idx = overall_idx / sub_block_size;
-  auto add = [](auto lhs, auto rhs) { return lhs + rhs; };
+  auto add = [](const T &lhs, const T &rhs) { return lhs + rhs; };
   const T total = sub_block_reduce<T>(in[overall_idx], add, thread_idx,
                                       block_size, sub_block_size);
   if (thread_idx % sub_block_size == 0) {
@@ -105,7 +105,9 @@ TEST(Reduce, sum) {
                     total += in[i + j * samples_per];
                   }
 
-                  auto add = [](auto lhs, auto rhs) { return lhs + rhs; };
+                  auto add = [](const T &lhs, const T &rhs) {
+                    return lhs + rhs;
+                  };
                   total = reduce_samples(division, total, add, thread_idx);
                   if (division.assign_sample(thread_idx)) {
                     out_division[j] = total;

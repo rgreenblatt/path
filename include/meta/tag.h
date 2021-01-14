@@ -2,11 +2,9 @@
 
 #include "meta/all_values.h"
 #include "meta/get_idx.h"
+#include "meta/n_tag.h"
 
 // allow for using an index directly
-template <unsigned idx_in> struct NTag {
-  static constexpr unsigned idx = idx_in;
-};
 
 template <AllValuesEnumerable E, unsigned idx_in>
 requires(idx_in < AllValues<E>.size()) struct Tag {
@@ -24,6 +22,8 @@ requires(AllValuesEnumerable<decltype(value_in)> &&get_idx(value_in) <
          AllValues<decltype(value_in)>.size()) struct TTag {
   static constexpr unsigned idx = get_idx(value_in);
   static constexpr auto value = value_in;
+
+  TTag() = default;
 
   // implicit conversion - must be defined here because TTag may not
   // exist (if type isn't structural) while Tag always exists...

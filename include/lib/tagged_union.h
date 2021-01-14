@@ -8,8 +8,9 @@
 #include "meta/get_idx.h"
 #include "meta/pack_element.h"
 #include "meta/per_instance.h"
-#include "meta/sequential_look_up.h"
+#include "meta/sequential_dispatch.h"
 #include "meta/specialization_of.h"
+#include "meta/std_array_specialization.h"
 #include "meta/tag.h"
 
 #include <boost/hana/fold_left.hpp>
@@ -89,14 +90,16 @@ private:
                                           Rest &&...rest) {
     debug_assert(((first.idx_ == rest.idx_) && ... && true));
     return [&](auto &&...vals) {
-      return sequential_look_up<values.size()>(first.idx_, [&](auto value) {
-        constexpr unsigned idx = decltype(value)::value;
-        return f(Tag<E, idx>{}, ac::get<idx>(vals.union_)...);
-      });
+      return sequential_dispatch<values.size()>(
+          first.idx_, [&]<unsigned idx>(NTag<idx>) {
+            return f(Tag<E, idx>{}, ac::get<idx>(vals.union_)...);
+          });
     }(first, rest...);
   }
 
 public:
+  using TagType = E;
+
   template <unsigned idx, typename... Args>
   requires(AggregateConstrucableFrom<Type<idx>, Args...>) constexpr TaggedUnion(
       Tag<E, idx>, Args &&...args)
@@ -249,6 +252,7 @@ public:
                    *this, other);
   }
 
+  // huh, clang format bug...
 private : template <typename C> static constexpr void destroy_input(C &v) {
     v.C::~C();
   }
