@@ -1,14 +1,11 @@
 #pragma once
 
-#include "lib/cuda/utils.h"
 #include "meta/container_concepts.h"
-#include "meta/mock.h"
 
 #ifdef __CUDACC__
+#include "lib/cuda/utils.h"
 #include <thrust/device_vector.h>
-#endif
 
-#ifdef __CUDACC__
 namespace device_vector {
 namespace detail {
 template <typename T>
@@ -32,6 +29,8 @@ using DeviceVector =
 #endif
                           >;
 #else
+#include "meta/mock.h"
+
 // Shouldn't be used, just a placeholder for cpu builds
 template <typename T> struct DeviceVector : MockNoRequirements {};
 #endif
