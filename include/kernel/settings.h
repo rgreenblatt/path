@@ -2,7 +2,7 @@
 
 #include "lib/settings.h"
 
-namespace work_division {
+namespace kernel {
 struct Settings {
   // This is tunned to a decent extent...
   unsigned block_size = 256;
@@ -23,4 +23,4 @@ struct Settings {
 };
 
 static_assert(Setting<Settings>);
-} // namespace work_division
+} // namespace kernel

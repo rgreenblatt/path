@@ -29,7 +29,7 @@ void IntegrateImage<ExecutionModel::CPU>::run(
           val.items.base, val.division, 0, 1, x, y,
           integrate_pixel(val.items, val.intersector, val.division,
                           val.settings.rendering_equation_settings,
-                          work_division::GridLocationInfo{
+                          kernel::GridLocationInfo{
                               .start_sample = 0,
                               .end_sample = val.items.base.samples_per,
                               .x = x,

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "work_division/grid_location_info.h"
+#include "kernel/grid_location_info.h"
 
-namespace work_division {
+namespace kernel {
 struct LocationInfo {
   unsigned start_sample;
   unsigned end_sample;
@@ -17,4 +17,4 @@ struct LocationInfo {
     };
   }
 };
-} // namespace work_division
+} // namespace kernel

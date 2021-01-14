@@ -1,12 +1,12 @@
 #pragma once
 
 #include "integrate/rendering_equation_iteration.h"
+#include "kernel/kernel_launch.h"
+#include "kernel/location_info.h"
 #include "lib/integer_division_utils.h"
 #include "meta/dispatch.h"
 #include "render/detail/initial_ray_sample.h"
 #include "render/detail/integrate_image.h"
-#include "work_division/kernel_launch.h"
-#include "work_division/location_info.h"
 
 #include <cli/ProgressBar.hpp>
 
@@ -51,7 +51,7 @@ void IntegrateImage<exec>::run(IntegrateImageBulkInputs<exec, T...> inp) {
     Span rng_state_span = state.rng_state;
 
     // be precise with copies...
-    auto get_local_idx = [=](const work_division::WorkDivision &division,
+    auto get_local_idx = [=](const kernel::WorkDivision &division,
                              unsigned block_idx, unsigned thread_idx) {
       return (block_idx - start) * division.block_size() + thread_idx;
     };
@@ -65,14 +65,14 @@ void IntegrateImage<exec>::run(IntegrateImageBulkInputs<exec, T...> inp) {
 
     // initialize
     // TODO: SPEED: change work division used for this kernel???
-    work_division::KernelLaunch<exec>::run(
+    kernel::KernelLaunch<exec>::run(
         division, start, end,
-        [=] HOST_DEVICE(const work_division::WorkDivision &division,
-                        const work_division::GridLocationInfo &info,
+        [=] HOST_DEVICE(const kernel::WorkDivision &division,
+                        const kernel::GridLocationInfo &info,
                         unsigned block_idx, unsigned thread_idx) {
-          work_division::LocationInfo loc_info =
-              work_division::LocationInfo::from_grid_location_info(
-                  info, division.x_dim());
+          kernel::LocationInfo loc_info =
+              kernel::LocationInfo::from_grid_location_info(info,
+                                                            division.x_dim());
           const unsigned local_idx =
               get_local_idx(division, block_idx, thread_idx);
           for (unsigned sample_idx = info.start_sample;
@@ -104,75 +104,71 @@ void IntegrateImage<exec>::run(IntegrateImageBulkInputs<exec, T...> inp) {
       state.op_state.resize(current_size);
       Span op_state_span = state.op_state;
 
-      dispatch(
-          is_first,
-          [&](auto tag) {
-            constexpr bool is_first = decltype(tag)::value;
+      dispatch(is_first, [&](auto tag) {
+        constexpr bool is_first = decltype(tag)::value;
 
-            work_division::KernelLaunch<exec>::run(
-                division, start, end,
-                [=] HOST_DEVICE(const work_division::WorkDivision &division,
-                                const work_division::GridLocationInfo &,
-                                unsigned block_idx, unsigned thread_idx) {
-                  bool has_value = true;
-                  const unsigned local_idx =
-                      get_local_idx(division, block_idx, thread_idx);
-                  if constexpr (!is_first) {
-                    has_value = op_state_span[local_idx].has_value();
+        kernel::KernelLaunch<exec>::run(
+            division, start, end,
+            [=] HOST_DEVICE(const kernel::WorkDivision &division,
+                            const kernel::GridLocationInfo &,
+                            unsigned block_idx, unsigned thread_idx) {
+              bool has_value = true;
+              const unsigned local_idx =
+                  get_local_idx(division, block_idx, thread_idx);
+              if constexpr (!is_first) {
+                has_value = op_state_span[local_idx].has_value();
+              }
+              if (has_value) {
+                const auto &previous_state = [&]() -> const auto & {
+                  if constexpr (is_first) {
+                    return initial_state_span[local_idx];
+                  } else {
+                    return *op_state_span[local_idx];
                   }
-                  if (has_value) {
-                    const auto &previous_state = [&]() -> const auto & {
-                      if constexpr (is_first) {
-                        return initial_state_span[local_idx];
-                      } else {
-                        return *op_state_span[local_idx];
-                      }
-                    }
-                    ();
-                    auto &next_state = op_state_span[local_idx];
+                }
+                ();
+                auto &next_state = op_state_span[local_idx];
 
-                    constexpr unsigned max_samples = max_num_light_samples + 1;
+                constexpr unsigned max_samples = max_num_light_samples + 1;
 
-                    ArrayVec<
-                        std::remove_cv_t<
-                            typename decltype(intersections_span)::ValueType>,
-                        max_samples>
-                        intersections;
-                    if constexpr (is_first) {
-                      intersections.push_back(intersections_span[local_idx]);
-                    } else {
-                      debug_assert_assume(previous_state.num_samples() <=
-                                          max_samples);
+                ArrayVec<std::remove_cv_t<
+                             typename decltype(intersections_span)::ValueType>,
+                         max_samples>
+                    intersections;
+                if constexpr (is_first) {
+                  intersections.push_back(intersections_span[local_idx]);
+                } else {
+                  debug_assert_assume(previous_state.num_samples() <=
+                                      max_samples);
 
 #pragma unroll max_samples
-                      for (unsigned i = 0; i < previous_state.num_samples(); ++i) {
-                        intersections.push_back(
-                            intersections_span[local_idx * max_samples + i]);
-                      }
-                    }
+                  for (unsigned i = 0; i < previous_state.num_samples(); ++i) {
+                    intersections.push_back(
+                        intersections_span[local_idx * max_samples + i]);
+                  }
+                }
 
-                    auto next = rendering_equation_iteration(
-                        state_span[local_idx], rng_state_span[local_idx],
-                        intersections, rendering_settings, components);
+                auto next = rendering_equation_iteration(
+                    state_span[local_idx], rng_state_span[local_idx],
+                    intersections, rendering_settings, components);
 
-                    next.visit_tagged([&](auto tag, auto& value) {
-                        constexpr auto type = decltype(tag)::value;
-                        if constexpr (type == integrate::IterationOutputType::
-                                                  NextIteration) {
-                          next_state = value.state;
+                next.visit_tagged([&](auto tag, auto &value) {
+                  constexpr auto type = decltype(tag)::value;
+                  if constexpr (type ==
+                                integrate::IterationOutputType::NextIteration) {
+                    next_state = value.state;
 #pragma message "HERE TODO: rays"
-                        } else {
-                          static_assert(
-                              type ==
-                              integrate::IterationOutputType::Finished);
-                          next_state = nullopt_value;
+                  } else {
+                    static_assert(type ==
+                                  integrate::IterationOutputType::Finished);
+                    next_state = nullopt_value;
 #pragma message "HERE TODO"
-                        }
-                        });
-                    // next.
                   }
                 });
-          });
+                // next.
+              }
+            });
+      });
       is_first = false;
     }
 

@@ -1,12 +1,12 @@
 #pragma once
 
+#include "kernel/grid_location_info.h"
+#include "kernel/settings.h"
 #include "lib/attribute.h"
 #include "lib/cuda/utils.h"
 #include "lib/settings.h"
-#include "work_division/grid_location_info.h"
-#include "work_division/settings.h"
 
-namespace work_division {
+namespace kernel {
 class WorkDivision {
 public:
   WorkDivision() {}
@@ -68,4 +68,4 @@ private:
   unsigned x_dim_;
   unsigned y_dim_;
 };
-} // namespace work_division
+} // namespace kernel

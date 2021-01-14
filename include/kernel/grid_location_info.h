@@ -1,10 +1,10 @@
 #pragma once
 
-namespace work_division {
+namespace kernel {
 struct GridLocationInfo {
   unsigned start_sample;
   unsigned end_sample;
   unsigned x;
   unsigned y;
 };
-} // namespace work_division
+} // namespace kernel

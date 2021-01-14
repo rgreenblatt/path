@@ -1,13 +1,13 @@
 #pragma once
 
 #include "execution_model/execution_model.h"
+#include "kernel/detail/kernel_launch_impl.h"
+#include "kernel/kernel_launch.h"
+#include "kernel/work_division.h"
 #include "lib/assert.h"
 #include "meta/tuple.h"
-#include "work_division/detail/kernel_launch_impl.h"
-#include "work_division/kernel_launch.h"
-#include "work_division/work_division.h"
 
-namespace work_division {
+namespace kernel {
 template <>
 template <ThreadInteractor... Interactors, Launchable<Interactors...> F>
 void KernelLaunch<ExecutionModel::GPU>::run_internal(
@@ -28,4 +28,4 @@ void KernelLaunch<ExecutionModel::GPU>::run_internal(
     }
   }
 }
-} // namespace work_division
+} // namespace kernel

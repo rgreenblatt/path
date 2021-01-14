@@ -19,9 +19,7 @@ template <unsigned up_to> struct TTagUpToForUpTo8 {
 
 inline constexpr auto tag_bool_dispatchable = []<unsigned v>(Tag<bool, v>) {};
 inline constexpr auto any_dispatchable = [](auto) {};
-inline constexpr auto return_type_varies = [](auto v) {
-  return v;
-};
+inline constexpr auto return_type_varies = [](auto v) { return v; };
 
 inline constexpr auto tag_up_to_8_dispatchable =
     []<unsigned v>(Tag<UpTo<8>, v>) {};
@@ -54,7 +52,7 @@ TEST(dispatch, TagDispatchable) {
   static_assert(TagDispatchable<UpTo<8>, TagUpToForUpTo8<8>>);
   static_assert(TagDispatchable<UpTo<8>, decltype(any_dispatchable)>);
   static_assert(!AllTypesSame<decltype(return_type_varies(NTag<0>{})),
-                             decltype(return_type_varies(NTag<1>{}))>);
+                              decltype(return_type_varies(NTag<1>{}))>);
   static_assert(!TagDispatchable<UpTo<8>, decltype(return_type_varies)>);
   static_assert(TagDispatchable<UpTo<1>, decltype(return_type_varies)>);
   static_assert(!TagDispatchable<UpTo<0>, decltype(any_dispatchable)>);

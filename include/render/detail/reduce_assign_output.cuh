@@ -1,18 +1,18 @@
 #pragma once
 
+#include "kernel/reduce_samples.cuh"
+#include "kernel/work_division.h"
 #include "lib/cuda/utils.h"
 #include "meta/specialization_of.h"
 #include "render/detail/assign_output.h"
 #include "render/detail/integrate_image_base_items.h"
-#include "work_division/reduce_samples.cuh"
-#include "work_division/work_division.h"
 
 #include <Eigen/Core>
 
 namespace render {
 namespace detail {
 DEVICE void reduce_assign_output(const IntegrateImageBaseItems &b,
-                                 const work_division::WorkDivision &division,
+                                 const kernel::WorkDivision &division,
                                  unsigned thread_idx, unsigned block_idx,
                                  unsigned x, unsigned y,
                                  const Eigen::Array3f &intensity) {

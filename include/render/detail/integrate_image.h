@@ -3,15 +3,15 @@
 #include "execution_model/execution_model.h"
 #include "execution_model/execution_model_vector_type.h"
 #include "intersectable_scene/intersector.h"
+#include "kernel/work_division.h"
 #include "render/detail/integrate_image_bulk_state.h"
 #include "render/detail/integrate_image_items.h"
 #include "render/general_settings.h"
-#include "work_division/work_division.h"
 
 #include <type_traits>
 
 namespace render {
-using work_division::WorkDivision;
+using kernel::WorkDivision;
 namespace detail {
 namespace integrate_image {
 namespace detail {

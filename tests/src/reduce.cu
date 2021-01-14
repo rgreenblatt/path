@@ -1,13 +1,13 @@
 #ifndef CPU_ONLY
 #include "execution_model/host_device_vector.h"
+#include "kernel/kernel_launch.h"
+#include "kernel/kernel_launch_impl_gpu.cuh"
+#include "kernel/reduce_samples.cuh"
+#include "kernel/work_division.h"
 #include "lib/assert.h"
 #include "lib/cuda/reduce.cuh"
 #include "lib/cuda/utils.h"
 #include "lib/span.h"
-#include "work_division/kernel_launch.h"
-#include "work_division/kernel_launch_impl_gpu.cuh"
-#include "work_division/reduce_samples.cuh"
-#include "work_division/work_division.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -15,7 +15,7 @@
 #include <algorithm>
 #include <random>
 
-using work_division::WorkDivision;
+using kernel::WorkDivision;
 
 template <typename T>
 __global__ void sum_sub_blocks(Span<const T> in, Span<T> out,
@@ -92,10 +92,10 @@ TEST(Reduce, sum) {
 
             Span<T> out_division = out_vals_division;
 
-            work_division::KernelLaunch<ExecutionModel::GPU>::run(
+            kernel::KernelLaunch<ExecutionModel::GPU>::run(
                 division, 0, division.total_num_blocks(),
                 [=] HOST_DEVICE(const WorkDivision &division,
-                                const work_division::GridLocationInfo &info,
+                                const kernel::GridLocationInfo &info,
                                 const unsigned /*block_idx*/,
                                 const unsigned thread_idx) {
                   auto [start_sample, end_sample, j, unused] = info;

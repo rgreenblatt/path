@@ -1,10 +1,10 @@
-#include "work_division/work_division.h"
-#include "work_division/settings.h"
-#include "work_division/work_division_impl.h"
+#include "kernel/work_division.h"
+#include "kernel/settings.h"
+#include "kernel/work_division_impl.h"
 
 #include <gtest/gtest.h>
 
-using namespace work_division;
+using namespace kernel;
 
 static unsigned division_samples_per(const WorkDivision &division) {
   return division.num_sample_blocks() * division.sample_block_size() *

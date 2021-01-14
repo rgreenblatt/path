@@ -1,17 +1,17 @@
 #pragma once
 
+#include "kernel/work_division.h"
 #include "lib/cuda/utils.h"
 #include "meta/specialization_of.h"
 #include "render/detail/integrate_image_base_items.h"
-#include "work_division/work_division.h"
 
 namespace render {
 namespace detail {
-inline HOST_DEVICE void
-assign_output(const IntegrateImageBaseItems &b,
-              const work_division::WorkDivision &division,
-              unsigned sample_block_idx, unsigned num_sample_blocks, unsigned x,
-              unsigned y, Eigen::Array3f intensity) {
+inline HOST_DEVICE void assign_output(const IntegrateImageBaseItems &b,
+                                      const kernel::WorkDivision &division,
+                                      unsigned sample_block_idx,
+                                      unsigned num_sample_blocks, unsigned x,
+                                      unsigned y, Eigen::Array3f intensity) {
   unsigned idx =
       sample_block_idx + num_sample_blocks * (x + y * division.x_dim());
   if (num_sample_blocks == 1) {

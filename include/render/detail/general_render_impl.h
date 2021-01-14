@@ -3,12 +3,12 @@
 #include "intersect/accel/enum_accel/enum_accel_impl.h"
 #include "intersect/triangle_impl.h"
 #include "intersectable_scene/to_bulk_impl.h"
+#include "kernel/work_division.h"
 #include "meta/dispatch.h"
 #include "render/detail/integrate_image.h"
 #include "render/detail/reduce_intensities_gpu.h"
 #include "render/detail/renderer_impl.h"
 #include "render/detail/settings_compile_time_impl.h"
-#include "work_division/work_division.h"
 
 namespace render {
 using namespace detail;

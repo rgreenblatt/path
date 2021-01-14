@@ -156,11 +156,11 @@ target_add_standard_include(intersect)
 target_link_libraries(intersect PRIVATE OpenMP::OpenMP_CXX)
 
 add_library(
-  work_division
+  kernel
   STATIC
-  "${PROJECT_SOURCE_DIR}/src/work_division/work_division.cpp"
+  "${PROJECT_SOURCE_DIR}/src/kernel/work_division.cpp"
 )
-target_add_standard_include(work_division)
+target_add_standard_include(kernel)
 
 add_library(
   renderer
@@ -179,7 +179,7 @@ add_library(
   )
 target_add_standard_include(renderer)
 target_link_libraries(renderer PRIVATE OpenMP::OpenMP_CXX -lcurand intersect
-  work_division)
+  kernel)
 
 add_library(
   scenefile_compat
@@ -228,7 +228,7 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
 
   package_add_test(bitset_test "${PROJECT_SOURCE_DIR}/tests/src/bitset.cpp")
   package_add_test(reduce_test "${PROJECT_SOURCE_DIR}/tests/src/reduce.cu")
-  target_link_libraries(reduce_test PRIVATE work_division)
+  target_link_libraries(reduce_test PRIVATE kernel)
 
   package_add_test(edges_test "${PROJECT_SOURCE_DIR}/tests/src/edges.cpp")
   package_add_test(device_vector_test

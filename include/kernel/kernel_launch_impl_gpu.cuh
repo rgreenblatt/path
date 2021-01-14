@@ -1,14 +1,14 @@
 #pragma once
 
 #include "execution_model/execution_model.h"
+#include "kernel/detail/kernel_launch_impl.h"
+#include "kernel/kernel_launch.h"
+#include "kernel/work_division.h"
 #include "lib/assert.h"
 #include "lib/cuda/utils.h"
 #include "meta/tuple.h"
-#include "work_division/detail/kernel_launch_impl.h"
-#include "work_division/kernel_launch.h"
-#include "work_division/work_division.h"
 
-namespace work_division {
+namespace kernel {
 template <ThreadInteractor... Interactors, Launchable<Interactors...> F>
 __global__ void gpu_kernel(const WorkDivision division, unsigned start_block,
                            F f) {
@@ -33,4 +33,4 @@ void KernelLaunch<ExecutionModel::GPU>::run_internal(
     CUDA_SYNC_CHK();
   }
 }
-} // namespace work_division
+} // namespace kernel

@@ -1,11 +1,11 @@
 #pragma once
 
+#include "kernel/kernel_launch_impl_gpu.cuh"
 #include "lib/assert.h"
 #include "lib/integer_division_utils.h"
 #include "render/detail/integrate_image.h"
 #include "render/detail/integrate_pixel.h"
 #include "render/detail/reduce_assign_output.cuh"
-#include "work_division/kernel_launch_impl_gpu.cuh"
 
 #include <cli/ProgressBar.hpp>
 
@@ -37,10 +37,9 @@ void IntegrateImage<ExecutionModel::GPU>::run(
     auto intersectable = val.intersector;
     auto settings = val.settings.rendering_equation_settings;
 
-    work_division::KernelLaunch<ExecutionModel::GPU>::run(
+    kernel::KernelLaunch<ExecutionModel::GPU>::run(
         val.division, start, end,
-        [=](const WorkDivision &division,
-            const work_division::GridLocationInfo &info,
+        [=](const WorkDivision &division, const kernel::GridLocationInfo &info,
             const unsigned block_idx, const unsigned thread_idx) {
           auto intensity =
               integrate_pixel(items, intersectable, division, settings, info);

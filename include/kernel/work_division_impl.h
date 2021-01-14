@@ -1,12 +1,12 @@
 #pragma once
 
+#include "kernel/work_division.h"
 #include "lib/assert.h"
 #include "lib/cuda/utils.h"
-#include "work_division/work_division.h"
 
 #include <algorithm>
 
-namespace work_division {
+namespace kernel {
 ATTR_PURE_NDEBUG inline HOST_DEVICE WorkDivision::ThreadInfo
 WorkDivision::get_thread_info(unsigned block_idx, unsigned thread_idx) const {
   debug_assert_assume(thread_idx < block_size_);
@@ -53,4 +53,4 @@ WorkDivision::get_thread_info(unsigned block_idx, unsigned thread_idx) const {
 
   return {.info = info, .exit = info.x >= x_dim_ || info.y >= y_dim_};
 }
-} // namespace work_division
+} // namespace kernel

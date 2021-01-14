@@ -34,7 +34,7 @@ settings:
   general_settings:
     computation_settings:
       max_blocks_per_launch: 4096
-      render_work_division:
+      kernel:
         block_size: 256
         target_x_block_size: 32
         force_target_samples: false

@@ -4,8 +4,8 @@
 #include "integrate/rendering_equation_iteration.h"
 #include "integrate/rendering_equation_settings.h"
 #include "integrate/rendering_equation_state.h"
+#include "kernel/location_info.h"
 #include "lib/assert.h"
-#include "work_division/location_info.h"
 
 namespace integrate {
 template <typename T>
@@ -16,7 +16,7 @@ concept InitialRaySampler = requires(const T &v, rng::MockRngState &rng) {
 template <InitialRaySampler F, rng::RngRef R, intersect::Intersectable I,
           ExactSpecializationOf<RenderingEquationComponents> C>
 ATTR_NO_DISCARD_PURE HOST_DEVICE inline Eigen::Array3f
-rendering_equation(const work_division::LocationInfo &location_info,
+rendering_equation(const kernel::LocationInfo &location_info,
                    const RenderingEquationSettings &settings,
                    const F &initial_ray_sampler, const R &rng_ref,
                    const I &intersectable, const C &inp) {

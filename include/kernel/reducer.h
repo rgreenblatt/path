@@ -5,7 +5,7 @@
 
 #include <concepts>
 
-namespace work_division {
+namespace kernel {
 template <typename T, typename ItemType>
 concept Reducer = requires(T &reducer, ItemType item,
                            const MockBinOp<ItemType> &bin_op) {
@@ -13,4 +13,4 @@ concept Reducer = requires(T &reducer, ItemType item,
   { reducer.reduce(item, bin_op) } -> std::same_as<Optional<ItemType>>;
 };
 
-} // namespace work_division
+} // namespace kernel

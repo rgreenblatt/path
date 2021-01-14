@@ -1,14 +1,14 @@
 #pragma once
 
 #include "boost/hana/unpack.hpp"
+#include "kernel/launchable.h"
+#include "kernel/thread_interactor.h"
+#include "kernel/work_division.h"
+#include "kernel/work_division_impl.h"
 #include "lib/cuda/utils.h"
 #include "meta/tuple.h"
-#include "work_division/launchable.h"
-#include "work_division/thread_interactor.h"
-#include "work_division/work_division.h"
-#include "work_division/work_division_impl.h"
 
-namespace work_division {
+namespace kernel {
 namespace detail {
 template <ThreadInteractor... Interactors, Launchable<Interactors...> F>
 HOST_DEVICE void kernel_launch_run(const WorkDivision &division,
@@ -27,4 +27,4 @@ HOST_DEVICE void kernel_launch_run(const WorkDivision &division,
   });
 }
 } // namespace detail
-} // namespace work_division
+} // namespace kernel

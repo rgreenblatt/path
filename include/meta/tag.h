@@ -38,8 +38,8 @@ requires(AllValuesEnumerable<decltype(value_in)> &&get_idx(value_in) <
 template <typename T, unsigned idx> Tag<T, idx> to_tag(NTag<idx>) { return {}; }
 template <typename T, T v> TAGT(v) to_tag(TTag<v>) { return {}; }
 
-template<typename T, typename E>
-concept TagType = requires(T v){
+template <typename T, typename E>
+concept TagType = requires(T v) {
   requires AllValuesEnumerable<E>;
   to_tag<E>(v);
 };

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "work_division/work_division.h"
+#include "kernel/work_division.h"
 
-namespace work_division {
+namespace kernel {
 template <typename T>
 concept ThreadInteractor = requires(const WorkDivision &division, T &t_mut,
                                     unsigned thread_idx) {
@@ -10,4 +10,4 @@ concept ThreadInteractor = requires(const WorkDivision &division, T &t_mut,
   T{division};
   t_mut.set_thread_idx(thread_idx);
 };
-} // namespace work_division
+} // namespace kernel

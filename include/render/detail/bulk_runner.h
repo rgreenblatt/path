@@ -3,13 +3,13 @@
 #include "execution_model/execution_model_vector_type.h"
 #include "integrate/rendering_equation_state.h"
 #include "intersectable_scene/intersectable_scene.h"
+#include "kernel/kernel_launch.h"
+#include "kernel/location_info.h"
+#include "kernel/work_division.h"
 #include "lib/integer_division_utils.h"
 #include "render/detail/initial_ray_sample.h"
 #include "render/general_settings.h"
 #include "rng/rng.h"
-#include "work_division/kernel_launch.h"
-#include "work_division/location_info.h"
-#include "work_division/work_division.h"
 
 #include <cli/ProgressBar.hpp>
 
@@ -23,7 +23,7 @@ public:
   using State = integrate::RenderingEquationState<max_num_light_samples>;
 
   template <intersectable_scene::BulkIntersector I>
-  void run_bulk(const work_division::WorkDivision &division,
+  void run_bulk(const kernel::WorkDivision &division,
                 const GeneralSettings &settings, I &intersector, const R &rng,
                 const Eigen::Affine3f &film_to_world, bool show_progress) {
     always_assert(division.block_size() <= intersector.max_size());
@@ -59,21 +59,21 @@ public:
       Span<typename R::State> rng_state = rng_state_;
 
       // be precise with copies...
-      auto get_local_idx = [=](const work_division::WorkDivision &division,
+      auto get_local_idx = [=](const kernel::WorkDivision &division,
                                unsigned block_idx, unsigned thread_idx) {
         return (block_idx - start) * division.block_size() + thread_idx;
       };
 
       // initialize
       // TODO: SPEED: change division used for this kernel???
-      work_division::KernelLaunch<exec>::run(
+      kernel::KernelLaunch<exec>::run(
           division, start, end,
-          [=] HOST_DEVICE(const work_division::WorkDivision &division,
-                          const work_division::GridLocationInfo &info,
+          [=] HOST_DEVICE(const kernel::WorkDivision &division,
+                          const kernel::GridLocationInfo &info,
                           unsigned block_idx, unsigned thread_idx) {
-            work_division::LocationInfo loc_info =
-                work_division::LocationInfo::from_grid_location_info(
-                    info, division.x_dim());
+            kernel::LocationInfo loc_info =
+                kernel::LocationInfo::from_grid_location_info(info,
+                                                              division.x_dim());
             const unsigned local_idx =
                 get_local_idx(division, block_idx, thread_idx);
             for (unsigned sample_idx = info.start_sample;
@@ -94,10 +94,10 @@ public:
 
       while (has_remaining_samples) {
         auto intersections = intersector.get_intersections();
-        work_division::KernelLaunch<exec>::run(
+        kernel::KernelLaunch<exec>::run(
             division, start, end,
-            [=] HOST_DEVICE(const work_division::WorkDivision &division,
-                            const work_division::GridLocationInfo &,
+            [=] HOST_DEVICE(const kernel::WorkDivision &division,
+                            const kernel::GridLocationInfo &,
                             unsigned block_idx, unsigned thread_idx) {
               const unsigned local_idx =
                   get_local_idx(division, block_idx, thread_idx);
