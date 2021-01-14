@@ -33,8 +33,13 @@ inline void cuda_assert(cudaError_t code, const char *file, int line) {
   }
 }
 
-#define CUDA_ERROR_CHK(ans)                                                    \
-  { cuda_assert((ans), __FILE__, __LINE__); }
+#define CUDA_ERROR_CHK(ans) cuda_assert((ans), __FILE__, __LINE__);
+
+#define CUDA_SYNC_CHK()                                                        \
+  do {                                                                         \
+    CUDA_ERROR_CHK(cudaDeviceSynchronize());                                   \
+    CUDA_ERROR_CHK(cudaGetLastError());                                        \
+  } while (0)
 
 inline constexpr unsigned warp_size = 32;
 inline constexpr unsigned max_num_warps_per_block = 1024 / warp_size;
