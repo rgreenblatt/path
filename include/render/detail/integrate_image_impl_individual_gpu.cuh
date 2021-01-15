@@ -37,16 +37,19 @@ void IntegrateImage<ExecutionModel::GPU>::run(
     auto intersectable = val.intersector;
     auto settings = val.settings.rendering_equation_settings;
 
+#pragma message "fix this - kernel launch"
+#if 0
     kernel::KernelLaunch<ExecutionModel::GPU>::run(
         val.division, start, end,
         [=](const WorkDivision &division, const kernel::GridLocationInfo &info,
             const unsigned block_idx, const unsigned thread_idx) {
-          auto intensity =
+          auto float_rgb =
               integrate_pixel(items, intersectable, division, settings, info);
 
           reduce_assign_output(items.base, division, thread_idx, block_idx,
-                               info.x, info.y, intensity);
+                               info.x, info.y, float_rgb);
         });
+#endif
 
     if (val.show_progress) {
       ++progress_bar;

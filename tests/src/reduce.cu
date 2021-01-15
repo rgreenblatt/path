@@ -92,6 +92,8 @@ TEST(Reduce, sum) {
 
             Span<T> out_division = out_vals_division;
 
+#pragma message "fix this - kernel launch"
+#if 0
             kernel::KernelLaunch<ExecutionModel::GPU>::run(
                 division, 0, division.total_num_blocks(),
                 [=] HOST_DEVICE(const WorkDivision &division,
@@ -113,6 +115,7 @@ TEST(Reduce, sum) {
                     out_division[j] = total;
                   }
                 });
+#endif
 
             std::vector<T> expected(num_locations, 0.f);
 

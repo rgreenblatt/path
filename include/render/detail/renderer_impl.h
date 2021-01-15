@@ -8,15 +8,12 @@
 #include "intersect/accel/enum_accel/enum_accel.h"
 #include "intersectable_scene/flat_triangle/flat_triangle.h"
 #include "intersectable_scene/to_bulk.h"
-#include "lib/bgra.h"
 #include "lib/tagged_tuple.h"
 #include "render/detail/integrate_image_bulk_state.h"
 #include "render/renderer.h"
 #include "render/settings.h"
 #include "rng/enum_rng/enum_rng.h"
 #include "scene/scene.h"
-
-#include <Eigen/Core>
 
 namespace render {
 using enum_accel::EnumAccel;
@@ -29,8 +26,8 @@ template <ExecutionModel exec> class Renderer::Impl {
 public:
   Impl();
 
-  void general_render(bool output_as_bgra, Span<BGRA> pixels,
-                      Span<Eigen::Array3f> intensities, const scene::Scene &s,
+  void general_render(bool output_as_bgra_32, Span<BGRA32> bgra_32_output,
+                      Span<FloatRGB> float_rgb_output, const scene::Scene &s,
                       unsigned samples_per, unsigned x_dim, unsigned y_dim,
                       const Settings &settings, bool show_progress,
                       bool show_times);
@@ -85,8 +82,8 @@ private:
 
   ThrustData<exec> thrust_data_;
 
-  ExecVecT<Eigen::Array3f> intensities_;
-  ExecVecT<Eigen::Array3f> reduced_intensities_;
-  ExecVecT<BGRA> bgra_;
+  ExecVecT<FloatRGB> float_rgb_;
+  ExecVecT<FloatRGB> reduced_float_rgb_;
+  ExecVecT<BGRA32> bgra_32_;
 };
 } // namespace render

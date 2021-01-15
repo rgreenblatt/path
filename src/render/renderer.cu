@@ -34,7 +34,7 @@ void Renderer::visit_renderer(ExecutionModel execution_model, F &&f) {
   };
 }
 
-void Renderer::render(ExecutionModel execution_model, Span<BGRA> pixels,
+void Renderer::render(ExecutionModel execution_model, Span<BGRA32> pixels,
                       const scene::Scene &s, unsigned samples_per,
                       unsigned x_dim, unsigned y_dim, const Settings &settings,
                       bool show_progress, bool show_times) {
@@ -44,15 +44,14 @@ void Renderer::render(ExecutionModel execution_model, Span<BGRA> pixels,
   });
 }
 
-void Renderer::render_intensities(ExecutionModel execution_model,
-                                  Span<Eigen::Array3f> intensities,
-                                  const scene::Scene &s, unsigned samples_per,
-                                  unsigned x_dim, unsigned y_dim,
-                                  const Settings &settings, bool show_progress,
-                                  bool show_times) {
+void Renderer::render_float_rgb(ExecutionModel execution_model,
+                                Span<FloatRGB> float_rgb, const scene::Scene &s,
+                                unsigned samples_per, unsigned x_dim,
+                                unsigned y_dim, const Settings &settings,
+                                bool show_progress, bool show_times) {
   visit_renderer(execution_model, [&](auto &&renderer) {
-    renderer->general_render(false, {}, intensities, s, samples_per, x_dim,
-                             y_dim, settings, show_progress, show_times);
+    renderer->general_render(false, {}, float_rgb, s, samples_per, x_dim, y_dim,
+                             settings, show_progress, show_times);
   });
 }
 } // namespace render

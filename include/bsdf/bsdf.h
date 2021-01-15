@@ -1,11 +1,10 @@
 #pragma once
 
 #include "bsdf/bsdf_sample.h"
+#include "lib/float_rgb.h"
 #include "meta/decays_to.h"
 #include "meta/mock.h"
 #include "rng/rng.h"
-
-#include <Eigen/Core>
 
 namespace bsdf {
 template <typename T>
@@ -23,7 +22,7 @@ concept BSDF = requires(const T &bsdf, const UnitVector &incoming_dir,
   requires requires {
     {
       bsdf.continuous_eval(incoming_dir, outgoing_dir, normal)
-      } -> DecaysTo<Eigen::Array3f>;
+      } -> DecaysTo<FloatRGB>;
   } || !T::continuous;
 
   requires requires {
@@ -61,8 +60,8 @@ struct MockContinuousBSDF : MockNoRequirements {
 
   bool is_brdf() const;
 
-  Eigen::Array3f continuous_eval(const UnitVector &, const UnitVector &,
-                                 const UnitVector &) const;
+  FloatRGB continuous_eval(const UnitVector &, const UnitVector &,
+                           const UnitVector &) const;
 
   template <rng::RngState R>
   BSDFSample continuous_sample(const UnitVector &, const UnitVector &,

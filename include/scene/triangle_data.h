@@ -6,8 +6,6 @@
 #include "lib/cuda/utils.h"
 #include "lib/unit_vector.h"
 
-#include <Eigen/Core>
-
 namespace scene {
 struct TriangleData {
   std::array<UnitVector, 3> normals_;

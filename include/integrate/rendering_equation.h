@@ -6,6 +6,7 @@
 #include "integrate/rendering_equation_state.h"
 #include "kernel/location_info.h"
 #include "lib/assert.h"
+#include "lib/float_rgb.h"
 
 namespace integrate {
 template <typename T>
@@ -15,7 +16,7 @@ concept InitialRaySampler = requires(const T &v, rng::MockRngState &rng) {
 
 template <InitialRaySampler F, rng::RngRef R, intersect::Intersectable I,
           ExactSpecializationOf<RenderingEquationComponents> C>
-ATTR_NO_DISCARD_PURE HOST_DEVICE inline Eigen::Array3f
+ATTR_NO_DISCARD_PURE HOST_DEVICE inline FloatRGB
 rendering_equation(const kernel::LocationInfo &location_info,
                    const RenderingEquationSettings &settings,
                    const F &initial_ray_sampler, const R &rng_ref,
@@ -31,7 +32,7 @@ rendering_equation(const kernel::LocationInfo &location_info,
 
   RenderingEquationState<C::L::max_num_samples> state;
 
-  auto intensity = Eigen::Array3f::Zero().eval();
+  auto float_rgb_total = FloatRGB::Zero().eval();
   while (!finished || sample_idx != end_sample) {
     if (finished) {
       rng = rng_ref.get_generator(sample_idx, location);
@@ -66,12 +67,12 @@ rendering_equation(const kernel::LocationInfo &location_info,
       rays = new_rays;
     } break;
     case IterationOutputType::Finished:
-      intensity += output.get(TAG(IterationOutputType::Finished));
+      float_rgb_total += output.get(TAG(IterationOutputType::Finished));
       finished = true;
       break;
     };
   }
 
-  return intensity;
+  return float_rgb_total;
 }
 } // namespace integrate

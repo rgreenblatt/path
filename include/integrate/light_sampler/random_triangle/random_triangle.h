@@ -162,7 +162,7 @@ public:
         const auto &transform = transformed_object.object_to_world();
         for (unsigned triangle_idx = group.start_idx;
              triangle_idx < group.end_idx; triangle_idx++) {
-          // weight is proportional to intensity and surface area
+          // weight is proportional to float_rgb and surface area
           auto transformed_triangle =
               triangles[triangle_idx].transform(transform);
 

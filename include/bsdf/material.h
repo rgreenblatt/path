@@ -1,13 +1,12 @@
 #pragma once
 
 #include "bsdf/bsdf.h"
-
-#include <Eigen/Core>
+#include "lib/float_rgb.h"
 
 namespace bsdf {
 template <BSDF T> struct Material {
   using BSDFT = T;
   T bsdf;
-  Eigen::Array3f emission;
+  FloatRGB emission;
 };
 } // namespace bsdf

@@ -4,10 +4,9 @@
 
 #include "intersect/ray.h"
 #include "lib/array_vec.h"
+#include "lib/float_rgb.h"
 #include "lib/optional.h"
 #include "lib/tagged_union.h"
-
-#include <Eigen/Core>
 
 #include <concepts>
 
@@ -25,9 +24,9 @@ template <typename T> struct RayRayInfo {
 } // namespace detail
 
 using FRayInfo = detail::RayInfo<float>;
-using ArrRayInfo = detail::RayInfo<Eigen::Array3f>;
+using ArrRayInfo = detail::RayInfo<FloatRGB>;
 using FRayRayInfo = detail::RayRayInfo<float>;
-using ArrRayRayInfo = detail::RayRayInfo<Eigen::Array3f>;
+using ArrRayRayInfo = detail::RayRayInfo<FloatRGB>;
 
 // this should probably be a class with a friend struct...
 template <unsigned max_num_light_samples> struct RenderingEquationState {
@@ -38,11 +37,10 @@ template <unsigned max_num_light_samples> struct RenderingEquationState {
         .count_emission = true,
         .has_next_sample = true,
         .ray_ray_info = {ray_ray_info.ray,
-                         {Eigen::Array3f::Constant(
-                              ray_ray_info.info.multiplier),
+                         {FloatRGB::Constant(ray_ray_info.info.multiplier),
                           ray_ray_info.info.target_distance}},
         .light_samples = {},
-        .intensity = Eigen::Array3f::Zero(),
+        .float_rgb_total = FloatRGB::Zero(),
     };
   }
 
@@ -51,7 +49,7 @@ template <unsigned max_num_light_samples> struct RenderingEquationState {
   bool has_next_sample;
   ArrRayRayInfo ray_ray_info;
   ArrayVec<ArrRayInfo, max_num_light_samples> light_samples;
-  Eigen::Array3f intensity;
+  FloatRGB float_rgb_total;
 
   HOST_DEVICE unsigned num_samples() const {
     return light_samples.size() + has_next_sample;
@@ -75,5 +73,5 @@ template <unsigned max_num_light_samples>
 using IterationOutput =
     TaggedUnion<IterationOutputType,
                 RenderingEquationNextIteration<max_num_light_samples>,
-                Eigen::Array3f>;
+                FloatRGB>;
 } // namespace integrate

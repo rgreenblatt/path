@@ -1,15 +1,14 @@
 #pragma once
 
+#include "lib/float_rgb.h"
 #include "lib/settings.h"
 #include "meta/mock.h"
-
-#include <Eigen/Core>
 
 namespace integrate {
 namespace term_prob {
 template <typename T>
 concept TermProbRef = requires(const T &term_prob, unsigned iters,
-                               const Eigen::Array3f &multiplier) {
+                               const FloatRGB &multiplier) {
   requires std::copyable<T>;
   { term_prob(iters, multiplier) } -> std::convertible_to<float>;
 };
@@ -25,7 +24,7 @@ concept TermProb = requires(T &term_prob, const S &settings) {
 
 struct MockTermProb : MockDefaultInitMovable {
   struct Ref : MockCopyable {
-    float operator()(unsigned, const Eigen::Array3f &) const;
+    float operator()(unsigned, const FloatRGB &) const;
   };
 
   Ref gen(const EmptySettings &);

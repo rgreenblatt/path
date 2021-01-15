@@ -1,8 +1,7 @@
 #pragma once
 
+#include "lib/float_rgb.h"
 #include "lib/unit_vector.h"
-
-#include <Eigen/Core>
 
 namespace integrate {
 namespace detail {
@@ -13,5 +12,5 @@ template <typename T> struct GenDirSample {
 } // namespace detail
 
 using FSample = detail::GenDirSample<float>;
-using BSDFSample = detail::GenDirSample<Eigen::Array3f>;
+using BSDFSample = detail::GenDirSample<FloatRGB>;
 } // namespace integrate

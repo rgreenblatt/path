@@ -12,7 +12,7 @@ namespace render {
 namespace detail {
 template <ExactSpecializationOf<IntegrateImageItems> Items,
           intersect::Intersectable I>
-ATTR_NO_DISCARD_PURE HOST_DEVICE inline Eigen::Array3f
+ATTR_NO_DISCARD_PURE HOST_DEVICE inline FloatRGB
 integrate_pixel(const Items &items, const I &intersectable,
                 const kernel::WorkDivision &division,
                 const integrate::RenderingEquationSettings &settings,

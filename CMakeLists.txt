@@ -178,7 +178,7 @@ add_library(
 
   "${PROJECT_SOURCE_DIR}/src/integrate/light_sampler/random_triangle/random_triangle.cu"
   "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl.cu"
-  "${PROJECT_SOURCE_DIR}/src/render/detail/reduce_intensities_gpu.cu"
+  "${PROJECT_SOURCE_DIR}/src/render/detail/reduce_float_rgb_gpu.cu"
   "${PROJECT_SOURCE_DIR}/src/rng/sobel/sobel.cu"
   )
 target_add_standard_include(renderer)
@@ -300,8 +300,8 @@ target_link_libraries(check_downsample PRIVATE renderer_from_files Qt5::Widgets)
 target_add_standard_include(check_downsample)
 
 add_executable(
-  loaded_intensities
-  "${PROJECT_SOURCE_DIR}/src/loaded_intensities.cpp"
+  loaded_float_rgb
+  "${PROJECT_SOURCE_DIR}/src/loaded_float_rgb.cpp"
   )
-target_link_libraries(loaded_intensities PRIVATE Qt5::Widgets)
-target_add_standard_include(loaded_intensities)
+target_link_libraries(loaded_float_rgb PRIVATE Qt5::Widgets)
+target_add_standard_include(loaded_float_rgb)

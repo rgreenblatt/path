@@ -65,6 +65,8 @@ void IntegrateImage<exec>::run(IntegrateImageBulkInputs<exec, T...> inp) {
 
     // initialize
     // TODO: SPEED: change work division used for this kernel???
+#pragma message "fix this - kernel launch"
+#if 0
     kernel::KernelLaunch<exec>::run(
         division, start, end,
         [=] HOST_DEVICE(const kernel::WorkDivision &division,
@@ -87,6 +89,7 @@ void IntegrateImage<exec>::run(IntegrateImageBulkInputs<exec, T...> inp) {
                 max_num_light_samples>::initial_state(initial_sample);
           }
         });
+#endif
 
     bool has_remaining_samples = true;
 
@@ -97,8 +100,8 @@ void IntegrateImage<exec>::run(IntegrateImageBulkInputs<exec, T...> inp) {
     while (has_remaining_samples) {
       auto intersections_span = intersector.get_intersections();
       auto rendering_settings = settings.rendering_equation_settings;
-      auto pixels = items.base.pixels;
-      auto intensities = items.base.intensities;
+      auto bgra_32 = items.base.bgra_32;
+      auto float_rgb = items.base.float_rgb;
 
       Span initial_state_span = state.state;
       state.op_state.resize(current_size);
@@ -107,6 +110,8 @@ void IntegrateImage<exec>::run(IntegrateImageBulkInputs<exec, T...> inp) {
       dispatch(is_first, [&](auto tag) {
         constexpr bool is_first = decltype(tag)::value;
 
+#pragma message "fix this - kernel launch"
+#if 0
         kernel::KernelLaunch<exec>::run(
             division, start, end,
             [=] HOST_DEVICE(const kernel::WorkDivision &division,
@@ -168,6 +173,7 @@ void IntegrateImage<exec>::run(IntegrateImageBulkInputs<exec, T...> inp) {
                 // next.
               }
             });
+#endif
       });
       is_first = false;
     }

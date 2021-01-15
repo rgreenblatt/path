@@ -11,16 +11,16 @@ inline HOST_DEVICE void assign_output(const IntegrateImageBaseItems &b,
                                       const kernel::WorkDivision &division,
                                       unsigned sample_block_idx,
                                       unsigned num_sample_blocks, unsigned x,
-                                      unsigned y, Eigen::Array3f intensity) {
+                                      unsigned y, FloatRGB float_rgb) {
   unsigned idx =
       sample_block_idx + num_sample_blocks * (x + y * division.x_dim());
   if (num_sample_blocks == 1) {
-    intensity /= b.samples_per;
+    float_rgb /= b.samples_per;
   }
-  if (b.output_as_bgra && num_sample_blocks == 1) {
-    b.pixels[idx] = intensity_to_bgr(intensity);
+  if (b.output_as_bgra_32 && num_sample_blocks == 1) {
+    b.bgra_32[idx] = float_rgb_to_bgra_32(float_rgb);
   } else {
-    b.intensities[idx] = intensity;
+    b.float_rgb[idx] = float_rgb;
   }
 }
 } // namespace detail

@@ -15,7 +15,7 @@ struct NIters {
     HOST_DEVICE Ref(const Settings &settings) : iters_(settings.iters) {}
 
     ATTR_PURE HOST_DEVICE float operator()(unsigned iters,
-                                           const Eigen::Array3f &) const {
+                                           const FloatRGB &) const {
       if (iters >= iters_) {
         return 1.0f;
       } else {

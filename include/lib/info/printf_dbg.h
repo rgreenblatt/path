@@ -1,7 +1,8 @@
 #pragma once
 
-#include "lib/bgra.h"
+#include "lib/bgra_32.h"
 #include "lib/cuda/utils.h"
+#include "lib/float_rgb.h"
 
 #include <Eigen/Geometry>
 #include <boost/hana/string.hpp>
@@ -43,10 +44,10 @@ template <typename T> constexpr inline auto debug_value(const T &val) {
   } else if constexpr (std::is_same<typename std::decay_t<T>,
                                     Eigen::Vector3f>::value ||
                        std::is_same<typename std::decay_t<T>,
-                                    Eigen::Array3f>::value) {
+                                    FloatRGB>::value) {
     return handle_vals(BOOST_HANA_STRING("x: %f, y: %f, z: %f\n"), val.x(),
                        val.y(), val.z());
-  } else if constexpr (std::is_same<typename std::decay_t<T>, BGRA>::value) {
+  } else if constexpr (std::is_same<typename std::decay_t<T>, BGRA32>::value) {
     return handle_vals(BOOST_HANA_STRING("x: %u, y: %u, z: %u\n"), val.x(),
                        val.y(), val.z());
   } else if constexpr (std::is_same<typename std::decay_t<T>, char *>::value) {

@@ -27,7 +27,7 @@ as_integer(Enumeration const value) {
   return static_cast<typename std::underlying_type<Enumeration>::type>(value);
 }
 
-// Struct to store a BGRA color in floats [0,1]
+// Struct to store a BGRA32 color in floats [0,1]
 using CS123SceneColor = Eigen::Vector4f;
 
 // Scene global color coefficients

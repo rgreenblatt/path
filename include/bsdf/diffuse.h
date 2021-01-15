@@ -7,21 +7,18 @@
 #include "lib/projection.h"
 #include "rng/rng.h"
 
-#include <Eigen/Core>
-
 namespace bsdf {
 struct Diffuse {
   static constexpr float normalizing_factor = 1 / M_PI;
-  Eigen::Array3f diffuse_;
+  FloatRGB diffuse_;
 
   static constexpr bool discrete = false;
   static constexpr bool continuous = true;
 
   ATTR_PURE constexpr bool is_brdf() const { return true; }
 
-  ATTR_PURE_NDEBUG HOST_DEVICE Eigen::Array3f
-  continuous_eval(const UnitVector &, const UnitVector &,
-                  const UnitVector &) const {
+  ATTR_PURE_NDEBUG HOST_DEVICE FloatRGB continuous_eval(
+      const UnitVector &, const UnitVector &, const UnitVector &) const {
     return diffuse_ * normalizing_factor;
   }
 

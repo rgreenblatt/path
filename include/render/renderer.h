@@ -1,12 +1,11 @@
 #pragma once
 
 #include "execution_model/execution_model.h"
-#include "lib/bgra.h"
+#include "lib/bgra_32.h"
+#include "lib/float_rgb.h"
 #include "lib/span.h"
 #include "render/settings.h"
 #include "scene/scene.h"
-
-#include <Eigen/Core>
 
 #include <memory>
 
@@ -19,17 +18,16 @@ public:
   Renderer(Renderer &&);
   Renderer &operator=(Renderer &&);
 
-  void render(ExecutionModel execution_model, Span<BGRA> pixels,
+  void render(ExecutionModel execution_model, Span<BGRA32> pixels,
               const scene::Scene &s, unsigned samples_per, unsigned x_dim,
               unsigned y_dim, const Settings &settings,
               bool progress_bar = false, bool show_times = false);
 
-  void render_intensities(ExecutionModel execution_model,
-                          Span<Eigen::Array3f> intensities,
-                          const scene::Scene &s, unsigned samples_per,
-                          unsigned x_dim, unsigned y_dim,
-                          const Settings &settings, bool progress_bar = false,
-                          bool show_times = false);
+  void render_float_rgb(ExecutionModel execution_model,
+                        Span<FloatRGB> float_rgb, const scene::Scene &s,
+                        unsigned samples_per, unsigned x_dim, unsigned y_dim,
+                        const Settings &settings, bool progress_bar = false,
+                        bool show_times = false);
 
 private:
   template <typename F>
@@ -43,6 +41,7 @@ private:
 
   // NOTE this makes it invalid to use a renderer in different compilation
   // units with different values of CPU_ONLY
+  // The ABI depends on CPU_ONLY
 #ifndef CPU_ONLY
   std::unique_ptr<Impl<ExecutionModel::GPU>> gpu_renderer_impl_;
 #endif

@@ -5,8 +5,6 @@
 #include "lib/cuda/utils.h"
 #include "rng/rng.h"
 
-#include <Eigen/Core>
-
 namespace bsdf {
 class DielectricRefractive {
 public:
@@ -15,7 +13,7 @@ public:
 
   HOST_DEVICE DielectricRefractive() = default;
 
-  HOST_DEVICE DielectricRefractive(const Eigen::Array3f &specular, float ior)
+  HOST_DEVICE DielectricRefractive(const FloatRGB &specular, float ior)
       : specular_(specular), ior_(ior) {
     r_0_ = (ior_ - 1) / (ior_ + 1);
     r_0_ *= r_0_; // square
@@ -38,7 +36,7 @@ public:
   }
 
 private:
-  Eigen::Array3f specular_;
+  FloatRGB specular_;
   float ior_;
   float r_0_;
 };

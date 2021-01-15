@@ -6,7 +6,7 @@
 #include "kernel/work_division.h"
 #include "meta/dispatch.h"
 #include "render/detail/integrate_image.h"
-#include "render/detail/reduce_intensities_gpu.h"
+#include "render/detail/reduce_float_rgb.h"
 #include "render/detail/renderer_impl.h"
 #include "render/detail/settings_compile_time_impl.h"
 
@@ -15,37 +15,25 @@ using namespace detail;
 
 template <ExecutionModel exec>
 void Renderer::Impl<exec>::general_render(
-    bool output_as_bgra, Span<BGRA> pixels, Span<Eigen::Array3f> intensities,
-    const scene::Scene &s, unsigned samples_per, unsigned x_dim, unsigned y_dim,
+    bool output_as_bgra_32, Span<BGRA32> bgra_32_output,
+    Span<FloatRGB> float_rgb_output, const scene::Scene &s,
+    unsigned samples_per, unsigned x_dim, unsigned y_dim,
     const Settings &settings, bool show_progress, bool) {
   WorkDivision division = WorkDivision(
       settings.general_settings.computation_settings.render_work_division,
       samples_per, x_dim, y_dim);
 
-  Span<BGRA> output_pixels;
-  Span<Eigen::Array3f> output_intensities;
+  // We could save a copy in the cpu case by directly outputing to the input
+  // bgra_32/float_rgb when possible.
+  // However, the perf gains are small and we don't really
+  // case about the performance of the cpu use case.
 
-  if (output_as_bgra) {
-    if constexpr (exec == ExecutionModel::GPU) {
-      if (division.num_sample_blocks() != 1 || output_as_bgra) {
-        intensities_.resize(division.num_sample_blocks() * x_dim * y_dim);
-        output_intensities = intensities_;
-      }
+  if (division.num_sample_blocks() != 1 || !output_as_bgra_32) {
+    float_rgb_.resize(division.num_sample_blocks() * x_dim * y_dim);
+  }
 
-      bgra_.resize(x_dim * y_dim);
-      output_pixels = bgra_;
-    } else {
-      static_assert(exec == ExecutionModel::CPU);
-      output_pixels = pixels;
-    }
-  } else {
-    if constexpr (exec == ExecutionModel::GPU) {
-      intensities_.resize(division.num_sample_blocks() * x_dim * y_dim);
-      output_intensities = intensities_;
-    } else {
-      static_assert(exec == ExecutionModel::CPU);
-      output_intensities = intensities;
-    }
+  if (output_as_bgra_32) {
+    bgra_32_.resize(x_dim * y_dim);
   }
 
   dispatch(settings.compile_time(), [&](auto tag) {
@@ -137,10 +125,10 @@ void Renderer::Impl<exec>::general_render(
             {
                 .base =
                     {
-                        .output_as_bgra = output_as_bgra,
+                        .output_as_bgra_32 = output_as_bgra_32,
                         .samples_per = samples_per,
-                        .pixels = output_pixels,
-                        .intensities = output_intensities,
+                        .bgra_32 = bgra_32_,
+                        .float_rgb = float_rgb_,
                     },
                 .components =
                     {
@@ -160,23 +148,20 @@ void Renderer::Impl<exec>::general_render(
     }});
   });
 
-  if constexpr (exec == ExecutionModel::GPU) {
-    auto intensities_gpu = reduce_intensities_gpu(
-        output_as_bgra, division.num_sample_blocks(), samples_per,
-        &intensities_, &reduced_intensities_, bgra_);
-    always_assert(intensities_gpu != nullptr);
-    always_assert(intensities_gpu == &intensities_ ||
-                  intensities_gpu == &reduced_intensities_);
+#if 1
+  auto float_rgb_reduce_out = ReduceFloatRGB<exec>::run(
+      output_as_bgra_32, division.num_sample_blocks(), samples_per, &float_rgb_,
+      &reduced_float_rgb_, bgra_32_);
+  always_assert(float_rgb_reduce_out != nullptr);
+  always_assert(float_rgb_reduce_out == &float_rgb_ ||
+                float_rgb_reduce_out == &reduced_float_rgb_);
 
-    if (output_as_bgra) {
-      thrust::copy(bgra_.begin(), bgra_.end(), pixels.begin());
-    } else {
-      always_assert(intensities_gpu != nullptr);
-      always_assert(intensities_gpu == &intensities_ ||
-                    intensities_gpu == &reduced_intensities_);
-      thrust::copy(intensities_gpu->begin(), intensities_gpu->end(),
-                   intensities.begin());
-    }
+  if (output_as_bgra_32) {
+    thrust::copy(bgra_32_.begin(), bgra_32_.end(), bgra_32_output.begin());
+  } else {
+    thrust::copy(float_rgb_reduce_out->begin(), float_rgb_reduce_out->end(),
+                 float_rgb_output.begin());
   }
+#endif
 }
 } // namespace render

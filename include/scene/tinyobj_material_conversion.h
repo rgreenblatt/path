@@ -2,6 +2,7 @@
 
 #include "bsdf/material.h"
 #include "bsdf/union_bsdf.h"
+#include "lib/float_rgb.h"
 #include "scene/material.h"
 
 #include <tiny_obj_loader.h>
@@ -11,13 +12,13 @@
 namespace scene {
 Material tinyobj_material_conversion(const tinyobj::material_t &material) {
   using bsdf::BSDFType;
-  auto to_eigen = [](const tinyobj::real_t *reals) {
-    return Eigen::Array3f(reals[0], reals[1], reals[2]);
+  auto to_float_rgb = [](const tinyobj::real_t *reals) {
+    return FloatRGB(reals[0], reals[1], reals[2]);
   };
 
-  auto diffuse = to_eigen(material.diffuse);
-  auto specular = to_eigen(material.specular);
-  auto emission = to_eigen(material.emission);
+  auto diffuse = to_float_rgb(material.diffuse);
+  auto specular = to_float_rgb(material.specular);
+  auto emission = to_float_rgb(material.emission);
   float shininess = material.shininess;
   float ior = material.ior;
   int illum = material.illum;

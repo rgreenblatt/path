@@ -16,7 +16,7 @@ struct MultiplierFunc {
         : exp(settings.exp), min_prob(settings.min_prob) {}
 
     ATTR_PURE_NDEBUG HOST_DEVICE float
-    operator()(unsigned, const Eigen::Array3f &multiplier) const {
+    operator()(unsigned, const FloatRGB &multiplier) const {
       // normalization (clamp to deal with cases where multiplier may be
       // negative)
       float squared_norm = std::clamp(

@@ -10,8 +10,6 @@
 #include "lib/cuda/utils.h"
 #include "lib/tagged_union.h"
 
-#include <Eigen/Core>
-
 namespace bsdf {
 enum class BSDFType {
   Diffuse,
@@ -32,11 +30,10 @@ struct UnionBSDF {
     return bsdf.visit([](const auto &v) { return v.is_brdf(); });
   }
 
-  ATTR_PURE_NDEBUG HOST_DEVICE Eigen::Array3f
-  continuous_eval(const UnitVector &incoming_dir,
-                  const UnitVector &outgoing_dir,
-                  const UnitVector &normal) const {
-    return bsdf.visit([&](const auto &v) -> Eigen::Array3f {
+  ATTR_PURE_NDEBUG HOST_DEVICE FloatRGB continuous_eval(
+      const UnitVector &incoming_dir, const UnitVector &outgoing_dir,
+      const UnitVector &normal) const {
+    return bsdf.visit([&](const auto &v) -> FloatRGB {
       if constexpr (std::decay_t<decltype(v)>::continuous) {
         return v.continuous_eval(incoming_dir, outgoing_dir, normal);
       } else {

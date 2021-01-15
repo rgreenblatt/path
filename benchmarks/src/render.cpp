@@ -1,10 +1,9 @@
 #include "lib/assert.h"
+#include "lib/float_rgb_image_utils.h"
 #include "lib/info/timer.h"
-#include "lib/intensity_utils.h"
 #include "lib/serialize_eigen.h"
 #include "render/renderer_from_files.h"
 
-#include <Eigen/Core>
 #include <benchmark/benchmark.h>
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/vector.hpp>
@@ -84,8 +83,7 @@ int main(int argc, char *argv[]) {
   const fs::path ground_truth_save_directory = "benchmark_ground_truth";
   const std::string ext = ".bin";
 
-  std::vector<std::vector<Eigen::Array3f>> ground_truth_intensities(
-      bench_items.size());
+  std::vector<std::vector<FloatRGB>> ground_truth_float_rgb(bench_items.size());
 
   fs::create_directories(ground_truth_save_directory);
 
@@ -99,9 +97,9 @@ int main(int argc, char *argv[]) {
       {
         std::ifstream file(ground_truth_file, std::ios::binary);
         cereal::BinaryInputArchive ar(file);
-        ar(ground_truth_intensities[i]);
+        ar(ground_truth_float_rgb[i]);
       }
-      successfully_loaded = ground_truth_intensities[i].size() ==
+      successfully_loaded = ground_truth_float_rgb[i].size() ==
                             ground_truth_width * ground_truth_width;
       if (!successfully_loaded) {
         std::cout << "loaded file has differnent than expected size"
@@ -119,20 +117,18 @@ int main(int argc, char *argv[]) {
 
       renderer.load_scene(scene_path, 1.f);
 
-      ground_truth_intensities[i].resize(ground_truth_width *
-                                         ground_truth_width);
+      ground_truth_float_rgb[i].resize(ground_truth_width * ground_truth_width);
 
-      renderer.render_intensities(ExecutionModel::GPU,
-                                  ground_truth_intensities[i],
-                                  n_ground_truth_samples, ground_truth_width,
-                                  ground_truth_width, true, false);
+      renderer.render_float_rgb(ExecutionModel::GPU, ground_truth_float_rgb[i],
+                                n_ground_truth_samples, ground_truth_width,
+                                ground_truth_width, true, false);
 
-      ar(ground_truth_intensities[i]);
+      ar(ground_truth_float_rgb[i]);
     }
   }
 
-  std::vector<std::vector<std::vector<Eigen::Array3f>>>
-      resized_ground_truth_intensities(bench_items.size());
+  std::vector<std::vector<std::vector<FloatRGB>>>
+      resized_ground_truth_float_rgb(bench_items.size());
 
   // loop over references so lambda capture is valid...
   for (unsigned i = 0; i < bench_items.size(); ++i) {
@@ -140,13 +136,13 @@ int main(int argc, char *argv[]) {
     const auto &name = bench_item.name;
     const auto &scene_path = bench_item.scene_path;
     // scene_path, n_ground_truth_samples, max_size
-    resized_ground_truth_intensities[i].resize(desired_widths.size());
+    resized_ground_truth_float_rgb[i].resize(desired_widths.size());
     for (unsigned j = 0; j < desired_widths.size(); ++j) {
       const unsigned &desired_width = desired_widths[j];
-      auto &ground_truth = resized_ground_truth_intensities[i][j];
+      auto &ground_truth = resized_ground_truth_float_rgb[i][j];
       ground_truth.resize(desired_width * desired_width);
-      downsample_to(ground_truth_intensities[i], ground_truth,
-                    ground_truth_width, desired_width);
+      downsample_to(ground_truth_float_rgb[i], ground_truth, ground_truth_width,
+                    desired_width);
       for (const unsigned &n_samples : samples) {
         uint64_t total_size =
             static_cast<uint64_t>(n_samples) * desired_width * desired_width;
@@ -166,13 +162,13 @@ int main(int argc, char *argv[]) {
             ss.str().c_str(),
             [&](benchmark::State &st) {
               renderer.load_scene(scene_path, 1.f, true);
-              std::vector<Eigen::Array3f> bench_intensities(desired_width *
-                                                            desired_width);
+              std::vector<FloatRGB> bench_float_rgb(desired_width *
+                                                    desired_width);
               auto render = [&] {
                 unsigned actual_n_samples = n_samples;
-                renderer.render_intensities(
-                    ExecutionModel::GPU, bench_intensities, actual_n_samples,
-                    desired_width, desired_width, false);
+                renderer.render_float_rgb(ExecutionModel::GPU, bench_float_rgb,
+                                          actual_n_samples, desired_width,
+                                          desired_width, false);
                 always_assert(actual_n_samples == n_samples);
               };
 
@@ -187,7 +183,7 @@ int main(int argc, char *argv[]) {
               }
 
               st.counters["error"] = compute_mean_absolute_error(
-                  bench_intensities, ground_truth, desired_width);
+                  bench_float_rgb, ground_truth, desired_width);
             })
             ->Unit(benchmark::kMillisecond)
             ->Iterations(iterations);

@@ -6,11 +6,9 @@
 #include "lib/cuda/utils.h"
 #include "rng/rng.h"
 
-#include <Eigen/Core>
-
 namespace bsdf {
 struct Mirror {
-  Eigen::Array3f specular_;
+  FloatRGB specular_;
 
   static constexpr bool discrete = true;
   static constexpr bool continuous = false;

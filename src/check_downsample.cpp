@@ -1,5 +1,6 @@
-#include "lib/bgra.h"
-#include "lib/intensity_utils.h"
+#include "lib/bgra_32.h"
+#include "lib/float_rgb.h"
+#include "lib/float_rgb_image_utils.h"
 #include "render/renderer_from_files.h"
 
 #include <QImage>
@@ -17,39 +18,39 @@ int main() {
 
   unsigned samples = 1024;
 
-  std::vector<Eigen::Array3f> intensities(width * width);
-  renderer.render_intensities(ExecutionModel::GPU, intensities, samples, width,
-                              width, true);
+  std::vector<FloatRGB> float_rgb(width * width);
+  renderer.render_float_rgb(ExecutionModel::GPU, float_rgb, samples, width,
+                            width, true);
   unsigned reduced_size = reduced_width * reduced_width;
-  std::vector<Eigen::Array3f> reduced_intensities(reduced_size);
+  std::vector<FloatRGB> reduced_float_rgb(reduced_size);
   unsigned reduced_samples = samples * reduction_factor * reduction_factor;
-  renderer.render_intensities(ExecutionModel::GPU, reduced_intensities,
-                              reduced_samples, reduced_width, reduced_width,
-                              true);
+  renderer.render_float_rgb(ExecutionModel::GPU, reduced_float_rgb,
+                            reduced_samples, reduced_width, reduced_width,
+                            true);
 
-  std::vector<Eigen::Array3f> downsampled_intensities(reduced_size);
-  downsample_to(intensities, downsampled_intensities, width, reduced_width);
+  std::vector<FloatRGB> downsampled_float_rgb(reduced_size);
+  downsample_to(float_rgb, downsampled_float_rgb, width, reduced_width);
 
   double mean_absolute_error = compute_mean_absolute_error(
-      reduced_intensities, downsampled_intensities, reduced_width);
+      reduced_float_rgb, downsampled_float_rgb, reduced_width);
   std::cout << "mean_absolute_error: " << mean_absolute_error << std::endl;
 
   QImage reduced_image(reduced_width, reduced_width, QImage::Format_RGB32);
   QImage downsampled_image(reduced_width, reduced_width, QImage::Format_RGB32);
   QImage difference_image(reduced_width, reduced_width, QImage::Format_RGB32);
 
-  Span<BGRA> reduced_pixels(reinterpret_cast<BGRA *>(reduced_image.bits()),
-                            reduced_size);
-  Span<BGRA> downsampled_pixels(
-      reinterpret_cast<BGRA *>(downsampled_image.bits()), reduced_size);
-  Span<BGRA> difference_pixels(
-      reinterpret_cast<BGRA *>(difference_image.bits()), reduced_size);
+  Span<BGRA32> reduced_pixels(reinterpret_cast<BGRA32 *>(reduced_image.bits()),
+                              reduced_size);
+  Span<BGRA32> downsampled_pixels(
+      reinterpret_cast<BGRA32 *>(downsampled_image.bits()), reduced_size);
+  Span<BGRA32> difference_pixels(
+      reinterpret_cast<BGRA32 *>(difference_image.bits()), reduced_size);
 
   for (unsigned i = 0; i < reduced_size; ++i) {
-    reduced_pixels[i] = intensity_to_bgr(reduced_intensities[i]);
-    downsampled_pixels[i] = intensity_to_bgr(downsampled_intensities[i]);
-    difference_pixels[i] = intensity_to_bgr(
-        (reduced_intensities[i] - downsampled_intensities[i]).abs() /
+    reduced_pixels[i] = float_rgb_to_bgra_32(reduced_float_rgb[i]);
+    downsampled_pixels[i] = float_rgb_to_bgra_32(downsampled_float_rgb[i]);
+    difference_pixels[i] = float_rgb_to_bgra_32(
+        (reduced_float_rgb[i] - downsampled_float_rgb[i]).abs() /
         mean_absolute_error);
   }
 

@@ -8,8 +8,6 @@
 #include "lib/projection.h"
 #include "rng/rng.h"
 
-#include <Eigen/Core>
-
 namespace bsdf {
 struct Glossy {
 public:
@@ -18,7 +16,7 @@ public:
 
   HOST_DEVICE Glossy() = default;
 
-  HOST_DEVICE Glossy(const Eigen::Array3f &specular, float shininess)
+  HOST_DEVICE Glossy(const FloatRGB &specular, float shininess)
       : normalizing_factor_((shininess + 2.f) /
                             (2.f * static_cast<float>(M_PI))),
         specular_(specular), shininess_(shininess),
@@ -26,10 +24,9 @@ public:
 
   ATTR_PURE constexpr bool is_brdf() const { return true; }
 
-  ATTR_PURE_NDEBUG HOST_DEVICE Eigen::Array3f
-  continuous_eval(const UnitVector &incoming_dir,
-                  const UnitVector &outgoing_dir,
-                  const UnitVector &normal) const {
+  ATTR_PURE_NDEBUG HOST_DEVICE FloatRGB continuous_eval(
+      const UnitVector &incoming_dir, const UnitVector &outgoing_dir,
+      const UnitVector &normal) const {
     return specular_ * normalizing_factor_ *
            std::pow(std::max(reflect_over_normal(incoming_dir, normal)
                                  ->dot(*outgoing_dir),
@@ -57,7 +54,7 @@ public:
 
 private:
   float normalizing_factor_;
-  Eigen::Array3f specular_;
+  FloatRGB specular_;
   float shininess_;
   float inv_shininess_p_1_; // purely an optimization
 };

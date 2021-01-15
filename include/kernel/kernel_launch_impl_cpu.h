@@ -5,27 +5,26 @@
 #include "kernel/kernel_launch.h"
 #include "kernel/work_division.h"
 #include "lib/assert.h"
-#include "meta/tuple.h"
 
 namespace kernel {
 template <>
-template <ThreadInteractor... Interactors, Launchable<Interactors...> F>
+template <Launchable L>
 void KernelLaunch<ExecutionModel::GPU>::run_internal(
     const WorkDivision &division, unsigned start_block, unsigned end_block,
-    const F &f_in, bool /* sync */) {
+    const L &launchable_in, bool /* sync */) {
   // TODO: better scheduling approach?  allow input argument to control?
 #ifdef NDEBUG
 #pragma omp parallel for schedule(dynamic, 1)
 #endif
+#if 0
   for (unsigned block_idx = start_block; block_idx < end_block; block_idx++) {
-    MetaTuple<Interactors...> interactors_tup{Interactors(division)...};
+    L launchable = launchable_in;
+    auto ref = launchable.block_init(division, block_idx);
     for (unsigned thread_idx = 0; thread_idx < division.block_size();
          thread_idx++) {
-      // state is individual to each thread, so we copy here
-      F f = f_in;
-      detail::kernel_launch_run(division, block_idx, thread_idx, f,
-                                interactors_tup);
+      detail::kernel_launch_run(division, block_idx, thread_idx, ref);
     }
   }
+#endif
 }
 } // namespace kernel

@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
   }
   renderer.print_config();
 
-  Span<BGRA> pixels(reinterpret_cast<BGRA *>(image.bits()), width * height);
+  Span<BGRA32> pixels(reinterpret_cast<BGRA32 *>(image.bits()), width * height);
 
   auto render = [&](bool show_progress, bool show_times) {
     renderer.render(execution_model, pixels, samples, width, height,

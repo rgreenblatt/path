@@ -9,26 +9,25 @@
 #include "meta/tuple.h"
 
 namespace kernel {
-template <ThreadInteractor... Interactors, Launchable<Interactors...> F>
+template <Launchable L>
 __global__ void gpu_kernel(const WorkDivision division, unsigned start_block,
-                           F f) {
+                           L l) {
+#if 0
   const unsigned block_idx = blockIdx.x + start_block;
   const unsigned thread_idx = threadIdx.x;
+  auto ref = l.block_init(division, block_idx);
 
-  // interactors per thread
-  MetaTuple<Interactors...> interactors_tup{Interactors(division)...};
-  detail::kernel_launch_run(division, block_idx, thread_idx, f,
-                            interactors_tup);
+  detail::kernel_launch_run(division, block_idx, thread_idx, ref);
+#endif
 }
 
 template <>
-template <ThreadInteractor... Interactors, Launchable<Interactors...> F>
+template <Launchable L>
 void KernelLaunch<ExecutionModel::GPU>::run_internal(
     const WorkDivision &division, unsigned start_block, unsigned end_block,
-    const F &f, bool sync) {
-  gpu_kernel<Interactors...>
-      <<<end_block - start_block, division.block_size()>>>(division,
-                                                           start_block, f);
+    const L &l, bool sync) {
+  gpu_kernel<<<end_block - start_block, division.block_size()>>>(
+      division, start_block, l);
   if (sync) {
     CUDA_SYNC_CHK();
   }

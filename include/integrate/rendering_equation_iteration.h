@@ -14,7 +14,7 @@ rendering_equation_iteration(
                    C::L::max_num_samples + 1> &intersections,
     const RenderingEquationSettings &settings, const C &inp) {
   const auto &[iters, count_emission, has_next_sample, ray_ray_info,
-               light_samples, old_intensity] = state;
+               light_samples, old_float_rgb_total] = state;
   const auto &[scene, light_sampler, dir_sampler, term_prob] = inp;
 
   auto use_intersection = [&](const auto &intersection,
@@ -32,8 +32,8 @@ rendering_equation_iteration(
 
   RenderingEquationState<C::L::max_num_samples> new_state;
   new_state.iters = iters + 1;
-  new_state.intensity = old_intensity;
-  auto &intensity = new_state.intensity;
+  new_state.float_rgb_total = old_float_rgb_total;
+  auto &float_rgb_total = new_state.float_rgb_total;
 
   debug_assert_assume(light_samples.size() ==
                       intersections.size() - has_next_sample);
@@ -47,11 +47,12 @@ rendering_equation_iteration(
       continue;
     }
 
-    intensity += scene.get_material(*intersection_op).emission * multiplier;
+    float_rgb_total +=
+        scene.get_material(*intersection_op).emission * multiplier;
   }
 
   if (!has_next_sample) {
-    return {TAG(IterationOutputType::Finished), intensity};
+    return {TAG(IterationOutputType::Finished), float_rgb_total};
   }
 
   debug_assert(intersections.size() > 0);
@@ -61,18 +62,18 @@ rendering_equation_iteration(
 
   if (!use_intersection(next_intersection_op,
                         ray_ray_info.info.target_distance)) {
-    return {TAG(IterationOutputType::Finished), intensity};
+    return {TAG(IterationOutputType::Finished), float_rgb_total};
   }
 
   const auto &next_intersection = *next_intersection_op;
   const auto &intersection_point = next_intersection.intersection_point(ray);
-  Eigen::Array3f multiplier = ray_ray_info.info.multiplier;
+  FloatRGB multiplier = ray_ray_info.info.multiplier;
 
   decltype(auto) material = scene.get_material(next_intersection);
 
   if ((!C::L::performs_samples || count_emission) &&
       include_lighting(next_intersection)) {
-    intensity += multiplier * material.emission;
+    float_rgb_total += multiplier * material.emission;
   }
 
   decltype(auto) normal = scene.get_normal(next_intersection, ray);
@@ -125,7 +126,7 @@ rendering_equation_iteration(
                             normal, rng);
   new_state.count_emission = sample.is_discrete;
 
-  Eigen::Array3f new_multiplier = multiplier * sample.sample.multiplier;
+  FloatRGB new_multiplier = multiplier * sample.sample.multiplier;
 
   auto this_term_prob = term_prob(iters, new_multiplier);
 
@@ -143,7 +144,7 @@ rendering_equation_iteration(
     new_rays.push_back(new_ray);
   } else {
     if (new_rays.size() == 0) {
-      return {TAG(IterationOutputType::Finished), intensity};
+      return {TAG(IterationOutputType::Finished), float_rgb_total};
     }
   }
 
