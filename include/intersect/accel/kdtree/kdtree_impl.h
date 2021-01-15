@@ -2,6 +2,7 @@
 
 #include "intersect/accel/add_idx.h"
 #include "intersect/accel/kdtree/kdtree.h"
+#include "intersect/optional_min.h"
 #include "lib/stack.h"
 #include "lib/start_end.h"
 

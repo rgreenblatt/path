@@ -4,6 +4,7 @@
 #include "intersect/accel/accel.h"
 #include "intersect/accel/add_idx.h"
 #include "intersect/accel/loop_all/settings.h"
+#include "intersect/optional_min.h"
 #include "lib/attribute.h"
 #include "meta/predicate_for_all_values.h"
 

@@ -224,13 +224,6 @@ constexpr auto optional_fold(FFold &&f_fold, FBase &&f_base,
   return next.op_or(f_rest);
 }
 
-template <typename... T>
-ATTR_PURE_NDEBUG constexpr auto optional_min(const Optional<T> &...values) {
-  return optional_fold(
-      [](const auto &a, const auto &b) { return Optional(std::min(a, b)); },
-      [](const auto &a) { return a; }, values...);
-}
-
 template <typename T>
 ATTR_PURE_NDEBUG constexpr Optional<T> create_optional(bool condition,
                                                        const T &v) {
