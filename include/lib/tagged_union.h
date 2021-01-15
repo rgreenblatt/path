@@ -2,8 +2,8 @@
 
 #include "lib/assert.h"
 #include "lib/attribute.h"
+#include "meta/aggregate_constructible_from.h"
 #include "meta/all_values.h"
-#include "meta/container_concepts.h"
 #include "meta/decays_to.h"
 #include "meta/get_idx.h"
 #include "meta/pack_element.h"
@@ -34,15 +34,21 @@ template <> union VariadicUnion<> {};
 
 template <typename First, typename... Rest>
 union VariadicUnion<First, Rest...> {
+private:
+  static constexpr bool trivially_destructible =
+      std::is_trivially_destructible_v<First> &&
+      (... && std::is_trivially_destructible_v<Rest>);
+  static constexpr bool destructible =
+      std::is_destructible_v<First> && (... && std::is_destructible_v<Rest>);
+
 public:
   constexpr VariadicUnion() : first_{} {}
 
-  constexpr ~VariadicUnion() requires(TriviallyDestructable<First, Rest...>) =
-      default;
+  constexpr ~VariadicUnion() requires trivially_destructible = default;
 
-  // delegated to holder - must be manually destructed
-  constexpr ~VariadicUnion() requires(!TriviallyDestructable<First, Rest...> &&
-                                      Destructable<First, Rest...>) {}
+  // delegated to holder - must be manually destructed to avoid UB
+  constexpr ~VariadicUnion() requires(!trivially_destructible && destructible) {
+  }
 
   template <std::size_t idx, typename... Args>
   requires(idx <=
@@ -74,7 +80,7 @@ struct access {
 } // namespace detail
 } // namespace tagged_union
 
-template <AllValuesEnumerable E, std::movable... T>
+template <AllValuesEnumerable E, typename... T>
 requires(AllValues<E>.size() == sizeof...(T) &&
          sizeof...(T) > 0) class TaggedUnion {
 private:
@@ -97,12 +103,40 @@ private:
     }(first, rest...);
   }
 
+  static constexpr bool trivially_destructible =
+      (... && std::is_trivially_destructible_v<T>);
+
+  static constexpr bool destructible = (... && std::is_destructible_v<T>);
+
+  static constexpr bool trivially_move_constructible =
+      (... && std::is_trivially_move_constructible_v<T>);
+
+  static constexpr bool move_constructible =
+      (... && std::is_move_constructible_v<T>);
+
+  static constexpr bool trivially_copy_constructible =
+      (... && std::is_trivially_copy_constructible_v<T>);
+
+  static constexpr bool copy_constructible =
+      (... && std::is_copy_constructible_v<T>);
+
+  static constexpr bool trivially_move_assignable =
+      (... && std::is_trivially_move_assignable_v<T>);
+
+  static constexpr bool move_assignable = (... && std::is_move_assignable_v<T>);
+
+  static constexpr bool trivially_copy_assignable =
+      (... && std::is_trivially_copy_assignable_v<T>);
+
+  static constexpr bool copy_assignable = (... && std::is_copy_assignable_v<T>);
+
 public:
   using TagType = E;
 
   template <unsigned idx, typename... Args>
-  requires(AggregateConstrucableFrom<Type<idx>, Args...>) constexpr TaggedUnion(
-      Tag<E, idx>, Args &&...args)
+  requires(AggregateConstructibleFrom<
+           Type<idx>, Args...>) constexpr TaggedUnion(Tag<E, idx>,
+                                                      Args &&...args)
       : idx_(idx),
         union_(std::in_place_index_t<idx>{}, std::forward<Args>(args)...) {}
 
@@ -119,11 +153,11 @@ public:
 
   constexpr TaggedUnion() : TaggedUnion(Tag<E, 0>{}) {}
 
-  constexpr TaggedUnion(const TaggedUnion &other) requires(
-      TriviallyCopyConstructable<T...>) = default;
+  constexpr TaggedUnion(const TaggedUnion &other) requires
+      trivially_copy_constructible = default;
 
   constexpr TaggedUnion(const TaggedUnion &other) requires(
-      !TriviallyCopyConstructable<T...> && CopyConstructable<T...>)
+      !trivially_copy_constructible && copy_constructible)
       : idx_(other.idx_) {
     visit_n(
         [](auto holder, auto &&l, auto &&r) {
@@ -133,10 +167,10 @@ public:
   }
 
   constexpr TaggedUnion(TaggedUnion &&other) requires(
-      TriviallyMoveConstructable<T...>) = default;
+      trivially_move_constructible) = default;
 
   constexpr TaggedUnion(TaggedUnion &&other) requires(
-      !TriviallyMoveConstructable<T...> && MoveConstructable<T...>)
+      !trivially_move_constructible && move_constructible)
       : idx_(other.idx_) {
     visit_n(
         [](auto holder, auto &&l, auto &&r) {
@@ -145,12 +179,12 @@ public:
         *this, std::forward<TaggedUnion>(other));
   }
 
-  constexpr TaggedUnion &operator=(const TaggedUnion &other) requires(
-      TriviallyCopyAssignable<T...>) = default;
+  constexpr TaggedUnion &operator=(const TaggedUnion &other) requires
+      trivially_copy_assignable = default;
 
   constexpr TaggedUnion &
-  operator=(const TaggedUnion &other) requires(!TriviallyCopyAssignable<T...> &&
-                                               CopyAssignable<T...>) {
+  operator=(const TaggedUnion &other) requires(!trivially_copy_assignable &&
+                                               copy_assignable) {
     if (this != &other) {
       // this is plausibly suboptimal if idx_ == other.idx_, should
       // theoretically use the type's operator= to avoid having to call
@@ -166,12 +200,12 @@ public:
     return *this;
   }
 
-  constexpr TaggedUnion &operator=(TaggedUnion &&other) requires(
-      TriviallyMoveAssignable<T...>) = default;
+  constexpr TaggedUnion &
+  operator=(TaggedUnion &&other) requires(trivially_move_assignable) = default;
 
   constexpr TaggedUnion &
-  operator=(TaggedUnion &&other) requires(!TriviallyMoveAssignable<T...> &&
-                                          MoveAssignable<T...>) {
+  operator=(TaggedUnion &&other) requires(!trivially_move_assignable &&
+                                          move_assignable) {
     if (this != &other) {
       // this is plausibly suboptimal if idx_ == other.idx_, should
       // theoretically use the type's operator= to avoid having to call
@@ -187,10 +221,9 @@ public:
     return *this;
   }
 
-  constexpr ~TaggedUnion() requires(TriviallyDestructable<T...>) = default;
+  constexpr ~TaggedUnion() requires(trivially_destructible) = default;
 
-  constexpr ~TaggedUnion() requires(!TriviallyDestructable<T...> &&
-                                    Destructable<T...>) {
+  constexpr ~TaggedUnion() requires(!trivially_destructible && destructible) {
     visit([](auto &in) { destroy_input(in); });
   }
 

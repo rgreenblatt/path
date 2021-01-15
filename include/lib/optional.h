@@ -2,13 +2,11 @@
 
 #include "lib/assert.h"
 #include "lib/attribute.h"
-#include "meta/container_concepts.h"
 #include "meta/mock.h"
 #include "meta/specialization_of.h"
 
-#include <algorithm>
 #include <concepts>
-#include <cstddef>
+#include <type_traits>
 #include <utility>
 
 struct NulloptT {};
@@ -35,32 +33,34 @@ public:
 
   constexpr Optional(const NulloptT &) : Optional() {}
 
-  constexpr Optional(const T &value) requires CopyConstructable<T>
+  constexpr Optional(const T &value) requires std::is_copy_constructible_v<T>
       : has_value_(true) {
     construct_in_place(*this, value);
   }
 
-  constexpr Optional(T &&value) requires MoveConstructable<T>
+  constexpr Optional(T &&value) requires std::is_move_constructible_v<T>
       : has_value_(true) {
     construct_in_place(*this, std::forward<T>(value));
   }
 
   constexpr Optional(const Optional &other) requires(
-      TriviallyCopyConstructable<T>) = default;
+      std::is_trivially_copy_constructible_v<T>) = default;
 
   constexpr Optional(const Optional &other) requires(
-      !TriviallyCopyConstructable<T> && CopyConstructable<T>)
+      !std::is_trivially_copy_constructible_v<T> &&
+      std::is_copy_constructible_v<T>)
       : has_value_(other.has_value_) {
     if (has_value_) {
       construct_in_place(*this, *other);
     }
   }
 
-  constexpr Optional(Optional &&other) requires(TriviallyMoveConstructable<T>) =
-      default;
+  constexpr Optional(Optional &&other) requires(
+      std::is_trivially_move_constructible_v<T>) = default;
 
   constexpr Optional(Optional &&other) requires(
-      !TriviallyMoveConstructable<T> && MoveConstructable<T>)
+      !std::is_trivially_move_constructible_v<T> &&
+      std::is_move_constructible_v<T>)
       : has_value_(other.has_value_) {
     if (has_value_) {
       construct_in_place(*this, std::move(*other));
@@ -69,11 +69,10 @@ public:
   }
 
   constexpr Optional &operator=(const Optional &other) requires(
-      TriviallyCopyAssignable<T>) = default;
+      std::is_trivially_copy_assignable_v<T>) = default;
 
-  constexpr Optional &
-  operator=(const Optional &other) requires(!TriviallyCopyAssignable<T> &&
-                                            CopyAssignable<T>) {
+  constexpr Optional &operator=(const Optional &other) requires(
+      !std::is_trivially_copy_assignable_v<T> && std::is_copy_assignable_v<T>) {
     if (this != &other) {
       if (has_value_ && other.has_value_) {
         **this = *other;
@@ -89,12 +88,11 @@ public:
     return *this;
   }
 
-  constexpr Optional &
-  operator=(Optional &&other) requires(TriviallyMoveAssignable<T>) = default;
+  constexpr Optional &operator=(Optional &&other) requires(
+      std::is_trivially_move_assignable_v<T>) = default;
 
-  constexpr Optional &
-  operator=(Optional &&other) requires(!TriviallyMoveAssignable<T> &&
-                                       MoveAssignable<T>) {
+  constexpr Optional &operator=(Optional &&other) requires(
+      !std::is_trivially_move_assignable_v<T> && std::is_move_assignable_v<T>) {
     if (this != &other) {
       if (has_value_ && other.has_value_) {
         **this = std::move(*other);
@@ -110,9 +108,10 @@ public:
     return *this;
   }
 
-  constexpr ~Optional() requires(TriviallyDestructable<T>) = default;
+  constexpr ~Optional() requires(std::is_trivially_destructible_v<T>) = default;
 
-  constexpr ~Optional() requires(!TriviallyDestructable<T> && Destructable<T>) {
+  constexpr ~Optional() requires(!std::is_trivially_destructible_v<T> &&
+                                 std::is_destructible_v<T>) {
     // destruct
     if (has_value_) {
       value.~T();
