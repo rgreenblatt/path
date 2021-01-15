@@ -16,18 +16,16 @@ struct uninitialized_allocator : thrust::device_allocator<T> {
   }
 };
 
-template<typename T>
-struct DeviceVectorImplT {
+template <typename T> struct DeviceVectorImplT {
   using Type = thrust::device_vector<T>;
 };
 
 // Note that right now Eigen types aren't either of these - this is
 // a bit unfortunate...
-template<typename T>
+template <typename T>
 requires(std::is_trivially_default_constructible_v<T> ||
          std::is_trivially_copyable_v<T>) struct DeviceVectorImplT<T> {
-  using Type =
-      thrust::device_vector<T, uninitialized_allocator<T>>;
+  using Type = thrust::device_vector<T, uninitialized_allocator<T>>;
 };
 } // namespace detail
 } // namespace device_vector
