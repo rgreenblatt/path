@@ -1,10 +1,11 @@
 #pragma once
 
-#include "meta/container_concepts.h"
-
 #ifdef __CUDACC__
 #include "lib/cuda/utils.h"
+
 #include <thrust/device_vector.h>
+
+#include <type_traits>
 
 namespace device_vector {
 namespace detail {
@@ -14,20 +15,25 @@ struct uninitialized_allocator : thrust::device_allocator<T> {
     // no-op
   }
 };
+
+template<typename T>
+struct DeviceVectorImplT {
+  using Type = thrust::device_vector<T>;
+};
+
+// Note that right now Eigen types aren't either of these - this is
+// a bit unfortunate...
+template<typename T>
+requires(std::is_trivially_default_constructible_v<T> ||
+         std::is_trivially_copyable_v<T>) struct DeviceVectorImplT<T> {
+  using Type =
+      thrust::device_vector<T, uninitialized_allocator<T>>;
+};
 } // namespace detail
 } // namespace device_vector
 
-// if we need to expand to more general type, we can use an
-// uninitialized allocator for just TriviallyDestructable types
-template <TriviallyDestructable T>
-using DeviceVector =
-    thrust::device_vector<T
-// how much perf does this get?
-#if 1
-                          ,
-                          device_vector::detail::uninitialized_allocator<T>
-#endif
-                          >;
+template <typename T>
+using DeviceVector = typename device_vector::detail::DeviceVectorImplT<T>::Type;
 #else
 #include "meta/mock.h"
 
