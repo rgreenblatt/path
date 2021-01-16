@@ -2,6 +2,7 @@
 
 #include "meta/std_array_specialization.h"
 
+#include <compare>
 #include <concepts>
 
 template <typename T> struct AllValuesImpl;
@@ -50,3 +51,11 @@ concept AllValuesEnumerable = requires(const T &t) {
 
 template <AllValuesEnumerable T>
 constexpr auto AllValues = AllValuesImpl<T>::values;
+
+struct EmptyEnumerable {
+  constexpr auto operator<=>(const EmptyEnumerable &other) const = default;
+};
+
+template <> struct AllValuesImpl<EmptyEnumerable> {
+  static constexpr std::array values = {EmptyEnumerable{}};
+};
