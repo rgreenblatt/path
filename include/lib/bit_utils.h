@@ -40,6 +40,12 @@ requires(bits_per<T> <= bits_per<unsigned long long>) ATTR_PURE_NDEBUG
   }
 }
 
+template <std::unsigned_integral T>
+requires(bits_per<T> <= bits_per<unsigned long long>) ATTR_PURE_NDEBUG
+    inline constexpr uint8_t log_2_floor(T v) {
+  return (bits_per<T> - 1) - count_leading_zeros(v);
+}
+
 template <std::unsigned_integral T> ATTR_PURE constexpr bool power_of_2(T n) {
   return (n > 0 && ((n & (n - 1)) == 0));
 };

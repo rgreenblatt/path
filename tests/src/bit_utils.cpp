@@ -1,5 +1,3 @@
-#pragma once
-
 #include "lib/bit_utils.h"
 
 static_assert(popcount(0b1100u) == 2);
@@ -14,6 +12,13 @@ static_assert(count_leading_zeros(static_cast<uint64_t>(0b1u)) == 63);
 static_assert(count_leading_zeros(0b100u) == 29);
 static_assert(count_leading_zeros(0b10111u) == 27);
 static_assert(count_leading_zeros(std::numeric_limits<unsigned>::max()) == 0);
+
+static_assert(log_2_floor(0b1u) == 0);
+static_assert(log_2_floor(2u) == 1);
+static_assert(log_2_floor(8u) == 3);
+static_assert(log_2_floor(15u) == 3);
+static_assert(log_2_floor(32u) == 5);
+static_assert(log_2_floor(63u) == 5);
 
 static_assert(!power_of_2(0b0u));
 static_assert(power_of_2(0b1u));
