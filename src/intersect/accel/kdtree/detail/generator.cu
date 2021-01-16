@@ -79,7 +79,7 @@ unsigned KDTree<execution_model>::Generator::construct(unsigned start,
     auto total_bounds = get_bounding(start, end);
     unsigned index = nodes_.size();
     nodes_.push_back({
-        .value = {TAG(NodeType::Items), {.start = start, .end = end}},
+        .value = {TagV<NodeType::Items>, {.start = start, .end = end}},
         .aabb = total_bounds,
     });
 
@@ -99,7 +99,7 @@ unsigned KDTree<execution_model>::Generator::construct(unsigned start,
 
   unsigned index = nodes_.size();
   nodes_.push_back({
-      .value = {TAG(NodeType::Split),
+      .value = {TagV<NodeType::Split>,
                 {
                     .left_index = left_index,
                     .right_index = right_index,
@@ -134,7 +134,7 @@ Ref KDTree<execution_model>::Generator::gen(const Settings &settings,
   }
 
   nodes_.push_back({
-      .value = {TAG(NodeType::Items), {.start = 0, .end = 0}},
+      .value = {TagV<NodeType::Items>, {.start = 0, .end = 0}},
       .aabb = {.min_bound = max_eigen_vec(), .max_bound = min_eigen_vec()},
   });
 

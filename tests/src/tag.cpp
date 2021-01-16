@@ -10,12 +10,6 @@ struct UpTo3 {
 
 inline constexpr auto empty = [] {};
 inline constexpr auto idx_dispatchable = []<unsigned idx>(NTag<idx>) {};
-inline constexpr auto t_tag_bool_dispatchable = []<bool v>(TTag<v>) {};
-
-template <unsigned up_to> struct TTagUpToForUpTo8 {
-  template <UpTo<8> idx>
-  requires(idx < up_to) void operator()(TTag<idx>) {}
-};
 
 inline constexpr auto tag_bool_dispatchable = []<unsigned v>(Tag<bool, v>) {};
 inline constexpr auto any_dispatchable = [](auto) {};
@@ -41,7 +35,6 @@ static_assert(!NTagDispatchable<0, decltype(any_dispatchable)>);
 static_assert(!TagDispatchable<bool, decltype(empty)>);
 static_assert(!TagDispatchable<int, decltype(empty)>);
 static_assert(TagDispatchable<bool, decltype(tag_bool_dispatchable)>);
-static_assert(!TagDispatchable<bool, decltype(t_tag_bool_dispatchable)>);
 static_assert(!TagDispatchable<bool, decltype(idx_dispatchable)>);
 static_assert(TagDispatchable<UpTo<8>, decltype(tag_up_to_8_dispatchable)>);
 static_assert(!TagDispatchable<UpTo<8>, TagUpToForUpTo8<3>>);
@@ -54,7 +47,5 @@ static_assert(!TagDispatchable<UpTo<8>, decltype(return_type_varies)>);
 static_assert(TagDispatchable<UpTo<1>, decltype(return_type_varies)>);
 static_assert(!TagDispatchable<UpTo<0>, decltype(any_dispatchable)>);
 
-static_assert(std::same_as<decltype(to_tag(TTag<false>{})), Tag<bool, 0>>);
-static_assert(std::same_as<decltype(to_tag(TTag<true>{})), Tag<bool, 1>>);
 static_assert(std::same_as<decltype(to_tag<bool>(NTag<0>{})), Tag<bool, 0>>);
 static_assert(std::same_as<decltype(to_tag<bool>(NTag<1>{})), Tag<bool, 1>>);

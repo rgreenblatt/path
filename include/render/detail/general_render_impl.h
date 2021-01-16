@@ -49,10 +49,10 @@ void Renderer::Impl<exec>::general_render(
     static_assert(AllValues<IntersectionApproach>.size() == 2);
     constexpr auto intersection_approach = intersection_type.type();
     constexpr auto accel_type =
-        intersection_type.get(TAG(intersection_approach));
+        intersection_type.get(TagV<intersection_approach>);
 
     const auto &all_intersection_settings =
-        settings.intersection.get(TAG(intersection_approach));
+        settings.intersection.get(TagV<intersection_approach>);
     const auto &accel_settings = [&]() -> const auto & {
       if constexpr (intersection_approach == IntersectionApproach::MegaKernel) {
         return all_intersection_settings;
@@ -63,17 +63,17 @@ void Renderer::Impl<exec>::general_render(
         return all_intersection_settings.accel;
       }
     }
-    ().get(TAG(accel_type));
+    ().get(TagV<accel_type>);
 
     auto intersectable_scene =
-        stored_scene_generators_.get(TAG(accel_type)).gen({accel_settings}, s);
+        stored_scene_generators_.get(TagV<accel_type>).gen({accel_settings}, s);
 
     decltype(auto) intersector = [&]() -> decltype(auto) {
       if constexpr (intersection_approach == IntersectionApproach::MegaKernel) {
         return intersectable_scene.intersector;
       } else if constexpr (intersection_approach ==
                            IntersectionApproach::StreamingFromGeneral) {
-        auto &out = to_bulk_.get(TAG(accel_type));
+        auto &out = to_bulk_.get(TagV<accel_type>);
         out.set_settings_intersectable(
             all_intersection_settings.to_bulk_settings,
             intersectable_scene.intersector);
@@ -83,24 +83,24 @@ void Renderer::Impl<exec>::general_render(
     }();
 
     auto light_sampler =
-        light_samplers_.get(TAG(light_sampler_type))
-            .gen(settings.light_sampler.get(TAG(light_sampler_type)),
+        light_samplers_.get(TagV<light_sampler_type>)
+            .gen(settings.light_sampler.get(TagV<light_sampler_type>),
                  s.emissive_clusters(), s.emissive_cluster_ends_per_mesh(),
                  s.materials().as_unsized(), s.transformed_mesh_objects(),
                  s.transformed_mesh_idxs(), s.triangles().as_unsized());
 
     auto dir_sampler =
-        dir_samplers_.get(TAG(dir_sampler_type))
-            .gen(settings.dir_sampler.get(TAG(dir_sampler_type)));
+        dir_samplers_.get(TagV<dir_sampler_type>)
+            .gen(settings.dir_sampler.get(TagV<dir_sampler_type>));
 
-    auto term_prob = term_probs_.get(TAG(term_prob_type))
-                         .gen(settings.term_prob.get(TAG(term_prob_type)));
+    auto term_prob = term_probs_.get(TagV<term_prob_type>)
+                         .gen(settings.term_prob.get(TagV<term_prob_type>));
 
     unsigned n_locations = x_dim * y_dim;
 
     auto rng =
-        rngs_.get(TAG(rng_type))
-            .gen(settings.rng.get(TAG(rng_type)), samples_per, n_locations);
+        rngs_.get(TagV<rng_type>)
+            .gen(settings.rng.get(TagV<rng_type>), samples_per, n_locations);
 
     decltype(auto) state = [&]() -> decltype(auto) {
       if constexpr (intersection_approach == IntersectionApproach::MegaKernel) {
@@ -110,7 +110,7 @@ void Renderer::Impl<exec>::general_render(
         static_assert(intersection_approach ==
                       IntersectionApproach::StreamingFromGeneral);
         return bulk_state_.get(
-            TAG(make_meta_tuple(light_sampler_type, rng_type)));
+            TagV<make_meta_tuple(light_sampler_type, rng_type)>);
       }
     }();
 

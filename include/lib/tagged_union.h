@@ -327,7 +327,7 @@ public:
             return boost::hana::unpack(
                 AllValues<PackElement<idx, Types...>>, [&](auto... v) {
                   return std::array<T, sizeof...(v)>{
-                      T(TAG(tag_values[decltype(idx)::value]), v)...};
+                      T(TagV<tag_values[decltype(idx)::value]>, v)...};
                 });
           }(idx)...);
 

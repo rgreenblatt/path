@@ -49,12 +49,12 @@ Material tinyobj_material_conversion(const tinyobj::material_t &material) {
 
     // refractive
     return {
-        {{TAG(BSDFType::DielectricRefractive), Eigen::Vector3f::Ones(), ior}},
+        {{TagV<BSDFType::DielectricRefractive>, Eigen::Vector3f::Ones(), ior}},
         emission,
     };
   } else if (diffuse_non_zero && !specular_non_zero) {
     // ideal diffuse
-    return {{{TAG(BSDFType::Diffuse), diffuse}}, emission};
+    return {{{TagV<BSDFType::Diffuse>, diffuse}}, emission};
   } else if (shininess > shininess_threshold) {
     if (diffuse_non_zero || !specular_non_zero) {
       std::cerr << "diffuse values non-zero or specular values zero for mirror "
@@ -64,9 +64,9 @@ Material tinyobj_material_conversion(const tinyobj::material_t &material) {
     }
 
     // ideal specular
-    return {{{TAG(BSDFType::Mirror), specular}}, emission};
+    return {{{TagV<BSDFType::Mirror>, specular}}, emission};
   } else if (specular_non_zero /*&& !diffuse_non_zero*/) {
-    return {{{TAG(BSDFType::Glossy), specular, shininess}}, emission};
+    return {{{TagV<BSDFType::Glossy>, specular, shininess}}, emission};
   } else {
     // TODO
     std::cerr << "unhandled material settings" << std::endl;

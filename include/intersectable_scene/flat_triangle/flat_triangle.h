@@ -104,14 +104,14 @@ public:
     host_triangle_values_.copy_to_other(triangle_values_);
     copy_to_vec(scene.materials(), materials_);
 
-    auto triangles = triangle_values_.get(TAG(TriItem::Triangle));
+    auto triangles = triangle_values_.get(TagV<TriItem::Triangle>);
 
     return {
         .intersector =
             {
                 .accel =
                     accel_.gen(settings.accel_settings,
-                               host_triangle_values_.get(TAG(TriItem::Triangle))
+                               host_triangle_values_.get(TagV<TriItem::Triangle>)
                                    .as_const(),
                                scene.overall_aabb()),
                 .triangles = triangles,
@@ -119,7 +119,7 @@ public:
         .scene =
             {
                 .triangles = triangles,
-                .triangle_data = triangle_values_.get(TAG(TriItem::Data)),
+                .triangle_data = triangle_values_.get(TagV<TriItem::Data>),
                 .materials = materials_,
             },
     };

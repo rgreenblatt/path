@@ -19,7 +19,7 @@ void load(Archive &ar, T &v) {
   using E = decltype(v.type());
   E type;
   ar(NVP(type));
-  dispatch(type, [&]<unsigned idx>(Tag<E, idx> tag) {
+  dispatch(type, [&](auto tag) {
     std::decay_t<decltype(v.get(tag))> value;
     ar(NVP(value));
     v = T(tag, value);

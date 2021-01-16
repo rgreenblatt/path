@@ -62,12 +62,12 @@ rendering_equation(const kernel::LocationInfo &location_info,
     switch (output.type()) {
     case IterationOutputType::NextIteration: {
       auto [new_state, new_rays] =
-          output.get(TAG(IterationOutputType::NextIteration));
+          output.get(TagV<IterationOutputType::NextIteration>);
       state = new_state;
       rays = new_rays;
     } break;
     case IterationOutputType::Finished:
-      float_rgb_total += output.get(TAG(IterationOutputType::Finished));
+      float_rgb_total += output.get(TagV<IterationOutputType::Finished>);
       finished = true;
       break;
     };

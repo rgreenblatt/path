@@ -29,8 +29,8 @@ RandomTriangle<exec>::finish_gen_internal(const Settings &settings) {
   auto &items = exec_storage_->items_;
   host_items_.copy_to_other(items);
 
-  return detail::Ref(settings, items.get(TAG(TWItem::Triangle)),
-                     items.get(TAG(TWItem::Weight)));
+  return detail::Ref(settings, items.get(TagV<TWItem::Triangle>),
+                     items.get(TagV<TWItem::Weight>));
 }
 
 template class RandomTriangle<ExecutionModel::CPU>;

@@ -52,7 +52,7 @@ rendering_equation_iteration(
   }
 
   if (!has_next_sample) {
-    return {TAG(IterationOutputType::Finished), float_rgb_total};
+    return {TagV<IterationOutputType::Finished>, float_rgb_total};
   }
 
   debug_assert(intersections.size() > 0);
@@ -62,7 +62,7 @@ rendering_equation_iteration(
 
   if (!use_intersection(next_intersection_op,
                         ray_ray_info.info.target_distance)) {
-    return {TAG(IterationOutputType::Finished), float_rgb_total};
+    return {TagV<IterationOutputType::Finished>, float_rgb_total};
   }
 
   const auto &next_intersection = *next_intersection_op;
@@ -144,11 +144,11 @@ rendering_equation_iteration(
     new_rays.push_back(new_ray);
   } else {
     if (new_rays.size() == 0) {
-      return {TAG(IterationOutputType::Finished), float_rgb_total};
+      return {TagV<IterationOutputType::Finished>, float_rgb_total};
     }
   }
 
-  return {TAG(IterationOutputType::NextIteration), new_state, new_rays};
+  return {TagV<IterationOutputType::NextIteration>, new_state, new_rays};
 }
 
 } // namespace integrate

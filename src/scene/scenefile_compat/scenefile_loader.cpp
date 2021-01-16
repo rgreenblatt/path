@@ -151,8 +151,8 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
 
   auto map_it = loaded_meshes_.find(absolute_path);
   if (map_it != loaded_meshes_.end()) {
-    add_mesh_instance(map_it->second, scene_v.meshs_.get(TAG(
-                                          Scene::MeshT::AABB))[map_it->second]);
+    add_mesh_instance(map_it->second, scene_v.meshs_.get(TagV<
+                                          Scene::MeshT::AABB>)[map_it->second]);
 
     return true;
   }
