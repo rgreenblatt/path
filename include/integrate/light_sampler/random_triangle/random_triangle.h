@@ -8,8 +8,8 @@
 #include "lib/edges.h"
 #include "lib/optional.h"
 #include "lib/vector_group.h"
-#include "meta/predicate_for_all_values.h"
 #include "meta/all_values_enum.h"
+#include "meta/predicate_for_all_values.h"
 
 #include <memory>
 

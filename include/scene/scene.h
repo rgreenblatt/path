@@ -5,10 +5,10 @@
 #include "intersect/triangle.h"
 #include "lib/span.h"
 #include "lib/vector_group.h"
+#include "meta/all_values_enum.h"
 #include "scene/emissive_cluster.h"
 #include "scene/material.h"
 #include "scene/triangle_data.h"
-#include "meta/all_values_enum.h"
 
 #include <vector>
 

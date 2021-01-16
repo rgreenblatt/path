@@ -7,9 +7,9 @@
 #include "integrate/term_prob/n_iters/n_iters.h"
 #include "integrate/term_prob/term_prob.h"
 #include "lib/settings.h"
+#include "meta/all_values_enum.h"
 #include "meta/pick_type.h"
 #include "meta/predicate_for_all_values.h"
-#include "meta/all_values_enum.h"
 
 namespace integrate {
 namespace term_prob {

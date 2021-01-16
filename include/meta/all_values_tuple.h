@@ -1,11 +1,11 @@
 #pragma once
 
 #include "meta/all_values.h"
-#include "meta/tuple.h"
 #include "meta/to_array.h"
+#include "meta/tuple.h"
 
-#include <boost/hana/ext/std/array.hpp>
 #include <boost/hana/cartesian_product.hpp>
+#include <boost/hana/ext/std/array.hpp>
 
 template <AllValuesEnumerable... Types>
 struct AllValuesImpl<MetaTuple<Types...>> {

@@ -1,8 +1,8 @@
 #include "meta/all_values.h"
 #include "meta/all_values_enum.h"
+#include "meta/all_values_integral.h"
 #include "meta/all_values_pow_2.h"
 #include "meta/all_values_range.h"
-#include "meta/all_values_integral.h"
 
 #include <algorithm>
 

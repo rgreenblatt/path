@@ -17,14 +17,12 @@ requires(idx_in < AllValues<E>.size()) struct Tag {
   Tag(NTag<idx_in>) {}
 };
 
-
 template <auto value>
 requires(AllValuesEnumerable<std::decay_t<decltype(value)>> &&get_idx(value) <
-         AllValues<std::decay_t<decltype(value)>>.size())
-using TagT = Tag<std::decay_t<decltype(value)>, get_idx(value)>;
+         AllValues<std::decay_t<decltype(value)>>.size()) using TagT =
+    Tag<std::decay_t<decltype(value)>, get_idx(value)>;
 
-template <auto value>
-constexpr auto TagV = TagT<value>{};
+template <auto value> constexpr auto TagV = TagT<value>{};
 
 // convenience macros for using tags (prefer TagT and TagV when the type is
 // structural...)

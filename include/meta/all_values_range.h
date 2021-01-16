@@ -2,11 +2,10 @@
 
 #include "all_values.h"
 
-template <std::unsigned_integral T, T begin, T end> 
-requires (begin <= end)
-struct RangeGen {
+template <std::unsigned_integral T, T begin, T end>
+requires(begin <= end) struct RangeGen {
   T value;
-  constexpr RangeGen() requires (begin != end) : value{begin} {}
+  constexpr RangeGen() requires(begin != end) : value{begin} {}
   constexpr RangeGen(T value) requires(begin != end) : value{value} {
     debug_assert(value >= begin);
     debug_assert(value < end);
@@ -17,10 +16,8 @@ struct RangeGen {
 
 template <unsigned begin, unsigned end>
 using Range = RangeGen<unsigned, begin, end>;
-template <std::unsigned_integral T, T end>
-using UpToGen = RangeGen<T, 0, end>;
-template <unsigned end>
-using UpTo = UpToGen<unsigned, end>;
+template <std::unsigned_integral T, T end> using UpToGen = RangeGen<T, 0, end>;
+template <unsigned end> using UpTo = UpToGen<unsigned, end>;
 
 template <std::unsigned_integral T, T begin, T end>
 struct AllValuesImpl<RangeGen<T, begin, end>> {
@@ -35,4 +32,3 @@ struct AllValuesImpl<RangeGen<T, begin, end>> {
     return arr;
   }();
 };
-

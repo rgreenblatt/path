@@ -9,12 +9,12 @@
 #include "intersectable_scene/flat_triangle/flat_triangle.h"
 #include "intersectable_scene/to_bulk.h"
 #include "lib/tagged_tuple.h"
+#include "meta/all_values_enum.h"
 #include "render/detail/integrate_image_bulk_state.h"
 #include "render/renderer.h"
 #include "render/settings.h"
 #include "rng/enum_rng/enum_rng.h"
 #include "scene/scene.h"
-#include "meta/all_values_enum.h"
 
 namespace render {
 using enum_accel::EnumAccel;

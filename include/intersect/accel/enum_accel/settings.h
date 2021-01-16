@@ -5,9 +5,9 @@
 #include "intersect/accel/kdtree/settings.h"
 #include "intersect/accel/loop_all/settings.h"
 #include "lib/settings.h"
+#include "meta/all_values_enum.h"
 #include "meta/pick_type.h"
 #include "meta/predicate_for_all_values.h"
-#include "meta/all_values_enum.h"
 
 namespace intersect {
 namespace accel {

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "meta/all_values.h"
 #include "lib/bit_utils.h"
+#include "meta/all_values.h"
 
 // inclusive
 template <std::unsigned_integral T, T min, T max>
@@ -16,11 +16,9 @@ requires(power_of_2(min) && power_of_2(max) && min <= max) struct Pow2Gen {
   constexpr operator T &() { return value; }
 };
 
-template <unsigned min, unsigned max>
-using Pow2 = Pow2Gen<unsigned, min, max>;
+template <unsigned min, unsigned max> using Pow2 = Pow2Gen<unsigned, min, max>;
 
-template <unsigned max>
-using Pow2InclusiveUpTo = Pow2<1, max>;
+template <unsigned max> using Pow2InclusiveUpTo = Pow2<1, max>;
 
 template <std::unsigned_integral T, T min, T max>
 struct AllValuesImpl<Pow2Gen<T, min, max>> {

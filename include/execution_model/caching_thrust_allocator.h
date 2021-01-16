@@ -2,8 +2,8 @@
 
 #include "execution_model/execution_model.h"
 #include "lib/cuda/utils.h"
-#include "meta/predicate_for_all_values.h"
 #include "meta/all_values_enum.h"
+#include "meta/predicate_for_all_values.h"
 
 #include <thrust/system/cuda/execution_policy.h>
 #include <thrust/system/cuda/vector.h>

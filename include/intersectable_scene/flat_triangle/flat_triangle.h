@@ -11,9 +11,9 @@
 #include "lib/cuda/utils.h"
 #include "lib/edges.h"
 #include "lib/vector_group.h"
+#include "meta/all_values_enum.h"
 #include "scene/scene.h"
 #include "scene/triangle_data.h"
-#include "meta/all_values_enum.h"
 
 namespace intersectable_scene {
 namespace flat_triangle {
@@ -109,11 +109,11 @@ public:
     return {
         .intersector =
             {
-                .accel =
-                    accel_.gen(settings.accel_settings,
-                               host_triangle_values_.get(TagV<TriItem::Triangle>)
-                                   .as_const(),
-                               scene.overall_aabb()),
+                .accel = accel_.gen(
+                    settings.accel_settings,
+                    host_triangle_values_.get(TagV<TriItem::Triangle>)
+                        .as_const(),
+                    scene.overall_aabb()),
                 .triangles = triangles,
             },
         .scene =

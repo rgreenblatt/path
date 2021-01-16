@@ -4,9 +4,9 @@
 #include "integrate/dir_sampler/enum_dir_sampler/dir_sampler_type.h"
 #include "integrate/dir_sampler/uniform/settings.h"
 #include "lib/settings.h"
+#include "meta/all_values_enum.h"
 #include "meta/pick_type.h"
 #include "meta/predicate_for_all_values.h"
-#include "meta/all_values_enum.h"
 
 namespace integrate {
 namespace dir_sampler {
