@@ -24,8 +24,7 @@ template <typename T> static void popcount_test(std::mt19937 &gen) {
 
   auto transform_values = [&](const auto type, HostDeviceVector<T> &out) {
     thrust::transform(type, values.data(), values.data() + values.size(),
-                      out.data(),
-                      [] __host__ __device__(T v) { return popcount(v); });
+                      out.data(), [](T v) { return popcount(v); });
   };
 
   transform_values(thrust::host, cpu_out);
@@ -63,9 +62,8 @@ template <typename T> static void count_leading_zeros_test(std::mt19937 &gen) {
   HostDeviceVector<T> cpu_out(size);
 
   auto transform_values = [&](const auto type, HostDeviceVector<T> &out) {
-    thrust::transform(
-        type, values.data(), values.data() + values.size(), out.data(),
-        [] __host__ __device__(T v) { return count_leading_zeros(v); });
+    thrust::transform(type, values.data(), values.data() + values.size(),
+                      out.data(), [](T v) { return count_leading_zeros(v); });
   };
 
   transform_values(thrust::host, cpu_out);
