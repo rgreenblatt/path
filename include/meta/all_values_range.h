@@ -1,6 +1,7 @@
 #pragma once
 
-#include "all_values.h"
+#include "lib/assert.h"
+#include "meta/all_values.h"
 
 template <std::unsigned_integral T, T begin, T end>
 requires(begin <= end) struct RangeGen {

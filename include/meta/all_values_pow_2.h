@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lib/assert.h"
 #include "lib/bit_utils.h"
 #include "meta/all_values.h"
 
