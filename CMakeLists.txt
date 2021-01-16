@@ -289,8 +289,8 @@ if(BUILD_BENCHMARKS OR CMAKE_EXPORT_COMPILE_COMMANDS)
   package_add_bench(render_bench "${PROJECT_SOURCE_DIR}/benchmarks/src/render.cpp")
   target_link_libraries(render_bench PRIVATE renderer_from_files)
 
-  add_custom_target(bench COMMAND ${CMAKE_CTEST_COMMAND}
-    DEPENDS "${BENCH_LIST}")
+  # doesn't actually run...
+  add_custom_target(bench COMMAND DEPENDS "${BENCH_LIST}")
 endif()
 
 add_executable(
