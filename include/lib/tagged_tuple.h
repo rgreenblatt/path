@@ -49,6 +49,11 @@ requires(AllValues<E>.size() == sizeof...(T)) struct TaggedTuple {
   constexpr bool operator==(const TaggedTuple &other) const = default;
   constexpr auto operator<=>(const TaggedTuple &other) const = default;
 
+  // work around for current state of boost::hana::tuple
+  constexpr bool operator<(const TaggedTuple &other) const {
+    return items < other.items;
+  }
+
 private:
   template <typename F, DecaysTo<TaggedTuple> V>
   static constexpr auto visit_impl(F &&f, const E &type, V &&v) {
@@ -60,7 +65,7 @@ private:
 template <AllValuesEnumerable T, template <T> class TypeOver>
 using TaggedTuplePerInstance = PerInstanceTakesType<T, TypeOver, TaggedTuple>;
 
-template <AllValuesEnumerable E, typename... T>
+template <AllValuesEnumerable E, AllValuesEnumerable... T>
 struct AllValuesImpl<TaggedTuple<E, T...>> {
   static constexpr auto values =
       boost::hana::unpack(AllValues<MetaTuple<T...>>, [](auto... values) {
