@@ -1,6 +1,7 @@
 #pragma once
 
 #include "render/settings.h"
+#include "meta/all_values_tuple.h"
 
 template <> struct AllValuesImpl<render::Settings::CompileTime> {
 private:
@@ -89,37 +90,3 @@ public:
 };
 
 static_assert(AllValuesEnumerable<render::Settings::CompileTime>);
-
-namespace render {
-// outer lambda just to have scope
-static_assert([] {
-  constexpr auto values = AllValues<Settings::CompileTime>;
-
-  // All values are unique
-  static_assert([&] {
-    for (unsigned i = 0; i < values.size(); ++i) {
-      for (unsigned j = 0; j < i; ++j) {
-        if (values[i] == values[j]) {
-          return false;
-        }
-      }
-    }
-
-    return true;
-  }());
-
-  // default values are a valid dispatch value
-  static_assert([&] {
-    auto default_compile_time = Settings{}.compile_time();
-    for (auto value : values) {
-      if (value == default_compile_time) {
-        return true;
-      }
-    }
-
-    return false;
-  }());
-
-  return true;
-}());
-} // namespace render

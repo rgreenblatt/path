@@ -13,6 +13,7 @@
 #include "lib/vector_group.h"
 #include "scene/scene.h"
 #include "scene/triangle_data.h"
+#include "meta/all_values_enum.h"
 
 namespace intersectable_scene {
 namespace flat_triangle {

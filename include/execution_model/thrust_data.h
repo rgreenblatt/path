@@ -2,6 +2,7 @@
 
 #include "execution_model/caching_thrust_allocator.h"
 #include "meta/predicate_for_all_values.h"
+#include "meta/all_values_enum.h"
 
 #include <thrust/execution_policy.h>
 

@@ -4,6 +4,7 @@
 #include "intersect/accel/dir_tree/settings.h"
 #include "intersect/accel/s_a_heuristic_settings.h"
 #include "lib/attribute.h"
+#include "meta/all_values_enum.h"
 #include "meta/predicate_for_all_values.h"
 
 namespace intersect {

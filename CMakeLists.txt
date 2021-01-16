@@ -76,8 +76,10 @@ find_package(Threads REQUIRED)
 set(BUILD_SHARED_LIBS OFF)
 
 # remove _CMAKE_COMPILE_AS_CUDA_FLAG to support ccache
-# set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION
-#     "<CMAKE_CUDA_COMPILER> ${_CMAKE_CUDA_EXTRA_FLAGS} <DEFINES> <INCLUDES> <FLAGS> -c <SOURCE> -o <OBJECT>")
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION
+    "<CMAKE_CUDA_COMPILER> ${_CMAKE_CUDA_EXTRA_FLAGS} <DEFINES> <INCLUDES> <FLAGS> -c <SOURCE> -o <OBJECT>")
+endif()
 
 option(SYNTAX_ONLY "only check syntax (-fsyntax-only)" OFF)
 option(CPU_ONLY "don't build for the gpu" OFF)
@@ -258,7 +260,9 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
   package_add_test(bit_utils_test 
     "${PROJECT_SOURCE_DIR}/tests/src/bit_utils.cpp")
   package_add_test(bit_utils_gpu_test 
-    "${PROJECT_SOURCE_DIR}/tests/src/bit_utils_gpu.cpp")
+    "${PROJECT_SOURCE_DIR}/tests/src/bit_utils_gpu.cu")
+  package_add_test(all_values_test
+    "${PROJECT_SOURCE_DIR}/tests/src/all_values.cpp")
 
   add_custom_target(run_build_tests COMMAND ${CMAKE_CTEST_COMMAND}
     DEPENDS "${TEST_LIST}")

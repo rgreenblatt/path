@@ -4,6 +4,7 @@
 #include "lib/cuda/curand_utils.h"
 #include "lib/cuda/utils.h"
 #include "meta/predicate_for_all_values.h"
+#include "meta/all_values_enum.h"
 #include "rng/rng.h"
 #include "rng/uniform/settings.h"
 

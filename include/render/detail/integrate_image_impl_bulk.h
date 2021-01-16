@@ -7,6 +7,7 @@
 #include "meta/dispatch.h"
 #include "render/detail/initial_ray_sample.h"
 #include "render/detail/integrate_image.h"
+#include "meta/all_values_integral.h"
 
 #include <cli/ProgressBar.hpp>
 

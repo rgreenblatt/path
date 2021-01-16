@@ -8,6 +8,7 @@
 #include "lib/settings.h"
 #include "meta/pick_type.h"
 #include "meta/predicate_for_all_values.h"
+#include "meta/all_values_enum.h"
 
 namespace integrate {
 namespace dir_sampler {

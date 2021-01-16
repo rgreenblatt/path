@@ -8,6 +8,7 @@
 #include "lib/settings.h"
 #include "lib/tagged_union.h"
 #include "meta/all_values.h"
+#include "meta/all_values_enum.h"
 #include "meta/tag.h"
 #include "render/general_settings.h"
 #include "rng/enum_rng/settings.h"

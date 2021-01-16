@@ -1,5 +1,7 @@
 #include "meta/n_tag_dispatchable.h"
 #include "meta/tag_dispatchable.h"
+#include "meta/all_values_range.h"
+#include "meta/all_values_integral.h"
 
 struct UpTo3 {
   template <unsigned idx>

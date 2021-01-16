@@ -7,6 +7,7 @@
 #include "lib/float_rgb.h"
 #include "lib/optional.h"
 #include "lib/tagged_union.h"
+#include "meta/all_values_enum.h"
 
 #include <concepts>
 

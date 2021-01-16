@@ -14,6 +14,7 @@
 #include "render/settings.h"
 #include "rng/enum_rng/enum_rng.h"
 #include "scene/scene.h"
+#include "meta/all_values_enum.h"
 
 namespace render {
 using enum_accel::EnumAccel;

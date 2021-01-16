@@ -6,6 +6,7 @@
 #include "rng/enum_rng/rng_type.h"
 #include "rng/sobel/settings.h"
 #include "rng/uniform/settings.h"
+#include "meta/all_values_enum.h"
 
 namespace rng {
 namespace enum_rng {

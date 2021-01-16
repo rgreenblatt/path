@@ -8,6 +8,7 @@
 #include "scene/emissive_cluster.h"
 #include "scene/material.h"
 #include "scene/triangle_data.h"
+#include "meta/all_values_enum.h"
 
 #include <vector>
 

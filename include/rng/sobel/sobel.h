@@ -6,6 +6,7 @@
 #include "rng/rng.h"
 #include "rng/rng_from_sequence_gen.h"
 #include "rng/sobel/settings.h"
+#include "meta/all_values_enum.h"
 
 #include <memory>
 
