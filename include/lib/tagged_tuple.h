@@ -1,21 +1,23 @@
 #pragma once
 
 #include "meta/all_values.h"
+#include "meta/all_values_tuple.h"
 #include "meta/decays_to.h"
 #include "meta/get_idx.h"
 #include "meta/per_instance.h"
 #include "meta/sequential_dispatch.h"
 #include "meta/tag.h"
 #include "meta/tuple.h"
-#include "meta/all_values_tuple.h"
 
-#include <boost/hana/unpack.hpp>
 #include <boost/hana/ext/std/array.hpp>
+#include <boost/hana/for_each.hpp>
+#include <boost/hana/unpack.hpp>
 
-#include <compare>
 #include <array>
+#include <compare>
 
-template <AllValuesEnumerable E, typename... T> struct TaggedTuple {
+template <AllValuesEnumerable E, typename... T>
+requires(AllValues<E>.size() == sizeof...(T)) struct TaggedTuple {
   MetaTuple<T...> items;
 
   template <unsigned idx>
@@ -26,6 +28,14 @@ template <AllValuesEnumerable E, typename... T> struct TaggedTuple {
   template <unsigned idx>
   ATTR_PURE_NDEBUG constexpr decltype(auto) get(Tag<E, idx>) const {
     return items[boost::hana::size_c<idx>];
+  }
+
+  template <typename F> void for_each(F &&f) {
+    boost::hana::for_each(items, std::forward<F>(f));
+  }
+
+  template <typename F> void for_each(F &&f) const {
+    boost::hana::for_each(items, std::forward<F>(f));
   }
 
   template <typename F> constexpr auto visit(F &&f, const E &value) {
@@ -50,7 +60,7 @@ private:
 template <AllValuesEnumerable T, template <T> class TypeOver>
 using TaggedTuplePerInstance = PerInstanceTakesType<T, TypeOver, TaggedTuple>;
 
-template<AllValuesEnumerable E, typename... T>
+template <AllValuesEnumerable E, typename... T>
 struct AllValuesImpl<TaggedTuple<E, T...>> {
   static constexpr auto values =
       boost::hana::unpack(AllValues<MetaTuple<T...>>, [](auto... values) {

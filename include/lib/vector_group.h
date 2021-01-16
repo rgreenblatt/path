@@ -3,31 +3,28 @@
 #include "data_structure/copyable_to_vec.h"
 #include "data_structure/vector.h"
 #include "lib/span.h"
+#include "lib/tagged_tuple.h"
 #include "meta/all_values.h"
 #include "meta/pack_element.h"
 #include "meta/tag.h"
+#include "meta/tuple.h"
 
-#include <boost/hana/ext/std/array.hpp>
-#include <boost/hana/ext/std/tuple.hpp>
-#include <boost/hana/for_each.hpp>
 #include <boost/hana/zip.hpp>
-
-#include <tuple>
 
 // useful for a struct of vecs which all have the same size
 template <template <typename> class VecT, AllValuesEnumerable E, typename... T>
-requires((... && Vector<VecT<T>>)&&(AllValues<E>.size() == sizeof...(T) &&
-                                    sizeof...(T) > 0)) class VectorGroup {
+requires((... && Vector<VecT<T>>)&&AllValues<E>.size() == sizeof...(T) &&
+         sizeof...(T) > 0) class VectorGroup {
 public:
   using FirstType = PackElement<0, T...>;
   static constexpr bool all_types_same = (... && std::same_as<FirstType, T>);
 
   void resize_all(unsigned size) {
-    for_each([=](auto &data) { data.resize(size); });
+    data_.for_each([=](auto &data) { data.resize(size); });
   }
 
   void clear_all() {
-    for_each([=](auto &data) { data.clear(); });
+    data_.for_each([=](auto &data) { data.clear(); });
   }
 
   void push_back_all(const T &...vs) {
@@ -39,26 +36,24 @@ public:
         });
   }
 
-  unsigned size() const { return std::get<0>(data_).size(); }
+  unsigned size() const { return get(Tag<E, 0>{}).size(); }
 
-  template <unsigned idx> SpanSized<PackElement<idx, T...>> get(Tag<E, idx>) {
-    return std::get<idx>(data_);
+  template <unsigned idx>
+  SpanSized<PackElement<idx, T...>> get(Tag<E, idx> tag) {
+    return data_.get(tag);
   }
 
   template <unsigned idx>
-  SpanSized<const PackElement<idx, T...>> get(Tag<E, idx>) const {
-    return std::get<idx>(data_);
-  }
-
-  SpanSized<FirstType> operator[](unsigned i) requires(all_types_same) {
-    return data_[i];
+  SpanSized<const PackElement<idx, T...>> get(Tag<E, idx> tag) const {
+    return data_.get(tag);
   }
 
   template <template <typename> class OtherVecT>
   requires(... &&CopyableToVec<VecT<T>, OtherVecT<T>>) void copy_to_other(
       VectorGroup<OtherVecT, E, T...> &other) const {
     boost::hana::for_each(
-        boost::hana::zip(data_, other.as_ptr_tuple()), [](const auto &item) {
+        boost::hana::zip(data_.items, other.as_ptr_tuple()),
+        [](const auto &item) {
           boost::hana::unpack(item, [](const auto &this_data, auto other_data) {
             copy_to_vec(this_data, *other_data);
           });
@@ -67,25 +62,16 @@ public:
 
 private:
   auto as_ptr_tuple() {
-    return boost::hana::unpack(data_, [&](auto &...data) {
-      return boost::hana::make_tuple(&data...);
-    });
+    return boost::hana::unpack(
+        data_.items, [&](auto &...data) { return make_meta_tuple(&data...); });
   }
-
-  template <typename F> void for_each(F &&f) {
-    boost::hana::for_each(data_, std::forward<F>(f));
-  }
-
-  using DataType = std::conditional_t<all_types_same,
-                                      std::array<VecT<FirstType>, sizeof...(T)>,
-                                      std::tuple<VecT<T>...>>;
 
   // can this be reduced somehow???
   template <template <typename> class OtherVecT, AllValuesEnumerable OtherE,
             typename... OtherT>
-  requires((... && Vector<OtherVecT<OtherT>>)&&(
-      AllValues<OtherE>.size() == sizeof...(OtherT) &&
-      sizeof...(OtherT) > 0)) friend class VectorGroup;
+  requires((... && Vector<OtherVecT<OtherT>>)&&AllValues<OtherE>.size() ==
+               sizeof...(OtherT) &&
+           sizeof...(OtherT) > 0) friend class VectorGroup;
 
-  DataType data_;
+  TaggedTuple<E, VecT<T>...> data_;
 };
