@@ -56,7 +56,6 @@ ATTR_PURE_NDEBUG inline constexpr T closest_power_of_2(T n) {
     return 1;
   }
   unsigned n_leading_zeros = count_leading_zeros(n);
-  debug_assert_assume(n_leading_zeros >= 0);
   debug_assert_assume(n_leading_zeros <= bits_per<T> - 1);
   unsigned place_of_leading_bit = bits_per<T> - 1 - n_leading_zeros;
   T smaller_power_of_2 = T(1) << place_of_leading_bit;

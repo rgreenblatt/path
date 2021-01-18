@@ -190,7 +190,7 @@ private : template <typename V>
 
   struct EmptyT {};
 
-  [[no_unique_address]] union {
+  union {
     [[no_unique_address]] EmptyT empty;
     [[no_unique_address]] T value;
   };
