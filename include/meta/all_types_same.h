@@ -4,5 +4,5 @@
 #include <concepts>
 
 template <typename... Rest>
-concept AllTypesSame = sizeof...(Rest) != 0 &&
+concept AllTypesSame = sizeof...(Rest) == 0 ||
                        (... && std::same_as<PackElement<0, Rest...>, Rest>);
