@@ -1,42 +1,56 @@
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules")
-
-set(CMAKE_CXX_COMPILER clang++)
-set(CMAKE_QT_COMPILER clang++)
-set(CMAKE_CUDA_COMPILER clang++)
-
 cmake_policy(SET CMP0048 NEW)
 project(path VERSION 0.1 LANGUAGES CUDA CXX)
 
+
+if (NOT ((CMAKE_CXX_COMPILER_ID STREQUAL "Clang") OR 
+  (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")))
+  message(FATAL_ERROR 
+    "only clang and gcc are supported for c++ - using ${CMAKE_CXX_COMPILER_ID}")
+endif()
+
+if (NOT (CMAKE_CUDA_COMPILER_ID STREQUAL "Clang"))
+  message(FATAL_ERROR 
+    "only clang is supported for cuda - using ${CMAKE_CUDA_COMPILER_ID}")
+endif()
+
+
+# required for clang cuda support
 cmake_minimum_required(VERSION 3.18)
 
-add_compile_options(-Wall -Wextra -fsized-deallocation)
-add_link_options(-fuse-ld=lld)
+add_compile_options(-Wall -Wextra)
 
-# set(CMAKE_VERBOSE_MAKEFILE ON CACHE BOOL "ON" FORCE)
+# required for some thrust data structures
+# add_compile_options(-fsized-deallocation)
 
 # use libc++ for this project and submodules 
 # won't work until libc++ has concepts
-# set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -stdlib=libc++")
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+# add_compile_options(-stdlib=libc++)
 
-# unfortunately required with c++20
-add_compile_options(-isystem ${CMAKE_SOURCE_DIR}/system/include/)
+# unfortunately required with c++20 when using clang 11 and libstdc++
+# not required (right now) on trunk
+# add_compile_options(-isystem ${CMAKE_SOURCE_DIR}/system/include/)
+
+# BIG compile time savings...
 add_compile_options(-DMAGIC_ENUM_RANGE_MIN=0 -DMAGIC_ENUM_RANGE_MAX=8)
 
-# required for Eigen
+# required for Eigen: https://gitlab.com/libeigen/eigen/-/issues/1826
 add_compile_options(-Wno-deprecated-copy)
 add_compile_options(-Wno-deprecated-anon-enum-enum-conversion)
 
-add_compile_options(-fconstexpr-steps=80000000 -fbracket-depth=512)
-# add_compile_options(-fmodules)
+# avoid any potential issues due to using cuda
+add_definitions(-DEIGEN_DEFAULT_DENSE_INDEX_TYPE=int -DEIGEN_MAX_ALIGN_BYTES=0)
+
 # I think -ffast-math is enabled by -Ofast, but the documentation isn't
 # perfectly clear (certainly most options of -ffast-math are enabled by
 # -Ofast, but I'm not sure about the cuda specific ones)
 set(RELEASE_ARGS "-Ofast;-ffast-math;-march=native;-DNDEBUG")
 # set(RELEASE_ARGS "-O3;-UNDEBUG")
+
+set(DEBUG_ARGS "-ftrapv")
+
 add_compile_options("$<$<CONFIG:RELEASE>:${RELEASE_ARGS}>")
 add_compile_options("$<$<CONFIG:RELWITHDEBINFO>:${RELEASE_ARGS}>")
-add_compile_options("$<$<CONFIG:DEBUG>:-ftrapv>")
+add_compile_options("$<$<CONFIG:DEBUG>:${DEBUG_ARGS}>")
 
 option (FORCE_COLORED_OUTPUT
   "Always produce ANSI-colored output (GNU/Clang only)." TRUE)
@@ -48,38 +62,26 @@ if (${FORCE_COLORED_OUTPUT})
     endif ()
 endif ()
 
-# TODO: convert to generator...
-# disable ptxas warnings
-# set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcuda-ptxas '-w'")
-
-# set(CMAKE_CUDA_FLAGS_DEBUG 
-#   "${CMAKE_CUDA_FLAGS_DEBUG} -fsanitize=address,undefined")
-
-# set(CMAKE_CXX_FLAGS_DEBUG
-#   "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address,undefined")
-
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-set(CMAKE_QT_STANDARD 20)
-set(CMAKE_QT_STANDARD_REQUIRED ON)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 find_package(Qt5 COMPONENTS Widgets Xml REQUIRED)
 find_package(OpenMP REQUIRED)
-# find_package(OpenCV REQUIRED)
 find_package(Threads REQUIRED)
 
 set(BUILD_SHARED_LIBS OFF)
 
-# remove _CMAKE_COMPILE_AS_CUDA_FLAG to support ccache
-if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION
-    "<CMAKE_CUDA_COMPILER> ${_CMAKE_CUDA_EXTRA_FLAGS} <DEFINES> <INCLUDES> <FLAGS> -c <SOURCE> -o <OBJECT>")
-endif()
+# remove _CMAKE_COMPILE_AS_CUDA_FLAG to support ccache with clang
+# this is clang specific
+# won't be required on latest release... 
+# see https://github.com/ccache/ccache/issues/772
+set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION
+  "<CMAKE_CUDA_COMPILER> ${_CMAKE_CUDA_EXTRA_FLAGS} <DEFINES> <INCLUDES> <FLAGS> -c <SOURCE> -o <OBJECT>")
 
 option(SYNTAX_ONLY "only check syntax (-fsyntax-only)" OFF)
 option(CPU_ONLY "don't build for the gpu" OFF)
@@ -87,11 +89,8 @@ option(CPU_ONLY "don't build for the gpu" OFF)
 if(SYNTAX_ONLY)
   # builds are fast enough to check all combinations with syntax only
   add_definitions(-DBUILD_ALL)
-  add_compile_options(-fsyntax-only)
 
-  # building only host should yield almost all diagnostics while also
-  # being much faster
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --cuda-host-only")
+  add_compile_options(-fsyntax-only)
 
   set(CMAKE_CXX_COMPILE_OBJECT "${CMAKE_CXX_COMPILE_OBJECT} && touch <OBJECT>")
   set(CMAKE_CXX_CREATE_SHARED_LIBRARY "touch <TARGET>")
@@ -101,6 +100,11 @@ if(SYNTAX_ONLY)
   set(CMAKE_CXX_ARCHIVE_APPEND "touch <TARGET>")
   set(CMAKE_CXX_ARCHIVE_FINISH "touch <TARGET>")
   set(CMAKE_CXX_COMPILER_LAUNCHER "")
+
+  # building only host should yield almost all diagnostics while also
+  # being much faster
+  # this is cuda clang specific
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --cuda-host-only")
 
   # first one isn't actually used as far as I know...
   set(CMAKE_CUDA_COMPILE_OBJECT 
@@ -128,17 +132,14 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/extern/yaml-cpp")
 
 if(CPU_ONLY)
   add_definitions(-DCPU_ONLY)
+
   # very hacky, but saves a decent amount of compile time...
   set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION "${CMAKE_CXX_COMPILE_OBJECT}")
+  
+  # this is clang specific
   add_compile_options(-xc++ -isystem/opt/cuda/include/ 
     -Wno-unused-command-line-argument)
 endif()
-
-# qt5_wrap_cpp(UI_MAINWINDOW "${PROJECT_SOURCE_DIR}/include/ui/mainwindow.h")
-# qt5_wrap_cpp(UI_VIEW "${PROJECT_SOURCE_DIR}/include/ui/canvas.h")
-
-add_definitions(-DEIGEN_DEFAULT_DENSE_INDEX_TYPE=int
-  -DEIGEN_MAX_ALIGN_BYTES=0)
 
 macro(target_add_standard_include TARGET_NAME)
   target_include_directories(${TARGET_NAME} PUBLIC
@@ -286,7 +287,10 @@ if(BUILD_BENCHMARKS OR CMAKE_EXPORT_COMPILE_COMMANDS)
   # sometimes there are some issues with cub and warp intrinsics with sorting
   # (on clang)
   package_add_bench(sort_bench "${PROJECT_SOURCE_DIR}/benchmarks/src/sort.cu")
-  package_add_bench(render_bench "${PROJECT_SOURCE_DIR}/benchmarks/src/render.cpp")
+  package_add_bench(render_bench 
+    "${PROJECT_SOURCE_DIR}/benchmarks/src/render.cpp")
+  package_add_bench(reduce_bench 
+    "${PROJECT_SOURCE_DIR}/benchmarks/src/reduce.cu")
   target_link_libraries(render_bench PRIVATE renderer_from_files)
 
   # doesn't actually run...

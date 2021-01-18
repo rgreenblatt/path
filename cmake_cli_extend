@@ -2,124 +2,147 @@
 
 import argparse
 import os
+from contextlib import suppress
 
 from cmake_cli.base_cmake_builder import BaseCMakeBuilder
 
 
 class PathCMakeBuild(BaseCMakeBuilder):
-    def build_default_command_parser(self,
-                                     description,
+    def build_default_command_parser_impl(self,
+                                     parser,
                                      has_build_benchmarks=True,
                                      build_benchmarks_default=False,
+                                     skip_gen=False,
+                                     skip_build=False,
                                      **kwargs):
-        parser = super().build_default_command_parser(description, **kwargs)
-        parser.add_argument('--cpu-only',
-                            dest='cpu_only',
-                            action='store_true',
-                            help='only build for the cpu -- GROSS AND HACKY')
-        parser.add_argument('--no-cpu-only',
-                            dest='cpu_only',
-                            action='store_false',
-                            help='build for the cpu and gpu')
-        if has_build_benchmarks:
-            parser.add_argument('--build-benchmarks',
-                                default=build_benchmarks_default,
-                                dest='build_benchmarks',
-                                action='store_true')
-            parser.add_argument('--no-build-benchmarks',
-                                dest='build_benchmarks',
-                                action='store_false')
+        super().build_default_command_parser_impl(parser,
+                                             skip_gen=skip_gen,
+                                             skip_build=skip_build,
+                                             **kwargs)
+        if not skip_gen:
+            parser.add_argument('--cpu-only',
+                                dest='cpu_only',
+                                action='store_true',
+                                help='only build for the cpu -- GROSS AND HACKY')
+            parser.add_argument('--no-cpu-only',
+                                dest='cpu_only',
+                                action='store_false',
+                                help='build for the cpu and gpu')
+            parser.add_argument('--cuda-archs',
+                                 default='75',
+                                 help='cuda architectures (sm_*)')
+            parser.add_argument('--cxx-compiler', default='clang++')
+            if has_build_benchmarks:
+                parser.add_argument('--build-benchmarks',
+                                    default=build_benchmarks_default,
+                                    dest='build_benchmarks',
+                                    action='store_true')
+                parser.add_argument('--no-build-benchmarks',
+                                    dest='build_benchmarks',
+                                    action='store_false')
+        if not skip_build:
+            parser.add_argument('-l',
+                                '--lolcat',
+                                action='store_true',
+                                help='lolcat output')
 
         return parser
 
-    @staticmethod
-    def extend_directory(args):
-        if args.cpu_only:
-            return "_cpu_only"
-        return ""
+    def extend_directory(self):
+        running = ""
+        if self.args.cpu_only:
+            running += "_cpu_only"
+        if self.args.cxx_compiler == "g++" or self.args.cxx_compiler == "gcc":
+            running += "_gnu"
+        return running
 
-    def extend_piped_commands(self, piped_commands):
-        if self.args.lolcat:
-            if self.exists_in_path_warn("lolcat"):
-                piped_commands.append(["lolcat", "--force"])
+    def extend_piped_commands(self):
+        out = []
+        with suppress(AttributeError):
+            if self.args.lolcat:
+                if self.exists_in_path_warn("lolcat"):
+                    out.append(["lolcat", "--force"])
 
-    @staticmethod
-    def extend_main_parser(main_parser):
-        main_parser.add_argument('--cuda-archs',
-                                 default='75',
-                                 help='cuda architectures (sm_*)')
-        main_parser.add_argument('-l',
-                                 '--lolcat',
-                                 action='store_true',
-                                 help='lolcat output')
+        return out
 
-    def extend_gen_cmd(self, sub_args, gen_cmd):
-        gen_cmd += ["-DCMAKE_CUDA_ARCHITECTURES=" + self.args.cuda_archs]
-        if sub_args.cpu_only:
+    def extend_gen_cmd(self):
+        out = [
+            "-DCMAKE_CXX_COMPILER=" + self.args.cxx_compiler,
+            "-DCMAKE_CUDA_COMPILER=clang++",
+            "-DCMAKE_CUDA_ARCHITECTURES=" + self.args.cuda_archs
+        ]
+        if self.args.cpu_only:
             print("WARN: building CPU_ONLY which is very hacky...")
-            gen_cmd += ["-DCPU_ONLY=ON"]
-        if sub_args.build_benchmarks:
-            gen_cmd += ["-DBUILD_BENCHMARKS=ON"]
+            out += ["-DCPU_ONLY=ON"]
+        if self.args.build_benchmarks:
+            out += ["-DBUILD_BENCHMARKS=ON", "-DBENCHMARK_ENABLE_TESTING=OFF"]
 
-    def test_command(self, remaining_args):
-        args = self.build_default_command_parser(
-            'run all tests',
-            has_build_testing=False,
-            has_build_benchmarks=False).parse_args(remaining_args)
-        args.build_testing = True
-        self.build(args,
-                   self.get_directory(args),
+        return out
+
+    def test_add_args(self, parser):
+        parser.description = 'run all tests',
+        self.build_default_command_parser(parser,
+                                          has_build_testing=False,
+                                          has_build_benchmarks=False)
+
+    def test_command(self):
+        self.args.build_testing = True
+        self.build(self.get_directory(),
                    additional_build_args=["--target", "run_build_tests"])
 
-    def gen_run_command(self, remaining_args, name_type, release_default,
-                        args_callback, **kwargs):
-        parser = self.build_default_command_parser(
-            'run {}'.format(name_type),
+    def gen_run_add_args(self, parser, name_type, release_default,
+                        **kwargs):
+        parser.description = 'run {}'.format(name_type)
+        self.build_default_command_parser(
+            parser,
             release_default=release_default,
             **kwargs)
         parser.add_argument('executable', help='{} to run'.format(name_type))
         parser.add_argument('executable_args', nargs=argparse.REMAINDER)
-        args = parser.parse_args(remaining_args)
-        args_callback(args)
-        directory = self.get_directory(args)
-        self.build(args,
-                   directory,
-                   additional_build_args=["--target", args.executable])
-        self.runner([os.path.join(directory, args.executable)] +
-                    args.executable_args)
 
-    def run_command(self, remaining_args):
-        self.gen_run_command(remaining_args, 'executable', False,
-                             lambda _: None)
+    def gen_run_command(self):
+        directory = self.get_directory()
+        self.build(directory,
+                   additional_build_args=["--target", self.args.executable])
+        self.runner([os.path.join(directory, self.args.executable)] +
+                    self.args.executable_args)
 
-    def bench_command(self, remaining_args):
-        def add_bench_flag(args):
-            args.build_benchmarks = True
+    def run_add_args(self, parser):
+        self.gen_run_add_args(parser, 'executable', False)
 
-        self.gen_run_command(remaining_args,
-                             'benchmark',
-                             True,
-                             add_bench_flag,
-                             has_build_testing=False,
-                             has_build_benchmarks=False)
+    def run_command(self):
+        self.gen_run_command()
 
-    def check_command(self, remaining_args):
-        args = self.build_default_command_parser(
-            'check (syntax only) project',
-            build_testing_default=True,
-            build_benchmarks_default=True,
-            has_release=False).parse_args(remaining_args)
+    def bench_add_args(self, parser):
+        self.gen_run_add_args(parser,
+                              'benchmark',
+                              True,
+                              has_build_testing=False,
+                              has_build_benchmarks=False)
+
+    def bench_command(self):
+        self.args.build_benchmarks = True
+        self.gen_run_command()
+
+    def check_add_args(self, parser):
+        parser.description = 'check (syntax only) project'
+        self.build_default_command_parser(parser,
+                                          build_testing_default=True,
+                                          build_benchmarks_default=True,
+                                          has_release=False,
+                                          has_ccache=False)
+
+    def check_command(self):
         self.args.ccache = False
-        self.build(args,
-                   self.get_directory(args, forced_base="check"),
+        self.build(self.get_directory(forced_base="check"),
                    additional_gen_args=["-DSYNTAX_ONLY=ON"])
 
     def extend_commands(self, commands):
         commands.update({
-            "test": self.test_command,
-            "bench": self.bench_command,
-            "check": self.check_command,
-            "run": self.run_command,
+            "test": (self.test_add_args, self.test_command),
+            "bench": (self.bench_add_args, self.bench_command),
+            "check": (self.check_add_args, self.check_command),
+            "run": (self.run_add_args, self.run_command),
         })
 
     @staticmethod
