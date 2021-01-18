@@ -2,6 +2,7 @@
 
 #include "kernel/kernel_launch.h"
 #include "kernel/thread_interactor_launchable.h"
+#include "kernel/tuple_thread_interactor.h"
 #include "kernel/work_division.h"
 #include "lib/assert.h"
 #include "render/detail/integrate_image_base_items.h"
@@ -15,11 +16,10 @@
 namespace render {
 namespace detail {
 template <ExecutionModel exec>
-ExecVector<exec, FloatRGB> *
-reduce_float_rgb(bool output_as_bgra_32, unsigned reduction_factor,
-                 unsigned samples_per, ExecVector<exec, FloatRGB> *float_rgb_in,
-                 ExecVector<exec, FloatRGB> *float_rgb_out,
-                 Span<BGRA32> bgras) {
+ExecVector<exec, FloatRGB> *ReduceFloatRGB<exec>::run(
+    bool output_as_bgra_32, unsigned reduction_factor, unsigned samples_per,
+    ExecVector<exec, FloatRGB> *float_rgb_in,
+    ExecVector<exec, FloatRGB> *float_rgb_out, Span<BGRA32> bgras) {
   while (reduction_factor != 1) {
     always_assert(float_rgb_in->size() % reduction_factor == 0);
     unsigned x_dim = float_rgb_in->size() / reduction_factor;
@@ -43,27 +43,33 @@ reduce_float_rgb(bool output_as_bgra_32, unsigned reduction_factor,
 
     Span<const FloatRGB> in_span = *float_rgb_in;
 
-    kernel::KernelLaunch<exec>::run(
-        division, 0, division.total_num_blocks(),
-        kernel::ThreadInteractorLaunchable{
-            .inp = kernel::EmptyExtraInp{},
-            .interactor = false,
-            .callable =
-                [=](const kernel::WorkDivision &division,
-                    const kernel::GridLocationInfo &info,
-                    const unsigned block_idx, const unsigned thread_idx) {
-                  auto [start_sample, end_sample, x, y] = info;
+    using ExtraInp = kernel::EmptyExtraInp;
 
-                  FloatRGB total = FloatRGB::Zero();
-                  for (unsigned i = start_sample; i < end_sample; ++i) {
-                    total += in_span[i + x * reduction_factor];
-                  }
+    auto callable = [=](const kernel::WorkDivision &division,
+                        const kernel::GridLocationInfo &info,
+                        const unsigned block_idx, const unsigned thread_idx,
+                        ExtraInp, auto) {
+      auto [start_sample, end_sample, x, y] = info;
+
+      FloatRGB total = FloatRGB::Zero();
+      for (unsigned i = start_sample; i < end_sample; ++i) {
+        total += in_span[i + x * reduction_factor];
+      }
 
 #pragma message "REDUCE"
-                  // reduce_assign_output(items, division, thread_idx,
-                  // block_idx,
-                  //                      x, 0, total);
-                },
+      // reduce_assign_output(items, division, thread_idx,
+      // block_idx,
+      //                      x, 0, total);
+    };
+
+    kernel::KernelLaunch<exec>::run(
+        division, 0, division.total_num_blocks(),
+        kernel::ThreadInteractorLaunchable<
+            ExtraInp, kernel::TupleThreadInteractor<ExtraInp>,
+            decltype(callable)>{
+            .inp = {},
+            .interactor = {},
+            .callable = callable,
         });
 
     reduction_factor = division.num_sample_blocks();

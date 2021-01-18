@@ -9,7 +9,7 @@
 namespace kernel {
 template <>
 template <Launchable L>
-void KernelLaunch<ExecutionModel::GPU>::run_internal(
+void KernelLaunch<ExecutionModel::CPU>::run_internal(
     const WorkDivision &division, unsigned start_block, unsigned end_block,
     const L &launchable_in, bool /* sync */) {
   // TODO: better scheduling approach?  allow input argument to control?
