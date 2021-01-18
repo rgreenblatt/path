@@ -73,6 +73,8 @@ public:
 #else
   // build ALL possible values
   // Note that this SUBSTANTIALLY increases compile times
+  // If code isn't generated (e.g.) -fsyntax-only, this is actually ok
+  // (but still increases build times...)
   constexpr static auto values = [] {
     constexpr auto tuple_values =
         AllValues<MetaTuple<IntersectionType, LightSamplerType, DirSamplerType,
@@ -92,3 +94,14 @@ public:
 };
 
 static_assert(AllValuesEnumerable<render::Settings::CompileTime>);
+
+// default settings value is included
+static_assert([] {
+  auto default_value = render::Settings{}.compile_time();
+  for (auto value : AllValues<render::Settings::CompileTime>) {
+    if (value == default_value) {
+      return true;
+    }
+  }
+  return false;
+}());
