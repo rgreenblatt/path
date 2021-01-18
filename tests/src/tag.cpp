@@ -23,6 +23,8 @@ template <unsigned up_to> struct TagUpToForUpTo8 {
   requires(idx < up_to) void operator()(Tag<UpTo<8>, idx>) {}
 };
 
+// TODO: gcc work around (should work on trunk)
+#ifdef __clang__
 static_assert(!NTagDispatchable<decltype(empty), 1>);
 static_assert(NTagDispatchable<decltype(idx_dispatchable), 3>);
 static_assert(NTagDispatchable<UpTo3, 3>);
@@ -46,6 +48,7 @@ static_assert(!AllTypesSame<decltype(return_type_varies(NTag<0>{})),
 static_assert(!TagDispatchable<decltype(return_type_varies), UpTo<8>>);
 static_assert(TagDispatchable<decltype(return_type_varies), UpTo<1>>);
 static_assert(!TagDispatchable<decltype(any_dispatchable), UpTo<0>>);
+#endif
 
 static_assert(std::same_as<decltype(to_tag<bool>(NTag<0>{})), Tag<bool, 0>>);
 static_assert(std::same_as<decltype(to_tag<bool>(NTag<1>{})), Tag<bool, 1>>);

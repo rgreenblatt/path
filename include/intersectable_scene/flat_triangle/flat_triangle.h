@@ -77,9 +77,9 @@ class Generator {
 public:
   Generator(){};
 
-  using Settings = Settings<AccelSettings>;
-  using Intersector = IntersectableRef<typename Accel::Ref>;
-  using SceneRef = SceneRef;
+  using Settings = flat_triangle::Settings<AccelSettings>;
+  using Intersector = flat_triangle::IntersectableRef<typename Accel::Ref>;
+  using SceneRef = flat_triangle::SceneRef;
 
   IntersectableScene<Intersector, SceneRef> gen(const Settings &settings,
                                                 const scene::Scene &scene) {

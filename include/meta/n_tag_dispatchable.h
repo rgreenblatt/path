@@ -9,7 +9,12 @@ namespace dispatch_name {
 namespace detail {
 template <typename F, unsigned... idxs>
 concept NTagDispatchablePack = requires(F &&f) {
+  // TODO: gcc work around (should work on trunk)
+#ifdef __clang__
   requires AllTypesSame<decltype(f(NTag<idxs>{}))...>;
+#else
+  requires true;
+#endif
 };
 
 template <typename F, typename Idxs> struct CheckNTagDispatchable;

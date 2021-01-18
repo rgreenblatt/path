@@ -10,7 +10,12 @@ namespace dispatch_name {
 namespace detail {
 template <typename F, typename T, unsigned... idxs>
 concept TagDispatchablePack = AllValuesEnumerable<T> && requires(F &f) {
+  // TODO: gcc work around (should work on trunk)
+#ifdef __clang__
   requires AllTypesSame<decltype(f(Tag<T, idxs>{}))...>;
+#else
+  requires true;
+#endif
 };
 
 template <typename F, typename T, typename Idxs> struct CheckTagDispatchable;

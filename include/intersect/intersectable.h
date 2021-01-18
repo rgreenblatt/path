@@ -22,7 +22,7 @@ concept IntersectableForInfoType = requires {
 };
 
 struct MockIntersectable :
-// work around gcc bug...
+// TODO: gcc work around
 #ifdef __clang__
     MockNoRequirements
 #else
