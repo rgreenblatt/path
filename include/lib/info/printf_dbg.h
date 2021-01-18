@@ -14,6 +14,7 @@
 #endif
 #endif
 
+#include "meta/macro_map.h"
 #include "meta/specialization_of.h"
 
 #include <boost/hana/back.hpp>
@@ -26,8 +27,10 @@
 #include <boost/hana/string.hpp>
 #include <boost/hana/tuple.hpp>
 
+#include <cstdio>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 
 #if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
 #define PRINTF_DBG_MACRO_UNIX
@@ -296,83 +299,14 @@ template <typename... T> decltype(auto) identity(T &&...t) {
 } // namespace detail
 } // namespace printf_dbg
 
-// this code is macro nonsense stolen from dbg.h
 #ifndef PRINTF_DBG_MACRO_DISABLE
-// Force expanding argument with commas for MSVC, ref:
-// https://stackoverflow.com/questions/35210637/macro-expansion-argument-with-commas
-// Note that "args" should be a tuple with parentheses, such as "(e1, e2, ...)".
-#define PRINTF_DBG_IDENTITY(x) x
-#define PRINTF_DBG_CALL(fn, args) PRINTF_DBG_IDENTITY(fn args)
-
-#define PRINTF_DBG_CAT_IMPL(_1, _2) _1##_2
-#define PRINTF_DBG_CAT(_1, _2) PRINTF_DBG_CAT_IMPL(_1, _2)
-
-#define PRINTF_DBG_16TH_IMPL(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11,     \
-                             _12, _13, _14, _15, _16, ...)                     \
-  _16
-#define PRINTF_DBG_16TH(args) PRINTF_DBG_CALL(PRINTF_DBG_16TH_IMPL, args)
-#define PRINTF_DBG_NARG(...)                                                   \
-  PRINTF_DBG_16TH(                                                             \
-      (__VA_ARGS__, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0))
-
-// PRINTF_DBG_VARIADIC_CALL(fn, data, e1, e2, ...) => fn_N(data, (e1, e2, ...))
-#define PRINTF_DBG_VARIADIC_CALL(fn, data, ...)                                \
-  PRINTF_DBG_CAT(fn##_, PRINTF_DBG_NARG(__VA_ARGS__))(data, (__VA_ARGS__))
-
-// (e1, e2, e3, ...) => e1
-#define PRINTF_DBG_HEAD_IMPL(_1, ...) _1
-#define PRINTF_DBG_HEAD(args) PRINTF_DBG_CALL(PRINTF_DBG_HEAD_IMPL, args)
-
-// (e1, e2, e3, ...) => (e2, e3, ...)
-#define PRINTF_DBG_TAIL_IMPL(_1, ...) (__VA_ARGS__)
-#define PRINTF_DBG_TAIL(args) PRINTF_DBG_CALL(PRINTF_DBG_TAIL_IMPL, args)
-
-#define PRINTF_DBG_MAP_1(fn, args) PRINTF_DBG_CALL(fn, args)
-#define PRINTF_DBG_MAP_2(fn, args)                                             \
-  fn(PRINTF_DBG_HEAD(args)), PRINTF_DBG_MAP_1(fn, PRINTF_DBG_TAIL(args))
-#define PRINTF_DBG_MAP_3(fn, args)                                             \
-  fn(PRINTF_DBG_HEAD(args)), PRINTF_DBG_MAP_2(fn, PRINTF_DBG_TAIL(args))
-#define PRINTF_DBG_MAP_4(fn, args)                                             \
-  fn(PRINTF_DBG_HEAD(args)), PRINTF_DBG_MAP_3(fn, PRINTF_DBG_TAIL(args))
-#define PRINTF_DBG_MAP_5(fn, args)                                             \
-  fn(PRINTF_DBG_HEAD(args)), PRINTF_DBG_MAP_4(fn, PRINTF_DBG_TAIL(args))
-#define PRINTF_DBG_MAP_6(fn, args)                                             \
-  fn(PRINTF_DBG_HEAD(args)), PRINTF_DBG_MAP_5(fn, PRINTF_DBG_TAIL(args))
-#define PRINTF_DBG_MAP_7(fn, args)                                             \
-  fn(PRINTF_DBG_HEAD(args)), PRINTF_DBG_MAP_6(fn, PRINTF_DBG_TAIL(args))
-#define PRINTF_DBG_MAP_8(fn, args)                                             \
-  fn(PRINTF_DBG_HEAD(args)), PRINTF_DBG_MAP_7(fn, PRINTF_DBG_TAIL(args))
-#define PRINTF_DBG_MAP_9(fn, args)                                             \
-  fn(PRINTF_DBG_HEAD(args)), PRINTF_DBG_MAP_8(fn, PRINTF_DBG_TAIL(args))
-#define PRINTF_DBG_MAP_10(fn, args)                                            \
-  fn(PRINTF_DBG_HEAD(args)), PRINTF_DBG_MAP_9(fn, PRINTF_DBG_TAIL(args))
-#define PRINTF_DBG_MAP_11(fn, args)                                            \
-  fn(PRINTF_DBG_HEAD(args)), PRINTF_DBG_MAP_10(fn, PRINTF_DBG_TAIL(args))
-#define PRINTF_DBG_MAP_12(fn, args)                                            \
-  fn(PRINTF_DBG_HEAD(args)), PRINTF_DBG_MAP_11(fn, PRINTF_DBG_TAIL(args))
-#define PRINTF_DBG_MAP_13(fn, args)                                            \
-  fn(PRINTF_DBG_HEAD(args)), PRINTF_DBG_MAP_12(fn, PRINTF_DBG_TAIL(args))
-#define PRINTF_DBG_MAP_14(fn, args)                                            \
-  fn(PRINTF_DBG_HEAD(args)), PRINTF_DBG_MAP_13(fn, PRINTF_DBG_TAIL(args))
-#define PRINTF_DBG_MAP_15(fn, args)                                            \
-  fn(PRINTF_DBG_HEAD(args)), PRINTF_DBG_MAP_14(fn, PRINTF_DBG_TAIL(args))
-#define PRINTF_DBG_MAP_16(fn, args)                                            \
-  fn(PRINTF_DBG_HEAD(args)), PRINTF_DBG_MAP_15(fn, PRINTF_DBG_TAIL(args))
-
-// PRINTF_DBG_MAP(fn, e1, e2, e3, ...) => fn(e1), fn(e2), fn(e3), ...
-#define PRINTF_DBG_MAP(fn, ...)                                                \
-  PRINTF_DBG_VARIADIC_CALL(PRINTF_DBG_MAP, fn, __VA_ARGS__)
-
-#define PRINTF_DBG_STRINGIFY_IMPL(x) #x
-#define PRINTF_DBG_STRINGIFY(x) PRINTF_DBG_STRINGIFY_IMPL(x)
-
 #define PRINTF_DBG_TYPE_NAME(x) printf_dbg::type_name<decltype(x)>.c_str()
 
 #define PRINTF_DBG(...)                                                        \
   printf_dbg::detail::debug_print(                                             \
-      __FILE__, __LINE__, __func__,                                            \
-      {PRINTF_DBG_MAP(PRINTF_DBG_STRINGIFY, __VA_ARGS__)},                     \
-      {PRINTF_DBG_MAP(PRINTF_DBG_TYPE_NAME, __VA_ARGS__)}, __VA_ARGS__)
+      __FILE__, __LINE__, __func__, {MACRO_MAP_STRINGIFY_COMMA(__VA_ARGS__)},  \
+      {MACRO_MAP_PP_COMMA_MAP(PRINTF_DBG_TYPE_NAME, __VA_ARGS__)},             \
+      __VA_ARGS__)
 #else
 #define PRINTF_DBG(...) printf_dbg::detail::identity(__VA_ARGS__)
 #endif // PRINTF_DBG_MACRO_DISABLE

@@ -270,6 +270,8 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
                    "${PROJECT_SOURCE_DIR}/tests/src/bit_utils_gpu.cu")
   package_add_test(all_values_test
                    "${PROJECT_SOURCE_DIR}/tests/src/all_values.cpp")
+  package_add_test(macro_map_test
+                   "${PROJECT_SOURCE_DIR}/tests/src/macro_map.cpp")
 
   add_custom_target(
     run_build_tests
