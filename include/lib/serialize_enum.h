@@ -7,12 +7,12 @@
 
 namespace cereal {
 template <typename Archive, Enum T>
-inline std::string save_minimal(Archive const &, T const &enum_v) {
+inline std::string save_minimal(const Archive &, const T &enum_v) {
   return std::string(magic_enum::enum_name(enum_v));
 }
 
 template <typename Archive, Enum T>
-inline void load_minimal(Archive const &, T &enum_v, const std::string &s) {
+inline void load_minimal(const Archive &, T &enum_v, const std::string &s) {
   auto val_op = magic_enum::enum_cast<T>(s);
   if (val_op.has_value()) {
     enum_v = val_op.value();
