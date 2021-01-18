@@ -17,15 +17,22 @@ template <AllValuesEnumerable... T> struct PredicateForAllValues {
   // unfortunately, this nesting is needed due to the dependence on T...
   // Pred should always be convertible to bool
   template <template <T...> class Pred>
-  static constexpr bool value = boost::hana::unpack(
-      std::make_index_sequence<values.size()>{}, [](auto... i) {
-        return (... && [&](auto idx) {
-          return boost::hana::unpack(
-              std::make_index_sequence<sizeof...(T)>{}, [&](auto... j) -> bool {
-                return Pred<meta_tuple_at<j>(values[idx])...>{};
-              });
-        }(i));
-      });
+  static constexpr bool value =
+  // TODO: gcc work around (should work on trunk)
+#ifdef __clang__
+      boost::hana::unpack(
+          std::make_index_sequence<values.size()>{}, [](auto... i) {
+            return (... && [&](auto idx) {
+              return boost::hana::unpack(
+                  std::make_index_sequence<sizeof...(T)>{},
+                  [&](auto... j) -> bool {
+                    return Pred<meta_tuple_at<j>(values[idx])...>{};
+                  });
+            }(i));
+          });
+#else
+      true;
+#endif
 };
 
 // useful utility for the above

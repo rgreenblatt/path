@@ -21,7 +21,14 @@ concept IntersectableForInfoType = requires {
   requires std::same_as<typename T::InfoType, InfoType>;
 };
 
-struct MockIntersectable : MockNoRequirements {
+struct MockIntersectable :
+// work around gcc bug...
+#ifdef __clang__
+    MockNoRequirements
+#else
+    MockMovable
+#endif
+{
   struct InfoType : MockSemiregular {};
 
   constexpr IntersectionOp<InfoType> intersect(const Ray &) const {
