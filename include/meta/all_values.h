@@ -1,5 +1,6 @@
 #pragma once
 
+#include "meta/less_comparable.h"
 #include "meta/std_array_specialization.h"
 
 #include <algorithm>
@@ -12,7 +13,8 @@ template <typename T> struct AllValuesImpl;
 template <typename T>
 concept AllValuesCompare = requires(const T &t) {
   requires std::equality_comparable<T>;
-  { t < t } -> std::convertible_to<bool>; // less
+  // TODO: hana tuple compare work around...
+  requires LessComparable<T>;
 };
 
 template <AllValuesCompare T, std::size_t size>
@@ -47,6 +49,7 @@ concept AllValuesEnumerable = requires(const T &t) {
   // for some types (integers for examples)
   typename AllValuesImpl<T>;
   requires StdArrayOfType<decltype(AllValuesImpl<T>::values), T>;
+  // TODO: could improve compile times by making this optional...
   requires all_values_unique(AllValuesImpl<T>::values);
 };
 
