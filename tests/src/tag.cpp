@@ -23,29 +23,29 @@ template <unsigned up_to> struct TagUpToForUpTo8 {
   requires(idx < up_to) void operator()(Tag<UpTo<8>, idx>) {}
 };
 
-static_assert(!NTagDispatchable<1, decltype(empty)>);
-static_assert(NTagDispatchable<3, decltype(idx_dispatchable)>);
-static_assert(NTagDispatchable<3, UpTo3>);
-static_assert(!NTagDispatchable<4, UpTo3>);
-static_assert(NTagDispatchable<3, decltype(any_dispatchable)>);
-static_assert(!NTagDispatchable<3, decltype(return_type_varies)>);
-static_assert(NTagDispatchable<1, decltype(return_type_varies)>);
-static_assert(!NTagDispatchable<0, decltype(any_dispatchable)>);
+static_assert(!NTagDispatchable<decltype(empty), 1>);
+static_assert(NTagDispatchable<decltype(idx_dispatchable), 3>);
+static_assert(NTagDispatchable<UpTo3, 3>);
+static_assert(!NTagDispatchable<UpTo3, 4>);
+static_assert(NTagDispatchable<decltype(any_dispatchable), 3>);
+static_assert(!NTagDispatchable<decltype(return_type_varies), 3>);
+static_assert(NTagDispatchable<decltype(return_type_varies), 1>);
+static_assert(!NTagDispatchable<decltype(any_dispatchable), 0>);
 
-static_assert(!TagDispatchable<bool, decltype(empty)>);
-static_assert(!TagDispatchable<int, decltype(empty)>);
-static_assert(TagDispatchable<bool, decltype(tag_bool_dispatchable)>);
-static_assert(!TagDispatchable<bool, decltype(idx_dispatchable)>);
-static_assert(TagDispatchable<UpTo<8>, decltype(tag_up_to_8_dispatchable)>);
-static_assert(!TagDispatchable<UpTo<8>, TagUpToForUpTo8<3>>);
-static_assert(!TagDispatchable<UpTo<8>, TagUpToForUpTo8<7>>);
-static_assert(TagDispatchable<UpTo<8>, TagUpToForUpTo8<8>>);
-static_assert(TagDispatchable<UpTo<8>, decltype(any_dispatchable)>);
+static_assert(!TagDispatchable<decltype(empty), bool>);
+static_assert(!TagDispatchable<decltype(empty), int>);
+static_assert(TagDispatchable<decltype(tag_bool_dispatchable), bool>);
+static_assert(!TagDispatchable<decltype(idx_dispatchable), bool>);
+static_assert(TagDispatchable<decltype(tag_up_to_8_dispatchable), UpTo<8>>);
+static_assert(!TagDispatchable<TagUpToForUpTo8<3>, UpTo<8>>);
+static_assert(!TagDispatchable<TagUpToForUpTo8<7>, UpTo<8>>);
+static_assert(TagDispatchable<TagUpToForUpTo8<8>, UpTo<8>>);
+static_assert(TagDispatchable<decltype(any_dispatchable), UpTo<8>>);
 static_assert(!AllTypesSame<decltype(return_type_varies(NTag<0>{})),
                             decltype(return_type_varies(NTag<1>{}))>);
-static_assert(!TagDispatchable<UpTo<8>, decltype(return_type_varies)>);
-static_assert(TagDispatchable<UpTo<1>, decltype(return_type_varies)>);
-static_assert(!TagDispatchable<UpTo<0>, decltype(any_dispatchable)>);
+static_assert(!TagDispatchable<decltype(return_type_varies), UpTo<8>>);
+static_assert(TagDispatchable<decltype(return_type_varies), UpTo<1>>);
+static_assert(!TagDispatchable<decltype(any_dispatchable), UpTo<0>>);
 
 static_assert(std::same_as<decltype(to_tag<bool>(NTag<0>{})), Tag<bool, 0>>);
 static_assert(std::same_as<decltype(to_tag<bool>(NTag<1>{})), Tag<bool, 1>>);

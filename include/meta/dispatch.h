@@ -10,9 +10,8 @@
 #include <map>
 
 // this probably isn't a very efficient implementation (double dispatch...)
-template <AllValuesEnumerable T, typename F>
-requires(AllValues<T>.size() != 0 && TagDispatchable<T, F>) decltype(auto)
-    dispatch(T value, F &&f) {
+template <AllValuesEnumerable T, TagDispatchable<T> F>
+requires(AllValues<T>.size() != 0) decltype(auto) dispatch(T value, F &&f) {
   const static auto lookup = [] {
     constexpr auto values = AllValues<T>;
 

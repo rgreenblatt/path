@@ -12,15 +12,18 @@ concept NTagDispatchablePack = requires(F &&f) {
   requires AllTypesSame<decltype(f(NTag<idxs>{}))...>;
 };
 
-template <typename F, unsigned... idxs>
-requires NTagDispatchablePack<F, idxs...>
-void check_n_tag_dispatchable(std::integer_sequence<unsigned, idxs...>);
+template <typename F, typename Idxs> struct CheckNTagDispatchable;
+
+template <typename F, std::size_t... idxs>
+struct CheckNTagDispatchable<F, std::index_sequence<idxs...>> {
+  static constexpr bool value = NTagDispatchablePack<F, idxs...>;
+};
 } // namespace detail
 } // namespace dispatch_name
 
-template <unsigned size, typename F>
+template <typename F, unsigned size>
 concept NTagDispatchable = requires {
   requires size != 0;
-  dispatch_name::detail::check_n_tag_dispatchable<F>(
-      std::make_integer_sequence<unsigned, size>{});
+  requires dispatch_name::detail::CheckNTagDispatchable<
+      F, std::make_index_sequence<size>>::value;
 };

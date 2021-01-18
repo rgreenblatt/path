@@ -8,17 +8,14 @@ namespace detail {
 template <AllValuesEnumerable T, template <T> class TypeOver,
           template <typename...> class V>
 struct PerInstanceImpl {
-  // this approach is a bit gross, but I can't think of a better one...
-  template <std::size_t... i> struct ItemsHelper {
+  template <typename> struct ItemsHelper;
+
+  template <std::size_t... i> struct ItemsHelper<std::index_sequence<i...>> {
     using Type = V<TypeOver<AllValues<T>[i]>...>;
-    constexpr ItemsHelper(std::integer_sequence<std::size_t, i...>) {}
   };
 
-  template <std::size_t... i>
-  ItemsHelper(std::integer_sequence<std::size_t, i...>) -> ItemsHelper<i...>;
-
-  using type = typename decltype(ItemsHelper(
-      std::make_index_sequence<AllValues<T>.size()>{}))::Type;
+  using type =
+      typename ItemsHelper<std::make_index_sequence<AllValues<T>.size()>>::Type;
 };
 
 template <AllValuesEnumerable T, template <T> class TypeOver,

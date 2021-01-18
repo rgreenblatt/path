@@ -4,23 +4,29 @@
 #include "meta/all_values.h"
 #include "meta/tag.h"
 
+#include <utility>
+
 namespace dispatch_name {
 namespace detail {
-template <typename T, typename F, unsigned... idxs>
+template <typename F, typename T, unsigned... idxs>
 concept TagDispatchablePack = AllValuesEnumerable<T> && requires(F &f) {
   requires AllTypesSame<decltype(f(Tag<T, idxs>{}))...>;
 };
 
-template <AllValuesEnumerable T, typename F, unsigned... idxs>
-requires TagDispatchablePack<T, F, idxs...>
-void check_tag_dispatchable(std::integer_sequence<unsigned, idxs...>);
+template <typename F, typename T, typename Idxs> struct CheckTagDispatchable;
+
+template <typename F, AllValuesEnumerable T, std::size_t... idxs>
+struct CheckTagDispatchable<F, T, std::index_sequence<idxs...>> {
+  static constexpr bool value = TagDispatchablePack<F, T, idxs...>;
+};
 } // namespace detail
 } // namespace dispatch_name
 
-template <typename T, typename F>
+template <typename F, typename T>
 concept TagDispatchable = requires {
   requires AllValues<T>
   .size() != 0;
-  dispatch_name::detail::check_tag_dispatchable<T, F>(
-      std::make_integer_sequence<unsigned, AllValues<T>.size()>{});
+  requires dispatch_name::detail::CheckTagDispatchable < F, T,
+      std::make_index_sequence < AllValues<T>
+  .size() >> ::value;
 };
