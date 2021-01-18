@@ -131,11 +131,16 @@ class PathCMakeBuild(BaseCMakeBuilder):
                                           build_benchmarks_default=True,
                                           has_release=False,
                                           has_ccache=False)
+        parser.add_argument('--target', help='cmake target')
 
     def check_command(self):
         self.args.ccache = False
+        additional_build_args = None
+        if self.args.target is not None:
+            additional_build_args = ["--target", self.args.target]
         self.build(self.get_directory(forced_base="check"),
-                   additional_gen_args=["-DSYNTAX_ONLY=ON"])
+                   additional_gen_args=["-DSYNTAX_ONLY=ON"],
+                   additional_build_args=additional_build_args)
 
     def extend_commands(self, commands):
         commands.update({
