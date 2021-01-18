@@ -13,6 +13,7 @@
 #include "meta/std_array_specialization.h"
 #include "meta/tag.h"
 
+#include <boost/hana/ext/std/integer_sequence.hpp>
 #include <boost/hana/fold_left.hpp>
 #include <boost/hana/unpack.hpp>
 
@@ -282,6 +283,17 @@ public:
     }
 
     return visit_n([](auto, const auto &l, const auto &r) { return l == r; },
+                   *this, other);
+  }
+
+  // TODO: hana tuple compare work around...
+  constexpr auto operator<(const TaggedUnion &other) const
+      requires(... &&LessComparable<T>) {
+    if (idx_ != other.idx_) {
+      return idx_ < other.idx_;
+    }
+
+    return visit_n([](auto, const auto &l, const auto &r) { return l < r; },
                    *this, other);
   }
 

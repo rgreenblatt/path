@@ -49,7 +49,7 @@ requires(AllValues<E>.size() == sizeof...(T)) struct TaggedTuple {
   constexpr bool operator==(const TaggedTuple &other) const = default;
   constexpr auto operator<=>(const TaggedTuple &other) const = default;
 
-  // work around for current state of boost::hana::tuple
+  // TODO: hana tuple compare work around...
   constexpr bool operator<(const TaggedTuple &other) const {
     return items < other.items;
   }
