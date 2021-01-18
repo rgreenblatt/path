@@ -17,8 +17,9 @@ namespace integrate {
 namespace light_sampler {
 namespace random_triangle {
 namespace detail {
-HOST_DEVICE unsigned search(const float target, SpanSized<const float> values,
-                            const unsigned binary_search_threshold) {
+inline HOST_DEVICE unsigned search(const float target,
+                                   SpanSized<const float> values,
+                                   const unsigned binary_search_threshold) {
   if (values.size() < binary_search_threshold) {
     for (unsigned i = 0; i < values.size(); ++i) {
       if (values[i] >= target) {
