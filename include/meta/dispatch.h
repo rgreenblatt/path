@@ -40,3 +40,9 @@ requires(AllValues<T>.size() != 0) decltype(auto) dispatch(T value, F &&f) {
   return sequential_dispatch<AllValues<T>.size()>(
       it->second, [&]<unsigned idx>(NTag<idx>) { return f(Tag<T, idx>{}); });
 }
+
+// useful for type checking/writing code in some cases
+template <AllValuesEnumerable T, typename F>
+requires(AllValues<T>.size() != 0) decltype(auto) fake_dispatch(T, F &&f) {
+  return f(Tag<T, 0>{});
+}
