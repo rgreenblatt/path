@@ -14,7 +14,7 @@ requires(power_of_2(min) && power_of_2(max) && min <= max) struct Pow2Gen {
     debug_assert(power_of_2(value));
   }
   constexpr operator T() const { return value; }
-  constexpr operator T &() { return value; }
+  constexpr T operator()() const { return value; }
 };
 
 template <unsigned min, unsigned max> using Pow2 = Pow2Gen<unsigned, min, max>;

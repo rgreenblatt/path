@@ -12,7 +12,7 @@ requires(begin <= end) struct RangeGen {
     debug_assert(value < end);
   }
   constexpr operator T() const { return value; }
-  constexpr operator T &() { return value; }
+  constexpr T operator()() const { return value; }
 };
 
 template <unsigned begin, unsigned end>
