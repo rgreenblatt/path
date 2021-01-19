@@ -8,11 +8,7 @@ namespace n_iters {
 struct Settings {
   unsigned iters = 1;
 
-  template <typename Archive> void serialize(Archive &archive) {
-    archive(NVP(iters));
-  }
-
-  ATTR_PURE constexpr bool operator==(const Settings &) const = default;
+  SETTING_BODY(Settings, iters);
 };
 
 static_assert(Setting<Settings>);

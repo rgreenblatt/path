@@ -9,9 +9,7 @@ namespace intersectable_scene {
 struct ToBulkSettings {
   unsigned max_size = 2097152;
 
-  template <typename Archive> void serialize(Archive &ar) { ar(NVP(max_size)); }
-
-  ATTR_PURE constexpr bool operator==(const ToBulkSettings &) const = default;
+  SETTING_BODY(ToBulkSettings, max_size);
 };
 
 template <ExecutionModel exec, intersect::Intersectable I> struct ToBulkGen {

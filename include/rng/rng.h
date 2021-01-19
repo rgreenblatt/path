@@ -37,8 +37,6 @@ concept Rng = requires {
   };
 };
 
-struct MockRngSettings : EmptySettings {};
-
 struct MockRng : MockNoRequirements {
   struct Ref : MockCopyable {
     struct State : MockSemiregular {
@@ -48,12 +46,12 @@ struct MockRng : MockNoRequirements {
     State get_generator(unsigned sample_idx, unsigned location) const;
   };
 
-  Ref gen(const MockRngSettings &settings, unsigned samples_per,
+  Ref gen(const EmptySettings &settings, unsigned samples_per,
           unsigned n_locations);
 };
 
 using MockRngRef = MockRng::Ref;
 using MockRngState = MockRng::Ref::State;
 
-static_assert(Rng<MockRng, MockRngSettings>);
+static_assert(Rng<MockRng, EmptySettings>);
 } // namespace rng

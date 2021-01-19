@@ -9,11 +9,8 @@ struct GeneralSettings {
   ComputationSettings computation_settings;
   integrate::RenderingEquationSettings rendering_equation_settings;
 
-  template <typename Archive> void serialize(Archive &archive) {
-    archive(NVP(computation_settings), NVP(rendering_equation_settings));
-  }
-
-  constexpr bool operator==(const GeneralSettings &) const = default;
+  SETTING_BODY(GeneralSettings, computation_settings,
+               rendering_equation_settings);
 };
 
 static_assert(Setting<GeneralSettings>);

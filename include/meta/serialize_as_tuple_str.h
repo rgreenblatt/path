@@ -15,11 +15,12 @@ namespace as_tuple {
 namespace detail {
 template <typename T, typename Archive, typename Tuple>
 constexpr void archive(Archive &ar, Tuple &&tup) {
-  boost::hana::unpack(
-      std::make_index_sequence<meta_tuple_size_v<AsTupleT<T>>>{},
-      [&](auto... i) {
-        ar(make_nvp(std::string(T::as_tuple_strs()[i]), tup[i])...);
-      });
+  constexpr auto size = meta_tuple_size_v<AsTupleT<T>>;
+  if constexpr (size != 0) {
+    boost::hana::unpack(std::make_index_sequence<size>{}, [&](auto... i) {
+      ar(make_nvp(std::string(T::as_tuple_strs()[i]), tup[i])...);
+    });
+  }
 }
 } // namespace detail
 } // namespace as_tuple

@@ -7,11 +7,7 @@ namespace flat_triangle {
 template <Setting AccelSettings> struct Settings {
   AccelSettings accel_settings;
 
-  template <typename Archive> void serialize(Archive &archive) {
-    archive(NVP(accel_settings));
-  }
-
-  constexpr bool operator==(const Settings &) const = default;
+  SETTING_BODY(Settings, accel_settings);
 };
 } // namespace flat_triangle
 } // namespace intersectable_scene

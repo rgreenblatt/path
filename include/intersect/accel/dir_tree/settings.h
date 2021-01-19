@@ -6,7 +6,9 @@ namespace intersect {
 namespace accel {
 namespace dir_tree {
 // TODO: this will change when dir tree is implemented
-struct Settings : public EmptySettings {};
+struct Settings {
+  SETTING_BODY(Settings);
+};
 } // namespace dir_tree
 } // namespace accel
 } // namespace intersect

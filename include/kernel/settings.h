@@ -13,13 +13,9 @@ struct Settings {
   float samples_per_thread_scaling_power = 0.5f;
   unsigned max_samples_per_thread = 32;
 
-  template <typename Archive> void serialize(Archive &ar) {
-    ar(NVP(block_size), NVP(target_x_block_size), NVP(force_target_samples),
-       NVP(forced_target_samples_per_thread), NVP(base_num_threads),
-       NVP(samples_per_thread_scaling_power), NVP(max_samples_per_thread));
-  }
-
-  ATTR_PURE constexpr bool operator==(const Settings &) const = default;
+  SETTING_BODY(Settings, block_size, target_x_block_size, force_target_samples,
+               forced_target_samples_per_thread, base_num_threads,
+               samples_per_thread_scaling_power, max_samples_per_thread);
 };
 
 static_assert(Setting<Settings>);

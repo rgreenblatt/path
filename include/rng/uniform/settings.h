@@ -4,6 +4,8 @@
 
 namespace rng {
 namespace uniform {
-struct Settings : EmptySettings {};
+struct Settings {
+  SETTING_BODY(Settings);
+};
 } // namespace uniform
 } // namespace rng

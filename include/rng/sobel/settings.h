@@ -6,7 +6,9 @@
 namespace rng {
 namespace sobel {
 namespace detail {
-struct SobelSettings : EmptySettings {};
+struct SobelSettings {
+  SETTING_BODY(SobelSettings);
+};
 } // namespace detail
 
 using Settings = rng::detail::RngFromSequenceGenSettings<detail::SobelSettings>;

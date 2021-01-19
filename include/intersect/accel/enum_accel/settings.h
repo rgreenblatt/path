@@ -13,8 +13,8 @@ namespace intersect {
 namespace accel {
 namespace enum_accel {
 template <AccelType type>
-struct Settings : public PickType<type, loop_all::Settings, kdtree::Settings,
-                                  dir_tree::Settings> {};
+using Settings =
+    PickType<type, loop_all::Settings, kdtree::Settings, dir_tree::Settings>;
 
 template <AccelType type>
 struct SettingsValid : BoolWrapper<Setting<Settings<type>>> {};

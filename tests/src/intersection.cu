@@ -134,13 +134,13 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
 TEST(Intersection, loop_all) {
   std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
   for (bool is_gpu : {false, true}) {
-    test_accelerator(gen, Settings<AccelType::LoopAll>(), is_gpu);
+    test_accelerator<AccelType::LoopAll>(gen, {}, is_gpu);
   }
 }
 
 TEST(Intersection, kdtree) {
   std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
   for (bool is_gpu : {false, true}) {
-    test_accelerator(gen, Settings<AccelType::KDTree>(), is_gpu);
+    test_accelerator<AccelType::KDTree>(gen, {}, is_gpu);
   }
 }

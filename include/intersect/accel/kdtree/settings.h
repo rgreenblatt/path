@@ -16,12 +16,8 @@ struct Settings {
   // terminate
   unsigned num_objects_terminate = 2;
 
-  template <typename Archive> void serialize(Archive &archive) {
-    archive(NVP(s_a_heuristic), NVP(use_s_a_heuritic),
-            NVP(num_objects_terminate));
-  }
-
-  constexpr bool operator==(const Settings &) const = default;
+  SETTING_BODY(Settings, s_a_heuristic, use_s_a_heuritic,
+               num_objects_terminate);
 };
 
 static_assert(Setting<Settings>);

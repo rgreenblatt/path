@@ -1,29 +1,19 @@
 #pragma once
 
-#include "lib/attribute.h"
-#include "lib/serialize.h"
-#include "meta/mock.h"
+#include "meta/as_tuple_str_macro.h"
 
 #include <concepts>
-#include <type_traits>
-#include <utility>
-
-// This is the concept of a serializable setting (using cereal)
-
-// To avoid having to include cereal here we mock the archive object
-struct MockArchive : MockNoRequirements {};
 
 template <typename T>
-concept Setting = requires(T &data, MockArchive &archive) {
-  requires std::regular<T>;
+concept Setting = std::regular<T> && AsTupleStr<T>;
 
-  data.serialize(archive);
-};
+// TODO: constexpr ???
+#define SETTING_BODY(NAME, ...)                                                \
+  AS_TUPLE_STR_STRUCTURAL(NAME, ##__VA_ARGS__)                                 \
+  constexpr bool operator==(const NAME &) const = default;
 
 struct EmptySettings {
-  template <typename Archive> void serialize(Archive &) {}
-
-  ATTR_PURE constexpr bool operator==(const EmptySettings &) const = default;
+  SETTING_BODY(EmptySettings);
 };
 
 static_assert(Setting<EmptySettings>);

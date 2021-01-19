@@ -8,11 +8,7 @@ namespace constant {
 struct Settings {
   float prob = 0.5f;
 
-  template <typename Archive> void serialize(Archive &archive) {
-    archive(NVP(prob));
-  }
-
-  ATTR_PURE constexpr bool operator==(const Settings &) const = default;
+  SETTING_BODY(Settings, prob);
 };
 
 static_assert(Setting<Settings>);

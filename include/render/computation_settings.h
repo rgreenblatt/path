@@ -8,11 +8,8 @@ struct ComputationSettings {
   unsigned max_blocks_per_launch = 4096;
   kernel::Settings render_work_division = {}; // TODO
 
-  template <typename Archive> void serialize(Archive &archive) {
-    archive(NVP(max_blocks_per_launch), NVP(render_work_division));
-  }
-
-  constexpr bool operator==(const ComputationSettings &) const = default;
+  SETTING_BODY(ComputationSettings, max_blocks_per_launch,
+               render_work_division);
 };
 
 static_assert(Setting<ComputationSettings>);

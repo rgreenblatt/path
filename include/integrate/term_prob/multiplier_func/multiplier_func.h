@@ -2,6 +2,7 @@
 
 #include "integrate/term_prob/multiplier_func/settings.h"
 #include "integrate/term_prob/term_prob.h"
+#include "lib/attribute.h"
 #include "lib/cuda/utils.h"
 
 namespace integrate {

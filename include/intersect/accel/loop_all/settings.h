@@ -5,7 +5,9 @@
 namespace intersect {
 namespace accel {
 namespace loop_all {
-struct Settings : public EmptySettings {};
+struct Settings {
+  SETTING_BODY(Settings);
+};
 } // namespace loop_all
 } // namespace accel
 } // namespace intersect

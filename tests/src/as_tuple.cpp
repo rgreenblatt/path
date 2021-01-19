@@ -99,6 +99,21 @@ struct SeveralStrSameSerialize {
 };
 
 TEST(AsTuple, serialize) {
+  // empty serialization shouldn't crash and should compile etc...
+  {
+    std::stringstream ss;
+    {
+      cereal::BinaryOutputArchive o(ss);
+      o(EmptyStr{});
+    }
+
+    {
+      cereal::BinaryInputArchive i(ss);
+      EmptyStr out;
+      i(out);
+    }
+  }
+
   const SeveralStr in{3, true, 'c'};
   {
     std::stringstream ss;

@@ -40,11 +40,7 @@ struct Settings {
 
     AccelType type() const { return accel.type(); }
 
-    template <typename Archive> void serialize(Archive &ar) {
-      ar(NVP(to_bulk_settings), NVP(accel));
-    }
-
-    constexpr bool operator==(const ToBulkSettings &) const = default;
+    SETTING_BODY(ToBulkSettings, to_bulk_settings, accel);
   };
 
   TaggedUnion<IntersectionApproach, FlatAccelSettings, ToBulkSettings>
@@ -65,12 +61,8 @@ struct Settings {
 
   GeneralSettings general_settings;
 
-  template <typename Archive> void serialize(Archive &ar) {
-    ar(NVP(intersection), NVP(light_sampler), NVP(dir_sampler), NVP(term_prob),
-       NVP(rng), NVP(general_settings));
-  }
-
-  constexpr bool operator==(const Settings &) const = default;
+  SETTING_BODY(Settings, intersection, light_sampler, dir_sampler, term_prob,
+               rng, general_settings)
 
   using IntersectionType =
       TaggedUnion<IntersectionApproach, AccelType, AccelType>;

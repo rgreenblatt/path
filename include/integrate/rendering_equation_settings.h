@@ -6,12 +6,7 @@ namespace integrate {
 struct RenderingEquationSettings {
   bool back_cull_emission = true;
 
-  template <typename Archive> void serialize(Archive &archive) {
-    archive(NVP(back_cull_emission));
-  }
-
-  ATTR_PURE constexpr bool
-  operator==(const RenderingEquationSettings &) const = default;
+  SETTING_BODY(RenderingEquationSettings, back_cull_emission);
 };
 
 static_assert(Setting<RenderingEquationSettings>);

@@ -11,7 +11,7 @@
 namespace rng {
 namespace enum_rng {
 template <RngType type>
-struct Settings : public PickType<type, uniform::Settings, sobel::Settings> {};
+using Settings = PickType<type, uniform::Settings, sobel::Settings>;
 
 template <RngType type>
 struct SettingsValid : BoolWrapper<Setting<Settings<type>>> {};

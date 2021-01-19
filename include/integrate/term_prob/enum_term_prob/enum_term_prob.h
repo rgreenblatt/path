@@ -15,8 +15,8 @@ namespace integrate {
 namespace term_prob {
 namespace enum_term_prob {
 template <TermProbType type>
-struct EnumTermProb : public PickType<type, constant::Constant, n_iters::NIters,
-                                      multiplier_func::MultiplierFunc> {};
+using EnumTermProb = PickType<type, constant::Constant, n_iters::NIters,
+                              multiplier_func::MultiplierFunc>;
 
 template <TermProbType type>
 struct IsTermProb : BoolWrapper<TermProb<EnumTermProb<type>, Settings<type>>> {

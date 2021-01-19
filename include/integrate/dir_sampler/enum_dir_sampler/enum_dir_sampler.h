@@ -14,8 +14,8 @@ namespace integrate {
 namespace dir_sampler {
 namespace enum_dir_sampler {
 template <DirSamplerType type>
-struct EnumDirSampler
-    : public PickType<type, uniform::Uniform, bsdf_sampler::BSDFSampler> {};
+using EnumDirSampler =
+    PickType<type, uniform::Uniform, bsdf_sampler::BSDFSampler>;
 
 template <DirSamplerType type>
 struct IsGeneralDirSampler
