@@ -4,8 +4,6 @@
 #pragma message("WARNING: the 'printf_dbg.h' header is included")
 #endif
 
-#define BOOST_HANA_CONFIG_ENABLE_STRING_UDL
-
 #ifndef PRINTF_DBG_HOST_DEVICE
 #ifdef __CUDACC__
 #define PRINTF_DBG_HOST_DEVICE __host__ __device__
@@ -16,15 +14,14 @@
 
 #include "meta/macro_map.h"
 #include "meta/specialization_of.h"
+#include "meta/static_sized_string.h"
 
 #include <boost/hana/back.hpp>
 #include <boost/hana/concat.hpp>
 #include <boost/hana/ext/std/array.hpp>
 #include <boost/hana/ext/std/integer_sequence.hpp>
 #include <boost/hana/ext/std/integral_constant.hpp>
-#include <boost/hana/flatten.hpp>
 #include <boost/hana/integral_constant.hpp>
-#include <boost/hana/string.hpp>
 #include <boost/hana/tuple.hpp>
 
 #include <cstdio>
@@ -44,20 +41,13 @@
 
 #ifdef __CUDACC__
 extern "C" {
-__device__ inline size_t strlen(const char *v) {
-  const char *s;
-
-  for (s = v; *s; ++s) {
-  }
-
-  return (s - v);
-}
+__device__ inline size_t strlen(const char *v) { return constexpr_strlen(v); }
 }
 #endif
 
 namespace printf_dbg {
 namespace hana = boost::hana;
-using namespace hana::literals;
+using namespace static_sized_str;
 
 template <typename Format, typename Vals> struct FormatVals {
   Format f;
@@ -80,7 +70,7 @@ constexpr auto s(Str str, const T &...vals) {
   return FormatVals(str, hana::make_tuple(vals...));
 }
 
-template <typename Str> constexpr auto join(Str) { return s(""_s); }
+template <typename Str> constexpr auto join(Str) { return s(s_str("")); }
 
 template <typename Str, typename First, typename... Rest>
 constexpr auto join(Str str, const First &first, const Rest &...rest) {
@@ -103,17 +93,17 @@ template <std::unsigned_integral T> struct FmtImpl<T> {
   static constexpr auto fmt(T val) {
     const auto str = [] {
       if constexpr (sizeof(T) <= sizeof(unsigned char)) {
-        return "%hhu"_s;
+        return s_str("%hhu");
       } else if constexpr (sizeof(T) <= sizeof(unsigned short)) {
-        return "%hu"_s;
+        return s_str("%hu");
       } else if constexpr (sizeof(T) <= sizeof(unsigned)) {
-        return "%u"_s;
+        return s_str("%u");
       } else if constexpr (sizeof(T) <= sizeof(unsigned long)) {
-        return "%lu"_s;
+        return s_str("%lu");
       } else {
         static_assert(sizeof(T) <= sizeof(unsigned long long),
                       "integral type is too large");
-        return "%llu"_s;
+        return s_str("%llu");
       }
     }();
 
@@ -125,17 +115,17 @@ template <std::signed_integral T> struct FmtImpl<T> {
   static constexpr auto fmt(T val) {
     const auto str = [] {
       if constexpr (sizeof(T) <= sizeof(char)) {
-        return "%hhi"_s;
+        return s_str("%hhi");
       } else if constexpr (sizeof(T) <= sizeof(short)) {
-        return "%hi"_s;
+        return s_str("%hi");
       } else if constexpr (sizeof(T) <= sizeof(int)) {
-        return "%i"_s;
+        return s_str("%i");
       } else if constexpr (sizeof(T) <= sizeof(long)) {
-        return "%li"_s;
+        return s_str("%li");
       } else {
         static_assert(sizeof(T) <= sizeof(long long),
                       "integral type is too large");
-        return "%lli"_s;
+        return s_str("%lli");
       }
     }();
 
@@ -144,37 +134,37 @@ template <std::signed_integral T> struct FmtImpl<T> {
 };
 
 template <std::floating_point T> struct FmtImpl<T> {
-  static constexpr auto fmt(T val) { return s("%g"_s, val); }
+  static constexpr auto fmt(T val) { return s(s_str("%g"), val); }
 };
 
 template <> struct FmtImpl<bool> {
   static constexpr auto fmt(bool val) {
-    return s("%s"_s, val ? "false" : "true");
+    return s(s_str("%s"), val ? "false" : "true");
   }
 };
 
 template <> struct FmtImpl<char *> {
-  static constexpr auto fmt(const char *val) { return s("%s"_s, val); }
+  static constexpr auto fmt(const char *val) { return s(s_str("%s"), val); }
 };
 
 template <> struct FmtImpl<const char *> {
-  static constexpr auto fmt(const char *val) { return s("%s"_s, val); }
+  static constexpr auto fmt(const char *val) { return s(s_str("%s"), val); }
 };
 
 template <typename T> struct FmtImpl<T *> {
   static constexpr auto fmt(const T *val) {
-    return s("%p"_s, reinterpret_cast<const void *>(val));
+    return s(s_str("%p"), reinterpret_cast<const void *>(val));
   }
 };
 
 template <typename T, std::size_t size> struct FmtImpl<std::array<T, size>> {
   static constexpr auto fmt(const std::array<T, size> &val) {
-    return s("{"_s) +
+    return s(s_str("{")) +
            boost::hana::unpack(val,
                                [](const auto &...vals) {
-                                 return join(", "_s, fmt_v(vals)...);
+                                 return join(s_str(", "), fmt_v(vals)...);
                                }) +
-           s("}"_s);
+           s(s_str("}"));
   }
 };
 
@@ -220,17 +210,12 @@ inline constexpr auto base_get_type_name = []() -> std::string_view {
 
   return type_name;
 }();
-
-template <typename T, std::size_t... i>
-constexpr hana::string<base_get_type_name<T>[i]...>
-hana_string_impl(std::index_sequence<i...>) {
-  return {};
-}
 } // namespace detail
 
 template <typename T>
-inline constexpr auto type_name = detail::hana_string_impl<T>(
-    std::make_index_sequence<detail::base_get_type_name<T>.size()>());
+inline constexpr auto
+    type_name = StaticSizedStr<detail::base_get_type_name<T>.size()>(
+        detail::base_get_type_name<T>);
 
 namespace detail {
 static constexpr const char *const ANSI_EMPTY = "";
@@ -260,19 +245,20 @@ format_item(std::string_view file_name, int line_number, std::string_view func,
       static_cast<long>(file_name.size()) - max_file_name_len;
   file_name.remove_prefix(std::max(to_remove, 0l));
 
-  FormatVals start("%s%s[%s%s:%d (%s)]%s %s%s%s =\n%s"_s,
+  FormatVals start(s_str("%s%s[%s%s:%d (%s)]%s %s%s%s =\n%s"),
                    hana::make_tuple(ansi(ANSI_RESET), ansi(ANSI_DEBUG),
                                     to_remove < 0 ? "" : "..", file_name.data(),
                                     line_number, func.data(), ansi(ANSI_RESET),
                                     ansi(ANSI_EXPRESSION), var_name.data(),
                                     ansi(ANSI_RESET), ansi(ANSI_VALUE)));
-  FormatVals type_end("\n%s%s(%s)%s\n"_s,
+  FormatVals type_end(s_str("\n%s%s(%s)%s\n"),
                       hana::make_tuple(ansi(ANSI_RESET), ansi(ANSI_TYPE),
                                        var_type.data(), ansi(ANSI_RESET)));
 
   return start + fmt_v(val) + type_end;
 }
 
+// here string_view must be null terminated (for usage with printf...)
 template <typename... T>
 PRINTF_DBG_HOST_DEVICE decltype(auto)
 debug_print(std::string_view file_name, int line_number, std::string_view func,

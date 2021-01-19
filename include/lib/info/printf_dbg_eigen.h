@@ -11,14 +11,15 @@ template <int rows, int cols, typename T>
 PRINTF_DBG_HOST_DEVICE auto eigen_fmt_impl(const T &val) {
   return boost::hana::unpack(
       std::make_index_sequence<rows>{}, [&](auto... row) {
-        return join("\n"_s, [&](auto row) {
-          auto out = s("{"_s) +
-                     boost::hana::unpack(
-                         std::make_index_sequence<cols>{},
-                         [&](auto... col) {
-                           return join(", "_s, fmt_v(val(row(), col()))...);
-                         }) +
-                     s("}"_s);
+        return join(s_str("\n"), [&](auto row) {
+          auto out =
+              s(s_str("{")) +
+              boost::hana::unpack(std::make_index_sequence<cols>{},
+                                  [&](auto... col) {
+                                    return join(s_str(", "),
+                                                fmt_v(val(row(), col()))...);
+                                  }) +
+              s(s_str("}"));
           return out;
         }(row)...);
       });

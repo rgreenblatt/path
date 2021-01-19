@@ -276,7 +276,7 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
                    "${PROJECT_SOURCE_DIR}/tests/src/macro_map.cpp")
   package_add_test(as_tuple_test "${PROJECT_SOURCE_DIR}/tests/src/as_tuple.cpp")
   package_add_test(static_sized_str_test
-    "${PROJECT_SOURCE_DIR}/tests/src/static_sized_str.cpp")
+                   "${PROJECT_SOURCE_DIR}/tests/src/static_sized_str.cpp")
 
   add_custom_target(
     run_build_tests
