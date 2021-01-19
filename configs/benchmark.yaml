@@ -12,22 +12,22 @@ settings:
             intersection_cost: 1
           use_s_a_heuritic: false
           num_objects_terminate: 2
-  light_sampler: 
+  light_sampler:
     type: RandomTriangle
     value:
-      binary_search_threshold: 2147483648
-  dir_sampler: 
+      binary_search_threshold: 1073741823
+  dir_sampler:
     type: BSDF
     value: {}
-  term_prob: 
+  term_prob:
     type: MultiplierFunc
     value:
       exp: 50.0
       min_prob: 0.03
       # prob: 0.4
-  rng: 
+  rng:
     type: Sobel
-    value: 
+    value:
       sequence_settings:
         {}
       max_sample_size: 256
