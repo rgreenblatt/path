@@ -238,6 +238,8 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
 
     set_target_properties(${TEST_NAME} PROPERTIES FOLDER tests)
     target_add_standard(${TEST_NAME})
+    target_include_directories(${TEST_NAME}
+                               PRIVATE "${PROJECT_SOURCE_DIR}/tests/include")
     list(APPEND TEST_LIST ${TEST_NAME})
   endmacro()
 
@@ -272,6 +274,7 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
                    "${PROJECT_SOURCE_DIR}/tests/src/all_values.cpp")
   package_add_test(macro_map_test
                    "${PROJECT_SOURCE_DIR}/tests/src/macro_map.cpp")
+  package_add_test(as_tuple_test "${PROJECT_SOURCE_DIR}/tests/src/as_tuple.cpp")
 
   add_custom_target(
     run_build_tests

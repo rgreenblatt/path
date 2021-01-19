@@ -56,6 +56,7 @@ concept AllValuesEnumerable = requires(const T &t) {
 template <AllValuesEnumerable T>
 constexpr auto AllValues = AllValuesImpl<T>::values;
 
+// has only one possible value
 struct EmptyEnumerable {
   constexpr auto operator<=>(const EmptyEnumerable &other) const = default;
 };
