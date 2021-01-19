@@ -8,7 +8,7 @@
 #include <boost/hana/ext/std/array.hpp>
 
 template <> struct AllValuesImpl<MetaTuple<>> {
-  static constexpr std::array<MetaTuple<>, 0> values;
+  static constexpr std::array<MetaTuple<>, 1> values = {{}};
 };
 
 template <AllValuesEnumerable... Types>

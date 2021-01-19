@@ -149,7 +149,7 @@ TEST(AsTuple, serialize) {
 }
 
 static_assert(AllValuesEnumerable<Empty>);
-static_assert(AllValues<Empty>.size() == 0);
+static_assert(AllValues<Empty>.size() == 1);
 
 struct ContainsUpTo3 {
   UpTo<3> value;

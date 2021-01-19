@@ -3,6 +3,7 @@
 #include "meta/all_values_integral.h"
 #include "meta/all_values_pow_2.h"
 #include "meta/all_values_range.h"
+#include "meta/all_values_tuple.h"
 #include "set_same.h"
 
 #include <algorithm>
@@ -28,3 +29,13 @@ static_assert(set_same(AllValues<Pow2<1, 1>>, {1}));
 static_assert(set_same(AllValues<Pow2<1, 4>>, {1, 2, 4}));
 static_assert(set_same(AllValues<Pow2<2, 4>>, {2, 4}));
 static_assert(set_same(AllValues<Pow2InclusiveUpTo<2>>, {1, 2}));
+
+static_assert(AllValues<MetaTuple<>>.size() == 1);
+static_assert(set_same(AllValues<MetaTuple<>>, {MetaTuple<>{}}));
+static_assert(set_same(AllValues<MetaTuple<bool, bool>>,
+                       {
+                           MetaTuple<bool, bool>{false, false},
+                           MetaTuple<bool, bool>{false, true},
+                           MetaTuple<bool, bool>{true, false},
+                           MetaTuple<bool, bool>{true, true},
+                       }));
