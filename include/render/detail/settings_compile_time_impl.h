@@ -1,8 +1,15 @@
 #pragma once
 
+#include "meta/all_values_as_tuple.h"
 #include "meta/all_values_tuple.h"
+#include "meta/as_tuple.h"
+#include "meta/unpack_to.h"
 #include "render/settings.h"
 
+// compile times don't change much from small constant values to 1...
+// compile times do substantially increase for large number of possibilities
+// #define FORCE_BUILD_ALL
+#if !defined(BUILD_ALL) && !defined(FORCE_BUILD_ALL)
 template <> struct AllValuesImpl<render::Settings::CompileTime> {
 private:
   using AccelType = render::AccelType;
@@ -14,84 +21,76 @@ private:
   using IntersectionType = render::Settings::IntersectionType;
 
 public:
-  // compile times don't change much from small constant values to 1...
-  // compile times do substantially increase for large number of possibilities
-  // #define FORCE_BUILD_ALL
+  constexpr static std::array<render::Settings::CompileTime, 2> values = {{
+      {IntersectionType(TagV<IntersectionApproach::MegaKernel>,
+                        AccelType::KDTree),
+       LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
+       TermProbType::MultiplierFunc, RngType::Sobel},
+      // {IntersectionType(TagV<IntersectionApproach::MegaKernel>,
+      //                   AccelType::KDTree),
+      //  LightSamplerType::NoLightSampling, DirSamplerType::BSDF,
+      //  TermProbType::MultiplierFunc, RngType::Sobel},
+      // {IntersectionType(TagV<IntersectionApproach::MegaKernel>,
+      //                   AccelType::KDTree),
+      //  LightSamplerType::RandomTriangle, DirSamplerType::Uniform,
+      //  TermProbType::MultiplierFunc, RngType::Sobel},
+      // {IntersectionType(TagV<IntersectionApproach::MegaKernel>,
+      //                   AccelType::KDTree),
+      //  LightSamplerType::NoLightSampling, DirSamplerType::Uniform,
+      //  TermProbType::MultiplierFunc, RngType::Sobel},
+      // {IntersectionType(TagV<IntersectionApproach::StreamingFromGeneral>,
+      //                   AccelType::KDTree),
+      //  LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
+      //  TermProbType::MultiplierFunc, RngType::Sobel},
+      // {IntersectionType(TagV<IntersectionApproach::StreamingFromGeneral>,
+      //                   AccelType::KDTree),
+      //  LightSamplerType::NoLightSampling, DirSamplerType::BSDF,
+      //  TermProbType::MultiplierFunc, RngType::Sobel},
 
-#if !defined(BUILD_ALL) && !defined(FORCE_BUILD_ALL)
-  constexpr static std::array<render::Settings::CompileTime, 2> values = {
-      { {IntersectionType(TagV<IntersectionApproach::MegaKernel>,
-                          AccelType::KDTree),
-         LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
-         TermProbType::MultiplierFunc, RngType::Sobel},
-        // {IntersectionType(TagV<IntersectionApproach::MegaKernel>,
-        //                   AccelType::KDTree),
-        //  LightSamplerType::NoLightSampling, DirSamplerType::BSDF,
-        //  TermProbType::MultiplierFunc, RngType::Sobel},
-        // {IntersectionType(TagV<IntersectionApproach::MegaKernel>,
-        //                   AccelType::KDTree),
-        //  LightSamplerType::RandomTriangle, DirSamplerType::Uniform,
-        //  TermProbType::MultiplierFunc, RngType::Sobel},
-        // {IntersectionType(TagV<IntersectionApproach::MegaKernel>,
-        //                   AccelType::KDTree),
-        //  LightSamplerType::NoLightSampling, DirSamplerType::Uniform,
-        //  TermProbType::MultiplierFunc, RngType::Sobel},
-        // {IntersectionType(TagV<IntersectionApproach::StreamingFromGeneral>,
-        //                   AccelType::KDTree),
-        //  LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
-        //  TermProbType::MultiplierFunc, RngType::Sobel},
-        // {IntersectionType(TagV<IntersectionApproach::StreamingFromGeneral>,
-        //                   AccelType::KDTree),
-        //  LightSamplerType::NoLightSampling, DirSamplerType::BSDF,
-        //  TermProbType::MultiplierFunc, RngType::Sobel},
-
-        {IntersectionType(TagV<IntersectionApproach::MegaKernel>,
-                          AccelType::KDTree),
-         LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
-         TermProbType::MultiplierFunc, RngType::Uniform},
-        // {IntersectionType(TagV<IntersectionApproach::MegaKernel>,
-        //                   AccelType::KDTree),
-        //  LightSamplerType::NoLightSampling, DirSamplerType::BSDF,
-        //  TermProbType::MultiplierFunc, RngType::Uniform},
-        // {IntersectionType(TagV<IntersectionApproach::MegaKernel>,
-        //                   AccelType::KDTree),
-        //  LightSamplerType::RandomTriangle, DirSamplerType::Uniform,
-        //  TermProbType::MultiplierFunc, RngType::Uniform},
-        // {IntersectionType(TagV<IntersectionApproach::MegaKernel>,
-        //                   AccelType::KDTree),
-        //  LightSamplerType::NoLightSampling, DirSamplerType::Uniform,
-        //  TermProbType::MultiplierFunc, RngType::Uniform},
-        // {IntersectionType(TagV<IntersectionApproach::StreamingFromGeneral>,
-        //                   AccelType::KDTree),
-        //  LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
-        //  TermProbType::MultiplierFunc, RngType::Uniform},
-        // {IntersectionType(TagV<IntersectionApproach::StreamingFromGeneral>,
-        //                   AccelType::KDTree),
-        //  LightSamplerType::NoLightSampling, DirSamplerType::BSDF,
-        //  TermProbType::MultiplierFunc, RngType::Uniform},
-      }};
-#else
-  // build ALL possible values
-  // Note that this SUBSTANTIALLY increases compile times
-  // If code isn't generated (e.g.) -fsyntax-only, this is actually ok
-  // (but still increases build times...)
-  constexpr static auto values = [] {
-    constexpr auto tuple_values =
-        AllValues<MetaTuple<IntersectionType, LightSamplerType, DirSamplerType,
-                            TermProbType, RngType>>;
-    std::array<render::Settings::CompileTime, tuple_values.size()> out;
-    std::transform(tuple_values.begin(), tuple_values.end(), out.begin(),
-                   [](auto in) {
-                     return boost::hana::unpack(
-                         in, [](auto &&...v) -> render::Settings::CompileTime {
-                           return {v...};
-                         });
-                   });
-
-    return out;
-  }();
-#endif
+      {IntersectionType(TagV<IntersectionApproach::MegaKernel>,
+                        AccelType::KDTree),
+       LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
+       TermProbType::MultiplierFunc, RngType::Uniform},
+      // {IntersectionType(TagV<IntersectionApproach::MegaKernel>,
+      //                   AccelType::KDTree),
+      //  LightSamplerType::NoLightSampling, DirSamplerType::BSDF,
+      //  TermProbType::MultiplierFunc, RngType::Uniform},
+      // {IntersectionType(TagV<IntersectionApproach::MegaKernel>,
+      //                   AccelType::KDTree),
+      //  LightSamplerType::RandomTriangle, DirSamplerType::Uniform,
+      //  TermProbType::MultiplierFunc, RngType::Uniform},
+      // {IntersectionType(TagV<IntersectionApproach::MegaKernel>,
+      //                   AccelType::KDTree),
+      //  LightSamplerType::NoLightSampling, DirSamplerType::Uniform,
+      //  TermProbType::MultiplierFunc, RngType::Uniform},
+      // {IntersectionType(TagV<IntersectionApproach::StreamingFromGeneral>,
+      //                   AccelType::KDTree),
+      //  LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
+      //  TermProbType::MultiplierFunc, RngType::Uniform},
+      // {IntersectionType(TagV<IntersectionApproach::StreamingFromGeneral>,
+      //                   AccelType::KDTree),
+      //  LightSamplerType::NoLightSampling, DirSamplerType::BSDF,
+      //  TermProbType::MultiplierFunc, RngType::Uniform},
+  }};
 };
+#else
+// build ALL possible values
+// Note that this SUBSTANTIALLY increases compile times
+// If code isn't generated (e.g.) -fsyntax-only, this is actually ok
+// (but still increases build times...)
+template <> struct AsTupleImpl<render::Settings::CompileTime> {
+  constexpr auto static as_tuple(const render::Settings::CompileTime &v) {
+    return make_meta_tuple(v.intersection_type, v.light_sampler_type,
+                           v.dir_sampler_type, v.term_prob_type, v.rng_type);
+  }
+
+  template <typename T> constexpr auto static from_tuple(const T &v) {
+    return unpack_to<render::Settings::CompileTime>(v);
+  }
+};
+
+static_assert(AsTuple<render::Settings::CompileTime>);
+#endif
 
 static_assert(AllValuesEnumerable<render::Settings::CompileTime>);
 
