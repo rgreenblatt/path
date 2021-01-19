@@ -10,7 +10,7 @@ template <AsTuple T> struct AllValuesImpl<T> {
     constexpr auto tuple_values = AllValues<AsTupleT<T>>;
     std::array<T, tuple_values.size()> out;
     std::transform(tuple_values.begin(), tuple_values.end(), out.begin(),
-                   [](auto in) { return T::from_tuple(in); });
+                   [](auto in) { return AsTupleImpl<T>::from_tuple(in); });
 
     return out;
   }();
