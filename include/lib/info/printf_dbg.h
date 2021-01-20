@@ -13,6 +13,7 @@
 #endif
 
 #include "meta/macro_map.h"
+#include "meta/pack_element.h"
 #include "meta/specialization_of.h"
 #include "meta/static_sized_string.h"
 
@@ -21,7 +22,9 @@
 #include <boost/hana/ext/std/array.hpp>
 #include <boost/hana/ext/std/integer_sequence.hpp>
 #include <boost/hana/ext/std/integral_constant.hpp>
+#include <boost/hana/flatten.hpp>
 #include <boost/hana/integral_constant.hpp>
+#include <boost/hana/size.hpp>
 #include <boost/hana/tuple.hpp>
 
 #include <cstdio>
@@ -41,135 +44,117 @@
 
 #ifdef __CUDACC__
 extern "C" {
-__device__ inline size_t strlen(const char *v) { return constexpr_strlen(v); }
+__device__ inline size_t strlen(const char *v) {
+  return static_sized_str::constexpr_strlen(v);
+}
 }
 #endif
 
 namespace printf_dbg {
 namespace hana = boost::hana;
 using namespace static_sized_str;
-
-template <typename Format, typename Vals> struct FormatVals {
-  Format f;
-  Vals vals;
-
-  constexpr FormatVals(Format f, Vals vals) : f(f), vals(vals) {}
-
-  template <typename OtherFormat, typename OtherVals>
-  constexpr auto
-  operator+(const FormatVals<OtherFormat, OtherVals> &other) const {
-    return printf_dbg::FormatVals(f + other.f, hana::concat(vals, other.vals));
-  }
-};
-
-template <typename T>
-concept IsFormatVals = SpecializationOf<T, FormatVals>;
-
-template <typename Str, typename... T>
-constexpr auto s(Str str, const T &...vals) {
-  return FormatVals(str, hana::make_tuple(vals...));
-}
-
-template <typename Str> constexpr auto join(Str) { return s(s_str("")); }
-
-template <typename Str, typename First, typename... Rest>
-constexpr auto join(Str str, const First &first, const Rest &...rest) {
-  return (first + ... + (s(str) + rest));
-}
+using namespace short_func;
 
 template <typename T> struct FmtImpl;
+
+template <typename T> struct IsHanaTupleImpl : std::false_type {};
+template <typename... T>
+struct IsHanaTupleImpl<hana::tuple<T...>> : std::true_type {};
+
+template <typename T>
+concept IsHanaTuple = IsHanaTupleImpl<T>::value;
 
 template <typename T>
 concept Formattable = requires(const T &v) {
   typename FmtImpl<std::decay_t<T>>;
-  { FmtImpl<std::decay_t<T>>::fmt(v) } -> IsFormatVals;
+  { FmtImpl<std::decay_t<T>>::fmt } -> IsStaticSizedStr;
+  { FmtImpl<std::decay_t<T>>::vals(v) } -> IsHanaTuple;
 };
 
-template <Formattable T> constexpr auto fmt_v(const T &v) {
-  return FmtImpl<std::decay_t<T>>::fmt(v);
+template <Formattable T> constexpr auto fmt_t = FmtImpl<std::decay_t<T>>::fmt;
+
+template <Formattable T> constexpr auto fmt_vals(const T &v) {
+  return FmtImpl<std::decay_t<T>>::vals(v);
 }
 
-template <std::unsigned_integral T> struct FmtImpl<T> {
-  static constexpr auto fmt(T val) {
-    const auto str = [] {
-      if constexpr (sizeof(T) <= sizeof(unsigned char)) {
-        return s_str("%hhu");
-      } else if constexpr (sizeof(T) <= sizeof(unsigned short)) {
-        return s_str("%hu");
-      } else if constexpr (sizeof(T) <= sizeof(unsigned)) {
-        return s_str("%u");
-      } else if constexpr (sizeof(T) <= sizeof(unsigned long)) {
-        return s_str("%lu");
-      } else {
-        static_assert(sizeof(T) <= sizeof(unsigned long long),
-                      "integral type is too large");
-        return s_str("%llu");
-      }
-    }();
-
-    return s(str, val);
-  }
+template <typename T> struct FmtImplSingle {
+  static constexpr auto vals(T val) { return hana::make_tuple(val); }
 };
 
-template <std::signed_integral T> struct FmtImpl<T> {
-  static constexpr auto fmt(T val) {
-    const auto str = [] {
-      if constexpr (sizeof(T) <= sizeof(char)) {
-        return s_str("%hhi");
-      } else if constexpr (sizeof(T) <= sizeof(short)) {
-        return s_str("%hi");
-      } else if constexpr (sizeof(T) <= sizeof(int)) {
-        return s_str("%i");
-      } else if constexpr (sizeof(T) <= sizeof(long)) {
-        return s_str("%li");
-      } else {
-        static_assert(sizeof(T) <= sizeof(long long),
-                      "integral type is too large");
-        return s_str("%lli");
-      }
-    }();
-
-    return s(str, val);
-  }
+template <std::unsigned_integral T> struct FmtImpl<T> : FmtImplSingle<T> {
+  static constexpr auto fmt = [] {
+    if constexpr (sizeof(T) <= sizeof(unsigned char)) {
+      return s("%hhu");
+    } else if constexpr (sizeof(T) <= sizeof(unsigned short)) {
+      return s("%hu");
+    } else if constexpr (sizeof(T) <= sizeof(unsigned)) {
+      return s("%u");
+    } else if constexpr (sizeof(T) <= sizeof(unsigned long)) {
+      return s("%lu");
+    } else {
+      static_assert(sizeof(T) <= sizeof(unsigned long long),
+                    "integral type is too large");
+      return s("%llu");
+    }
+  }();
 };
 
-template <std::floating_point T> struct FmtImpl<T> {
-  static constexpr auto fmt(T val) { return s(s_str("%g"), val); }
+template <std::signed_integral T> struct FmtImpl<T> : FmtImplSingle<T> {
+  static constexpr auto fmt = [] {
+    if constexpr (sizeof(T) <= sizeof(char)) {
+      return s("%hhi");
+    } else if constexpr (sizeof(T) <= sizeof(short)) {
+      return s("%hi");
+    } else if constexpr (sizeof(T) <= sizeof(int)) {
+      return s("%i");
+    } else if constexpr (sizeof(T) <= sizeof(long)) {
+      return s("%li");
+    } else {
+      static_assert(sizeof(T) <= sizeof(long long),
+                    "integral type is too large");
+      return s("%lli");
+    }
+  }();
+};
+
+// TODO: input somehow?
+inline constexpr auto float_fmt = s("%g");
+
+template <std::floating_point T> struct FmtImpl<T> : FmtImplSingle<T> {
+  static constexpr auto fmt = float_fmt;
 };
 
 template <> struct FmtImpl<bool> {
-  static constexpr auto fmt(bool val) {
-    return s(s_str("%s"), val ? "false" : "true");
+  static constexpr auto fmt = s("%s");
+  static constexpr auto vals(bool val) {
+    return hana::make_tuple(val ? "true" : "false");
   }
 };
 
-template <> struct FmtImpl<char *> {
-  static constexpr auto fmt(const char *val) { return s(s_str("%s"), val); }
+template <> struct FmtImpl<const char *> : FmtImplSingle<const char *> {
+  static constexpr auto fmt = s("%s");
 };
 
-template <> struct FmtImpl<const char *> {
-  static constexpr auto fmt(const char *val) { return s(s_str("%s"), val); }
-};
+template <> struct FmtImpl<char *> : FmtImpl<const char *> {};
 
 template <typename T> struct FmtImpl<T *> {
-  static constexpr auto fmt(const T *val) {
-    return s(s_str("%p"), reinterpret_cast<const void *>(val));
+  static constexpr auto fmt = s("%p");
+  static constexpr auto vals(const T *val) {
+    return hana::make_tuple(reinterpret_cast<const void *>(val));
   }
 };
 
-template <typename T, std::size_t size> struct FmtImpl<std::array<T, size>> {
-  static constexpr auto fmt(const std::array<T, size> &val) {
-    return s(s_str("{")) +
-           boost::hana::unpack(val,
-                               [](const auto &...vals) {
-                                 return join(s_str(", "), fmt_v(vals)...);
-                               }) +
-           s(s_str("}"));
+template <Formattable T, std::size_t size> struct FmtImpl<std::array<T, size>> {
+  static constexpr auto fmt = s("{") + s(", ").join_n<size>(fmt_t<T>) + s("}");
+
+  static constexpr auto vals(const std::array<T, size> &val) {
+    return hana::unpack(
+        val, [](const auto &...vals) { return hana::make_tuple(vals...); });
   }
 };
 
 // No good way to handle this for gpu...
-inline constexpr bool is_colorized_output_enabled = true;
+inline constexpr bool is_colorized_output_enabled = false;
 
 namespace detail {
 namespace pretty_function {
@@ -218,81 +203,126 @@ inline constexpr auto
         detail::base_get_type_name<T>);
 
 namespace detail {
-static constexpr const char *const ANSI_EMPTY = "";
-static constexpr const char *const ANSI_DEBUG = "\x1b[02m";
-// static constexpr const char *const ANSI_WARN = "\x1b[33m";
-static constexpr const char *const ANSI_EXPRESSION = "\x1b[36m";
-static constexpr const char *const ANSI_VALUE = "\x1b[01m";
-static constexpr const char *const ANSI_TYPE = "\x1b[32m";
-static constexpr const char *const ANSI_RESET = "\x1b[0m";
+inline constexpr auto ANSI_EMPTY = s("");
+inline constexpr auto ANSI_DEBUG = s("\x1b[02m");
+// inline constexpr auto ANSI_WARN = s("\x1b[33m");
+inline constexpr auto ANSI_EXPRESSION = s("\x1b[36m");
+inline constexpr auto ANSI_VALUE = s("\x1b[01m");
+inline constexpr auto ANSI_TYPE = s("\x1b[32m");
+inline constexpr auto ANSI_RESET = s("\x1b[0m");
 
-// later could become none constexpr?
-PRINTF_DBG_HOST_DEVICE const char *ansi(const char *code) {
-  if (is_colorized_output_enabled) {
-    return code;
-  } else {
-    return ANSI_EMPTY;
-  }
+template <bool is_colorized, unsigned file_name_size, unsigned line_number_size,
+          unsigned func_size, unsigned var_name_size>
+constexpr auto
+format_item_before(const StaticSizedStr<file_name_size> &file_name,
+                   const StaticSizedStr<line_number_size> &line_number,
+                   const StaticSizedStr<func_size> &func,
+                   const StaticSizedStr<var_name_size> &var_name) {
+  constexpr long max_file_name_len = 20;
+  constexpr long to_remove =
+      static_cast<long>(file_name_size) - max_file_name_len;
+  auto file_name_reduced = [&] {
+    if constexpr (to_remove > 0) {
+      return s("..") + file_name.template remove_prefix<to_remove>();
+    } else {
+      return file_name;
+    }
+  }();
+
+  auto ansi = [](auto code) {
+    if constexpr (is_colorized) {
+      return code;
+    } else {
+      return ANSI_EMPTY;
+    }
+  };
+
+  return ansi(ANSI_RESET) + ansi(ANSI_DEBUG) + s("[") + file_name_reduced +
+         s(":") + line_number + s(" (") + func + s(")] ") + ansi(ANSI_RESET) +
+         ansi(ANSI_EXPRESSION) + var_name + ansi(ANSI_RESET) +
+         ansi(ANSI_VALUE) + s(" =\n");
 }
 
-template <typename T>
-PRINTF_DBG_HOST_DEVICE decltype(auto)
-format_item(std::string_view file_name, int line_number, std::string_view func,
-            std::string_view var_name, std::string_view var_type,
-            const T &val) {
-  const long max_file_name_len = 20;
-  const long to_remove =
-      static_cast<long>(file_name.size()) - max_file_name_len;
-  file_name.remove_prefix(std::max(to_remove, 0l));
+template <bool is_colorized, unsigned var_type_size>
+constexpr auto
+format_item_after(const StaticSizedStr<var_type_size> &var_type) {
+  auto ansi = [](auto code) {
+    if constexpr (is_colorized) {
+      return code;
+    } else {
+      return ANSI_EMPTY;
+    }
+  };
 
-  FormatVals start(s_str("%s%s[%s%s:%d (%s)]%s %s%s%s =\n%s"),
-                   hana::make_tuple(ansi(ANSI_RESET), ansi(ANSI_DEBUG),
-                                    to_remove < 0 ? "" : "..", file_name.data(),
-                                    line_number, func.data(), ansi(ANSI_RESET),
-                                    ansi(ANSI_EXPRESSION), var_name.data(),
-                                    ansi(ANSI_RESET), ansi(ANSI_VALUE)));
-  FormatVals type_end(s_str("\n%s%s(%s)%s\n"),
-                      hana::make_tuple(ansi(ANSI_RESET), ansi(ANSI_TYPE),
-                                       var_type.data(), ansi(ANSI_RESET)));
-
-  return start + fmt_v(val) + type_end;
+  return ansi(ANSI_RESET) + ansi(ANSI_TYPE) + s("\n(") + var_type + s(")\n") +
+         ansi(ANSI_RESET);
 }
 
 // here string_view must be null terminated (for usage with printf...)
-template <typename... T>
-PRINTF_DBG_HOST_DEVICE decltype(auto)
-debug_print(std::string_view file_name, int line_number, std::string_view func,
-            std::array<std::string_view, sizeof...(T)> var_names,
-            std::array<std::string_view, sizeof...(T)> var_types,
-            T &&...vals_in) {
-  hana::tuple<T &&...> vals{std::forward<T>(vals_in)...};
-  auto out =
-      hana::unpack(std::make_index_sequence<sizeof...(T)>{}, [&](auto... i) {
-        return (... + format_item(file_name, line_number, func, var_names[i],
-                                  var_types[i], vals[i]));
-      });
-
-  hana::unpack(out.vals, [&](const auto &...format_vals) {
-    printf(out.f.c_str(), format_vals...);
+template <bool is_colorized, typename... T, unsigned file_name_size,
+          unsigned line_number_size, unsigned func_size,
+          unsigned... var_name_sizes>
+requires(sizeof...(T) == sizeof...(var_name_sizes)) constexpr auto debug_print_fmt(
+    const StaticSizedStr<file_name_size> &file_name,
+    const StaticSizedStr<line_number_size> &line_number,
+    const StaticSizedStr<func_size> &func,
+    const hana::tuple<StaticSizedStr<var_name_sizes>...> &var_names) {
+  return hana::unpack(std::make_index_sequence<sizeof...(T)>{}, [&](auto... i) {
+    return (... + [&](auto i) {
+      return format_item_before<is_colorized>(file_name, line_number, func,
+                                              var_names[i]) +
+             fmt_t<PackElement<i, T...>> +
+             format_item_after<is_colorized>(type_name<PackElement<i, T...>>);
+    }(i));
   });
-
-  return hana::back(vals);
 }
 
-template <typename... T> decltype(auto) identity(T &&...t) {
-  return hana::back(hana::tuple<T &&...>{std::forward<T>(t)...});
+template <typename... T> constexpr decltype(auto) identity(T &&...vals) {
+  return hana::back(hana::tuple<T &&...>{std::forward<T>(vals)...});
+}
+
+template <typename... T>
+PRINTF_DBG_HOST_DEVICE decltype(auto) debug_print(const char *format_str,
+                                                  T &&...vals) {
+  hana::unpack(hana::flatten(hana::make_tuple(fmt_vals(vals)...)),
+               [&](const auto &...vals) {
+#ifdef __CUDA_ARCH__
+                 static_assert(sizeof...(vals) <= 32,
+                               "cuda printf accepts a maximum of 32 args!");
+#endif
+                 printf(format_str, vals...);
+               });
+
+  return identity(vals...);
 }
 } // namespace detail
 } // namespace printf_dbg
 
 #ifndef PRINTF_DBG_MACRO_DISABLE
-#define PRINTF_DBG_TYPE_NAME(x) printf_dbg::type_name<decltype(x)>.c_str()
+#define PRINTF_DBG_TYPE(x) decltype(x)
+#define PRINTF_DBG_TYPE_NAME(x) printf_dbg::type_name<decltype(x)>
+#define PRINTF_DBG_STATIC_STR_CHAR_ARRAY(x)                                    \
+  printf_dbg::StaticSizedStr<sizeof(x) - 1>(x)
+#define PRINTF_DBG_STATIC_STRINGIFY(x)                                         \
+  PRINTF_DBG_STATIC_STR_CHAR_ARRAY(MACRO_MAP_STRINGIFY(x))
 
-#define PRINTF_DBG(...)                                                        \
-  printf_dbg::detail::debug_print(                                             \
-      __FILE__, __LINE__, __func__, {MACRO_MAP_STRINGIFY_COMMA(__VA_ARGS__)},  \
-      {MACRO_MAP_PP_COMMA_MAP(PRINTF_DBG_TYPE_NAME, __VA_ARGS__)},             \
-      __VA_ARGS__)
+// amusingly, forcing fmt to be constexpr dramatically reduces compile times
+// when building for cuda because ptxas is very slow (at least for that
+// sort of code) and constexpr allows for bypassing it totally...
+#define PRINTF_DBG_IS_COLORIZED(is_colorized, ...)                             \
+  do {                                                                         \
+    constexpr auto fmt = printf_dbg::detail::debug_print_fmt<                  \
+        is_colorized, MACRO_MAP_PP_COMMA_MAP(PRINTF_DBG_TYPE, __VA_ARGS__)>(   \
+        PRINTF_DBG_STATIC_STR_CHAR_ARRAY(__FILE__),                            \
+        PRINTF_DBG_STATIC_STRINGIFY(__LINE__),                                 \
+        PRINTF_DBG_STATIC_STR_CHAR_ARRAY(__func__),                            \
+        boost::hana::make_tuple(MACRO_MAP_PP_COMMA_MAP(                        \
+            PRINTF_DBG_STATIC_STRINGIFY, __VA_ARGS__)));                       \
+    printf_dbg::detail::debug_print(fmt.c_str(), __VA_ARGS__);                 \
+  } while (0)
+
+#define PRINTF_DBG_NO_COLOR(...) PRINTF_DBG_IS_COLORIZED(false, ##__VA_ARGS__)
+#define PRINTF_DBG(...) PRINTF_DBG_IS_COLORIZED(true, ##__VA_ARGS__)
 #else
 #define PRINTF_DBG(...) printf_dbg::detail::identity(__VA_ARGS__)
 #endif // PRINTF_DBG_MACRO_DISABLE
