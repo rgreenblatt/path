@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
 import sys
-import json
 import re
 import os
-import shutil
 
 import matplotlib.pyplot as plt
+
+from benchmark_utils import get_benchmark_dicts, setup_directory
 
 
 def extract_info(json_data):
@@ -18,9 +18,8 @@ def get_name(run):
     return m.group(1) + '_' + m.group(2)
 
 
-def main(csv_files):
-    csv_files = list(filter(lambda x: x != "compile_commands.json", csv_files))
-    benchmark_dicts = [json.load(open(f))["benchmarks"] for f in csv_files]
+def main(json_files):
+    json_files, benchmark_dicts = get_benchmark_dicts(json_files)
 
     names = set()
 
@@ -28,12 +27,11 @@ def main(csv_files):
         for run in runs:
             names.add(get_name(run))
 
-    directory = 'benchmark_plots'
-    shutil.rmtree(directory)
-    os.makedirs(directory, exist_ok=True)
+    directory = setup_directory('render')
+
     for name in names:
         file_names = []
-        for file_name, runs in zip(csv_files, benchmark_dicts):
+        for file_name, runs in zip(json_files, benchmark_dicts):
             file_names.append(file_name)
             times = []
             errors = []
