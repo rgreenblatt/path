@@ -38,3 +38,5 @@ gpu_video
 *.exe
 *.out
 *.app
+
+__pycache__/
