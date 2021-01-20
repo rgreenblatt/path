@@ -43,6 +43,10 @@ requires(AllValues<T>.size() != 0) decltype(auto) dispatch(T value, F &&f) {
 
 // useful for type checking/writing code in some cases
 template <AllValuesEnumerable T, typename F>
-requires(AllValues<T>.size() != 0) decltype(auto) fake_dispatch(T, F &&f) {
+requires(AllValues<T>.size() != 0)
+    // deprecated to warn on usage...
+    [[deprecated(
+        "remember to remove this use of fake_dispatch!")]] decltype(auto)
+        fake_dispatch(T, F &&f) {
   return f(Tag<T, 0>{});
 }
