@@ -138,7 +138,7 @@ public:
   requires std::convertible_to<decltype(std::declval<F>()()), Optional>
   constexpr Optional or_else(const F &f) const {
     if (has_value()) {
-      return this;
+      return *this;
     } else {
       return f();
     }
