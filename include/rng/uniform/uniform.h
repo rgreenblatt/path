@@ -64,7 +64,7 @@ template <ExecutionModel exec> struct Uniform {
 };
 
 template <ExecutionModel exec>
-struct IsRng : BoolWrapper<Rng<Uniform<exec>, Settings>> {};
+struct IsRng : std::bool_constant<Rng<Uniform<exec>, Settings>> {};
 
 static_assert(PredicateForAllValues<ExecutionModel>::value<IsRng>);
 } // namespace uniform

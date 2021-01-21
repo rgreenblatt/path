@@ -20,8 +20,8 @@ using EnumAccel = PickType<type, loop_all::LoopAll, kdtree::KDTree<exec>,
                            dir_tree::DirTree<exec>>;
 
 template <AccelType type, ExecutionModel exec>
-struct IsAccel
-    : BoolWrapper<BoundsOnlyAccel<EnumAccel<type, exec>, Settings<type>>> {};
+struct IsAccel : std::bool_constant<
+                     BoundsOnlyAccel<EnumAccel<type, exec>, Settings<type>>> {};
 
 static_assert(PredicateForAllValues<AccelType, ExecutionModel>::value<IsAccel>);
 } // namespace enum_accel

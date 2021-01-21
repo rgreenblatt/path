@@ -16,7 +16,7 @@ using Settings =
     PickType<type, no_light_sampling::Settings, random_triangle::Settings>;
 
 template <LightSamplerType type>
-struct SettingsValid : BoolWrapper<Setting<Settings<type>>> {};
+struct SettingsValid : std::bool_constant<Setting<Settings<type>>> {};
 
 static_assert(PredicateForAllValues<LightSamplerType>::value<SettingsValid>);
 } // namespace enum_light_sampler

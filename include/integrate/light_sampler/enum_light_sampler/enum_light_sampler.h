@@ -18,9 +18,8 @@ using EnumLightSampler = PickType<type, no_light_sampling::NoLightSampling,
                                   random_triangle::RandomTriangle<exec>>;
 
 template <LightSamplerType type, ExecutionModel exec>
-struct IsLightSampler
-    : BoolWrapper<GeneralBSDFTriangleLightSampler<EnumLightSampler<type, exec>,
-                                                  Settings<type>>> {};
+struct IsLightSampler : std::bool_constant<GeneralBSDFTriangleLightSampler<
+                            EnumLightSampler<type, exec>, Settings<type>>> {};
 
 static_assert(PredicateForAllValues<LightSamplerType,
                                     ExecutionModel>::value<IsLightSampler>);

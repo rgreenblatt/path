@@ -198,7 +198,7 @@ private:
 
 template <ExecutionModel exec>
 struct IsLightSampler
-    : BoolWrapper<
+    : std::bool_constant<
           GeneralBSDFTriangleLightSampler<RandomTriangle<exec>, Settings>> {};
 
 static_assert(PredicateForAllValues<ExecutionModel>::value<IsLightSampler>);

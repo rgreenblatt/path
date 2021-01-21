@@ -19,7 +19,8 @@ using EnumDirSampler =
 
 template <DirSamplerType type>
 struct IsGeneralDirSampler
-    : BoolWrapper<GeneralDirSampler<EnumDirSampler<type>, Settings<type>>> {};
+    : std::bool_constant<
+          GeneralDirSampler<EnumDirSampler<type>, Settings<type>>> {};
 
 static_assert(
     PredicateForAllValues<DirSamplerType>::value<IsGeneralDirSampler>);

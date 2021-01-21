@@ -51,6 +51,7 @@ private:
 };
 
 template <ExecutionModel exec>
-struct ThrustDataMovable : BoolWrapper<std::movable<ThrustData<exec>>> {};
+struct ThrustDataMovable : std::bool_constant<std::movable<ThrustData<exec>>> {
+};
 
 static_assert(PredicateForAllValues<ExecutionModel>::value<ThrustDataMovable>);

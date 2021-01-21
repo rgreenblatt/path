@@ -112,7 +112,7 @@ private:
 
 template <ExecutionModel exec>
 struct CachingThrustAllocatorMovable
-    : BoolWrapper<std::movable<CachingThrustAllocator<exec>>> {};
+    : std::bool_constant<std::movable<CachingThrustAllocator<exec>>> {};
 
 static_assert(PredicateForAllValues<ExecutionModel>::value<
               CachingThrustAllocatorMovable>);

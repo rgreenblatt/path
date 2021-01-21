@@ -14,7 +14,7 @@ template <RngType type>
 using Settings = PickType<type, uniform::Settings, sobel::Settings>;
 
 template <RngType type>
-struct SettingsValid : BoolWrapper<Setting<Settings<type>>> {};
+struct SettingsValid : std::bool_constant<Setting<Settings<type>>> {};
 
 static_assert(PredicateForAllValues<RngType>::value<SettingsValid>);
 } // namespace enum_rng

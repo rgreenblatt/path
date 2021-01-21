@@ -143,7 +143,7 @@ private:
 #if 0
 template <ExecutionModel exec>
 struct IsSceneGenerator
-    : BoolWrapper<SceneGenerator<Generator<exec, MockAccelSettings, MockAccel>,
+    : std::bool_constant<SceneGenerator<Generator<exec, MockAccelSettings, MockAccel>,
                                  Settings>> {};
 
 static_assert(PredicateForAllValues<ExecutionModel>::value<IsSceneGenerator>);

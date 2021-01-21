@@ -14,7 +14,7 @@ using EnumRng = PickType<type, uniform::Uniform<execution_model>,
                          sobel::Sobel<execution_model>>;
 
 template <RngType type, ExecutionModel exec>
-struct IsRng : BoolWrapper<Rng<EnumRng<type, exec>, Settings<type>>> {};
+struct IsRng : std::bool_constant<Rng<EnumRng<type, exec>, Settings<type>>> {};
 
 static_assert(PredicateForAllValues<RngType, ExecutionModel>::value<IsRng>);
 } // namespace enum_rng

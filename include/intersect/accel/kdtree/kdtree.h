@@ -61,7 +61,7 @@ private:
 };
 
 template <ExecutionModel exec>
-struct IsAccel : BoolWrapper<BoundsOnlyAccel<KDTree<exec>, Settings>> {};
+struct IsAccel : std::bool_constant<BoundsOnlyAccel<KDTree<exec>, Settings>> {};
 
 static_assert(PredicateForAllValues<ExecutionModel>::value<IsAccel>);
 } // namespace kdtree

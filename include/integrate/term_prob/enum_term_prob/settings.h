@@ -17,7 +17,7 @@ using Settings = PickType<type, constant::Settings, n_iters::Settings,
                           multiplier_func::Settings>;
 
 template <TermProbType type>
-struct SettingsValid : BoolWrapper<Setting<Settings<type>>> {};
+struct SettingsValid : std::bool_constant<Setting<Settings<type>>> {};
 
 static_assert(PredicateForAllValues<TermProbType>::value<SettingsValid>);
 } // namespace enum_term_prob

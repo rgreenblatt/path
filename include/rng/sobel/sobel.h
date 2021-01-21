@@ -37,7 +37,7 @@ using Sobel = rng::detail::RngFromSequenceGen<detail::SobelSequenceGen<exec>,
                                               detail::SobelSettings>;
 
 template <ExecutionModel exec>
-struct IsRng : BoolWrapper<Rng<Sobel<exec>, Settings>> {};
+struct IsRng : std::bool_constant<Rng<Sobel<exec>, Settings>> {};
 
 static_assert(PredicateForAllValues<ExecutionModel>::value<IsRng>);
 } // namespace sobel

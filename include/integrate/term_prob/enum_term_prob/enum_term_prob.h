@@ -19,8 +19,8 @@ using EnumTermProb = PickType<type, constant::Constant, n_iters::NIters,
                               multiplier_func::MultiplierFunc>;
 
 template <TermProbType type>
-struct IsTermProb : BoolWrapper<TermProb<EnumTermProb<type>, Settings<type>>> {
-};
+struct IsTermProb
+    : std::bool_constant<TermProb<EnumTermProb<type>, Settings<type>>> {};
 
 static_assert(PredicateForAllValues<TermProbType>::value<IsTermProb>);
 } // namespace enum_term_prob

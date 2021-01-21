@@ -15,7 +15,7 @@ template <AllValuesEnumerable... T> struct PredicateForAllValues {
   static constexpr auto values = AllValues<MetaTuple<T...>>;
 
   // unfortunately, this nesting is needed due to the dependence on T...
-  // Pred should always be convertible to bool
+  // Pred should always be convertible to bool (std::bool_constant)
   template <template <T...> class Pred>
   static constexpr bool value =
   // TODO: gcc work around (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=86883)
@@ -34,6 +34,3 @@ template <AllValuesEnumerable... T> struct PredicateForAllValues {
       true;
 #endif
 };
-
-// useful utility for the above
-template <bool v> using BoolWrapper = std::integral_constant<bool, v>;

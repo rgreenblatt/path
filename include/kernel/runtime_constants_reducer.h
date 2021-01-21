@@ -104,7 +104,7 @@ struct RuntimeConstantsReducer {
 namespace detail {
 template <ExecutionModel exec>
 struct IsThreadInteractor
-    : BoolWrapper<
+    : std::bool_constant<
           ThreadInteractor<RuntimeConstantsReducer<exec, float>, float>> {};
 
 static_assert(PredicateForAllValues<ExecutionModel>::value<IsThreadInteractor>);

@@ -15,7 +15,7 @@ template <DirSamplerType type>
 using Settings = PickType<type, uniform::Settings, bsdf_sampler::Settings>;
 
 template <DirSamplerType type>
-struct SettingsValid : BoolWrapper<Setting<Settings<type>>> {};
+struct SettingsValid : std::bool_constant<Setting<Settings<type>>> {};
 
 static_assert(PredicateForAllValues<DirSamplerType>::value<SettingsValid>);
 } // namespace enum_dir_sampler

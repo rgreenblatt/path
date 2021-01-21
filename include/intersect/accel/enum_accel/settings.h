@@ -17,7 +17,7 @@ using Settings =
     PickType<type, loop_all::Settings, kdtree::Settings, dir_tree::Settings>;
 
 template <AccelType type>
-struct SettingsValid : BoolWrapper<Setting<Settings<type>>> {};
+struct SettingsValid : std::bool_constant<Setting<Settings<type>>> {};
 
 static_assert(PredicateForAllValues<AccelType>::value<SettingsValid>);
 } // namespace enum_accel
