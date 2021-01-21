@@ -14,7 +14,7 @@ concept ThreadCallableForInteractor = requires(
     T &callable, const WorkDivision &division, const GridLocationInfo &info,
     const unsigned block_idx, const unsigned thread_idx, const ExtraInp &inp,
     ThreadRef &interactor) {
-  requires std::copyable<T>;
+  requires std::is_copy_constructible_v<T>;
   callable(division, info, block_idx, thread_idx, inp, interactor);
 };
 
@@ -24,7 +24,6 @@ struct MockThreadCallable : MockCopyable {
                   const unsigned block_idx, const unsigned thread_idx,
                   const ExtraInp &inp, ThreadRef &interactor);
 };
-
 template <
     std::copyable ExtraInp, ThreadInteractor<ExtraInp> I,
     ThreadCallableForInteractor<ExtraInp, typename I::BlockRef::ThreadRef> F>
@@ -57,4 +56,16 @@ struct ThreadInteractorLaunchable {
 
 static_assert(Launchable<ThreadInteractorLaunchable<
                   EmptyExtraInp, MockThreadInteractor, MockThreadCallable>>);
+
+namespace detail {
+
+inline constexpr auto lambda_thread_callable =
+    []<typename ExtraInp, typename ThreadRef>(
+        const WorkDivision &, const GridLocationInfo &, unsigned, unsigned,
+        const ExtraInp &, ThreadRef &) {};
+// make sure lambda works...
+static_assert(
+    Launchable<ThreadInteractorLaunchable<EmptyExtraInp, MockThreadInteractor,
+                                          decltype(lambda_thread_callable)>>);
+} // namespace detail
 } // namespace kernel

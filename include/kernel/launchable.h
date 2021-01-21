@@ -18,7 +18,7 @@ concept LaunchableBlockRef = requires(T &t, const WorkDivision &division,
 template <typename T>
 concept Launchable = requires(T &t, const WorkDivision &division,
                               const unsigned block_idx) {
-  requires std::copyable<T>;
+  requires std::is_copy_constructible_v<T>;
   typename T::BlockRef;
   requires LaunchableBlockRef<typename T::BlockRef>;
   { t.block_init(division, block_idx) } -> std::same_as<typename T::BlockRef>;
