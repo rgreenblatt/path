@@ -6,7 +6,7 @@
 #include "intersect/accel/loop_all/settings.h"
 #include "intersect/optional_min.h"
 #include "lib/attribute.h"
-#include "meta/predicate_for_all_values.h"
+#include "meta/all_values/predicate_for_all_values.h"
 
 namespace intersect {
 namespace accel {

@@ -5,7 +5,7 @@
 #include "intersect/triangle_impl.h"
 #include "lib/optional.h"
 #include "lib/span.h"
-#include "meta/tag.h"
+#include "meta/all_values/tag.h"
 
 #include <gtest/gtest.h>
 

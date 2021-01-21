@@ -1,7 +1,7 @@
 #pragma once
 
-#include "meta/all_values.h"
-#include "meta/all_values_tuple.h"
+#include "meta/all_values/all_values.h"
+#include "meta/all_values/impl/tuple.h"
 #include "meta/tuple.h"
 
 #include <boost/hana/ext/std/integer_sequence.hpp>

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "meta/all_values.h"
-#include "meta/get_idx.h"
-#include "meta/n_tag.h"
+#include "meta/all_values/all_values.h"
+#include "meta/all_values/get_idx.h"
+#include "meta/all_values/n_tag.h"
 
 // allow for using an index directly
 

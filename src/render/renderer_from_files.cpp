@@ -2,7 +2,7 @@
 #include "lib/assert.h"
 #include "lib/serialize_enum.h"
 #include "lib/serialize_tagged_union.h"
-#include "meta/serialize_as_tuple_str.h"
+#include "meta/as_tuple/serialize.h"
 #include "render/renderer.h"
 #include "render/settings.h"
 #include "scene/scenefile_compat/scenefile_loader.h"

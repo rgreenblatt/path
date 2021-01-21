@@ -4,9 +4,9 @@
 #include "data_structure/vector.h"
 #include "lib/span.h"
 #include "lib/tagged_tuple.h"
-#include "meta/all_values.h"
+#include "meta/all_values/all_values.h"
+#include "meta/all_values/tag.h"
 #include "meta/pack_element.h"
-#include "meta/tag.h"
 #include "meta/tuple.h"
 
 #include <boost/hana/zip.hpp>

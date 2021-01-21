@@ -1,8 +1,8 @@
 #pragma once
 
 #include "meta/all_types_same.h"
-#include "meta/all_values.h"
-#include "meta/tag.h"
+#include "meta/all_values/all_values.h"
+#include "meta/all_values/tag.h"
 
 #include <utility>
 

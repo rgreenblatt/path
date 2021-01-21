@@ -1,12 +1,12 @@
 #pragma once
 
-#include "meta/all_values.h"
-#include "meta/all_values_tuple.h"
+#include "meta/all_values/all_values.h"
+#include "meta/all_values/get_idx.h"
+#include "meta/all_values/impl/tuple.h"
+#include "meta/all_values/per_instance.h"
+#include "meta/all_values/sequential_dispatch.h"
+#include "meta/all_values/tag.h"
 #include "meta/decays_to.h"
-#include "meta/get_idx.h"
-#include "meta/per_instance.h"
-#include "meta/sequential_dispatch.h"
-#include "meta/tag.h"
 #include "meta/tuple.h"
 
 #include <boost/hana/ext/std/array.hpp>

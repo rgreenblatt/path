@@ -9,7 +9,7 @@
 #include "lib/attribute.h"
 #include "lib/cuda/utils.h"
 #include "lib/tagged_union.h"
-#include "meta/all_values_enum.h"
+#include "meta/all_values/impl/enum.h"
 
 namespace bsdf {
 enum class BSDFType {

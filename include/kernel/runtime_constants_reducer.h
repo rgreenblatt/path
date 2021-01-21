@@ -6,8 +6,8 @@
 #include "lib/bit_utils.h"
 #include "lib/optional.h"
 #include "lib/reducible_bin_op.h"
-#include "meta/all_values_enum.h"
-#include "meta/predicate_for_all_values.h"
+#include "meta/all_values/impl/enum.h"
+#include "meta/all_values/predicate_for_all_values.h"
 
 // TODO: give this its own namespace
 namespace kernel {

@@ -6,7 +6,7 @@
 #include "intersect/accel/kdtree/detail/node.h"
 #include "intersect/accel/kdtree/settings.h"
 #include "lib/attribute.h"
-#include "meta/all_values_enum.h"
+#include "meta/all_values/impl/enum.h"
 
 #include <memory>
 

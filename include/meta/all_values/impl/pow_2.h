@@ -2,7 +2,7 @@
 
 #include "lib/assert.h"
 #include "lib/bit_utils.h"
-#include "meta/all_values.h"
+#include "meta/all_values/all_values.h"
 
 // inclusive
 template <std::unsigned_integral T, T min, T max>

@@ -2,7 +2,7 @@
 
 #include "lib/serialize.h"
 #include "lib/tagged_union.h"
-#include "meta/dispatch.h"
+#include "meta/all_values/dispatch.h"
 #include "meta/specialization_of.h"
 
 #include <iostream>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "lib/assert.h"
-#include "meta/all_values.h"
+#include "meta/all_values/all_values.h"
 
 namespace per_instance {
 namespace detail {

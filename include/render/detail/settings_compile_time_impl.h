@@ -1,8 +1,8 @@
 #pragma once
 
-#include "meta/all_values_as_tuple.h"
-#include "meta/all_values_tuple.h"
-#include "meta/as_tuple.h"
+#include "meta/all_values/impl/as_tuple.h"
+#include "meta/all_values/impl/tuple.h"
+#include "meta/as_tuple/as_tuple.h"
 #include "meta/unpack_to.h"
 #include "render/settings.h"
 

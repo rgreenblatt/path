@@ -3,7 +3,7 @@
 #include "intersect/accel/aabb.h"
 #include "lib/start_end.h"
 #include "lib/tagged_union.h"
-#include "meta/all_values_enum.h"
+#include "meta/all_values/impl/enum.h"
 
 namespace intersect {
 namespace accel {

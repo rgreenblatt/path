@@ -1,10 +1,10 @@
 #pragma once
 
 #include "lib/assert.h"
-#include "meta/all_values.h"
-#include "meta/sequential_dispatch.h"
-#include "meta/tag.h"
-#include "meta/tag_dispatchable.h"
+#include "meta/all_values/all_values.h"
+#include "meta/all_values/sequential_dispatch.h"
+#include "meta/all_values/tag.h"
+#include "meta/all_values/tag_dispatchable.h"
 
 #include <iostream>
 #include <map>

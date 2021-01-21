@@ -9,7 +9,7 @@
 #include "intersectable_scene/flat_triangle/flat_triangle.h"
 #include "intersectable_scene/to_bulk.h"
 #include "lib/tagged_tuple.h"
-#include "meta/all_values_enum.h"
+#include "meta/all_values/impl/enum.h"
 #include "render/detail/integrate_image_bulk_state.h"
 #include "render/renderer.h"
 #include "render/settings.h"

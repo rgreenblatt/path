@@ -2,7 +2,7 @@
 
 #include "lib/assert.h"
 #include "lib/attribute.h"
-#include "meta/all_values.h"
+#include "meta/all_values/all_values.h"
 
 template <AllValuesEnumerable T>
 ATTR_PURE_NDEBUG static constexpr unsigned get_idx(const T &value) {

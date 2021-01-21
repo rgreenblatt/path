@@ -3,15 +3,15 @@
 #include "lib/assert.h"
 #include "lib/attribute.h"
 #include "meta/aggregate_constructible_from.h"
-#include "meta/all_values.h"
+#include "meta/all_values/all_values.h"
+#include "meta/all_values/get_idx.h"
+#include "meta/all_values/per_instance.h"
+#include "meta/all_values/sequential_dispatch.h"
+#include "meta/all_values/tag.h"
 #include "meta/decays_to.h"
-#include "meta/get_idx.h"
 #include "meta/pack_element.h"
-#include "meta/per_instance.h"
-#include "meta/sequential_dispatch.h"
 #include "meta/specialization_of.h"
 #include "meta/std_array_specialization.h"
-#include "meta/tag.h"
 
 #include <boost/hana/ext/std/integer_sequence.hpp>
 #include <boost/hana/fold_left.hpp>

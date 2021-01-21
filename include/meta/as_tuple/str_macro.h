@@ -1,6 +1,6 @@
 #pragma once
 
-#include "meta/as_tuple_macro.h"
+#include "meta/as_tuple/macro.h"
 #include "meta/macro_map.h"
 
 #define AS_TUPLE_STR_STRUCTURAL(NAME, ...)                                     \

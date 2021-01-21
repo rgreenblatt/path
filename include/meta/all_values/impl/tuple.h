@@ -1,7 +1,6 @@
 #pragma once
 
-#include "meta/all_values.h"
-#include "meta/to_array.h"
+#include "meta/all_values/all_values.h"
 #include "meta/tuple.h"
 
 #include <boost/hana/cartesian_product.hpp>
@@ -13,6 +12,7 @@ template <> struct AllValuesImpl<MetaTuple<>> {
 
 template <AllValuesEnumerable... Types>
 struct AllValuesImpl<MetaTuple<Types...>> {
-  static constexpr auto values = to_array(
-      boost::hana::cartesian_product(make_meta_tuple(AllValues<Types>...)));
+  static constexpr auto values = boost::hana::unpack(
+      boost::hana::cartesian_product(make_meta_tuple(AllValues<Types>...)),
+      [](auto &&...x) { return std::array{x...}; });
 };

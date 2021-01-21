@@ -1,9 +1,9 @@
-#include "meta/all_values.h"
-#include "meta/all_values_enum.h"
-#include "meta/all_values_integral.h"
-#include "meta/all_values_pow_2.h"
-#include "meta/all_values_range.h"
-#include "meta/all_values_tuple.h"
+#include "meta/all_values/all_values.h"
+#include "meta/all_values/impl/enum.h"
+#include "meta/all_values/impl/integral.h"
+#include "meta/all_values/impl/pow_2.h"
+#include "meta/all_values/impl/range.h"
+#include "meta/all_values/impl/tuple.h"
 #include "set_same.h"
 
 #include <algorithm>

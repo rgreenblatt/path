@@ -13,7 +13,7 @@
 #include "lib/cuda/reduce.cuh"
 #include "lib/cuda/utils.h"
 #include "lib/span.h"
-#include "meta/tag.h"
+#include "meta/all_values/tag.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "meta/all_values.h"
+#include "meta/all_values/all_values.h"
 
 #include <limits>
 

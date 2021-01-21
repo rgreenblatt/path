@@ -1,9 +1,9 @@
 #pragma once
 
 #include "lib/settings.h"
-#include "meta/all_values_enum.h"
-#include "meta/pick_type.h"
-#include "meta/predicate_for_all_values.h"
+#include "meta/all_values/impl/enum.h"
+#include "meta/all_values/pick_type.h"
+#include "meta/all_values/predicate_for_all_values.h"
 #include "rng/enum_rng/rng_type.h"
 #include "rng/sobel/settings.h"
 #include "rng/uniform/settings.h"

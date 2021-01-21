@@ -1,7 +1,7 @@
 #pragma once
 
 #include "execution_model/execution_model.h"
-#include "meta/all_values_enum.h"
+#include "meta/all_values/impl/enum.h"
 #include "rng/enum_rng/rng_type.h"
 #include "rng/enum_rng/settings.h"
 #include "rng/sobel/sobel.h"

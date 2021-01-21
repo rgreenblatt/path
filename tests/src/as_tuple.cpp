@@ -1,8 +1,8 @@
-#include "meta/all_values_as_tuple.h"
-#include "meta/all_values_integral.h"
-#include "meta/all_values_range.h"
-#include "meta/as_tuple_str_macro.h"
-#include "meta/serialize_as_tuple_str.h"
+#include "meta/all_values/impl/as_tuple.h"
+#include "meta/all_values/impl/integral.h"
+#include "meta/all_values/impl/range.h"
+#include "meta/as_tuple/serialize.h"
+#include "meta/as_tuple/str_macro.h"
 #include "set_same.h"
 
 #include <cereal/archives/binary.hpp>

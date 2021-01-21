@@ -11,7 +11,7 @@
 #include "lib/cuda/utils.h"
 #include "lib/edges.h"
 #include "lib/vector_group.h"
-#include "meta/all_values_enum.h"
+#include "meta/all_values/impl/enum.h"
 #include "scene/scene.h"
 #include "scene/triangle_data.h"
 

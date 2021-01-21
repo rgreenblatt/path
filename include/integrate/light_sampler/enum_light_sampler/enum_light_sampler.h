@@ -6,9 +6,9 @@
 #include "integrate/light_sampler/random_triangle/random_triangle.h"
 #include "integrate/light_sampler/triangle_light_sampler.h"
 #include "lib/settings.h"
-#include "meta/all_values_enum.h"
-#include "meta/pick_type.h"
-#include "meta/predicate_for_all_values.h"
+#include "meta/all_values/impl/enum.h"
+#include "meta/all_values/pick_type.h"
+#include "meta/all_values/predicate_for_all_values.h"
 
 namespace integrate {
 namespace light_sampler {

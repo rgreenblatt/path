@@ -1,8 +1,8 @@
 #pragma once
 
 #include "lib/assert.h"
-#include "meta/n_tag.h"
-#include "meta/n_tag_dispatchable.h"
+#include "meta/all_values/n_tag.h"
+#include "meta/all_values/n_tag_dispatchable.h"
 
 // this probably isn't a very efficient implementation
 template <unsigned size, NTagDispatchable<size> F>

@@ -2,8 +2,8 @@
 
 #include "execution_model/execution_model.h"
 #include "lib/span.h"
-#include "meta/all_values_enum.h"
-#include "meta/predicate_for_all_values.h"
+#include "meta/all_values/impl/enum.h"
+#include "meta/all_values/predicate_for_all_values.h"
 #include "rng/rng.h"
 #include "rng/rng_from_sequence_gen.h"
 #include "rng/sobel/settings.h"
