@@ -9,7 +9,7 @@
 namespace dispatch_name {
 namespace detail {
 template <typename F, typename T, unsigned idx>
-using TagDispatchableT = decltype(f(Tag<T, idx>{}));
+using TagDispatchableT = decltype(std::declval<F &>()(Tag<T, idx>{}));
 
 template <typename F, typename T, unsigned... idxs>
 concept TagDispatchablePack = AllValuesEnumerable<T> && requires(F &f) {
