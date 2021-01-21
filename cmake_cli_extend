@@ -74,8 +74,11 @@ class PathCMakeBuild(BaseCMakeBuilder):
         if self.args.cpu_only:
             print("WARN: building CPU_ONLY which is very hacky...")
             out += ["-DCPU_ONLY=ON"]
-        if self.args.build_benchmarks:
-            out += ["-DBUILD_BENCHMARKS=ON", "-DBENCHMARK_ENABLE_TESTING=OFF"]
+        with suppress(AttributeError):
+            if self.args.build_benchmarks:
+                out += [
+                    "-DBUILD_BENCHMARKS=ON", "-DBENCHMARK_ENABLE_TESTING=OFF"
+                ]
 
         return out
 
