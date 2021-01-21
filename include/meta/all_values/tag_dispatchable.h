@@ -8,11 +8,14 @@
 
 namespace dispatch_name {
 namespace detail {
+template <typename F, typename T, unsigned idx>
+using TagDispatchableT = decltype(f(Tag<T, idx>{}));
+
 template <typename F, typename T, unsigned... idxs>
 concept TagDispatchablePack = AllValuesEnumerable<T> && requires(F &f) {
   // TODO: gcc work around (should work on trunk)
 #ifdef __clang__
-  requires AllTypesSame<decltype(f(Tag<T, idxs>{}))...>;
+  requires AllTypesSame<TagDispatchableT<F, T, idxs>...>;
 #else
   requires true;
 #endif
@@ -35,3 +38,7 @@ concept TagDispatchable = requires {
       std::make_index_sequence < AllValues<T>
   .size() >> ::value;
 };
+
+template <typename T, TagDispatchable<T> F>
+requires(AllValues<T>.size() != 0) using TagDispatchableT =
+    dispatch_name::detail::TagDispatchableT<F, T, 0>;
