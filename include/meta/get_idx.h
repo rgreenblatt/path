@@ -13,7 +13,7 @@ ATTR_PURE_NDEBUG static constexpr unsigned get_idx(const T &value) {
     }
   }
 
-  // TODO: gcc workaround https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98672
+  // TODO: gcc workaround (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98672)
 #ifdef __clang__
   unreachable_unchecked();
 #endif

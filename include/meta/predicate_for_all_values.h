@@ -18,7 +18,7 @@ template <AllValuesEnumerable... T> struct PredicateForAllValues {
   // Pred should always be convertible to bool
   template <template <T...> class Pred>
   static constexpr bool value =
-  // TODO: gcc work around (should work on trunk)
+  // TODO: gcc work around (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=86883)
 #ifdef __clang__
       boost::hana::unpack(
           std::make_index_sequence<values.size()>{}, [](auto... i) {
