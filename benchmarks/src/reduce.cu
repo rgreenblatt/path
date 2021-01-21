@@ -2,6 +2,12 @@
 #include "data_structure/copyable_to_vec.h"
 #include "execution_model/device_vector.h"
 #include "execution_model/host_vector.h"
+#include "kernel/kernel_launch.h"
+#include "kernel/kernel_launch_impl_gpu.cuh"
+#include "kernel/runtime_constants_reducer.h"
+#include "kernel/runtime_constants_reducer_impl_gpu.cuh"
+#include "kernel/thread_interactor_launchable.h"
+#include "kernel/work_division.h"
 #include "lib/bit_utils.h"
 #include "lib/cuda/reduce.cuh"
 #include "lib/cuda/utils.h"
@@ -98,6 +104,7 @@ __global__ void warp_reduce_fully_dispatched(Span<const T> in, Span<T> out) {
 
 enum class NotFullyDispatchedReduceImpl {
   Mine,
+  GeneralKernelLaunch,
 };
 
 template <NotFullyDispatchedReduceImpl type, typename T>
@@ -112,6 +119,7 @@ __global__ void block_reduce_not_fully_dispatched(Span<const T> in, Span<T> out,
   debug_assert_assume(power_of_2(block_size));
   debug_assert_assume(power_of_2(items_per_thread)); // somewhat atypical...
   T value = 0;
+  // #pragma unroll
   for (unsigned i = 0; i < items_per_thread; ++i) {
     value += in[i + items_per_thread * (threadIdx.x + blockIdx.x * block_size)];
   }
@@ -137,7 +145,7 @@ __global__ void warp_reduce_not_fully_dispatched(Span<const T> in, Span<T> out,
   debug_assert_assume(power_of_2(items_per_thread)); // somewhat atypical...
 
   T value = 0;
-#pragma unroll
+  // #pragma unroll
   for (unsigned i = 0; i < items_per_thread; ++i) {
     value += in[i + items_per_thread * (threadIdx.x + blockIdx.x * block_size)];
   }
@@ -359,9 +367,13 @@ int main(int argc, char *argv[]) {
                                     rng.discard(n);
                                     return dist(rng);
                                   });
-                output.resize(size / reduction_factor);
+                output.resize(size / reduction_factor, 0);
+                thrust::fill(output.begin(), output.end(), 0);
                 for (auto _ : st) {
                   using ItemT = GetItemType<kernel_type.item_type>;
+
+                  Span<const ItemT> in = input;
+                  Span<ItemT> out = output;
 
                   if constexpr (run_type.is_fully_dispatched) {
                     constexpr Constants constants = type.constants;
@@ -369,29 +381,99 @@ int main(int argc, char *argv[]) {
                       block_reduce_fully_dispatched<
                           kernel_type.reduce_impl, constants.block_size,
                           constants.items_per_thread, ItemT>
-                          <<<num_blocks, constants.block_size()>>>(input,
-                                                                   output);
+                          <<<num_blocks, constants.block_size()>>>(in, out);
                     } else {
                       warp_reduce_fully_dispatched<
                           kernel_type.reduce_impl, constants.block_size,
                           constants.sub_warp_size, constants.items_per_thread,
-                          ItemT><<<num_blocks, constants.block_size()>>>(
-                          input, output);
+                          ItemT>
+                          <<<num_blocks, constants.block_size()>>>(in, out);
                     }
                   } else {
-                    if constexpr (run_type.is_block) {
-                      block_reduce_not_fully_dispatched<kernel_type.reduce_impl,
-                                                        ItemT>
-                          <<<num_blocks, constants.block_size()>>>(
-                              input, output, constants.block_size,
-                              constants.items_per_thread);
+                    if constexpr (kernel_type.reduce_impl ==
+                                  NotFullyDispatchedReduceImpl::Mine) {
+                      if constexpr (run_type.is_block) {
+                        block_reduce_not_fully_dispatched<
+                            kernel_type.reduce_impl, ItemT>
+                            <<<num_blocks, constants.block_size()>>>(
+                                in, out, constants.block_size,
+                                constants.items_per_thread);
+                      } else {
+                        warp_reduce_not_fully_dispatched<
+                            kernel_type.reduce_impl, ItemT>
+                            <<<num_blocks, constants.block_size()>>>(
+                                in, out, constants.block_size,
+                                constants.sub_warp_size,
+                                constants.items_per_thread);
+                      }
                     } else {
-                      warp_reduce_not_fully_dispatched<kernel_type.reduce_impl,
-                                                       ItemT>
-                          <<<num_blocks, constants.block_size()>>>(
-                              input, output, constants.block_size,
-                              constants.sub_warp_size,
-                              constants.items_per_thread);
+                      static_assert(
+                          kernel_type.reduce_impl ==
+                          NotFullyDispatchedReduceImpl::GeneralKernelLaunch);
+                      kernel::WorkDivision division(
+                          kernel::Settings{
+                              .block_size = constants.block_size,
+                              .target_x_block_size = constants.block_size,
+                              .force_target_samples = true,
+                              .forced_target_samples_per_thread =
+                                  constants.items_per_thread,
+                          },
+                          reduction_factor, size / reduction_factor, 1);
+
+                      debug_assert(division.n_threads_per_unit_extra() == 0);
+                      debug_assert(num_blocks == division.total_num_blocks());
+                      debug_assert(division.base_samples_per_thread() ==
+                                   constants.items_per_thread);
+                      if constexpr (run_type.is_block) {
+                        debug_assert(division.sample_block_size() ==
+                                     constants.block_size);
+                      } else {
+                        debug_assert(division.sample_block_size() ==
+                                     constants.sub_warp_size);
+                      }
+
+                      using Reducer =
+                          kernel::RuntimeConstantsReducer<ExecutionModel::GPU,
+                                                          ItemT>;
+                      using ThreadRef = typename Reducer::ThreadRef;
+
+                      auto callable = [=](const kernel::WorkDivision &,
+                                          const kernel::GridLocationInfo &info,
+                                          const unsigned, const unsigned,
+                                          const auto &, ThreadRef &interactor) {
+                        auto [start_sample, end_sample, x, y] = info;
+
+                    // this substantially speeds things up for this case
+#if 0
+                        if (reduction_factor == 1) {
+                          out[x] = in[x];
+                          return;
+                        }
+#endif
+
+                        ItemT value = 0;
+                        // #pragma unroll
+                        for (unsigned i = start_sample; i < end_sample; ++i) {
+                          value += in[i + x * reduction_factor];
+                        }
+
+                        auto op = interactor.reduce(
+                            value, sum, division.sample_block_size());
+
+                        if (op.has_value()) {
+                          out[x] = *op;
+                        }
+                      };
+
+                      kernel::ThreadInteractorLaunchableNoExtraInp<
+                          Reducer, decltype(callable)>
+                          launchable{
+                              .interactor = Reducer{},
+                              .callable = callable,
+                          };
+
+                      kernel::KernelLaunch<ExecutionModel::GPU>::run(
+                          division, 0, num_blocks, launchable);
                     }
                   }
                   CUDA_SYNC_CHK();

@@ -21,7 +21,11 @@ concept ThreadInteractor = requires(const WorkDivision &division, const T &t,
     } -> std::same_as<typename T::BlockRef>;
 };
 
+template <typename T>
+concept ThreadInteractorNoExtraInp = ThreadInteractor<T, MockNoRequirements>;
+
 struct MockThreadInteractor : MockCopyable {
+  // TODO: why do these need to be movable...
   struct BlockRef : MockMovable {
     struct ThreadRef : MockMovable {};
 

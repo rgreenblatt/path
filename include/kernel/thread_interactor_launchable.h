@@ -24,6 +24,7 @@ struct MockThreadCallable : MockCopyable {
                   const unsigned block_idx, const unsigned thread_idx,
                   const ExtraInp &inp, ThreadRef &interactor);
 };
+
 template <
     std::copyable ExtraInp, ThreadInteractor<ExtraInp> I,
     ThreadCallableForInteractor<ExtraInp, typename I::BlockRef::ThreadRef> F>
@@ -37,15 +38,18 @@ struct ThreadInteractorLaunchable {
     typename I::BlockRef interactor;
     const F &callable;
 
-    void operator()(const WorkDivision &division, const GridLocationInfo &info,
-                    const unsigned block_idx, const unsigned thread_idx) {
+    HOST_DEVICE void operator()(const WorkDivision &division,
+                                const GridLocationInfo &info,
+                                const unsigned block_idx,
+                                const unsigned thread_idx) {
       F copy_callable = callable;
-      copy_callable(division, info, block_idx, thread_idx, inp,
-                    interactor.thread_init(thread_idx));
+      auto thread_ref = interactor.thread_init(thread_idx);
+      copy_callable(division, info, block_idx, thread_idx, inp, thread_ref);
     }
   };
 
-  BlockRef block_init(const WorkDivision &division, unsigned block_idx) {
+  HOST_DEVICE BlockRef block_init(const WorkDivision &division,
+                                  unsigned block_idx) {
     return {
         .inp = inp,
         .interactor = interactor.block_init(division, block_idx, inp),
@@ -58,7 +62,6 @@ static_assert(Launchable<ThreadInteractorLaunchable<
                   EmptyExtraInp, MockThreadInteractor, MockThreadCallable>>);
 
 namespace detail {
-
 inline constexpr auto lambda_thread_callable =
     []<typename ExtraInp, typename ThreadRef>(
         const WorkDivision &, const GridLocationInfo &, unsigned, unsigned,
@@ -68,4 +71,8 @@ static_assert(
     Launchable<ThreadInteractorLaunchable<EmptyExtraInp, MockThreadInteractor,
                                           decltype(lambda_thread_callable)>>);
 } // namespace detail
+
+template <typename I, typename F>
+using ThreadInteractorLaunchableNoExtraInp =
+    ThreadInteractorLaunchable<EmptyExtraInp, I, F>;
 } // namespace kernel

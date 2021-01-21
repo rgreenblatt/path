@@ -306,10 +306,11 @@ if(BUILD_BENCHMARKS OR CMAKE_EXPORT_COMPILE_COMMANDS)
   package_add_bench(sort_bench "${PROJECT_SOURCE_DIR}/benchmarks/src/sort.cu")
   package_add_bench(render_bench
                     "${PROJECT_SOURCE_DIR}/benchmarks/src/render.cpp")
+  target_link_libraries(render_bench PRIVATE renderer_from_files)
   package_add_bench(reduce_bench
                     "${PROJECT_SOURCE_DIR}/benchmarks/src/reduce.cu")
-  target_link_libraries(render_bench PRIVATE renderer_from_files)
   target_compile_options(reduce_bench PRIVATE -fconstexpr-steps=10000000)
+  target_link_libraries(reduce_bench PRIVATE kernel)
 
   # doesn't actually run...
   add_custom_target(

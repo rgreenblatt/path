@@ -1,13 +1,19 @@
 #ifndef CPU_ONLY
 #include "execution_model/host_device_vector.h"
+#include "execution_model/host_vector.h"
 #include "kernel/kernel_launch.h"
+#include "kernel/kernel_launch_impl_cpu.h"
 #include "kernel/kernel_launch_impl_gpu.cuh"
 #include "kernel/reduce_samples.cuh"
+#include "kernel/runtime_constants_reducer.h"
+#include "kernel/runtime_constants_reducer_impl_gpu.cuh"
+#include "kernel/thread_interactor_launchable.h"
 #include "kernel/work_division.h"
 #include "lib/assert.h"
 #include "lib/cuda/reduce.cuh"
 #include "lib/cuda/utils.h"
 #include "lib/span.h"
+#include "meta/tag.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -88,34 +94,48 @@ TEST(Reduce, sum) {
                   <<<num_blocks, block_size>>>(in, out, samples_per);
             }
 
-            HostDeviceVector<T> out_vals_division(num_locations);
+            auto division_run = [&](auto tag, Span<T> out_div) {
+              constexpr ExecutionModel exec = decltype(tag)::value;
+              using Reducer = kernel::RuntimeConstantsReducer<exec, T>;
+              using ThreadRef = typename Reducer::ThreadRef;
 
-            Span<T> out_division = out_vals_division;
+              auto callable = [=] HOST_DEVICE(
+                                  const WorkDivision &division,
+                                  const kernel::GridLocationInfo &info,
+                                  const unsigned /*block_idx*/,
+                                  const unsigned /*thread_idx*/, const auto &,
+                                  ThreadRef &interactor) {
+                auto [start_sample, end_sample, j, unused] = info;
 
-#pragma message "fix this - kernel launch"
-#if 0
-            kernel::KernelLaunch<ExecutionModel::GPU>::run(
-                division, 0, division.total_num_blocks(),
-                [=] HOST_DEVICE(const WorkDivision &division,
-                                const kernel::GridLocationInfo &info,
-                                const unsigned /*block_idx*/,
-                                const unsigned thread_idx) {
-                  auto [start_sample, end_sample, j, unused] = info;
+                T total = 0;
+                for (unsigned i = start_sample; i < end_sample; ++i) {
+                  total += in[i + j * samples_per];
+                }
 
-                  T total = 0;
-                  for (unsigned i = start_sample; i < end_sample; ++i) {
-                    total += in[i + j * samples_per];
-                  }
+                auto add = [](const T &lhs, const T &rhs) { return lhs + rhs; };
+                auto op =
+                    interactor.reduce(total, add, division.sample_block_size());
+                if (op.has_value()) {
+                  out_div[j] = *op;
+                }
+              };
 
-                  auto add = [](const T &lhs, const T &rhs) {
-                    return lhs + rhs;
+              kernel::ThreadInteractorLaunchableNoExtraInp<Reducer,
+                                                           decltype(callable)>
+                  launchable{
+                      .interactor = Reducer{},
+                      .callable = callable,
                   };
-                  total = reduce_samples(division, total, add, thread_idx);
-                  if (division.assign_sample(thread_idx)) {
-                    out_division[j] = total;
-                  }
-                });
-#endif
+
+              kernel::KernelLaunch<exec>::run(
+                  division, 0, division.total_num_blocks(), launchable);
+            };
+
+            HostDeviceVector<T> out_vals_division(num_locations);
+            HostVector<T> out_vals_division_cpu(num_locations);
+
+            division_run(TagV<ExecutionModel::GPU>, out_vals_division);
+            division_run(TagV<ExecutionModel::CPU>, out_vals_division_cpu);
 
             std::vector<T> expected(num_locations, 0.f);
 
@@ -130,6 +150,7 @@ TEST(Reduce, sum) {
               check_equality(expected, out_vals);
             }
             check_equality(expected, out_vals_division);
+            check_equality(expected, out_vals_division_cpu);
           }
         }
     }

@@ -12,13 +12,11 @@ namespace kernel {
 template <Launchable L>
 __global__ void gpu_kernel(const WorkDivision division, unsigned start_block,
                            L l) {
-#if 0
   const unsigned block_idx = blockIdx.x + start_block;
   const unsigned thread_idx = threadIdx.x;
   auto ref = l.block_init(division, block_idx);
 
   detail::kernel_launch_run(division, block_idx, thread_idx, ref);
-#endif
 }
 
 template <>

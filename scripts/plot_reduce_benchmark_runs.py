@@ -20,7 +20,9 @@ def str_item_type(n):
 
 
 def str_reduce_impl(n):
-    return ['MineGeneric', 'CUBGeneric', 'CUBSum', 'Mine'][int(n)]
+    return [
+        'MineGeneric', 'CUBGeneric', 'CUBSum', 'Mine', 'GeneralKernelLaunch'
+    ][int(n)]
 
 
 def get_instance(run):

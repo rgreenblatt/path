@@ -7,6 +7,10 @@
 #include "lib/settings.h"
 
 namespace kernel {
+// TODO: SPEED: having specializations of this and dispatching amoung them
+// would speed this up...
+// could do things like special case when n_threads_per_unit_extra == 0
+// or similar (no y, etc...)
 class WorkDivision {
 public:
   WorkDivision() {}
