@@ -39,3 +39,35 @@ static_assert(set_same(AllValues<MetaTuple<bool, bool>>,
                            MetaTuple<bool, bool>{true, false},
                            MetaTuple<bool, bool>{true, true},
                        }));
+
+struct NoCompare {};
+
+template <> struct AllValuesImpl<NoCompare> {
+  static constexpr std::array<NoCompare, 0> values = {};
+};
+
+static_assert(!AllValuesEnumerable<NoCompare>);
+
+struct NoImpl : UpTo<5> {
+  using UpTo<5>::UpTo;
+};
+
+static_assert(!AllValuesEnumerable<NoImpl>);
+
+struct NotSorted : UpTo<5> {
+  using UpTo<5>::UpTo;
+};
+
+template <> struct AllValuesImpl<NotSorted> {
+  static constexpr auto values = std::array<NotSorted, 4>{1, 2, 4, 3};
+};
+
+struct NotUnique : UpTo<5> {
+  using UpTo<5>::UpTo;
+};
+
+template <> struct AllValuesImpl<NotUnique> {
+  static constexpr auto values = std::array<NotSorted, 4>{1, 2, 4, 4};
+};
+
+static_assert(!AllValuesEnumerable<NotSorted>);

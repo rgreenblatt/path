@@ -9,48 +9,31 @@
 
 template <typename T> struct AllValuesImpl;
 
-// needed for sorting
 template <typename T>
 concept AllValuesCompare = requires(const T &t) {
+  // TODO: hana tuple compare work around - this should probably just be
+  // std::totally_ordered ...
   requires std::equality_comparable<T>;
-  // TODO: hana tuple compare work around...
   requires LessComparable<T>;
 };
-
-template <AllValuesCompare T, std::size_t size>
-consteval bool all_values_unique(std::array<T, size> values) {
-  // arbitrary threshold - haven't done any real benchmarking,
-  // I just know that sort is much much faster for large arrays
-  constexpr std::size_t sort_threshold = 8;
-
-  if constexpr (size > sort_threshold) {
-    std::sort(values.begin(), values.end());
-    auto it = std::unique(values.begin(), values.end());
-
-    return it == values.end();
-  } else {
-    for (unsigned i = 0; i < values.size(); ++i) {
-      for (unsigned j = 0; j < i; ++j) {
-        if (values[i] == values[j]) {
-          return false;
-        }
-      }
-    }
-
-    return true;
-  }
-}
 
 template <typename T>
 concept AllValuesEnumerable = requires(const T &t) {
   requires AllValuesCompare<T>;
 
-  // having an array of all values is likely not compile time efficient
-  // for some types (integers for examples)
+  // TODO: having an array of all values is likely not compile time efficient
+  // for some types (integers for example)
   typename AllValuesImpl<T>;
   requires StdArrayOfType<decltype(AllValuesImpl<T>::values), T>;
   // TODO: could improve compile times by making this optional...
-  requires all_values_unique(AllValuesImpl<T>::values);
+  // this would be used for impls which can guarantee this property
+  // like tuples, ranges, etc...
+  requires std::is_sorted(AllValuesImpl<T>::values.begin(),
+                          AllValuesImpl<T>::values.end());
+  // check unique
+  requires(std::adjacent_find(AllValuesImpl<T>::values.begin(),
+                              AllValuesImpl<T>::values.end()) ==
+           AllValuesImpl<T>::values.end());
 };
 
 template <AllValuesEnumerable T>
