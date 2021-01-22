@@ -12,15 +12,15 @@ struct TupleThreadInteractor {
     [[no_unique_address]] MetaTuple<typename I::BlockRef...> values;
     using ThreadRef = MetaTuple<typename I::BlockRef::ThreadRef...>;
 
-    auto thread_init(unsigned thread_idx) {
+    HOST_DEVICE auto thread_init(unsigned thread_idx) {
       return boost::hana::unpack(values, [&](auto &...values) -> ThreadRef {
         return {values.thread_init(thread_idx)...};
       });
     }
   };
 
-  auto block_init(const WorkDivision &division, unsigned block_idx,
-                  const ExtraInp &inp) const {
+  HOST_DEVICE auto block_init(const WorkDivision &division, unsigned block_idx,
+                              const ExtraInp &inp) const {
     return boost::hana::unpack(values, [&](auto &...values) -> BlockRef {
       return {{values.block_init(division, block_idx, inp)...}};
     });
