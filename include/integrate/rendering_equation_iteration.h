@@ -135,9 +135,9 @@ rendering_equation_iteration(
   if (new_state.has_next_sample) {
     new_multiplier /= (1.0f - this_term_prob);
 
-    debug_assert(new_multiplier.x() >= 0.0f);
-    debug_assert(new_multiplier.y() >= 0.0f);
-    debug_assert(new_multiplier.z() >= 0.0f);
+    debug_assert(new_multiplier[0] >= 0.0f);
+    debug_assert(new_multiplier[0] >= 0.0f);
+    debug_assert(new_multiplier[0] >= 0.0f);
 
     intersect::Ray new_ray{intersection_point, sample.sample.direction};
     new_state.ray_ray_info = {new_ray, {new_multiplier, std::nullopt}};
