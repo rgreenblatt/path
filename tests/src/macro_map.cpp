@@ -24,9 +24,3 @@ static_assert(MACRO_MAP_PP_NARG() == 0);
 static_assert(MACRO_MAP_PP_NARG(a) == 1);
 static_assert(MACRO_MAP_PP_NARG(a, b, c) == 3);
 static_assert(MACRO_MAP_PP_NARG(a, a, a, a, a, a) == 6);
-
-// should print - not a real test
-TEST(MACRO_MAP, printf_dbg) {
-  int a = 12;
-  PRINTF_DBG(a, a + 8, 9 + 10);
-}
