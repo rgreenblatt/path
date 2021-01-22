@@ -49,7 +49,7 @@ private:
     I intersectable;
   };
 
-  Optional<SceneSettings> scene_intersectable_;
+  std::optional<SceneSettings> scene_intersectable_;
 
   template <typename T> using ExecVecT = ExecVector<exec, T>;
 

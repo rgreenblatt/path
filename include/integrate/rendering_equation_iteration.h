@@ -18,7 +18,7 @@ rendering_equation_iteration(
   const auto &[scene, light_sampler, dir_sampler, term_prob] = inp;
 
   auto use_intersection = [&](const auto &intersection,
-                              Optional<float> target_distance) {
+                              std::optional<float> target_distance) {
     return intersection.has_value() &&
            (!target_distance.has_value() ||
             std::abs(*target_distance - intersection->intersection_dist) <

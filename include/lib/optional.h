@@ -6,226 +6,109 @@
 #include "meta/specialization_of.h"
 
 #include <concepts>
+#include <optional>
 #include <type_traits>
 #include <utility>
 
-struct NulloptT {};
+inline constexpr auto nullopt_value = std::nullopt;
 
-inline constexpr auto nullopt_value = NulloptT{};
-
-template <typename T> class Optional;
+namespace std {
+#ifdef __CUDACC__
+template <typename T> __device__ optional(T)->optional<T>;
+#endif
+} // namespace std
 
 template <typename T>
-concept IsOptional = SpecializationOf<T, Optional>;
+concept IsOptional = SpecializationOf<T, std::optional>;
 
-// Can't use std::optional and thrust::optional takes decades to
-// compile so instead we implement optional...
-// This was probably a mistake - took longer than expected to test and
-// implement. But at least I now have a better understanding of alignment,
-// placement new, and exactly how copy/move assigment/construction should
-// work for an option...
-//
-// Note that this optional implements many methods (from rust) which aren't part
-// of std::optional
-template <typename T> class Optional {
-public:
-  constexpr Optional() : has_value_(false) {}
+// here we implement useful helper methods (mostly from rust...)
 
-  constexpr Optional(const NulloptT &) : Optional() {}
-
-  constexpr Optional(const T &value) requires std::is_copy_constructible_v<T>
-      : has_value_(true) {
-    construct_in_place(*this, value);
+template <std::movable T, typename F>
+requires requires(F &&f) {
+  { f() } -> std::convertible_to<std::optional<T>>;
+}
+constexpr std::optional<T> optional_or_else(std::optional<T> in, F &&f) {
+  if (in.has_value()) {
+    return in;
+  } else {
+    return f();
   }
+}
 
-  constexpr Optional(T &&value) requires std::is_move_constructible_v<T>
-      : has_value_(true) {
-    construct_in_place(*this, std::forward<T>(value));
+template <std::movable T>
+ATTR_NO_DISCARD_PURE constexpr std::optional<T>
+optional_or(std::optional<T> in, std::optional<T> other) {
+  return optional_or_else(in, [&]() { return other; });
+}
+
+template <std::movable T, typename F>
+requires requires(F &&f) {
+  { f() } -> std::convertible_to<T>;
+}
+constexpr T optional_unwrap_or_else(std::optional<T> in, F &&f) {
+  if (in.has_value()) {
+    return *in;
+  } else {
+    return f();
   }
+}
 
-  constexpr Optional(const Optional &other) requires(
-      std::is_trivially_copy_constructible_v<T>) = default;
+template <std::movable T>
+ATTR_NO_DISCARD_PURE constexpr T optional_unwrap_or(std::optional<T> in,
+                                                    T default_v) {
+  return in.unwrap_or_else([&]() { return default_v; });
+}
 
-  constexpr Optional(const Optional &other) requires(
-      !std::is_trivially_copy_constructible_v<T> &&
-      std::is_copy_constructible_v<T>)
-      : has_value_(other.has_value_) {
-    if (has_value_) {
-      construct_in_place(*this, *other);
-    }
+template <typename T, typename F>
+requires requires(F &&f, const T &v) {
+  { f(v) } -> std::movable;
+}
+constexpr auto optional_map(const std::optional<T> &in, F &&f)
+    -> std::optional<decltype(f(*in))> {
+  if (in.has_value()) {
+    return f(*in);
+  } else {
+    return nullopt_value;
   }
+}
 
-  constexpr Optional(Optional &&other) requires(
-      std::is_trivially_move_constructible_v<T>) = default;
-
-  constexpr Optional(Optional &&other) requires(
-      !std::is_trivially_move_constructible_v<T> &&
-      std::is_move_constructible_v<T>)
-      : has_value_(other.has_value_) {
-    if (has_value_) {
-      construct_in_place(*this, std::move(*other));
-      other.has_value_ = false;
-    }
+template <typename T, typename F>
+constexpr auto optional_and_then(const std::optional<T> &in, F &&f)
+    -> decltype(f(*in)) requires IsOptional<decltype(f(*in))> {
+  if (in.has_value()) {
+    return f(*in);
+  } else {
+    return nullopt_value;
   }
-
-  constexpr Optional &operator=(const Optional &other) requires(
-      std::is_trivially_copy_assignable_v<T>) = default;
-
-  constexpr Optional &operator=(const Optional &other) requires(
-      !std::is_trivially_copy_assignable_v<T> && std::is_copy_assignable_v<T>) {
-    if (this != &other) {
-      if (has_value_ && other.has_value_) {
-        **this = *other;
-      } else if (other.has_value_) {
-        construct_in_place(*this, *other);
-      } else {
-        this->~Optional();
-      }
-
-      has_value_ = other.has_value_;
-    }
-
-    return *this;
-  }
-
-  constexpr Optional &operator=(Optional &&other) requires(
-      std::is_trivially_move_assignable_v<T>) = default;
-
-  constexpr Optional &operator=(Optional &&other) requires(
-      !std::is_trivially_move_assignable_v<T> && std::is_move_assignable_v<T>) {
-    if (this != &other) {
-      if (has_value_ && other.has_value_) {
-        **this = std::move(*other);
-      } else if (other.has_value_) {
-        construct_in_place(*this, std::move(*other));
-      } else {
-        this->~Optional();
-      }
-
-      has_value_ = other.has_value_;
-    }
-
-    return *this;
-  }
-
-  constexpr ~Optional() requires(std::is_trivially_destructible_v<T>) = default;
-
-  constexpr ~Optional() requires(!std::is_trivially_destructible_v<T> &&
-                                 std::is_destructible_v<T>) {
-    // destruct
-    if (has_value_) {
-      value.~T();
-    }
-  }
-
-  ATTR_PURE_NDEBUG constexpr const T &operator*() const {
-    debug_assert(has_value());
-    return value;
-  }
-
-  ATTR_PURE_NDEBUG constexpr T &operator*() {
-    debug_assert(has_value());
-    return value;
-  }
-
-  constexpr const T *operator->() const { return &(**this); }
-
-  constexpr T *operator->() { return &(**this); }
-
-  ATTR_PURE constexpr bool has_value() const { return has_value_; }
-
-  template <typename F>
-  requires std::convertible_to<decltype(std::declval<F>()()), Optional>
-  constexpr Optional or_else(const F &f) const {
-    if (has_value()) {
-      return *this;
-    } else {
-      return f();
-    }
-  }
-
-  // or is keyword...
-  ATTR_PURE_NDEBUG constexpr Optional op_or(const Optional &o) const {
-    return or_else([&]() { return o; });
-  }
-
-  template <typename F>
-  requires std::convertible_to<decltype(std::declval<F>()()), T>
-  constexpr T unwrap_or_else(const F &f) const {
-    if (has_value()) {
-      return **this;
-    } else {
-      return f();
-    }
-  }
-
-  ATTR_PURE_NDEBUG constexpr T unwrap_or(const T &o) const {
-    return unwrap_or_else([&]() { return o; });
-  }
-
-  template <typename F>
-  constexpr auto op_map(F &&f) const -> Optional<decltype(f(**this))> {
-    if (has_value()) {
-      return f(**this);
-    } else {
-      return nullopt_value;
-    }
-  }
-
-  template <typename F>
-  constexpr auto and_then(F &&f) const
-      -> decltype(f(**this)) requires IsOptional<decltype(f(**this))> {
-    if (has_value()) {
-      return f(**this);
-    } else {
-      return nullopt_value;
-    }
-  }
-
-private : template <typename V>
-          constexpr static void
-          construct_in_place(Optional &cls, V &&v) {
-    new (&cls.value) T(std::forward<V>(v));
-  }
-
-  struct EmptyT {};
-
-  union {
-    [[no_unique_address]] EmptyT empty;
-    [[no_unique_address]] T value;
-  };
-  bool has_value_;
-};
-
-static_assert(IsOptional<Optional<MockMovable>>);
+}
 
 template <typename FFold, typename FBase, typename V>
 constexpr auto optional_fold(FFold &&, FBase &&f_base,
-                             const Optional<V> &first) {
-  return first.op_map(f_base);
+                             const std::optional<V> &first) {
+  return optional_map(first, f_base);
 }
 
 template <typename FFold, typename FBase, typename V, typename... T>
 constexpr auto optional_fold(FFold &&f_fold, FBase &&f_base,
-                             const Optional<V> &first,
-                             const Optional<T> &...rest) {
+                             const std::optional<V> &first,
+                             const std::optional<T> &...rest) {
   const auto f_rest = optional_fold(std::forward<FFold>(f_fold),
                                     std::forward<FBase>(f_base), rest...);
 
-  const decltype(f_rest) next = first.and_then([&](const auto &v) {
+  const decltype(f_rest) next = optional_and_then(first, [&](const auto &v) {
     if (f_rest.has_value()) {
       return f_fold(*f_rest, v);
     } else {
-      return Optional(f_base(v));
+      return std::optional(f_base(v));
     }
   });
 
-  return next.op_or(f_rest);
+  return optional_or(next, f_rest);
 }
 
-template <typename T>
-ATTR_PURE_NDEBUG constexpr Optional<T> create_optional(bool condition,
-                                                       const T &v) {
+template <std::movable T>
+ATTR_NO_DISCARD_PURE constexpr std::optional<T> create_optional(bool condition,
+                                                                T v) {
   if (condition) {
     return v;
   } else {

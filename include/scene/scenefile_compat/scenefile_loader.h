@@ -14,7 +14,7 @@ class ScenefileLoader {
 public:
 // requires Conditionally Trivial Special Member Functions - P0848R3
 #if 0
-Optional<Scene>
+std::optional<Scene>
 #else
   std::optional<Scene>
 #endif

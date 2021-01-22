@@ -15,7 +15,7 @@ namespace integrate {
 namespace detail {
 template <typename T> struct RayInfo {
   T multiplier;
-  Optional<float> target_distance;
+  std::optional<float> target_distance;
 };
 
 template <typename T> struct RayRayInfo {

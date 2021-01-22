@@ -10,7 +10,7 @@ template <ExecutionModel exec, unsigned max_num_light_samples, rng::RngRef R>
 struct IntegrateImageBulkState {
   using State = integrate::RenderingEquationState<max_num_light_samples>;
   ExecVector<exec, State> state;
-  ExecVector<exec, Optional<State>> op_state;
+  ExecVector<exec, std::optional<State>> op_state;
   ExecVector<exec, typename R::State> rng_state;
 };
 } // namespace detail

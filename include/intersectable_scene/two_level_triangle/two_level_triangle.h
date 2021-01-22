@@ -20,7 +20,7 @@
       }
     }
 
-    Optional<RefType> query(const std::string &mesh_identifier,
+    std::optional<RefType> query(const std::string &mesh_identifier,
                                     const Settings &new_settings) {
       auto it = existing_triangle_accel_vals_.find(mesh_identifier);
       if (it == existing_triangle_accel_vals_.end()) {

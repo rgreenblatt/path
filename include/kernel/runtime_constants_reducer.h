@@ -13,7 +13,7 @@
 namespace kernel {
 namespace detail {
 template <typename ItemType, BinOp<ItemType> Op>
-inline DEVICE Optional<ItemType>
+inline DEVICE std::optional<ItemType>
 runtime_constants_reduce_gpu(ItemType val, const Op &op,
                              unsigned reduction_factor, unsigned block_size,
                              unsigned thread_idx);
@@ -38,7 +38,7 @@ struct RuntimeConstantsReducer {
 
         unsigned reduction_factor_idx = thread_idx_ % reduction_factor;
 
-        return [&]() -> Optional<ItemType> {
+        return [&]() -> std::optional<ItemType> {
           if constexpr (exec == ExecutionModel::CPU) {
             if (reduction_factor_idx == 0) {
               debug_assert_assume(!ref_.item_.has_value());
@@ -88,7 +88,7 @@ struct RuntimeConstantsReducer {
     unsigned block_idx_;
     struct EmptyT {};
     [[no_unique_address]] std::conditional_t<exec == ExecutionModel::CPU,
-                                             Optional<ItemType>, EmptyT>
+                                             std::optional<ItemType>, EmptyT>
         item_;
   };
 

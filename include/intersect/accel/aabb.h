@@ -58,7 +58,7 @@ struct AABB {
   }
 
   // needs to be inline
-  ATTR_PURE_NDEBUG HOST_DEVICE Optional<float>
+  ATTR_PURE_NDEBUG HOST_DEVICE std::optional<float>
   solve_bounding_intersection(const Eigen::Vector3f &point,
                               const Eigen::Vector3f &inv_direction) const {
     auto t_0 = (min_bound - point).cwiseProduct(inv_direction).eval();

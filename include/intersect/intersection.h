@@ -33,5 +33,5 @@ operator<=>(const Intersection<InfoType> &lhs,
 }
 
 template <std::copyable InfoType>
-using IntersectionOp = Optional<Intersection<InfoType>>;
+using IntersectionOp = std::optional<Intersection<InfoType>>;
 } // namespace intersect

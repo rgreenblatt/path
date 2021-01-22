@@ -42,7 +42,7 @@ Ref::intersect_objects(const intersect::Ray &ray,
   Stack<StackData, 64> node_stack;
   node_stack.push(StackData{unsigned(nodes.size() - 1u), 0u});
 
-  Optional<StartEnd<unsigned>> start_end = nullopt_value;
+  std::optional<StartEnd<unsigned>> start_end = nullopt_value;
   unsigned current_idx = 0;
 
   while (!node_stack.empty() || start_end.has_value()) {
@@ -78,7 +78,9 @@ Ref::intersect_objects(const intersect::Ray &ray,
             node_stack.push(StackData{first, new_depth});
           } else {
             static_assert(decltype(tag)::value == NodeType::Items);
-            start_end = v;
+            // NOTE: work around for bugged std spec
+            // https://www.reddit.com/r/cpp/comments/l29479/is_the_spec_for_stdoptional_bugged_for_constexpr/
+            start_end = std::optional{v};
             current_idx = v.start;
           }
         });
@@ -95,7 +97,8 @@ Ref::intersect_objects(const intersect::Ray &ray,
       }
     }
 
-    start_end = nullopt_value;
+    // NOTE: work around for bugged std spec
+    start_end = decltype(start_end){};
   }
 
   // convert to global index...

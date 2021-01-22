@@ -22,7 +22,7 @@ namespace scene {
 namespace scenefile_compat {
 // requires Conditionally Trivial Special Member Functions - P0848R3
 #if 0
-Optional<Scene>
+std::optional<Scene>
 #else
 std::optional<Scene>
 #endif
@@ -213,7 +213,7 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
       }
 
       std::array<Eigen::Vector3f, 3> vertices;
-      std::array<Optional<UnitVector>, 3> normals_op;
+      std::array<std::optional<UnitVector>, 3> normals_op;
       for (size_t v = 0; v < fv; v++) {
         tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
         tinyobj::real_t vx = attrib.vertices[3 * idx.vertex_index + 0];
@@ -294,8 +294,8 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
 
       std::array<UnitVector, 3> normals;
       for (size_t v = 0; v < fv; v++) {
-        normals[v] =
-            normals_op[v].unwrap_or_else([&] { return triangle.normal(); });
+        normals[v] = optional_unwrap_or_else(normals_op[v],
+                                             [&] { return triangle.normal(); });
       }
 
       scene_v.triangles_.push_back_all(triangle, {normals, material_idx});

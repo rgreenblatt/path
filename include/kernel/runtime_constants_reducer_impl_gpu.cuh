@@ -6,7 +6,7 @@
 namespace kernel {
 namespace detail {
 template <typename ItemType, BinOp<ItemType> Op>
-inline DEVICE Optional<ItemType>
+inline DEVICE std::optional<ItemType>
 runtime_constants_reduce_gpu(ItemType val, const Op &op,
                              unsigned reduction_factor, unsigned block_size,
                              unsigned thread_idx) {

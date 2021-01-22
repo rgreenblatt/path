@@ -21,7 +21,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
 
   struct Test {
     Ray ray;
-    Optional<unsigned> expected_idx;
+    std::optional<unsigned> expected_idx;
   };
 
   auto run_tests = [&](auto tag, SpanSized<const Triangle> triangles,
@@ -33,7 +33,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
     // Perhaps test partial
     auto ref = inst.gen(settings, triangles, AABB());
 
-    HostDeviceVector<Optional<unsigned>> results(test_expected.size());
+    HostDeviceVector<std::optional<unsigned>> results(test_expected.size());
 
     ThrustData<exec> data;
 
@@ -46,7 +46,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
               ref.intersect_objects(ray, [&](unsigned idx, const Ray &ray) {
                 return triangles[idx].intersect(ray);
               });
-          return a.op_map([](const auto &v) { return v.info.idx; });
+          return optional_map(a, [](const auto &v) { return v.info.idx; });
         });
 
     for (unsigned i = 0; i < test_expected.size(); i++) {
@@ -101,7 +101,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
       auto loop_all_ref = loop_all_inst.gen(Settings<AccelType::LoopAll>(),
                                             triangles.as_const(), AABB());
 
-      auto get_ground_truth = [&](const Ray &ray) -> Optional<unsigned> {
+      auto get_ground_truth = [&](const Ray &ray) -> std::optional<unsigned> {
         auto a = loop_all_ref.intersect_objects(
             ray, [&](unsigned idx, const Ray &ray) {
               return triangles[idx].intersect(ray);
