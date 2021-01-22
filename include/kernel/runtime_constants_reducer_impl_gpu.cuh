@@ -15,7 +15,7 @@ runtime_constants_reduce_gpu(ItemType val, const Op &op,
   if (thread_idx % reduction_factor == 0) {
     return item;
   } else {
-    return nullopt_value;
+    return std::nullopt;
   }
 }
 } // namespace detail

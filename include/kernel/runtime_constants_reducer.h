@@ -50,10 +50,10 @@ struct RuntimeConstantsReducer {
 
             if (reduction_factor_idx == reduction_factor - 1) {
               auto out = std::move(ref_.item_);
-              ref_.item_ = nullopt_value;
+              ref_.item_ = std::nullopt;
               return out;
             } else {
-              return nullopt_value;
+              return std::nullopt;
             }
           } else {
             static_assert(exec == ExecutionModel::GPU);

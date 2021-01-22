@@ -16,25 +16,25 @@ Triangle::intersect(const Ray &ray) const {
   constexpr float float_epsilon = 1e-6f;
 
   if (std::abs(a) < float_epsilon) {
-    return nullopt_value;
+    return std::nullopt;
   }
   float f = 1.f / a;
   Eigen::Vector3f s = ray.origin - vertices[0];
   float u = f * s.dot(h);
   if (u < 0.f || u > 1.f) {
-    return nullopt_value;
+    return std::nullopt;
   }
   Eigen::Vector3f q = s.cross(edge1);
   float v = f * ray.direction->dot(q);
   if (v < 0.f || u + v > 1.f) {
-    return nullopt_value;
+    return std::nullopt;
   }
   float t = f * edge2.dot(q);
   if (t > float_epsilon) {
     bool is_back_intersection = a < 0.f;
     return Intersection<InfoType>{t, is_back_intersection, InfoType{}};
   } else {
-    return nullopt_value;
+    return std::nullopt;
   }
 }
 

@@ -72,7 +72,7 @@ struct AABB {
     if (max_of_min <= min_of_max) {
       return max_of_min;
     } else {
-      return nullopt_value;
+      return std::nullopt;
     }
   }
 

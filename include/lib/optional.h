@@ -12,13 +12,12 @@
 #include <type_traits>
 #include <utility>
 
-inline constexpr auto nullopt_value = std::nullopt;
-
-namespace std {
+// work around clang cuda bug...
 #ifdef __CUDACC__
+namespace std {
 template <typename T> __device__ optional(T)->optional<T>;
-#endif
 } // namespace std
+#endif
 
 template <typename T>
 concept IsOptional = SpecializationOf<T, std::optional>;
@@ -70,7 +69,7 @@ constexpr auto optional_and_then(std::optional<T> in, F &&f)
   if (in.has_value()) {
     return f(std::move(*in));
   } else {
-    return nullopt_value;
+    return std::nullopt;
   }
 }
 
