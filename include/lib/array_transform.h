@@ -12,6 +12,10 @@ constexpr auto array_transform(const std::array<T, size> &in, F &&f) {
 }
 
 template <typename TNew, typename T, std::size_t size>
-constexpr auto convert_array(const std::array<T, size> &in) {
-  return array_transform(in, [](const T &in) { return TNew(in); });
+constexpr std::array<TNew, size> convert_array(const std::array<T, size> &in) {
+  if constexpr (size == 0) {
+    return {};
+  } else {
+    return array_transform(in, [](const T &in) { return TNew(in); });
+  }
 }
