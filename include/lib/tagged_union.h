@@ -110,8 +110,6 @@ using TaggedUnionPerInstance = PerInstanceTakesType<T, TypeOver, TaggedUnion>;
 
 template <AllValuesEnumerable E, AllValuesEnumerable... Types>
 struct AllValuesImpl<TaggedUnion<E, Types...>> {
-  static constexpr auto values =
-      array_transform(AllValues<std::variant<Types...>>, [](const auto &v) {
-        return TaggedUnion<E, Types...>(v);
-      });
+  static constexpr auto values = convert_array<TaggedUnion<E, Types...>>(
+      AllValues<std::variant<Types...>>);
 };
