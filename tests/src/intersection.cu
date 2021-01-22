@@ -65,7 +65,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
     HostDeviceVector<Test> tests = {
         {Ray{{0.1, 0.1, -1}, UnitVector::new_normalize({0, 0, 1})}, 0},
         {Ray{{0.8, 0.7, -1}, UnitVector::new_normalize({0, 0, 1})},
-         nullopt_value},
+          std::nullopt},
         {Ray{{0.3, 0.1, -1}, UnitVector::new_normalize({0, 0, 1})}, 0},
         {Ray{{0.1, 0.8, -1}, UnitVector::new_normalize({0, -.7, 1})}, 0},
         {Ray{{0.1, 0.1, -1}, UnitVector::new_normalize({0, 0, 1})}, 0},
@@ -109,7 +109,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
         if (a.has_value()) {
           return a->info.idx;
         } else {
-          return nullopt_value;
+          return std::nullopt;
         }
       };
 

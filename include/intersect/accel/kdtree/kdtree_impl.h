@@ -17,7 +17,7 @@ Ref::intersect_objects(const intersect::Ray &ray,
   AccelRet<F> best;
 
   if (nodes.size() == 0) {
-    return nullopt_value;
+    return std::nullopt;
   }
 
   // TODO: how important is this...
@@ -42,7 +42,7 @@ Ref::intersect_objects(const intersect::Ray &ray,
   Stack<StackData, 64> node_stack;
   node_stack.push(StackData{unsigned(nodes.size() - 1u), 0u});
 
-  std::optional<StartEnd<unsigned>> start_end = nullopt_value;
+  std::optional<StartEnd<unsigned>> start_end = std::nullopt;
   unsigned current_idx = 0;
 
   while (!node_stack.empty() || start_end.has_value()) {

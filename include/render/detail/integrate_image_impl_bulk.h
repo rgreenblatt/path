@@ -167,7 +167,7 @@ void IntegrateImage<exec>::run(IntegrateImageBulkInputs<exec, T...> inp) {
                   } else {
                     static_assert(type ==
                                   integrate::IterationOutputType::Finished);
-                    next_state = nullopt_value;
+                    next_state = std::nullopt;
 #pragma message "HERE TODO"
                   }
                 });

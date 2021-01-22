@@ -34,5 +34,5 @@ initial_ray_sample(R &rng, unsigned x, unsigned y, unsigned x_dim,
 
   float multiplier = 1.f;
   return {initial_ray(x + x_offset, y + y_offset, x_dim, y_dim, film_to_world),
-          {multiplier, nullopt_value}};
+          {multiplier, std::nullopt}};
 }

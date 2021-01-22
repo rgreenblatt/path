@@ -140,7 +140,7 @@ rendering_equation_iteration(
     debug_assert(new_multiplier.z() >= 0.0f);
 
     intersect::Ray new_ray{intersection_point, sample.sample.direction};
-    new_state.ray_ray_info = {new_ray, {new_multiplier, nullopt_value}};
+    new_state.ray_ray_info = {new_ray, {new_multiplier, std::nullopt}};
     new_rays.push_back(new_ray);
   } else {
     if (new_rays.size() == 0) {

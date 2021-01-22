@@ -32,7 +32,7 @@ struct MockIntersectable :
   struct InfoType : MockSemiregular {};
 
   constexpr IntersectionOp<InfoType> intersect(const Ray &) const {
-    return nullopt_value;
+    return std::nullopt;
   }
 };
 

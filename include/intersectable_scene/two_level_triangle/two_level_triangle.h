@@ -24,13 +24,13 @@
                                     const Settings &new_settings) {
       auto it = existing_triangle_accel_vals_.find(mesh_identifier);
       if (it == existing_triangle_accel_vals_.end()) {
-        return nullopt_value;
+        return std::nullopt;
       }
 
       auto [index, settings] = it->second;
 
       if (settings != new_settings) {
-        return nullopt_value;
+        return std::nullopt;
       }
 
       free_indexes_.erase(index);
