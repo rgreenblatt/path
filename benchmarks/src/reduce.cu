@@ -500,6 +500,10 @@ int main(int argc, char *argv[]) {
                     debug_assert((cpu_output[i] - cpu_output_from_gpu[i]) <
                                  reduction_factor * 1e-5);
                   }
+                } else {
+                  (void)cpu_input;
+                  (void)cpu_output;
+                  (void)cpu_output_from_gpu;
                 }
               })
               ->Unit(benchmark::kMillisecond)
