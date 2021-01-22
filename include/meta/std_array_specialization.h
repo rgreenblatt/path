@@ -22,6 +22,5 @@ template <typename V, typename T>
 concept StdArrayOfType = requires {
   requires std_array_specialization::detail::IsStdArrayImpl<
       std::decay_t<V>>::value;
-  typename std::decay_t<V>::value_type;
   requires std::same_as<typename std::decay_t<V>::value_type, T>;
 };
