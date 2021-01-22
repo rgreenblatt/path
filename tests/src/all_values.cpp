@@ -4,6 +4,7 @@
 #include "meta/all_values/impl/pow_2.h"
 #include "meta/all_values/impl/range.h"
 #include "meta/all_values/impl/tuple.h"
+#include "meta/all_values/impl/variant.h"
 #include "meta/mock.h"
 #include "set_same.h"
 
@@ -40,6 +41,29 @@ static_assert(set_same(AllValues<MetaTuple<bool, bool>>,
                            MetaTuple<bool, bool>{true, false},
                            MetaTuple<bool, bool>{true, true},
                        }));
+
+static_assert(set_same(AllValues<std::variant<UpTo<0>>>, {}));
+static_assert(set_same(AllValues<std::variant<UpTo<1>>>, {{0}}));
+static_assert(set_same(AllValues<std::variant<UpTo<3>>>, {{0, 1, 2}}));
+static_assert(
+    set_same(AllValues<std::variant<UpTo<3>, UpTo<2>>>,
+             {
+                 std::variant<UpTo<3>, UpTo<2>>{std::in_place_index<0>, 0},
+                 std::variant<UpTo<3>, UpTo<2>>{std::in_place_index<0>, 1},
+                 std::variant<UpTo<3>, UpTo<2>>{std::in_place_index<0>, 2},
+                 std::variant<UpTo<3>, UpTo<2>>{std::in_place_index<1>, 0},
+                 std::variant<UpTo<3>, UpTo<2>>{std::in_place_index<1>, 1},
+             }));
+static_assert(
+    set_same(AllValues<std::variant<Pow2<1, 4>, UpTo<3>>>,
+             {
+                 std::variant<Pow2<1, 4>, UpTo<3>>{std::in_place_index<0>, 1},
+                 std::variant<Pow2<1, 4>, UpTo<3>>{std::in_place_index<0>, 2},
+                 std::variant<Pow2<1, 4>, UpTo<3>>{std::in_place_index<0>, 4},
+                 std::variant<Pow2<1, 4>, UpTo<3>>{std::in_place_index<1>, 0},
+                 std::variant<Pow2<1, 4>, UpTo<3>>{std::in_place_index<1>, 1},
+                 std::variant<Pow2<1, 4>, UpTo<3>>{std::in_place_index<1>, 2},
+             }));
 
 template <> struct AllValuesImpl<MockMovable> {
   static constexpr std::array<MockMovable, 0> values = {};

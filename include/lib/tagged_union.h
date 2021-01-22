@@ -4,6 +4,7 @@
 #include "lib/attribute.h"
 #include "meta/aggregate_constructible_from.h"
 #include "meta/all_values/all_values.h"
+#include "meta/all_values/impl/variant.h"
 #include "meta/all_values/per_instance.h"
 #include "meta/all_values/sequential_dispatch.h"
 #include "meta/all_values/tag.h"
@@ -12,9 +13,7 @@
 #include "meta/specialization_of.h"
 #include "meta/std_array_specialization.h"
 
-#include <boost/hana/ext/std/integer_sequence.hpp>
-#include <boost/hana/unpack.hpp>
-
+#include <algorithm>
 #include <concepts>
 #include <type_traits>
 #include <utility>
@@ -110,41 +109,16 @@ using TaggedUnionPerInstance = PerInstanceTakesType<T, TypeOver, TaggedUnion>;
 
 template <AllValuesEnumerable E, AllValuesEnumerable... Types>
 struct AllValuesImpl<TaggedUnion<E, Types...>> {
-private:
-  static constexpr unsigned num_elements = sizeof...(Types);
+  static constexpr auto values = [] {
+    using T = TaggedUnion<E, Types...>;
+    using VarT = std::variant<Types...>;
 
-  using T = TaggedUnion<E, Types...>;
+    constexpr auto var_values = AllValues<VarT>;
 
-  static constexpr auto tag_values = AllValues<E>;
-
-  template <typename T, std::size_t... sizes>
-  static constexpr auto array_cat(const std::array<T, sizes> &...arr) {
-    constexpr std::size_t out_size = (... + sizes);
-    std::array<T, out_size> out;
-    unsigned start = 0;
-    ((std::copy(arr.begin(), arr.end(), out.begin() + start),
-      start += arr.size()),
-     ...);
-    debug_assert_assume(start == out_size);
+    std::array<T, var_values.size()> out;
+    std::transform(var_values.begin(), var_values.end(), out.begin(),
+                   [](const VarT &v) { return T(v); });
 
     return out;
-  }
-
-public:
-  static constexpr auto values = [] {
-    return boost::hana::unpack(
-        std::make_index_sequence<num_elements>(), [](auto... idx) {
-          auto out = array_cat([](auto idx) {
-            return boost::hana::unpack(AllValues<PackElement<idx, Types...>>,
-                                       [&](auto... v) {
-                                         return std::array<T, sizeof...(v)>{
-                                             T(tag_v<tag_values[idx]>, v)...};
-                                       });
-          }(idx)...);
-
-          static_assert(StdArraySpecialization<decltype(out)>);
-
-          return out;
-        });
   }();
 };
