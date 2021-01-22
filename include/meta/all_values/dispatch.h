@@ -4,13 +4,12 @@
 #include "meta/all_values/all_values.h"
 #include "meta/all_values/sequential_dispatch.h"
 #include "meta/all_values/tag.h"
-#include "meta/all_values/tag_dispatchable.h"
 
 #include <iostream>
 #include <map>
 
 // this probably isn't a very efficient implementation (double dispatch...)
-template <AllValuesEnumerable T, TagDispatchable<T> F>
+template <AllValuesEnumerable T, typename F>
 requires(AllValues<T>.size() != 0) decltype(auto) dispatch(T value, F &&f) {
   const static auto lookup = [] {
     constexpr auto values = AllValues<T>;
