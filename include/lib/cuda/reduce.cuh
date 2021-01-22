@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cub/util_ptx.cuh"
 #include "lib/assert.h"
 #include "lib/bit_utils.h"
 #include "lib/cuda/utils.h"
@@ -10,7 +11,7 @@
 
 constexpr uint32_t full_mask = 0xffffffff;
 
-template <typename T, BinOp<T> F>
+template <std::copyable T, BinOp<T> F>
 inline __device__ T warp_reduce(T val, const F &f,
                                 unsigned sub_block_size = warp_size) {
   debug_assert_assume(warp_size % sub_block_size == 0);
@@ -19,7 +20,7 @@ inline __device__ T warp_reduce(T val, const F &f,
   debug_assert_assume(sub_block_size <= warp_size);
 
   for (unsigned offset = sub_block_size / 2; offset > 0; offset /= 2) {
-    val = f(__shfl_down_sync(full_mask, val, offset), val);
+    f(cub::ShuffleDown<warp_size>(val, offset, warp_size - 1, full_mask), val);
   }
 
   return val;
