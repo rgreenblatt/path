@@ -20,6 +20,7 @@
 #include "meta/all_values/impl/enum.h"
 #include "meta/all_values/impl/integral.h"
 #include "meta/all_values/impl/pow_2.h"
+#include "meta/all_values/impl/type_list.h"
 #include "meta/as_tuple/macro.h"
 #include "meta/tuple.h"
 
@@ -31,6 +32,20 @@
 #include <thrust/transform.h>
 
 #include <sstream>
+
+using ItemType = TypeList<float>;
+
+template <typename T> struct ItemInfo;
+
+template <> struct ItemInfo<float> {
+  static auto name() { return "float"; }
+
+  static HOST_DEVICE auto dist() {
+    return thrust::uniform_real_distribution(-100.f, 100.f);
+  }
+
+  static HOST_DEVICE auto identity() { return 0.f; }
+};
 
 enum class FullyDispatchedReduceImpl {
   MineGeneric,
@@ -54,7 +69,7 @@ __global__ void block_reduce_fully_dispatched(Span<const T> in, Span<T> out) {
   using BlockReduce = cub::BlockReduce<T, block_size>;
   const T item = [&] {
     if constexpr (type == FullyDispatchedReduceImpl::MineGeneric) {
-      T value = 0;
+      T value = ItemInfo<T>::identity();
 #pragma unroll
       for (unsigned i = 0; i < items_per_thread; ++i) {
         value += thread_data[i];
@@ -78,7 +93,7 @@ template <FullyDispatchedReduceImpl type, unsigned block_size,
           unsigned sub_warp_size, unsigned items_per_thread, typename T>
 __global__ void warp_reduce_fully_dispatched(Span<const T> in, Span<T> out) {
   using WarpReduce = cub::WarpReduce<T, sub_warp_size>;
-  T value = 0;
+  T value = ItemInfo<T>::identity();
 #pragma unroll
   for (unsigned i = 0; i < items_per_thread; ++i) {
     value += in[i + items_per_thread * (threadIdx.x + blockIdx.x * blockDim.x)];
@@ -118,7 +133,7 @@ __global__ void block_reduce_not_fully_dispatched(Span<const T> in, Span<T> out,
   debug_assert_assume(block_size % warp_size == 0);
   debug_assert_assume(power_of_2(block_size));
   debug_assert_assume(power_of_2(items_per_thread)); // somewhat atypical...
-  T value = 0;
+  T value = ItemInfo<T>::identity();
   // #pragma unroll
   for (unsigned i = 0; i < items_per_thread; ++i) {
     value += in[i + items_per_thread * (threadIdx.x + blockIdx.x * block_size)];
@@ -144,7 +159,7 @@ __global__ void warp_reduce_not_fully_dispatched(Span<const T> in, Span<T> out,
   debug_assert_assume(power_of_2(sub_warp_size));
   debug_assert_assume(power_of_2(items_per_thread)); // somewhat atypical...
 
-  T value = 0;
+  T value = ItemInfo<T>::identity();
   // #pragma unroll
   for (unsigned i = 0; i < items_per_thread; ++i) {
     value += in[i + items_per_thread * (threadIdx.x + blockIdx.x * block_size)];
@@ -156,24 +171,6 @@ __global__ void warp_reduce_not_fully_dispatched(Span<const T> in, Span<T> out,
     out[threadIdx.x / sub_warp_size + blockIdx.x * sub_warps_per_block] = value;
   }
 }
-
-enum class ItemType {
-  Float,
-};
-
-template <ItemType type> auto get_item_type() {
-  if constexpr (type == ItemType::Float) {
-    return float();
-  }
-}
-
-template <ItemType type> auto generate_item_dist() {
-  if constexpr (type == ItemType::Float) {
-    return thrust::uniform_real_distribution(-100.f, 100.f);
-  }
-}
-
-template <ItemType type> using GetItemType = decltype(get_item_type<type>());
 
 struct BlockSize : public Pow2<32, 512> {
   using Pow2<32, 512>::Pow2;
@@ -264,10 +261,9 @@ constexpr auto get_comp_time_params(AllVars<type> params) {
 
 using BenchmarkParams = TaggedUnionPerInstance<RunType, AllVars>;
 
+template <ItemType type> using HostVectorForType = HostVector<TypeListT<type>>;
 template <ItemType type>
-using HostVectorForType = HostVector<GetItemType<type>>;
-template <ItemType type>
-using DeviceVectorForType = DeviceVector<GetItemType<type>>;
+using DeviceVectorForType = DeviceVector<TypeListT<type>>;
 
 int main(int argc, char *argv[]) {
   TaggedTuplePerInstance<ItemType, HostVectorForType> cpu_input_vec;
@@ -328,11 +324,14 @@ int main(int argc, char *argv[]) {
             }
           }();
           std::stringstream name;
+
+          using ItemT = TypeListT<kernel_type.item_type>;
+          using ItemI = ItemInfo<ItemT>;
+
           name << "reduce_" << size << "_"
                << magic_enum::enum_name(kernel_type.reduce_impl) << "_"
-               << magic_enum::enum_name(kernel_type.item_type)
-               << "_reduction_factor_" << reduction_factor << "_block_size_"
-               << constants.block_size;
+               << ItemI::name() << "_reduction_factor_" << reduction_factor
+               << "_block_size_" << constants.block_size;
           if constexpr (!run_type.is_block) {
             name << "_sub_warp_size_" << constants.sub_warp_size;
           }
@@ -359,19 +358,16 @@ int main(int argc, char *argv[]) {
                 st.counters["items_per_thread"] = constants.items_per_thread();
 
                 input.resize(size);
-                auto dist = generate_item_dist<kernel_type.item_type>();
                 auto counter = thrust::make_counting_iterator(0u);
                 thrust::transform(counter, counter + size, input.begin(),
                                   [=](unsigned n) mutable {
                                     thrust::default_random_engine rng;
                                     rng.discard(n);
-                                    return dist(rng);
+                                    return ItemI::dist()(rng);
                                   });
-                output.resize(size / reduction_factor, 0);
-                thrust::fill(output.begin(), output.end(), 0);
+                output.resize(size / reduction_factor);
+                thrust::fill(output.begin(), output.end(), ItemI::identity());
                 for (auto _ : st) {
-                  using ItemT = GetItemType<kernel_type.item_type>;
-
                   Span<const ItemT> in = input;
                   Span<ItemT> out = output;
 
@@ -451,7 +447,7 @@ int main(int argc, char *argv[]) {
                         }
 #endif
 
-                        ItemT value = 0;
+                        ItemT value = ItemI::identity();
                         // #pragma unroll
                         for (unsigned i = start_sample; i < end_sample; ++i) {
                           value += in[i + x * reduction_factor];
@@ -479,13 +475,12 @@ int main(int argc, char *argv[]) {
                   CUDA_SYNC_CHK();
                 }
                 // TODO: generalize as needed...
-                if constexpr (debug_build &&
-                              kernel_type.item_type == ItemType::Float) {
+                if constexpr (debug_build && std::same_as<ItemT, float>) {
                   copy_to_vec(input, cpu_input);
                   cpu_output.resize(size / reduction_factor);
                   for (unsigned i = 0; i < size; i += reduction_factor) {
                     float &v = cpu_output[i / reduction_factor];
-                    v = 0.f;
+                    v = ItemI::identity();
                     for (unsigned j = i; j < i + reduction_factor; ++j) {
                       v += cpu_input[j];
                     }
