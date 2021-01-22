@@ -19,6 +19,8 @@ concept AllValuesCompare = requires(const T &t) {
 
 template <typename T>
 concept AllValuesEnumerable = requires(const T &t) {
+  requires std::copyable<T>;
+
   requires AllValuesCompare<T>;
 
   // TODO: having an array of all values is likely not compile time efficient
