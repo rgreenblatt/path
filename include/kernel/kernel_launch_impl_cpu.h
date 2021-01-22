@@ -13,7 +13,7 @@ void KernelLaunch<ExecutionModel::CPU>::run_internal(
     const WorkDivision &division, unsigned start_block, unsigned end_block,
     const L &launchable_in, bool /* sync */) {
   // TODO: better scheduling approach?  allow input argument to control?
-#pragma omp parallel if (!debug_build) for schedule(dynamic, 1)
+#pragma omp parallel for schedule(dynamic, 1) if (!debug_build)
   for (unsigned block_idx = start_block; block_idx < end_block; block_idx++) {
     L launchable = launchable_in;
     auto ref = launchable.block_init(division, block_idx);
