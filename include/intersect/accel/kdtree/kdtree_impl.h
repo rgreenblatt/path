@@ -59,7 +59,7 @@ Ref::intersect_objects(const intersect::Ray &ray,
           (!best.has_value() ||
            best->intersection_dist > *bounding_intersection)) {
         current_node.value.visit_tagged([&](auto tag, const auto &v) {
-          if constexpr (decltype(tag)::value == NodeType::Split) {
+          if constexpr (tag == NodeType::Split) {
             const uint8_t axis = stack_v.depth % 3;
             const auto intersection_point =
                 ray.origin[axis] +
@@ -77,7 +77,7 @@ Ref::intersect_objects(const intersect::Ray &ray,
             node_stack.push(StackData{second, new_depth});
             node_stack.push(StackData{first, new_depth});
           } else {
-            static_assert(decltype(tag)::value == NodeType::Items);
+            static_assert(tag == NodeType::Items);
             // NOTE: work around for bugged std spec
             // https://www.reddit.com/r/cpp/comments/l29479/is_the_spec_for_stdoptional_bugged_for_constexpr/
             start_end = std::optional{v};

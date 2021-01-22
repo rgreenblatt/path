@@ -179,7 +179,7 @@ public:
     }
 
     // normalize
-    for (auto &weight : host_items_.get(TagV<TWItem::Weight>)) {
+    for (auto &weight : host_items_.get(tag_v<TWItem::Weight>)) {
       weight /= cumulative_weight;
     }
 

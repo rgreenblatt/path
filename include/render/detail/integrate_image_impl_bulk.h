@@ -109,7 +109,7 @@ void IntegrateImage<exec>::run(IntegrateImageBulkInputs<exec, T...> inp) {
       Span op_state_span = state.op_state;
 
       dispatch(is_first, [&](auto tag) {
-        constexpr bool is_first = decltype(tag)::value;
+        constexpr bool is_first = tag;
 
 #pragma message "fix this - kernel launch"
 #if 0
@@ -159,7 +159,7 @@ void IntegrateImage<exec>::run(IntegrateImageBulkInputs<exec, T...> inp) {
                     intersections, rendering_settings, components);
 
                 next.visit_tagged([&](auto tag, auto &value) {
-                  constexpr auto type = decltype(tag)::value;
+                  constexpr auto type = tag;
                   if constexpr (type ==
                                 integrate::IterationOutputType::NextIteration) {
                     next_state = value.state;

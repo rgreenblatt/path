@@ -1,6 +1,5 @@
 #pragma once
 
-// compare to std::integral constant
-template <unsigned idx_in> struct NTag {
-  static constexpr unsigned idx = idx_in;
-};
+#include <type_traits>
+
+template <unsigned idx> using NTag = std::integral_constant<unsigned, idx>;

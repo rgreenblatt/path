@@ -26,7 +26,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
 
   auto run_tests = [&](auto tag, SpanSized<const Triangle> triangles,
                        const HostDeviceVector<Test> &test_expected) {
-    constexpr auto exec = decltype(tag)::value;
+    constexpr ExecutionModel exec = tag;
 
     EnumAccel<type, exec> inst;
 
@@ -65,13 +65,13 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
     HostDeviceVector<Test> tests = {
         {Ray{{0.1, 0.1, -1}, UnitVector::new_normalize({0, 0, 1})}, 0},
         {Ray{{0.8, 0.7, -1}, UnitVector::new_normalize({0, 0, 1})},
-          std::nullopt},
+         std::nullopt},
         {Ray{{0.3, 0.1, -1}, UnitVector::new_normalize({0, 0, 1})}, 0},
         {Ray{{0.1, 0.8, -1}, UnitVector::new_normalize({0, -.7, 1})}, 0},
         {Ray{{0.1, 0.1, -1}, UnitVector::new_normalize({0, 0, 1})}, 0},
     };
 
-    run_tests(TagV<ExecutionModel::CPU>, triangles, tests);
+    run_tests(tag_v<ExecutionModel::CPU>, triangles, tests);
   }
 
   const unsigned num_trials = 10;
@@ -122,10 +122,10 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
 
       if (is_gpu) {
 #ifndef CPU_ONLY
-        run_tests(TagV<ExecutionModel::GPU>, triangles, tests);
+        run_tests(tag_v<ExecutionModel::GPU>, triangles, tests);
 #endif
       } else {
-        run_tests(TagV<ExecutionModel::CPU>, triangles, tests);
+        run_tests(tag_v<ExecutionModel::CPU>, triangles, tests);
       }
     }
   }

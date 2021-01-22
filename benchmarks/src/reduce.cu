@@ -288,10 +288,10 @@ int main(int argc, char *argv[]) {
   for (unsigned size : sizes) {
     for (auto params : AllValues<BenchmarkParams>) {
       params.visit_tagged([&](auto tag, auto params) {
-        constexpr RunType run_type = decltype(tag)::value;
+        constexpr RunType run_type = tag();
 
         dispatch(get_comp_time_params<run_type>(params), [&](auto tag) {
-          constexpr auto type = decltype(tag)::value;
+          constexpr auto type = tag();
           const auto constants = params.constants;
           const unsigned items_per_block =
               constants.block_size * constants.items_per_thread;
@@ -339,12 +339,12 @@ int main(int argc, char *argv[]) {
           name << "_items_per_thread_" << constants.items_per_thread;
           benchmark::RegisterBenchmark(
               name.str().c_str(),
-              [=, &cpu_input = cpu_input_vec.get(TagV<kernel_type.item_type>),
-               &cpu_output = cpu_output_vec.get(TagV<kernel_type.item_type>),
+              [=, &cpu_input = cpu_input_vec.get(tag_v<kernel_type.item_type>),
+               &cpu_output = cpu_output_vec.get(tag_v<kernel_type.item_type>),
                &cpu_output_from_gpu =
-                   cpu_output_from_gpu_vec.get(TagV<kernel_type.item_type>),
-               &input = input_vec.get(TagV<kernel_type.item_type>),
-               &output = output_vec.get(TagV<kernel_type.item_type>)](
+                   cpu_output_from_gpu_vec.get(tag_v<kernel_type.item_type>),
+               &input = input_vec.get(tag_v<kernel_type.item_type>),
+               &output = output_vec.get(tag_v<kernel_type.item_type>)](
                   benchmark::State &st) {
                 st.counters["size"] = size;
                 st.counters["impl"] = kernel_type.numeric_reduce_impl();

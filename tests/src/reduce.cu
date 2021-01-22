@@ -95,7 +95,7 @@ TEST(Reduce, sum) {
             }
 
             auto division_run = [&](auto tag, Span<T> out_div) {
-              constexpr ExecutionModel exec = decltype(tag)::value;
+              constexpr ExecutionModel exec = tag;
               using Reducer = kernel::RuntimeConstantsReducer<exec, T>;
               using ThreadRef = typename Reducer::ThreadRef;
 
@@ -134,8 +134,8 @@ TEST(Reduce, sum) {
             HostDeviceVector<T> out_vals_division(num_locations);
             HostVector<T> out_vals_division_cpu(num_locations);
 
-            division_run(TagV<ExecutionModel::GPU>, out_vals_division);
-            division_run(TagV<ExecutionModel::CPU>, out_vals_division_cpu);
+            division_run(tag_v<ExecutionModel::GPU>, out_vals_division);
+            division_run(tag_v<ExecutionModel::CPU>, out_vals_division_cpu);
 
             std::vector<T> expected(num_locations, 0.f);
 

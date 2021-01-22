@@ -44,20 +44,20 @@ struct Settings {
   };
 
   TaggedUnion<IntersectionApproach, FlatAccelSettings, ToBulkSettings>
-      intersection = {TagV<IntersectionApproach::MegaKernel>,
-                      TagV<AccelType::KDTree>};
+      intersection = {tag_v<IntersectionApproach::MegaKernel>,
+                      tag_v<AccelType::KDTree>};
 
   TaggedUnionPerInstance<LightSamplerType, enum_light_sampler::Settings>
-      light_sampler = {TagV<LightSamplerType::RandomTriangle>};
+      light_sampler = {tag_v<LightSamplerType::RandomTriangle>};
 
   TaggedUnionPerInstance<DirSamplerType, enum_dir_sampler::Settings>
-      dir_sampler = {TagV<DirSamplerType::BSDF>};
+      dir_sampler = {tag_v<DirSamplerType::BSDF>};
 
   TaggedUnionPerInstance<TermProbType, enum_term_prob::Settings> term_prob = {
-      TagV<TermProbType::MultiplierFunc>};
+      tag_v<TermProbType::MultiplierFunc>};
 
   TaggedUnionPerInstance<RngType, rng::enum_rng::Settings> rng = {
-      TagV<RngType::Sobel>};
+      tag_v<RngType::Sobel>};
 
   GeneralSettings general_settings;
 

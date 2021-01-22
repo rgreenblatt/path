@@ -49,6 +49,3 @@ static_assert(!TagDispatchable<decltype(return_type_varies), UpTo<8>>);
 static_assert(TagDispatchable<decltype(return_type_varies), UpTo<1>>);
 static_assert(!TagDispatchable<decltype(any_dispatchable), UpTo<0>>);
 #endif
-
-static_assert(std::same_as<decltype(to_tag<bool>(NTag<0>{})), Tag<bool, 0>>);
-static_assert(std::same_as<decltype(to_tag<bool>(NTag<1>{})), Tag<bool, 1>>);

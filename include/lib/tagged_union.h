@@ -336,11 +336,11 @@ public:
     return boost::hana::unpack(
         std::make_index_sequence<num_elements>(), [](auto... idx) {
           auto out = array_cat([](auto idx) {
-            return boost::hana::unpack(
-                AllValues<PackElement<idx, Types...>>, [&](auto... v) {
-                  return std::array<T, sizeof...(v)>{
-                      T(TagV<tag_values[decltype(idx)::value]>, v)...};
-                });
+            return boost::hana::unpack(AllValues<PackElement<idx, Types...>>,
+                                       [&](auto... v) {
+                                         return std::array<T, sizeof...(v)>{
+                                             T(tag_v<tag_values[idx]>, v)...};
+                                       });
           }(idx)...);
 
           static_assert(StdArraySpecialization<decltype(out)>);

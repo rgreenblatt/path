@@ -30,32 +30,32 @@ public:
   using AABB = intersect::accel::AABB;
 
   ATTR_PURE_NDEBUG SpanSized<const unsigned> mesh_ends() const {
-    return meshs_.get(TagV<MeshT::End>);
+    return meshs_.get(tag_v<MeshT::End>);
   }
 
   ATTR_PURE_NDEBUG SpanSized<const AABB> mesh_aabbs() const {
-    return meshs_.get(TagV<MeshT::AABB>);
+    return meshs_.get(tag_v<MeshT::AABB>);
   }
 
   ATTR_PURE_NDEBUG SpanSized<const std::string> mesh_paths() const {
-    return meshs_.get(TagV<MeshT::Path>);
+    return meshs_.get(tag_v<MeshT::Path>);
   }
 
   ATTR_PURE_NDEBUG SpanSized<const TransformedObject>
   transformed_mesh_objects() const {
-    return transformed_objects_.get(TagV<TransformedObjectT::Inst>);
+    return transformed_objects_.get(tag_v<TransformedObjectT::Inst>);
   }
 
   ATTR_PURE_NDEBUG SpanSized<const unsigned> transformed_mesh_idxs() const {
-    return transformed_objects_.get(TagV<TransformedObjectT::MeshIdx>);
+    return transformed_objects_.get(tag_v<TransformedObjectT::MeshIdx>);
   }
 
   ATTR_PURE_NDEBUG SpanSized<const Triangle> triangles() const {
-    return triangles_.get(TagV<TriangleT::Inst>);
+    return triangles_.get(tag_v<TriangleT::Inst>);
   }
 
   ATTR_PURE_NDEBUG SpanSized<const TriangleData> triangle_data() const {
-    return triangles_.get(TagV<TriangleT::Data>);
+    return triangles_.get(tag_v<TriangleT::Data>);
   }
 
   ATTR_PURE_NDEBUG SpanSized<const Material> materials() const {
@@ -68,7 +68,7 @@ public:
 
   ATTR_PURE_NDEBUG SpanSized<const unsigned>
   emissive_cluster_ends_per_mesh() const {
-    return meshs_.get(TagV<MeshT::EmissiveClusterEnd>);
+    return meshs_.get(tag_v<MeshT::EmissiveClusterEnd>);
   }
 
   // Note: may not be very precise...
