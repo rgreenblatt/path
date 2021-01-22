@@ -4,6 +4,7 @@
 #include "meta/all_values/impl/pow_2.h"
 #include "meta/all_values/impl/range.h"
 #include "meta/all_values/impl/tuple.h"
+#include "meta/all_values/impl/type_list.h"
 #include "meta/all_values/impl/variant.h"
 #include "meta/mock.h"
 #include "set_same.h"
@@ -34,36 +35,43 @@ static_assert(set_same(AllValues<Pow2InclusiveUpTo<2>>, {1, 2}));
 
 static_assert(AllValues<MetaTuple<>>.size() == 1);
 static_assert(set_same(AllValues<MetaTuple<>>, {MetaTuple<>{}}));
-static_assert(set_same(AllValues<MetaTuple<bool, bool>>,
-                       {
-                           MetaTuple<bool, bool>{false, false},
-                           MetaTuple<bool, bool>{false, true},
-                           MetaTuple<bool, bool>{true, false},
-                           MetaTuple<bool, bool>{true, true},
-                       }));
+using MTupBB = MetaTuple<bool, bool>;
+static_assert(set_same(AllValues<MTupBB>, {
+                                              MTupBB{false, false},
+                                              MTupBB{false, true},
+                                              MTupBB{true, false},
+                                              MTupBB{true, true},
+                                          }));
 
 static_assert(set_same(AllValues<std::variant<UpTo<0>>>, {}));
 static_assert(set_same(AllValues<std::variant<UpTo<1>>>, {{0}}));
 static_assert(set_same(AllValues<std::variant<UpTo<3>>>, {{0, 1, 2}}));
-static_assert(
-    set_same(AllValues<std::variant<UpTo<3>, UpTo<2>>>,
-             {
-                 std::variant<UpTo<3>, UpTo<2>>{std::in_place_index<0>, 0},
-                 std::variant<UpTo<3>, UpTo<2>>{std::in_place_index<0>, 1},
-                 std::variant<UpTo<3>, UpTo<2>>{std::in_place_index<0>, 2},
-                 std::variant<UpTo<3>, UpTo<2>>{std::in_place_index<1>, 0},
-                 std::variant<UpTo<3>, UpTo<2>>{std::in_place_index<1>, 1},
-             }));
-static_assert(
-    set_same(AllValues<std::variant<Pow2<1, 4>, UpTo<3>>>,
-             {
-                 std::variant<Pow2<1, 4>, UpTo<3>>{std::in_place_index<0>, 1},
-                 std::variant<Pow2<1, 4>, UpTo<3>>{std::in_place_index<0>, 2},
-                 std::variant<Pow2<1, 4>, UpTo<3>>{std::in_place_index<0>, 4},
-                 std::variant<Pow2<1, 4>, UpTo<3>>{std::in_place_index<1>, 0},
-                 std::variant<Pow2<1, 4>, UpTo<3>>{std::in_place_index<1>, 1},
-                 std::variant<Pow2<1, 4>, UpTo<3>>{std::in_place_index<1>, 2},
-             }));
+using VarUpUp = std::variant<UpTo<3>, UpTo<2>>;
+static_assert(set_same(AllValues<VarUpUp>,
+                       {
+                           VarUpUp{std::in_place_index<0>, 0},
+                           VarUpUp{std::in_place_index<0>, 1},
+                           VarUpUp{std::in_place_index<0>, 2},
+                           VarUpUp{std::in_place_index<1>, 0},
+                           VarUpUp{std::in_place_index<1>, 1},
+                       }));
+using VarPowUp = std::variant<Pow2<1, 4>, UpTo<3>>;
+static_assert(set_same(AllValues<VarPowUp>,
+                       {
+                           VarPowUp{std::in_place_index<0>, 1},
+                           VarPowUp{std::in_place_index<0>, 2},
+                           VarPowUp{std::in_place_index<0>, 4},
+                           VarPowUp{std::in_place_index<1>, 0},
+                           VarPowUp{std::in_place_index<1>, 1},
+                           VarPowUp{std::in_place_index<1>, 2},
+                       }));
+static_assert(set_same(AllValues<TypeList<>>, {}));
+static_assert(set_same(AllValues<TypeList<int>>, {0}));
+static_assert(set_same(AllValues<TypeList<int, bool>>, {0, 1}));
+static_assert(set_same(AllValues<TypeList<int, bool, float>>, {0, 1, 2}));
+static_assert(std::same_as<TypeListT<TypeList<int, bool, float>{0}>, int>);
+static_assert(std::same_as<TypeListT<TypeList<int, bool, float>{1}>, bool>);
+static_assert(std::same_as<TypeListT<TypeList<int, bool, float>{2}>, float>);
 
 template <> struct AllValuesImpl<MockMovable> {
   static constexpr std::array<MockMovable, 0> values = {};
