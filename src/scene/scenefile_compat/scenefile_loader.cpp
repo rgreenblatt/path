@@ -20,12 +20,7 @@
 
 namespace scene {
 namespace scenefile_compat {
-// requires Conditionally Trivial Special Member Functions - P0848R3
-#if 0
 std::optional<Scene>
-#else
-std::optional<Scene>
-#endif
 ScenefileLoader::load_scene(const std::string &filename,
                             float width_height_ratio, bool quiet) {
   quiet_ = quiet;
