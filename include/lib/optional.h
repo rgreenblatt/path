@@ -1,9 +1,11 @@
 #pragma once
 
-#include "lib/assert.h"
 #include "lib/attribute.h"
-#include "meta/mock.h"
+#include "meta/all_types_same.h"
 #include "meta/specialization_of.h"
+
+#include <boost/hana/fold.hpp>
+#include <boost/hana/tuple.hpp>
 
 #include <concepts>
 #include <optional>
@@ -38,7 +40,7 @@ constexpr std::optional<T> optional_or_else(std::optional<T> in, F &&f) {
 template <std::movable T>
 ATTR_NO_DISCARD_PURE constexpr std::optional<T>
 optional_or(std::optional<T> in, std::optional<T> other) {
-  return optional_or_else(in, [&]() { return other; });
+  return optional_or_else(std::move(in), [&]() { return std::move(other); });
 }
 
 template <std::movable T, typename F>
@@ -47,7 +49,7 @@ requires requires(F &&f) {
 }
 constexpr T optional_unwrap_or_else(std::optional<T> in, F &&f) {
   if (in.has_value()) {
-    return *in;
+    return std::move(*in);
   } else {
     return f();
   }
@@ -56,62 +58,46 @@ constexpr T optional_unwrap_or_else(std::optional<T> in, F &&f) {
 template <std::movable T>
 ATTR_NO_DISCARD_PURE constexpr T optional_unwrap_or(std::optional<T> in,
                                                     T default_v) {
-  return in.unwrap_or_else([&]() { return default_v; });
+  return optional_unwrap_or_else(std::move(in),
+                                 [&]() { return std::move(default_v); });
 }
 
 template <typename T, typename F>
-requires requires(F &&f, const T &v) {
-  { f(v) } -> std::movable;
-}
-constexpr auto optional_map(const std::optional<T> &in, F &&f)
-    -> std::optional<decltype(f(*in))> {
+constexpr auto optional_and_then(std::optional<T> in, F &&f)
+    -> decltype(f(std::move(*in))) requires
+    IsOptional<decltype(f(std::move(*in)))> &&
+    std::movable<decltype(f(std::move(*in)))> {
   if (in.has_value()) {
-    return f(*in);
+    return f(std::move(*in));
   } else {
     return nullopt_value;
   }
 }
 
 template <typename T, typename F>
-constexpr auto optional_and_then(const std::optional<T> &in, F &&f)
-    -> decltype(f(*in)) requires IsOptional<decltype(f(*in))> {
-  if (in.has_value()) {
-    return f(*in);
-  } else {
-    return nullopt_value;
-  }
+requires requires(F &&f, T v) {
+  { f(std::move(v)) } -> std::movable;
+}
+constexpr auto optional_map(std::optional<T> in, F &&f) {
+  return optional_and_then(
+      std::move(in), [&](T v) { return std::make_optional(f(std::move(v))); });
 }
 
-template <typename FFold, typename FBase, typename V>
-constexpr auto optional_fold(FFold &&, FBase &&f_base,
-                             const std::optional<V> &first) {
-  return optional_map(first, f_base);
+template <typename FFold, std::movable... T>
+requires(AllTypesSame<T...> && sizeof...(T) != 0) constexpr auto optional_fold(
+    FFold &&f_fold, std::optional<T>... rest)
+    -> std::optional<PackElement<0, T...>>
+requires requires(PackElement<0, T...> v) {
+  { f_fold(std::move(v), std::move(v)) } -> std::same_as<PackElement<0, T...>>;
 }
-
-template <typename FFold, typename FBase, typename V, typename... T>
-constexpr auto optional_fold(FFold &&f_fold, FBase &&f_base,
-                             const std::optional<V> &first,
-                             const std::optional<T> &...rest) {
-  const auto f_rest = optional_fold(std::forward<FFold>(f_fold),
-                                    std::forward<FBase>(f_base), rest...);
-
-  const decltype(f_rest) next = optional_and_then(first, [&](const auto &v) {
-    if (f_rest.has_value()) {
-      return f_fold(*f_rest, v);
-    } else {
-      return std::optional(f_base(v));
-    }
-  });
-
-  return optional_or(next, f_rest);
-}
-
-template <std::movable T>
-ATTR_NO_DISCARD_PURE constexpr std::optional<T> create_optional(bool condition,
-                                                                T v) {
-  if (condition) {
-    return v;
-  } else {
-    return nullopt_value;
-  }
+{
+  using Type = PackElement<0, T...>;
+  return boost::hana::fold_left(
+      boost::hana::tuple<std::optional<T>...>{std::move(rest)...},
+      [&](std::optional<Type> l, std::optional<Type> r) -> std::optional<Type> {
+        if (l.has_value() && r.has_value()) {
+          return f_fold(std::move(*l), std::move(*r));
+        }
+        return optional_or(std::move(l), std::move(r));
+      });
 }

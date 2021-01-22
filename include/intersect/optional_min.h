@@ -7,13 +7,21 @@
 
 namespace intersect {
 // useful for getting the closest intersection
-template <typename... T>
-ATTR_PURE_NDEBUG constexpr auto
-optional_min(const std::optional<T> &...values) {
+template <std::movable... T>
+requires(AllTypesSame<T...> && sizeof...(T) != 0 &&
+         requires(const PackElement<0, T...> &v) {
+           std::min(v, v);
+         }) ATTR_PURE_NDEBUG
+    constexpr auto optional_min(std::optional<T>... values) {
   return optional_fold(
-      [](const auto &a, const auto &b) {
-        return std::optional(std::min(a, b));
+      [](auto a, auto b) {
+        // writing min is needed because min doesn't allow moving out...
+        if (a < b) {
+          return a;
+        } else {
+          return b;
+        }
       },
-      [](const auto &a) { return a; }, values...);
+      std::move(values)...);
 }
 } // namespace intersect
