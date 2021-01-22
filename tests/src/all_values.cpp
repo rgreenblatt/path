@@ -4,6 +4,7 @@
 #include "meta/all_values/impl/pow_2.h"
 #include "meta/all_values/impl/range.h"
 #include "meta/all_values/impl/tuple.h"
+#include "meta/mock.h"
 #include "set_same.h"
 
 #include <algorithm>
@@ -39,6 +40,12 @@ static_assert(set_same(AllValues<MetaTuple<bool, bool>>,
                            MetaTuple<bool, bool>{true, false},
                            MetaTuple<bool, bool>{true, true},
                        }));
+
+template <> struct AllValuesImpl<MockMovable> {
+  static constexpr std::array<MockMovable, 0> values = {};
+};
+
+static_assert(!AllValuesEnumerable<MockMovable>);
 
 struct NoCompare {};
 
