@@ -176,15 +176,15 @@ template <ItemType type> auto generate_item_dist() {
 template <ItemType type> using GetItemType = decltype(get_item_type<type>());
 
 struct BlockSize : public Pow2<32, 512> {
-  using Pow2<32, 512>::Pow2Gen;
+  using Pow2<32, 512>::Pow2;
 };
 
 struct ItemsPerThread : public Pow2<1, 64> {
-  using Pow2<1, 64>::Pow2Gen;
+  using Pow2<1, 64>::Pow2;
 };
 
 struct SubWarpSize : public Pow2<1, 32> {
-  using Pow2<1, 32>::Pow2Gen;
+  using Pow2<1, 32>::Pow2;
 };
 
 template <> struct AllValuesImpl<BlockSize> {
