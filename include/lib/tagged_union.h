@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lib/array_transform.h"
 #include "lib/assert.h"
 #include "lib/attribute.h"
 #include "meta/aggregate_constructible_from.h"
@@ -109,16 +110,8 @@ using TaggedUnionPerInstance = PerInstanceTakesType<T, TypeOver, TaggedUnion>;
 
 template <AllValuesEnumerable E, AllValuesEnumerable... Types>
 struct AllValuesImpl<TaggedUnion<E, Types...>> {
-  static constexpr auto values = [] {
-    using T = TaggedUnion<E, Types...>;
-    using VarT = std::variant<Types...>;
-
-    constexpr auto var_values = AllValues<VarT>;
-
-    std::array<T, var_values.size()> out;
-    std::transform(var_values.begin(), var_values.end(), out.begin(),
-                   [](const VarT &v) { return T(v); });
-
-    return out;
-  }();
+  static constexpr auto values =
+      array_transform(AllValues<std::variant<Types...>>, [](const auto &v) {
+        return TaggedUnion<E, Types...>(v);
+      });
 };
