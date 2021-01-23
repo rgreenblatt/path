@@ -310,7 +310,7 @@ int main(int argc, char *argv[]) {
 
         // swap to real dispatch when actually used...
         // slow to build
-        fake_dispatch(get_comp_time_params<run_type>(params), [&](auto tag) {
+        dispatch(get_comp_time_params<run_type>(params), [&](auto tag) {
           constexpr auto type = tag();
           const auto constants = params.constants;
           const unsigned items_per_block =
