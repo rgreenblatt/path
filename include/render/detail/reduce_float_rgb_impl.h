@@ -23,7 +23,7 @@ ExecVector<exec, FloatRGB> *ReduceFloatRGB<exec>::run(
   while (reduction_factor != 1) {
     always_assert(float_rgb_in->size() % reduction_factor == 0);
     unsigned x_dim = float_rgb_in->size() / reduction_factor;
-    // TODO: reduce division settings
+    // TODO: SPEED: reduce division settings
     kernel::WorkDivision division({.block_size = 256,
                                    .target_x_block_size = 256,
                                    .force_target_samples = false,
