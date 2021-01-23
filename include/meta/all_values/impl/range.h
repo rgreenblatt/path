@@ -3,6 +3,8 @@
 #include "lib/assert.h"
 #include "meta/all_values/all_values.h"
 
+#include <limits>
+
 template <std::unsigned_integral T, T begin, T end>
 requires(begin <= end) struct RangeGen {
   T value;
@@ -19,6 +21,9 @@ template <unsigned begin, unsigned end>
 using Range = RangeGen<unsigned, begin, end>;
 template <std::unsigned_integral T, T end> using UpToGen = RangeGen<T, 0, end>;
 template <unsigned end> using UpTo = UpToGen<unsigned, end>;
+
+// DO NOT DIRECTLY USE THIS FOR ALL VALUES!!! Will be VERY slow.
+using IdxWrapper = UpTo<std::numeric_limits<unsigned>::max()>;
 
 template <std::unsigned_integral T, T begin, T end>
 struct AllValuesImpl<RangeGen<T, begin, end>> {
