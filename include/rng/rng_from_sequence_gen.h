@@ -3,6 +3,7 @@
 #include "lib/assert.h"
 #include "lib/attribute.h"
 #include "lib/cuda/utils.h"
+#include "lib/fnv.h"
 #include "lib/settings.h"
 #include "lib/span.h"
 #include "rng/rng.h"
@@ -10,17 +11,6 @@
 
 namespace rng {
 namespace detail {
-ATTR_PURE_NDEBUG constexpr unsigned fnv_hash(unsigned in) {
-  constexpr unsigned prime = 16777619;
-  constexpr unsigned offset_basis = 2166136261;
-  unsigned out_hash = offset_basis;
-  for (unsigned i = 0; i < 4; ++i) {
-    out_hash ^= (in >> (8 * i)) & 0xff;
-    out_hash *= prime;
-  }
-  return out_hash;
-}
-
 struct SequenceGenOutput {
   Span<const float> vals;
   unsigned initial_dimension_bound;
