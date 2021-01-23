@@ -325,11 +325,6 @@ int main(int argc, char *argv[]) {
                 constants.sub_warp_size * constants.items_per_thread;
           }
 
-          // // TODO
-          // if (reduction_factor == 1) {
-          //   return;
-          // }
-
           const unsigned iters = [&] {
             if constexpr (debug_build) {
               return 1;
