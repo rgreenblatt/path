@@ -8,7 +8,8 @@
 
 namespace kernel {
 // TODO: SPEED: having specializations of this and dispatching amoung them
-// would speed this up...
+// would speed this up (based on reduce testing - speed up might not
+// exist for the most performance intensive rendering uses)
 // could do things like special case when n_threads_per_unit_extra == 0
 // or similar (no y, etc...)
 class WorkDivision {
