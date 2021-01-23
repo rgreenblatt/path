@@ -27,10 +27,6 @@ public:
   ATTR_PURE_NDEBUG inline HOST_DEVICE ThreadInfo
   get_thread_info(unsigned block_idx, unsigned thread_idx) const;
 
-  ATTR_PURE inline HOST_DEVICE bool assign_sample(unsigned thread_idx) const {
-    return thread_idx % sample_block_size_ == 0;
-  }
-
   ATTR_PURE inline HOST_DEVICE unsigned
   sample_block_idx(unsigned block_idx) const {
     return block_idx % num_sample_blocks_;

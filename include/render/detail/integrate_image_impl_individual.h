@@ -1,20 +1,20 @@
 #pragma once
 
-#include "kernel/kernel_launch_impl_gpu.cuh"
+#include "kernel/kernel_launch.h"
+#include "kernel/make_runtime_constants_reduce_launchable.h"
 #include "lib/assert.h"
 #include "lib/integer_division_utils.h"
 #include "render/detail/integrate_image.h"
 #include "render/detail/integrate_pixel.h"
-#include "render/detail/reduce_assign_output.cuh"
+#include "render/detail/reduce_assign_output.h"
 
 #include <cli/ProgressBar.hpp>
 
 namespace render {
 namespace detail {
-template <>
+template <ExecutionModel exec>
 template <typename... T>
-void IntegrateImage<ExecutionModel::GPU>::run(
-    IntegrateImageIndividualInputs<T...> inp) {
+void IntegrateImage<exec>::run(IntegrateImageIndividualInputs<T...> inp) {
   auto val = inp.val;
   unsigned total_grid = val.division.total_num_blocks();
 
@@ -37,19 +37,18 @@ void IntegrateImage<ExecutionModel::GPU>::run(
     auto intersectable = val.intersector;
     auto settings = val.settings.rendering_equation_settings;
 
-#pragma message "fix this - kernel launch"
-#if 0
-    kernel::KernelLaunch<ExecutionModel::GPU>::run(
+    kernel::KernelLaunch<exec>::run(
         val.division, start, end,
-        [=](const WorkDivision &division, const kernel::GridLocationInfo &info,
-            const unsigned block_idx, const unsigned thread_idx) {
-          auto float_rgb =
-              integrate_pixel(items, intersectable, division, settings, info);
+        kernel::make_runtime_constants_reduce_launchable<exec, FloatRGB>(
+            [=](const WorkDivision &division,
+                const kernel::GridLocationInfo &info, const unsigned block_idx,
+                unsigned, const auto &, auto &reducer) {
+              auto float_rgb = integrate_pixel(items, intersectable, division,
+                                               settings, info);
 
-          reduce_assign_output(items.base, division, thread_idx, block_idx,
-                               info.x, info.y, float_rgb);
-        });
-#endif
+              reduce_assign_output(reducer, items.base, division, block_idx,
+                                   info.x, info.y, float_rgb);
+            }));
 
     if (val.show_progress) {
       ++progress_bar;

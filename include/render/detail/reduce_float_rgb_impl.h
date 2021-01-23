@@ -1,15 +1,12 @@
 #pragma once
 
 #include "kernel/kernel_launch.h"
-#include "kernel/thread_interactor_launchable.h"
-#include "kernel/tuple_thread_interactor.h"
+#include "kernel/make_runtime_constants_reduce_launchable.h"
 #include "kernel/work_division.h"
 #include "lib/assert.h"
 #include "render/detail/integrate_image_base_items.h"
+#include "render/detail/reduce_assign_output.h"
 #include "render/detail/reduce_float_rgb.h"
-// #include "render/detail/reduce_assign_output.cuh"
-// #include "render/detail/reduce_float_rgb.h"
-#pragma message "more includes"
 
 #include "data_structure/copyable_to_vec.h"
 
@@ -43,34 +40,22 @@ ExecVector<exec, FloatRGB> *ReduceFloatRGB<exec>::run(
 
     Span<const FloatRGB> in_span = *float_rgb_in;
 
-    using ExtraInp = kernel::EmptyExtraInp;
-
-    auto callable = [=](const kernel::WorkDivision &division,
-                        const kernel::GridLocationInfo &info,
-                        const unsigned block_idx, const unsigned thread_idx,
-                        ExtraInp, auto) {
-      auto [start_sample, end_sample, x, y] = info;
-
-      FloatRGB total = FloatRGB::Zero();
-      for (unsigned i = start_sample; i < end_sample; ++i) {
-        total += in_span[i + x * reduction_factor];
-      }
-
-#pragma message "REDUCE"
-      // reduce_assign_output(items, division, thread_idx,
-      // block_idx,
-      //                      x, 0, total);
-    };
-
     kernel::KernelLaunch<exec>::run(
         division, 0, division.total_num_blocks(),
-        kernel::ThreadInteractorLaunchable<
-            ExtraInp, kernel::TupleThreadInteractor<ExtraInp>,
-            decltype(callable)>{
-            .inp = {},
-            .interactor = {},
-            .callable = callable,
-        });
+        kernel::make_runtime_constants_reduce_launchable<exec, FloatRGB>(
+            [=](const kernel::WorkDivision &division,
+                const kernel::GridLocationInfo &info, const unsigned block_idx,
+                const unsigned, const auto &, auto &reducer) {
+              auto [start_sample, end_sample, x, y] = info;
+
+              FloatRGB total = FloatRGB::Zero();
+              for (unsigned i = start_sample; i < end_sample; ++i) {
+                total += in_span[i + x * reduction_factor];
+              }
+
+              reduce_assign_output(reducer, items, division, block_idx, info.x,
+                                   info.y, total);
+            }));
 
     reduction_factor = division.num_sample_blocks();
 

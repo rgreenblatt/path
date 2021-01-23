@@ -41,10 +41,10 @@ struct RuntimeConstantsReducer {
         return [&]() -> std::optional<ItemType> {
           if constexpr (exec == ExecutionModel::CPU) {
             if (reduction_factor_idx == 0) {
-              debug_assert_assume(!ref_.item_.has_value());
+              debug_assert(!ref_.item_.has_value());
               ref_.item_ = val;
             } else {
-              debug_assert_assume(ref_.item_.has_value());
+              debug_assert(ref_.item_.has_value());
               ref_.item_ = op(*ref_.item_, val);
             }
 
