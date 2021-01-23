@@ -11,6 +11,7 @@
 #include "lib/bit_utils.h"
 #include "lib/cuda/reduce.cuh"
 #include "lib/cuda/utils.h"
+#include "lib/float_rgb.h"
 #include "lib/span.h"
 #include "lib/tagged_tuple.h"
 #include "lib/tagged_union.h"
@@ -33,7 +34,7 @@
 
 #include <sstream>
 
-using ItemType = TypeList<float>;
+using ItemType = TypeList<float, FloatRGB>;
 
 template <typename T> struct ItemInfo;
 
@@ -44,7 +45,29 @@ template <> struct ItemInfo<float> {
     return thrust::uniform_real_distribution(-100.f, 100.f);
   }
 
+  static HOST_DEVICE auto norm(float v) { return std::abs(v); }
+
   static HOST_DEVICE auto identity() { return 0.f; }
+
+  static HOST_DEVICE auto epsilon() { return 1e-5; }
+};
+
+template <> struct ItemInfo<FloatRGB> {
+  static auto name() { return "float_rbg"; }
+
+  static HOST_DEVICE auto dist() {
+    return [](auto gen) -> FloatRGB {
+      auto dist = ItemInfo<float>::dist();
+
+      return {{dist(gen), dist(gen), dist(gen)}};
+    };
+  }
+
+  static HOST_DEVICE auto norm(const FloatRGB &v) { return v.matrix().norm(); }
+
+  static HOST_DEVICE auto identity() { return FloatRGB::Zero(); }
+
+  static HOST_DEVICE auto epsilon() { return 5e-5; }
 };
 
 enum class FullyDispatchedReduceImpl {
@@ -474,12 +497,11 @@ int main(int argc, char *argv[]) {
                   }
                   CUDA_SYNC_CHK();
                 }
-                // TODO: generalize as needed...
-                if constexpr (debug_build && std::same_as<ItemT, float>) {
+                if constexpr (debug_build) {
                   copy_to_vec(input, cpu_input);
                   cpu_output.resize(size / reduction_factor);
                   for (unsigned i = 0; i < size; i += reduction_factor) {
-                    float &v = cpu_output[i / reduction_factor];
+                    ItemT &v = cpu_output[i / reduction_factor];
                     v = ItemI::identity();
                     for (unsigned j = i; j < i + reduction_factor; ++j) {
                       v += cpu_input[j];
@@ -492,8 +514,9 @@ int main(int argc, char *argv[]) {
                     // correct epsilon will depend on distribution
                     // multiplied by reduction factor because non-commutativity
                     // differences accumulate
-                    debug_assert((cpu_output[i] - cpu_output_from_gpu[i]) <
-                                 reduction_factor * 1e-5);
+                    debug_assert(
+                        ItemI::norm(cpu_output[i] - cpu_output_from_gpu[i]) <
+                        reduction_factor * ItemI::epsilon());
                   }
                 } else {
                   (void)cpu_input;
