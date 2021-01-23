@@ -278,6 +278,7 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
                    "${PROJECT_SOURCE_DIR}/tests/src/static_sized_str.cpp")
   package_add_test(printf_dbg_test
                    "${PROJECT_SOURCE_DIR}/tests/src/printf_dbg.cpp")
+  package_add_test(dispatch_test "${PROJECT_SOURCE_DIR}/tests/src/dispatch.cpp")
 
   add_custom_target(
     run_build_tests

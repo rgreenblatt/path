@@ -14,7 +14,7 @@ requires(start != end) constexpr decltype(auto)
 
   auto r = [&](auto tag) -> decltype(f(v<0>)) {
     if constexpr (tag + start < end) {
-      return f(tag);
+      return f(NTag<tag + start>{});
     } else {
       unreachable_unchecked();
     }
@@ -67,31 +67,6 @@ requires(start != end) constexpr decltype(auto)
     return r(v<21>);
   case 22:
     return r(v<22>);
-    return r(v<10>);
-  case 11:
-    return r(v<11>);
-  case 12:
-    return r(v<12>);
-  case 13:
-    return r(v<13>);
-  case 14:
-    return r(v<14>);
-  case 15:
-    return r(v<15>);
-  case 16:
-    return r(v<16>);
-  case 17:
-    return r(v<17>);
-  case 18:
-    return r(v<18>);
-  case 19:
-    return r(v<19>);
-  case 20:
-    return r(v<20>);
-  case 21:
-    return r(v<21>);
-  case 22:
-    return r(v<22>);
   case 23:
     return r(v<23>);
   case 24:
@@ -112,7 +87,7 @@ requires(start != end) constexpr decltype(auto)
     return r(v<31>);
   default:
     if constexpr (start + 32 < end) {
-      return bench_dispatch_impl<start + 32, end>(index, f);
+      return sequential_dispatch<start + 32, end>(index, f);
     }
     unreachable_unchecked();
   };
@@ -125,5 +100,5 @@ requires(size != 0) constexpr decltype(auto)
   if (index >= size) {
     unreachable_unchecked();
   }
-  sequential_dispatch_detail::sequential_dispatch<0, size>(index, f);
+  return sequential_dispatch_detail::sequential_dispatch<0, size>(index, f);
 }
