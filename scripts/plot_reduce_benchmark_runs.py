@@ -16,7 +16,7 @@ Implementation = namedtuple('Implementation', 'file_name impl')
 
 # these mappings need to kept up to date with cpp....
 def str_item_type(n):
-    return ['float'][int(n)]
+    return ['float', 'eigen_array3f'][int(n)]
 
 
 def str_reduce_impl(n):
