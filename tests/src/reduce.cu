@@ -4,10 +4,9 @@
 #include "kernel/kernel_launch.h"
 #include "kernel/kernel_launch_impl_cpu.h"
 #include "kernel/kernel_launch_impl_gpu.cuh"
+#include "kernel/make_runtime_constants_reduce_launchable.h"
 #include "kernel/reduce_samples.cuh"
-#include "kernel/runtime_constants_reducer.h"
 #include "kernel/runtime_constants_reducer_impl_gpu.cuh"
-#include "kernel/thread_interactor_launchable.h"
 #include "kernel/work_division.h"
 #include "lib/assert.h"
 #include "lib/cuda/reduce.cuh"
@@ -96,39 +95,31 @@ TEST(Reduce, sum) {
 
             auto division_run = [&](auto tag, Span<T> out_div) {
               constexpr ExecutionModel exec = tag;
-              using Reducer = kernel::RuntimeConstantsReducer<exec, T>;
-              using ThreadRef = typename Reducer::ThreadRef;
-
-              auto callable = [=] HOST_DEVICE(
-                                  const WorkDivision &division,
-                                  const kernel::GridLocationInfo &info,
-                                  const unsigned /*block_idx*/,
-                                  const unsigned /*thread_idx*/, const auto &,
-                                  ThreadRef &interactor) {
-                auto [start_sample, end_sample, j, unused] = info;
-
-                T total = 0;
-                for (unsigned i = start_sample; i < end_sample; ++i) {
-                  total += in[i + j * samples_per];
-                }
-
-                auto add = [](const T &lhs, const T &rhs) { return lhs + rhs; };
-                auto op =
-                    interactor.reduce(total, add, division.sample_block_size());
-                if (op.has_value()) {
-                  out_div[j] = *op;
-                }
-              };
-
-              kernel::ThreadInteractorLaunchableNoExtraInp<Reducer,
-                                                           decltype(callable)>
-                  launchable{
-                      .interactor = Reducer{},
-                      .callable = callable,
-                  };
 
               kernel::KernelLaunch<exec>::run(
-                  division, 0, division.total_num_blocks(), launchable);
+                  division, 0, division.total_num_blocks(),
+                  kernel::make_runtime_constants_reduce_launchable<exec, T>(
+                      [=] HOST_DEVICE(const WorkDivision &division,
+                                      const kernel::GridLocationInfo &info,
+                                      const unsigned /*block_idx*/,
+                                      const unsigned /*thread_idx*/,
+                                      const auto &, auto &interactor) {
+                        auto [start_sample, end_sample, j, unused] = info;
+
+                        T total = 0;
+                        for (unsigned i = start_sample; i < end_sample; ++i) {
+                          total += in[i + j * samples_per];
+                        }
+
+                        auto add = [](const T &lhs, const T &rhs) {
+                          return lhs + rhs;
+                        };
+                        auto op = interactor.reduce(
+                            total, add, division.sample_block_size());
+                        if (op.has_value()) {
+                          out_div[j] = *op;
+                        }
+                      }));
             };
 
             HostDeviceVector<T> out_vals_division(num_locations);

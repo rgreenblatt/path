@@ -4,9 +4,8 @@
 #include "execution_model/host_vector.h"
 #include "kernel/kernel_launch.h"
 #include "kernel/kernel_launch_impl_gpu.cuh"
-#include "kernel/runtime_constants_reducer.h"
+#include "kernel/make_runtime_constants_reduce_launchable.h"
 #include "kernel/runtime_constants_reducer_impl_gpu.cuh"
-#include "kernel/thread_interactor_launchable.h"
 #include "kernel/work_division.h"
 #include "lib/bit_utils.h"
 #include "lib/cuda/reduce.cuh"
@@ -453,48 +452,39 @@ int main(int argc, char *argv[]) {
                                      constants.sub_warp_size);
                       }
 
-                      using Reducer =
-                          kernel::RuntimeConstantsReducer<ExecutionModel::GPU,
-                                                          ItemT>;
-                      using ThreadRef = typename Reducer::ThreadRef;
+                      kernel::KernelLaunch<ExecutionModel::GPU>::run(
+                          division, 0, num_blocks,
+                          kernel::make_runtime_constants_reduce_launchable<
+                              ExecutionModel::GPU, ItemT>(
+                              [=](const kernel::WorkDivision &,
+                                  const kernel::GridLocationInfo &info,
+                                  const unsigned, const unsigned, const auto &,
+                                  auto &interactor) {
+                                auto [start_sample, end_sample, x, y] = info;
 
-                      auto callable = [=](const kernel::WorkDivision &,
-                                          const kernel::GridLocationInfo &info,
-                                          const unsigned, const unsigned,
-                                          const auto &, ThreadRef &interactor) {
-                        auto [start_sample, end_sample, x, y] = info;
-
-                    // this substantially speeds things up for this case
 #if 0
-                        if (reduction_factor == 1) {
-                          out[x] = in[x];
-                          return;
-                        }
+                                // this substantially speeds things up for this
+                                // case
+                                if (reduction_factor == 1) {
+                                  out[x] = in[x];
+                                  return;
+                                }
 #endif
 
-                        ItemT value = ItemI::identity();
-                        // #pragma unroll
-                        for (unsigned i = start_sample; i < end_sample; ++i) {
-                          value += in[i + x * reduction_factor];
-                        }
+                                ItemT value = ItemI::identity();
+                                // #pragma unroll
+                                for (unsigned i = start_sample; i < end_sample;
+                                     ++i) {
+                                  value += in[i + x * reduction_factor];
+                                }
 
-                        auto op = interactor.reduce(
-                            value, sum, division.sample_block_size());
+                                auto op = interactor.reduce(
+                                    value, sum, division.sample_block_size());
 
-                        if (op.has_value()) {
-                          out[x] = *op;
-                        }
-                      };
-
-                      kernel::ThreadInteractorLaunchableNoExtraInp<
-                          Reducer, decltype(callable)>
-                          launchable{
-                              .interactor = Reducer{},
-                              .callable = callable,
-                          };
-
-                      kernel::KernelLaunch<ExecutionModel::GPU>::run(
-                          division, 0, num_blocks, launchable);
+                                if (op.has_value()) {
+                                  out[x] = *op;
+                                }
+                              }));
                     }
                   }
                   CUDA_SYNC_CHK();
