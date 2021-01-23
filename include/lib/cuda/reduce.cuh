@@ -5,29 +5,50 @@
 #include "lib/bit_utils.h"
 #include "lib/cuda/utils.h"
 #include "lib/reducible_bin_op.h"
+#include "meta/trivial.h"
 
 #include <algorithm>
 #include <cstdint>
 
 constexpr uint32_t full_mask = 0xffffffff;
 
-template <std::copyable T, BinOp<T> F>
-inline __device__ T warp_reduce(T val, const F &f,
-                                unsigned sub_block_size = warp_size) {
-  debug_assert_assume(warp_size % sub_block_size == 0);
-  debug_assert_assume(power_of_2(sub_block_size));
-  // equivalent to above, the compiler isn't quite smart enough to realize...
-  debug_assert_assume(sub_block_size <= warp_size);
+template <Trivial T>
+inline __device__ T shuffle_down(T input, unsigned member_mask, unsigned offset,
+                                 unsigned width) {
+  typedef typename cub::UnitWord<T>::ShuffleWord ShuffleWord;
+  static_assert(sizeof(T) % sizeof(ShuffleWord) == 0);
+  constexpr unsigned words = sizeof(T) / sizeof(ShuffleWord);
 
-  for (unsigned offset = sub_block_size / 2; offset > 0; offset /= 2) {
-    val = f(cub::ShuffleDown<warp_size>(val, offset, warp_size - 1, full_mask),
-            val);
+  T output;
+  ShuffleWord *output_alias = reinterpret_cast<ShuffleWord *>(&output);
+  const ShuffleWord *input_alias =
+      reinterpret_cast<const ShuffleWord *>(&input);
+
+#pragma unroll
+  for (unsigned work = 0; work < words; ++work) {
+    output_alias[work] = __shfl_down_sync(
+        member_mask, (unsigned)input_alias[work], offset, width);
+  }
+
+  return output;
+}
+
+template <Trivial T, BinOp<T> F>
+inline __device__ T warp_reduce(T val, const F &f,
+                                unsigned sub_warp_size = warp_size) {
+  debug_assert_assume(warp_size % sub_warp_size == 0);
+  debug_assert_assume(power_of_2(sub_warp_size));
+  // equivalent to above, the compiler isn't quite smart enough to realize...
+  debug_assert_assume(sub_warp_size <= warp_size);
+
+  for (unsigned offset = sub_warp_size / 2; offset > 0; offset /= 2) {
+    val = f(shuffle_down(val, full_mask, offset, sub_warp_size), val);
   }
 
   return val;
 }
 
-template <typename T, BinOp<T> F>
+template <Trivial T, BinOp<T> F>
 inline __device__ T sub_block_reduce(T val, const F &f, unsigned thread_idx,
                                      unsigned block_size,
                                      unsigned sub_block_size) {
@@ -82,7 +103,7 @@ inline __device__ T sub_block_reduce(T val, const F &f, unsigned thread_idx,
 
 // it's plausible the compile won't be able to optimize this function
 // to be as efficient as possible because sub_block_reduce is more general :(
-template <typename T, BinOp<T> F>
+template <Trivial T, BinOp<T> F>
 inline __device__ T block_reduce(const T &val, const F &f, unsigned thread_idx,
                                  unsigned block_size) {
   return sub_block_reduce(val, f, thread_idx, block_size, block_size);
