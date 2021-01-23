@@ -32,7 +32,7 @@ rendering_equation(const kernel::LocationInfo &location_info,
 
   RenderingEquationState<C::L::max_num_samples> state;
 
-  auto float_rgb_total = FloatRGB::Zero().eval();
+  FloatRGB float_rgb_total = FloatRGB::Zero();
   while (!finished || sample_idx != end_sample) {
     if (finished) {
       rng = rng_ref.get_generator(sample_idx, location);

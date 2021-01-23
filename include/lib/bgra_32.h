@@ -3,12 +3,11 @@
 #include "lib/assert.h"
 #include "lib/attribute.h"
 #include "lib/cuda/utils.h"
+#include "lib/eigen_wrapper.h"
 #include "lib/float_rgb.h"
 #include "lib/tone_map.h"
 
-#include <Eigen/Core>
-
-using BGRA32 = Eigen::Array4<uint8_t>;
+using BGRA32 = eigen_wrapper::Array4<uint8_t>;
 
 ATTR_PURE_NDEBUG HOST_DEVICE inline BGRA32
 float_rgb_to_bgra_32(const FloatRGB &float_rgb) {

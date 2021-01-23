@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lib/eigen_wrapper.h"
 #include "lib/info/printf_dbg.h"
 
 #include <Eigen/Geometry>
@@ -56,6 +57,15 @@ struct FmtImpl<Eigen::Transform<Scalar, dim, type>> {
   static PRINTF_DBG_HOST_DEVICE auto
   vals(const Eigen::Transform<Scalar, dim, type> &val) {
     fmt_vals(val.matrix());
+  }
+};
+
+template <typename T> struct FmtImpl<eigen_wrapper::Wrapper<T>> {
+  static constexpr auto fmt = fmt_t<T>;
+
+  static PRINTF_DBG_HOST_DEVICE auto
+  vals(const eigen_wrapper::Wrapper<T> &val) {
+    fmt_vals(val());
   }
 };
 } // namespace printf_dbg

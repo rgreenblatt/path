@@ -1,5 +1,5 @@
 #pragma once
 
-#include <Eigen/Core>
+#include "lib/eigen_wrapper.h"
 
-using FloatRGB = Eigen::Array3f;
+using FloatRGB = eigen_wrapper::Array3f;

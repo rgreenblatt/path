@@ -13,7 +13,7 @@ namespace scene {
 Material tinyobj_material_conversion(const tinyobj::material_t &material) {
   using bsdf::BSDFType;
   auto to_float_rgb = [](const tinyobj::real_t *reals) {
-    return FloatRGB(reals[0], reals[1], reals[2]);
+    return FloatRGB({reals[0], reals[1], reals[2]});
   };
 
   auto diffuse = to_float_rgb(material.diffuse);
