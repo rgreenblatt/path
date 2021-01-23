@@ -309,6 +309,8 @@ int main(int argc, char *argv[]) {
       params.visit_tagged([&](auto tag, auto params) {
         constexpr RunType run_type = tag();
 
+        // swap to real dispatch when actually used...
+        // slow to build
         fake_dispatch(get_comp_time_params<run_type>(params), [&](auto tag) {
           constexpr auto type = tag();
           const auto constants = params.constants;
