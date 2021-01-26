@@ -1,5 +1,6 @@
 #pragma once
 
+#include "data_structure/get_ptr.h"
 #include "execution_model/execution_model_vector_type.h"
 #include "intersectable_scene/intersectable_scene.h"
 #include "lib/optional.h"
@@ -34,12 +35,8 @@ public:
     return scene_intersectable_->settings.max_size;
   }
 
-  SpanRayWriter ray_writer(unsigned size) {
-    rays_.resize(size);
-    return {rays_};
-  }
-
-  Span<const IntersectionOp> get_intersections();
+  template <typename T>
+  Span<const IntersectionOp> get_intersections(SpanSized<T> sp);
 
   static constexpr bool individually_intersectable = false;
 
@@ -53,7 +50,6 @@ private:
 
   template <typename T> using ExecVecT = ExecVector<exec, T>;
 
-  ExecVecT<intersect::Ray> rays_;
   ExecVecT<IntersectionOp> intersections_;
 };
 

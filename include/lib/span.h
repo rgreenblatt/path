@@ -86,6 +86,12 @@ public:
     return {ptr_ + start, end - start};
   }
 
+  constexpr void debug_assert_size_is(std::size_t size) const {
+    if constexpr (is_debug) {
+      return debug_assert(size == size_);
+    }
+  }
+
   ATTR_PURE_NDEBUG constexpr Span<T, false, is_debug> as_unsized() const {
     return *this;
   }

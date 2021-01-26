@@ -5,7 +5,7 @@
 #include "kernel/progress_bar_launch.h"
 #include "lib/assert.h"
 #include "lib/integer_division_utils.h"
-#include "render/detail/integrate_image.h"
+#include "render/detail/integrate_image_individual.h"
 #include "render/detail/integrate_pixel.h"
 #include "render/detail/max_blocks_per_launch.h"
 #include "render/detail/reduce_assign_output.h"
@@ -13,20 +13,20 @@
 namespace render {
 namespace detail {
 template <ExecutionModel exec>
-template <typename... T>
-void IntegrateImage<exec>::run(IntegrateImageIndividualInputs<T...> inp) {
-  auto val = inp.val;
-
+template <ExactSpecializationOf<IntegrateImageItems> Items,
+          intersect::Intersectable I>
+requires std::same_as<typename Items::InfoType, typename I::InfoType>
+void IntegrateImageIndividual<exec>::run(IntegrateImageInputs<Items> inp,
+                                         const I &intersectable) {
   kernel::progress_bar_launch(
-      val.division,
-      max_blocks_per_launch<exec>(inp.val.settings.computation_settings),
-      val.show_progress, [&](unsigned start, unsigned end) {
-        auto items = val.items;
-        auto intersectable = val.intersector;
-        auto settings = val.settings.rendering_equation_settings;
+      inp.division,
+      max_blocks_per_launch<exec>(inp.settings.computation_settings),
+      inp.show_progress, [&](unsigned start, unsigned end) {
+        auto items = inp.items;
+        auto settings = inp.settings.rendering_equation_settings;
 
         kernel::KernelLaunch<exec>::run(
-            val.division, start, end,
+            inp.division, start, end,
             kernel::make_runtime_constants_reduce_launchable<exec, FloatRGB>(
                 [=](const WorkDivision &division,
                     const kernel::GridLocationInfo &info,

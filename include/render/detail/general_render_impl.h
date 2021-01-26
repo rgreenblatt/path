@@ -5,7 +5,8 @@
 #include "intersectable_scene/to_bulk_impl.h"
 #include "kernel/work_division.h"
 #include "meta/all_values/dispatch.h"
-#include "render/detail/integrate_image.h"
+#include "render/detail/integrate_image_bulk.h"
+#include "render/detail/integrate_image_individual.h"
 #include "render/detail/reduce_float_rgb.h"
 #include "render/detail/renderer_impl.h"
 #include "render/detail/settings_compile_time_impl.h"
@@ -68,20 +69,6 @@ void Renderer::Impl<exec>::general_render(
     auto intersectable_scene = stored_scene_generators_.get(tag_v<accel_type>)
                                    .gen({accel_settings}, s);
 
-    decltype(auto) intersector = [&]() -> decltype(auto) {
-      if constexpr (intersection_approach == IntersectionApproach::MegaKernel) {
-        return intersectable_scene.intersector;
-      } else if constexpr (intersection_approach ==
-                           IntersectionApproach::StreamingFromGeneral) {
-        auto &out = to_bulk_.get(tag_v<accel_type>);
-        out.set_settings_intersectable(
-            all_intersection_settings.to_bulk_settings,
-            intersectable_scene.intersector);
-
-        return out;
-      }
-    }();
-
     auto light_sampler =
         light_samplers_.get(tag_v<light_sampler_type>)
             .gen(settings.light_sampler.get(tag_v<light_sampler_type>),
@@ -102,25 +89,12 @@ void Renderer::Impl<exec>::general_render(
         rngs_.get(tag_v<rng_type>)
             .gen(settings.rng.get(tag_v<rng_type>), samples_per, n_locations);
 
-    decltype(auto) state = [&]() -> decltype(auto) {
-      if constexpr (intersection_approach == IntersectionApproach::MegaKernel) {
-        return IntegrateImageEmptyState{};
-      } else {
-        unreachable();
-        static_assert(intersection_approach ==
-                      IntersectionApproach::StreamingFromGeneral);
-        return bulk_state_.get(
-            tag_v<make_meta_tuple(light_sampler_type, rng_type)>);
-      }
-    }();
-
     // not really any good way to infer these arguments...
     using Components = integrate::RenderingEquationComponents<
         decltype(intersectable_scene.scene), decltype(light_sampler),
         decltype(dir_sampler), decltype(term_prob)>;
     using Items = IntegrateImageItems<Components, decltype(rng)>;
-
-    IntegrateImage<exec>::template run<Items, decltype(intersector)>({{
+    IntegrateImageInputs<Items> inputs = {
         .items =
             {
                 .base =
@@ -140,12 +114,28 @@ void Renderer::Impl<exec>::general_render(
                 .rng = rng,
                 .film_to_world = s.film_to_world(),
             },
-        .intersector = intersector,
+
         .division = division,
         .settings = settings.general_settings,
         .show_progress = show_progress,
-        .state = state,
-    }});
+    };
+    if constexpr (intersection_approach == IntersectionApproach::MegaKernel) {
+      IntegrateImageIndividual<exec>::run(inputs,
+                                          intersectable_scene.intersector);
+    } else {
+      static_assert(intersection_approach ==
+                    IntersectionApproach::StreamingFromGeneral);
+
+      auto &intersector = to_bulk_.get(tag_v<accel_type>);
+      intersector.set_settings_intersectable(
+          all_intersection_settings.to_bulk_settings,
+          intersectable_scene.intersector);
+
+      auto &bulk_state =
+          bulk_state_.get(tag_v<make_meta_tuple(light_sampler_type, rng_type)>);
+
+      IntegrateImageBulk<exec>::run(inputs, intersector, bulk_state);
+    }
   });
 
   auto float_rgb_reduce_out = ReduceFloatRGB<exec>::run(

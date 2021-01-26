@@ -10,11 +10,12 @@ template <rng::RngState R, ExactSpecializationOf<RenderingEquationComponents> C>
 ATTR_NO_DISCARD_PURE HOST_DEVICE inline IterationOutput<C::L::max_num_samples>
 rendering_equation_iteration(
     const RenderingEquationState<C::L::max_num_samples> &state, R &rng,
+    const std::optional<intersect::Ray> &last_ray,
     const ArrayVec<intersect::IntersectionOp<typename C::InfoType>,
                    C::L::max_num_samples + 1> &intersections,
     const RenderingEquationSettings &settings, const C &inp) {
-  const auto &[iters, count_emission, has_next_sample, ray_ray_info,
-               light_samples, old_float_rgb_total] = state;
+  const auto &[iters, count_emission, has_next_sample, ray_info, light_samples,
+               old_float_rgb_total] = state;
   const auto &[scene, light_sampler, dir_sampler, term_prob] = inp;
 
   auto use_intersection = [&](const auto &intersection,
@@ -37,6 +38,7 @@ rendering_equation_iteration(
 
   debug_assert_assume(light_samples.size() ==
                       intersections.size() - has_next_sample);
+  debug_assert_assume(has_next_sample == last_ray.has_value());
   debug_assert_assume(light_samples.size() <= C::L::max_num_samples);
   for (unsigned i = 0; i < light_samples.size(); ++i) {
     const auto &[multiplier, target_distance] = light_samples[i];
@@ -57,17 +59,16 @@ rendering_equation_iteration(
 
   debug_assert(intersections.size() > 0);
 
-  const auto &ray = ray_ray_info.ray;
+  const auto &ray = *last_ray;
   const auto &next_intersection_op = intersections[intersections.size() - 1];
 
-  if (!use_intersection(next_intersection_op,
-                        ray_ray_info.info.target_distance)) {
+  if (!use_intersection(next_intersection_op, ray_info.target_distance)) {
     return {tag_v<IterationOutputType::Finished>, float_rgb_total};
   }
 
   const auto &next_intersection = *next_intersection_op;
   const auto &intersection_point = next_intersection.intersection_point(ray);
-  FloatRGB multiplier = ray_ray_info.info.multiplier;
+  FloatRGB multiplier = ray_info.multiplier;
 
   decltype(auto) material = scene.get_material(next_intersection);
 
@@ -140,7 +141,7 @@ rendering_equation_iteration(
     debug_assert(new_multiplier[0] >= 0.0f);
 
     intersect::Ray new_ray{intersection_point, sample.sample.direction};
-    new_state.ray_ray_info = {new_ray, {new_multiplier, std::nullopt}};
+    new_state.ray_info = {new_multiplier, std::nullopt};
     new_rays.push_back(new_ray);
   } else {
     if (new_rays.size() == 0) {

@@ -1,62 +1,57 @@
 #pragma once
 
-// TODO: better header name???
-
-#include "intersect/ray.h"
+#include "integrate/ray_info.h"
 #include "lib/array_vec.h"
 #include "lib/float_rgb.h"
-#include "lib/optional.h"
+#include "lib/span.h"
 #include "lib/tagged_union.h"
 #include "meta/all_values/impl/enum.h"
 
 #include <concepts>
 
 namespace integrate {
-namespace detail {
-template <typename T> struct RayInfo {
-  T multiplier;
-  std::optional<float> target_distance;
-};
-
-template <typename T> struct RayRayInfo {
-  intersect::Ray ray;
-  RayInfo<T> info;
-};
-} // namespace detail
-
-using FRayInfo = detail::RayInfo<float>;
-using ArrRayInfo = detail::RayInfo<FloatRGB>;
-using FRayRayInfo = detail::RayRayInfo<float>;
-using ArrRayRayInfo = detail::RayRayInfo<FloatRGB>;
-
 // this should probably be a class with a friend struct...
 template <unsigned max_num_light_samples> struct RenderingEquationState {
   HOST_DEVICE static RenderingEquationState
-  initial_state(const FRayRayInfo &ray_ray_info) {
+  initial_state(const FRayInfo &ray_info) {
     return RenderingEquationState{
         .iters = 0,
         .count_emission = true,
         .has_next_sample = true,
-        .ray_ray_info = {ray_ray_info.ray,
-                         {FloatRGB::Constant(ray_ray_info.info.multiplier),
-                          ray_ray_info.info.target_distance}},
+        .ray_info = {FloatRGB::Constant(ray_info.multiplier),
+                     ray_info.target_distance},
         .light_samples = {},
         .float_rgb_total = FloatRGB::Zero(),
     };
   }
 
+  static constexpr unsigned max_num_samples = max_num_light_samples + 1;
+
   unsigned iters;
   bool count_emission;
   bool has_next_sample;
-  ArrRayRayInfo ray_ray_info;
+  ArrRayInfo ray_info;
   ArrayVec<ArrRayInfo, max_num_light_samples> light_samples;
   FloatRGB float_rgb_total;
 
   HOST_DEVICE unsigned num_samples() const {
     return light_samples.size() + has_next_sample;
   }
+
+  // handle things this way so the caller is flexible in how they use the
+  // iteration and what state they maintain
+  HOST_DEVICE std::optional<intersect::Ray>
+  get_last_ray(Span<const intersect::Ray> rays) const {
+    if (has_next_sample) {
+      rays.debug_assert_size_is(num_samples());
+      return rays[num_samples() - 1];
+    } else {
+      return std::nullopt;
+    }
+  }
 };
 
+static_assert(std::semiregular<RenderingEquationState<0>>);
 static_assert(std::semiregular<RenderingEquationState<3>>);
 
 template <unsigned max_num_light_samples>

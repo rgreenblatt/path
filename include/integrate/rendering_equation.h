@@ -40,7 +40,7 @@ rendering_equation(const kernel::LocationInfo &location_info,
       rays.resize(0);
       rays.push_back(initial_sample.ray);
       state = RenderingEquationState<C::L::max_num_samples>::initial_state(
-          initial_sample);
+          initial_sample.info);
       finished = false;
       sample_idx++;
     }
@@ -56,8 +56,8 @@ rendering_equation(const kernel::LocationInfo &location_info,
     debug_assert_assume(intersections.size() == rays.size());
     debug_assert_assume(rays.size() > 0);
 
-    auto output =
-        rendering_equation_iteration(state, rng, intersections, settings, inp);
+    auto output = rendering_equation_iteration(
+        state, rng, state.get_last_ray(rays), intersections, settings, inp);
 
     switch (output.type()) {
     case IterationOutputType::NextIteration: {

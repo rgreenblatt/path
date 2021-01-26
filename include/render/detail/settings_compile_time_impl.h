@@ -8,7 +8,8 @@
 
 // compile times don't change much from small constant values to 1...
 // compile times do substantially increase for large number of possibilities
-// #define FORCE_BUILD_ALL
+// #undef FORCE_BUILD_ALL
+// #undef BUILD_ALL
 #if !defined(BUILD_ALL) && !defined(FORCE_BUILD_ALL)
 template <> struct AllValuesImpl<render::Settings::CompileTime> {
 private:
