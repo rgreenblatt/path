@@ -9,8 +9,9 @@
 #include <limits>
 
 namespace kernel {
-WorkDivision::WorkDivision(const Settings &settings, unsigned samples_per,
-                           unsigned x_dim, unsigned y_dim) {
+WorkDivision::WorkDivision(const WorkDivisionSettings &settings,
+                           unsigned samples_per, unsigned x_dim,
+                           unsigned y_dim) {
   block_size_ = settings.block_size;
 
   always_assert(block_size_ % warp_size == 0);

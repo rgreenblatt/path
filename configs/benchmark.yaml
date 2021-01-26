@@ -33,10 +33,20 @@ settings:
       max_sample_size: 256
   general_settings:
     computation_settings:
-      max_blocks_per_launch: 4096
+      max_blocks_per_launch_gpu: 4096
+      max_blocks_per_launch_cpu: 256
       render_work_division:
         block_size: 256
         target_x_block_size: 32
+        force_target_samples: false
+        forced_target_samples_per_thread: 8
+        # should be increased somewhat for more complex scenes maybe to 262144
+        base_num_threads: 16384
+        samples_per_thread_scaling_power: 0.5
+        max_samples_per_thread: 32
+      reduce_work_division:
+        block_size: 256
+        target_x_block_size: 256
         force_target_samples: false
         forced_target_samples_per_thread: 8
         # should be increased somewhat for more complex scenes maybe to 262144

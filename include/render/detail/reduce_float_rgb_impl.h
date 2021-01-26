@@ -14,21 +14,15 @@ namespace render {
 namespace detail {
 template <ExecutionModel exec>
 ExecVector<exec, FloatRGB> *ReduceFloatRGB<exec>::run(
+    const kernel::WorkDivisionSettings &division_settings,
     bool output_as_bgra_32, unsigned reduction_factor, unsigned samples_per,
     ExecVector<exec, FloatRGB> *float_rgb_in,
     ExecVector<exec, FloatRGB> *float_rgb_out, Span<BGRA32> bgras) {
   while (reduction_factor != 1) {
     always_assert(float_rgb_in->size() % reduction_factor == 0);
     unsigned x_dim = float_rgb_in->size() / reduction_factor;
-    // TODO: SPEED: reduce division settings
-    kernel::WorkDivision division({.block_size = 256,
-                                   .target_x_block_size = 256,
-                                   .force_target_samples = false,
-                                   .forced_target_samples_per_thread = 1,
-                                   .base_num_threads = 16384,
-                                   .samples_per_thread_scaling_power = 0.5f,
-                                   .max_samples_per_thread = 8},
-                                  reduction_factor, x_dim, 1);
+    kernel::WorkDivision division(division_settings, reduction_factor, x_dim,
+                                  1);
     float_rgb_out->resize(x_dim * division.num_sample_blocks());
 
     IntegrateImageBaseItems items{.output_as_bgra_32 =

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "kernel/grid_location_info.h"
-#include "kernel/settings.h"
+#include "kernel/work_division_settings.h"
 #include "lib/attribute.h"
 #include "lib/cuda/utils.h"
 #include "lib/settings.h"
@@ -16,8 +16,8 @@ class WorkDivision {
 public:
   WorkDivision() {}
 
-  WorkDivision(const Settings &settings, unsigned samples_per, unsigned x_dim,
-               unsigned y_dim);
+  WorkDivision(const WorkDivisionSettings &settings, unsigned samples_per,
+               unsigned x_dim, unsigned y_dim);
 
   struct ThreadInfo {
     GridLocationInfo info;

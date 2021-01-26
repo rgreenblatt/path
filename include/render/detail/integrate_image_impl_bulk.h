@@ -3,11 +3,13 @@
 #include "integrate/rendering_equation_iteration.h"
 #include "kernel/kernel_launch.h"
 #include "kernel/location_info.h"
+#include "kernel/progress_bar_launch.h"
 #include "lib/integer_division_utils.h"
 #include "meta/all_values/dispatch.h"
 #include "meta/all_values/impl/integral.h"
 #include "render/detail/initial_ray_sample.h"
 #include "render/detail/integrate_image.h"
+#include "render/detail/max_blocks_per_launch.h"
 
 #include <cli/ProgressBar.hpp>
 
@@ -16,53 +18,38 @@ namespace detail {
 template <ExecutionModel exec>
 template <typename... T>
 void IntegrateImage<exec>::run(IntegrateImageBulkInputs<exec, T...> inp) {
-  auto [items, intersector, division_v, settings, show_progress, state] =
-      inp.val;
-  const auto &division = division_v;
-  always_assert(division.block_size() <= intersector.max_size());
-
-  unsigned total_grid = division.total_num_blocks();
+  const auto &val = inp.val;
+  always_assert(val.division.block_size() <= val.intersector.max_size());
 
   unsigned max_launch_size =
-      std::min(intersector.max_size() / division.block_size(),
-               settings.computation_settings.max_blocks_per_launch);
+      std::min(val.intersector.max_size() / val.division.block_size(),
+               max_blocks_per_launch<exec>(val.settings.computation_settings));
 
-  unsigned num_launches = ceil_divide(total_grid, max_launch_size);
-  unsigned blocks_per = total_grid / num_launches;
+  kernel::progress_bar_launch(
+      val.division, max_launch_size, val.show_progress,
+      [&](unsigned start, unsigned end) {
+        unsigned grid = end - start;
 
-  always_assert(static_cast<uint64_t>(blocks_per) * division.block_size() <
-                static_cast<uint64_t>(std::numeric_limits<unsigned>::max()));
+        unsigned initial_size = grid * val.division.block_size();
+        auto ray_writer = val.intersector.ray_writer(initial_size);
+        val.state.state.resize(initial_size);
+        val.state.rng_state.resize(initial_size);
 
-  ProgressBar progress_bar(num_launches, 70);
-  if (show_progress) {
-    progress_bar.display();
-  }
+        Span state_span = val.state.state;
+        Span rng_state_span = val.state.rng_state;
 
-  for (unsigned i = 0; i < num_launches; i++) {
-    unsigned start = i * blocks_per;
-    unsigned end = std::min((i + 1) * blocks_per, total_grid);
-    unsigned grid = end - start;
+        // be precise with copies...
+        auto get_local_idx = [=](const kernel::WorkDivision &division,
+                                 unsigned block_idx, unsigned thread_idx) {
+          return (block_idx - start) * division.block_size() + thread_idx;
+        };
 
-    unsigned initial_size = grid * division.block_size();
-    auto ray_writer = intersector.ray_writer(initial_size);
-    state.state.resize(initial_size);
-    state.rng_state.resize(initial_size);
+        auto rng = val.items.rng;
+        auto film_to_world = val.items.film_to_world;
 
-    Span state_span = state.state;
-    Span rng_state_span = state.rng_state;
-
-    // be precise with copies...
-    auto get_local_idx = [=](const kernel::WorkDivision &division,
-                             unsigned block_idx, unsigned thread_idx) {
-      return (block_idx - start) * division.block_size() + thread_idx;
-    };
-
-    auto rng = items.rng;
-    auto film_to_world = items.film_to_world;
-
-    const auto &components = items.components;
-    constexpr unsigned max_num_light_samples =
-        std::decay_t<decltype(components)>::L::max_num_samples;
+        const auto &components = val.items.components;
+        constexpr unsigned max_num_light_samples =
+            std::decay_t<decltype(components)>::L::max_num_samples;
 
     // initialize
     // TODO: SPEED: change work division used for this kernel???
@@ -92,24 +79,24 @@ void IntegrateImage<exec>::run(IntegrateImageBulkInputs<exec, T...> inp) {
         });
 #endif
 
-    bool has_remaining_samples = true;
+        bool has_remaining_samples = true;
 
-    bool is_first = true;
+        bool is_first = true;
 
-    unsigned current_size = initial_size;
+        unsigned current_size = initial_size;
 
-    while (has_remaining_samples) {
-      auto intersections_span = intersector.get_intersections();
-      auto rendering_settings = settings.rendering_equation_settings;
-      auto bgra_32 = items.base.bgra_32;
-      auto float_rgb = items.base.float_rgb;
+        while (has_remaining_samples) {
+          auto intersections_span = val.intersector.get_intersections();
+          auto rendering_settings = val.settings.rendering_equation_settings;
+          auto bgra_32 = val.items.base.bgra_32;
+          auto float_rgb = val.items.base.float_rgb;
 
-      Span initial_state_span = state.state;
-      state.op_state.resize(current_size);
-      Span op_state_span = state.op_state;
+          Span initial_state_span = val.state.state;
+          val.state.op_state.resize(current_size);
+          Span op_state_span = val.state.op_state;
 
-      dispatch(is_first, [&](auto tag) {
-        constexpr bool is_first = tag;
+          dispatch(is_first, [&](auto tag) {
+            constexpr bool is_first = tag;
 
 #pragma message "fix this - kernel launch"
 #if 0
@@ -175,21 +162,10 @@ void IntegrateImage<exec>::run(IntegrateImageBulkInputs<exec, T...> inp) {
               }
             });
 #endif
+          });
+          is_first = false;
+        }
       });
-      is_first = false;
-    }
-
-    if (show_progress) {
-      ++progress_bar;
-      progress_bar.display();
-    }
-  }
-
-  if (show_progress) {
-    progress_bar.done();
-  }
-
-  unreachable();
 }
 } // namespace detail
 } // namespace render

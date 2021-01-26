@@ -148,8 +148,8 @@ void Renderer::Impl<exec>::general_render(
     }});
   });
 
-#if 1
   auto float_rgb_reduce_out = ReduceFloatRGB<exec>::run(
+      settings.general_settings.computation_settings.reduce_work_division,
       output_as_bgra_32, division.num_sample_blocks(), samples_per, &float_rgb_,
       &reduced_float_rgb_, bgra_32_);
   always_assert(float_rgb_reduce_out != nullptr);
@@ -162,6 +162,5 @@ void Renderer::Impl<exec>::general_render(
     thrust::copy(float_rgb_reduce_out->begin(), float_rgb_reduce_out->end(),
                  float_rgb_output.begin());
   }
-#endif
 }
 } // namespace render

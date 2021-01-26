@@ -1,6 +1,6 @@
 #include "kernel/work_division.h"
-#include "kernel/settings.h"
 #include "kernel/work_division_impl.h"
+#include "kernel/work_division_settings.h"
 
 #include <gtest/gtest.h>
 
@@ -85,10 +85,10 @@ static void check_dims_as_expected(const WorkDivision &division,
 }
 
 TEST(WorkDivision, combination) {
-  Settings settings{.block_size = 64,
-                    .target_x_block_size = 16,
-                    .force_target_samples = true,
-                    .forced_target_samples_per_thread = 2};
+  WorkDivisionSettings settings{.block_size = 64,
+                                .target_x_block_size = 16,
+                                .force_target_samples = true,
+                                .forced_target_samples_per_thread = 2};
 
   for (unsigned x_dim : {1, 3, 17, 72, 128}) {
     for (unsigned y_dim : {1, 3, 17, 72, 128}) {
@@ -102,7 +102,7 @@ TEST(WorkDivision, combination) {
 }
 
 TEST(WorkDivision, default_settings) {
-  Settings settings;
+  WorkDivisionSettings settings;
 
   WorkDivision division(settings, 2048, 8, 8);
   check_dims_as_expected(division, 2048, 8, 8);
