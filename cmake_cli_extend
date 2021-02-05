@@ -9,28 +9,29 @@ from cmake_cli.base_cmake_builder import BaseCMakeBuilder
 
 class PathCMakeBuild(BaseCMakeBuilder):
     def build_default_command_parser_impl(self,
-                                     parser,
-                                     has_build_benchmarks=True,
-                                     build_benchmarks_default=False,
-                                     skip_gen=False,
-                                     skip_build=False,
-                                     **kwargs):
+                                          parser,
+                                          has_build_benchmarks=True,
+                                          build_benchmarks_default=False,
+                                          skip_gen=False,
+                                          skip_build=False,
+                                          **kwargs):
         super().build_default_command_parser_impl(parser,
-                                             skip_gen=skip_gen,
-                                             skip_build=skip_build,
-                                             **kwargs)
+                                                  skip_gen=skip_gen,
+                                                  skip_build=skip_build,
+                                                  **kwargs)
         if not skip_gen:
-            parser.add_argument('--cpu-only',
-                                dest='cpu_only',
-                                action='store_true',
-                                help='only build for the cpu -- GROSS AND HACKY')
+            parser.add_argument(
+                '--cpu-only',
+                dest='cpu_only',
+                action='store_true',
+                help='only build for the cpu -- GROSS AND HACKY')
             parser.add_argument('--no-cpu-only',
                                 dest='cpu_only',
                                 action='store_false',
                                 help='build for the cpu and gpu')
             parser.add_argument('--cuda-archs',
-                                 default='75',
-                                 help='cuda architectures (sm_*)')
+                                default='75',
+                                help='cuda architectures (sm_*)')
             parser.add_argument('--cxx-compiler', default='clang++')
             if has_build_benchmarks:
                 parser.add_argument('--build-benchmarks',
@@ -93,13 +94,11 @@ class PathCMakeBuild(BaseCMakeBuilder):
         self.build(self.get_directory(),
                    additional_build_args=["--target", "run_build_tests"])
 
-    def gen_run_add_args(self, parser, name_type, release_default,
-                        **kwargs):
+    def gen_run_add_args(self, parser, name_type, release_default, **kwargs):
         parser.description = 'run {}'.format(name_type)
-        self.build_default_command_parser(
-            parser,
-            release_default=release_default,
-            **kwargs)
+        self.build_default_command_parser(parser,
+                                          release_default=release_default,
+                                          **kwargs)
         parser.add_argument('executable', help='{} to run'.format(name_type))
         parser.add_argument('executable_args', nargs=argparse.REMAINDER)
 
