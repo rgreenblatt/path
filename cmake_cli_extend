@@ -83,7 +83,7 @@ class PathCMakeBuild(BaseCMakeBuilder):
         return out
 
     def test_add_args(self, parser):
-        parser.description = 'run all tests',
+        parser.description = 'run all tests'
         self.build_default_command_parser(parser,
                                           has_build_testing=False,
                                           has_build_benchmarks=False)
