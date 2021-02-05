@@ -47,7 +47,7 @@ requires(bits_per<T> <= bits_per<unsigned long long>) ATTR_PURE_NDEBUG
 }
 
 template <std::unsigned_integral T> ATTR_PURE constexpr bool power_of_2(T n) {
-  return (n > 0 && ((n & (n - 1)) == 0));
+  return popcount(n) == 1;
 };
 
 template <std::unsigned_integral T>
