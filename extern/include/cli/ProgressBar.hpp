@@ -25,6 +25,8 @@ public:
 
   unsigned operator++() { return ++ticks; }
 
+  unsigned operator+=(unsigned addr) { return ticks += addr; }
+
   void display() const {
     float progress = (float)ticks / total_ticks;
     unsigned pos = bar_width * progress;
