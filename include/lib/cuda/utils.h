@@ -15,16 +15,6 @@
 #define DEVICE
 #endif
 
-// not needed right now
-#if 0
-inline constexpr bool is_cuda =
-#ifdef __CUDACC__
-    true;
-#else
-    false;
-#endif
-#endif
-
 inline void cuda_assert(cudaError_t code, const char *file, int line) {
   if (code != cudaSuccess) {
     fprintf(stderr, "cuda assert: %s %s %d\n", cudaGetErrorString(code), file,
