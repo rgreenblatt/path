@@ -20,5 +20,9 @@ struct RenderingEquationComponents {
   [[no_unique_address]] L light_sampler;
   [[no_unique_address]] D dir_sampler;
   [[no_unique_address]] T term_prob;
+
+  static constexpr unsigned max_num_light_samples() {
+    return L::max_num_samples;
+  }
 };
 } // namespace integrate

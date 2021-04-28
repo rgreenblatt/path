@@ -134,7 +134,10 @@ void Renderer::Impl<exec>::general_render(
       auto &bulk_state =
           bulk_state_.get(tag_v<make_meta_tuple(light_sampler_type, rng_type)>);
 
-      IntegrateImageBulk<exec>::run(inputs, intersector, bulk_state);
+      unsigned min_additional_samples_TODO = 0;
+
+      IntegrateImageBulk<exec>::run(inputs, intersector, bulk_state,
+                                    min_additional_samples_TODO);
     }
   });
 

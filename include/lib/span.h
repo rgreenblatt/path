@@ -86,6 +86,26 @@ public:
     return {ptr_ + start, end - start};
   }
 
+  ATTR_PURE_NDEBUG constexpr Span<T, is_sized, is_debug>
+  slice_from(std::size_t start) const {
+    if constexpr (use_size) {
+      debug_assert(start <= size_);
+
+      return {ptr_ + start, size_ - start};
+    } else {
+      return {ptr_ + start};
+    }
+  }
+
+  ATTR_PURE_NDEBUG constexpr Span<T, true, is_debug>
+  slice_to(std::size_t end) const {
+    if constexpr (use_size) {
+      debug_assert(end <= size_);
+    }
+
+    return {ptr_, end};
+  }
+
   constexpr void debug_assert_size_is(std::size_t size) const {
     if constexpr (is_debug) {
       return debug_assert(size == size_);

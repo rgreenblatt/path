@@ -20,9 +20,9 @@
 
 namespace scene {
 namespace scenefile_compat {
-std::optional<Scene>
-ScenefileLoader::load_scene(const std::string &filename,
-                            float width_height_ratio, bool quiet) {
+std::optional<Scene> ScenefileLoader::load_scene(const std::string &filename,
+                                                 float width_height_ratio,
+                                                 bool quiet) {
   quiet_ = quiet;
   loaded_meshes_.clear();
 

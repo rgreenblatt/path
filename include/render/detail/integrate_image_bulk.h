@@ -11,9 +11,11 @@ template <ExecutionModel exec> struct IntegrateImageBulk {
   template <ExactSpecializationOf<IntegrateImageItems> Items,
             intersectable_scene::BulkIntersector I>
   requires std::same_as<typename Items::InfoType, typename I::InfoType>
-  static void run(IntegrateImageInputs<Items> inp, I &intersector,
-                  IntegrateImageBulkState<exec, Items::C::L::max_num_samples,
-                                          typename Items::R> &state);
+  static void
+  run(IntegrateImageInputs<Items> inp, I &intersector,
+      IntegrateImageBulkState<exec, Items::C::max_num_light_samples(),
+                              typename Items::R> &state,
+      unsigned min_additional_samples);
 };
 } // namespace detail
 } // namespace render

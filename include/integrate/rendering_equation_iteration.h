@@ -11,8 +11,8 @@ ATTR_NO_DISCARD_PURE HOST_DEVICE inline IterationOutput<C::L::max_num_samples>
 rendering_equation_iteration(
     const RenderingEquationState<C::L::max_num_samples> &state, R &rng,
     const std::optional<intersect::Ray> &last_ray,
-    const ArrayVec<intersect::IntersectionOp<typename C::InfoType>,
-                   C::L::max_num_samples + 1> &intersections,
+    SpanSized<const intersect::IntersectionOp<typename C::InfoType>>
+        intersections,
     const RenderingEquationSettings &settings, const C &inp) {
   const auto &[iters, count_emission, has_next_sample, ray_info, light_samples,
                old_float_rgb_total] = state;
