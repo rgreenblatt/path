@@ -11,7 +11,7 @@
 #include <string>
 
 // In retrospect, I don't really like docopt...
-static const char USAGE[] =
+constexpr char USAGE[] =
     R"(Path
 
     Usage:
