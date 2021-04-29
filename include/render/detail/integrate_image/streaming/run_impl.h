@@ -7,6 +7,7 @@
 #include "kernel/location_info.h"
 #include "kernel/make_no_interactor_launchable.h"
 #include "kernel/progress_bar_launch.h"
+#include "lib/info/timer.h"
 #include "lib/integer_division_utils.h"
 #include "meta/all_values/dispatch.h"
 #include "meta/all_values/impl/integral.h"
@@ -211,6 +212,10 @@ void Run<exec>::run(
 
   unsigned num_states = 0;
 
+  Timer total_init(std::nullopt);
+  Timer total_intersect(std::nullopt);
+  Timer total_shade(std::nullopt);
+
   while (start_block_init != total_num_init_blocks || num_states != 0) {
     // reset back to zero for launches
     state.ray_idx.set(0);
@@ -238,13 +243,17 @@ void Run<exec>::run(
     if (init_num_blocks >= settings.computation_settings.min_num_init_blocks ||
         (attempt_end_block_init == total_num_init_blocks &&
          init_num_blocks > 0)) {
+      total_init.start();
       initialize<exec>(inp, state, init_division, inp.samples_per,
                        start_block_init, attempt_end_block_init, parity);
+      total_init.stop();
       always_assert(state.initial_sample_info.size() > 0);
       end_block_init = attempt_end_block_init;
     }
 
+    total_intersect.start();
     auto intersections_span = intersector.get_intersections(Span{rays_in});
+    total_intersect.stop();
 
     states_out.resize(rng_states_in.size());
 
@@ -361,8 +370,10 @@ void Run<exec>::run(
     states_out.resize(max_out_states);
     rng_states_out.resize(max_out_states);
 
+    total_shade.start();
     shade(tag_v<false>, Span{states_in}.as_const());
     shade(tag_v<true>, Span{state.initial_sample_info}.as_const());
+    total_shade.stop();
 
     rays_out.resize(state.ray_idx.get().as_inner());
 
@@ -385,6 +396,12 @@ void Run<exec>::run(
 
   if (inp.show_progress) {
     progress_bar.done();
+  }
+
+  if (inp.show_times) {
+    total_init.report("total init");
+    total_intersect.report("total intersect");
+    total_shade.report("total shade");
   }
 }
 } // namespace streaming

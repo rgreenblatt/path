@@ -18,6 +18,7 @@ template <ExactSpecializationOf<Items> Items> struct Inputs {
   unsigned y_dim;
 
   bool show_progress;
+  bool show_times;
 };
 } // namespace integrate_image
 } // namespace detail

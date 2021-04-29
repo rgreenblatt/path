@@ -19,7 +19,7 @@ constexpr char USAGE[] =
         [--samples=<count>] [--output=<file_name>] [--config=<file_name>]
         [-g | --gpu] [--profile-samples] [--samples-min=<min>]
         [--samples-max=<max>] [--bench] [--bench-budget=<time>]
-        [--disable-progress]
+        [--disable-progress] [--show-times]
       path (-h | --help)
 
     Options:
@@ -40,7 +40,8 @@ constexpr char USAGE[] =
       --bench               Warm up and then run multiple times and report 
                             statistics
       --bench-budget=<time> Approximate time in seconds for bench [default: 5.0]
-      --disable-progress         Disable progress bar
+      --disable-progress    Disable progress bar
+      --show-times          Show timings
 )";
 
 int main(int argc, char *argv[]) {
@@ -65,6 +66,7 @@ int main(int argc, char *argv[]) {
   const auto scene_file_name = get_unpack_arg("<scene_file>").asString();
   const auto output_file_name = get_unpack_arg("--output").asString();
   const bool disable_progress = get_unpack_arg("--disable-progress").asBool();
+  const bool show_times = get_unpack_arg("--show-times").asBool();
 
   if (using_gpu) {
     int n_devices;
@@ -98,7 +100,7 @@ int main(int argc, char *argv[]) {
 
   Span<BGRA32> pixels(reinterpret_cast<BGRA32 *>(image.bits()), width * height);
 
-  auto render = [&](bool show_progress, bool show_times) {
+  auto render = [&](bool show_progress) {
     renderer.render(execution_model, pixels, samples, width, height,
                     show_progress && !disable_progress, show_times);
   };
@@ -108,7 +110,7 @@ int main(int argc, char *argv[]) {
 
     Timer total_warm_up;
 
-    auto b_render = [&] { render(false, false); };
+    auto b_render = [&] { render(false); };
 
     b_render();
 
@@ -143,7 +145,7 @@ int main(int argc, char *argv[]) {
     std::cout << "mean: " << mean_time << std::endl;
 
   } else {
-    render(true, false);
+    render(true);
   }
 
   image.save(output_file_name.c_str());

@@ -19,7 +19,7 @@ void Renderer::Impl<exec>::general_render(
     bool output_as_bgra_32, Span<BGRA32> bgra_32_output,
     Span<FloatRGB> float_rgb_output, const scene::Scene &s,
     unsigned samples_per, unsigned x_dim, unsigned y_dim,
-    const Settings &settings, bool show_progress, bool) {
+    const Settings &settings, bool show_progress, bool show_times) {
   if (output_as_bgra_32) {
     bgra_32_.resize(x_dim * y_dim);
   }
@@ -131,6 +131,7 @@ void Renderer::Impl<exec>::general_render(
         .x_dim = x_dim,
         .y_dim = y_dim,
         .show_progress = show_progress,
+        .show_times = show_times,
     };
     return [&]() -> ExecVecT<FloatRGB> * {
       if constexpr (kernel_approach == KernelApproach::MegaKernel) {
