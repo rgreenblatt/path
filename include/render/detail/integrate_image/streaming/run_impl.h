@@ -356,7 +356,9 @@ void Run<exec>::run(
 
   unsigned x_dim = inp.x_dim;
 
-  float_rgb_out.resize(inp.x_dim * inp.y_dim);
+  if (!inp.output_as_bgra_32) {
+    float_rgb_out.resize(inp.x_dim * inp.y_dim);
+  }
 
   BaseItems base = {
       .output_as_bgra_32 = inp.output_as_bgra_32,
