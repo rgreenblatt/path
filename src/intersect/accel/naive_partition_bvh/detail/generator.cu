@@ -1,15 +1,14 @@
-#include "intersect/accel/kdtree/detail/generator.h"
+#include "intersect/accel/naive_partition_bvh/detail/generator.h"
 #include "lib/assert.h"
 #include "lib/eigen_utils.h"
 
 namespace intersect {
 namespace accel {
-namespace kdtree {
+namespace naive_partition_bvh {
 // inspired by https://www.geeksforgeeks.org/quickselect-algorithm/
 template <ExecutionModel execution_model>
-unsigned KDTree<execution_model>::Generator::partition(unsigned start,
-                                                       unsigned end,
-                                                       uint8_t axis) {
+unsigned NaivePartitionBVH<execution_model>::Generator::partition(
+    unsigned start, unsigned end, uint8_t axis) {
   float x = bounds_[end].center[axis];
   size_t i = start;
   for (size_t j = start; j <= end - 1; j++) {
@@ -27,8 +26,10 @@ unsigned KDTree<execution_model>::Generator::partition(unsigned start,
 
 // inspired by https://www.geeksforgeeks.org/quickselect-algorithm/
 template <ExecutionModel execution_model>
-void KDTree<execution_model>::Generator::kth_smallest(size_t start, size_t end,
-                                                      size_t k, uint8_t axis) {
+void NaivePartitionBVH<execution_model>::Generator::kth_smallest(size_t start,
+                                                                 size_t end,
+                                                                 size_t k,
+                                                                 uint8_t axis) {
   // Partition the array around last
   // element and get position of pivot
   // element in sorted array
@@ -51,15 +52,14 @@ void KDTree<execution_model>::Generator::kth_smallest(size_t start, size_t end,
 }
 
 template <ExecutionModel execution_model>
-bool KDTree<execution_model>::Generator::terminate_here(unsigned start,
-                                                        unsigned end) {
+bool NaivePartitionBVH<execution_model>::Generator::terminate_here(
+    unsigned start, unsigned end) {
   return end - start <= settings_.num_objects_terminate;
-  /* || settings_.use_s_a_heuritic */ // not yet supported
 }
 
 template <ExecutionModel execution_model>
-AABB KDTree<execution_model>::Generator::get_bounding(unsigned start,
-                                                      unsigned end) {
+AABB NaivePartitionBVH<execution_model>::Generator::get_bounding(unsigned start,
+                                                                 unsigned end) {
   debug_assert(start != end);
 
   AABB out = bounds_[start].aabb;
@@ -71,9 +71,8 @@ AABB KDTree<execution_model>::Generator::get_bounding(unsigned start,
 }
 
 template <ExecutionModel execution_model>
-unsigned KDTree<execution_model>::Generator::construct(unsigned start,
-                                                       unsigned end,
-                                                       unsigned depth) {
+unsigned NaivePartitionBVH<execution_model>::Generator::construct(
+    unsigned start, unsigned end, unsigned depth) {
   debug_assert(start != end);
   if (terminate_here(start, end)) {
     auto total_bounds = get_bounding(start, end);
@@ -112,8 +111,8 @@ unsigned KDTree<execution_model>::Generator::construct(unsigned start,
 }
 
 template <ExecutionModel execution_model>
-Ref KDTree<execution_model>::Generator::gen(const Settings &settings,
-                                            SpanSized<Bounds> bounds) {
+Ref NaivePartitionBVH<execution_model>::Generator::gen(
+    const Settings &settings, SpanSized<Bounds> bounds) {
   settings_ = settings;
   settings_.num_objects_terminate =
       std::max(settings_.num_objects_terminate, 1u);
@@ -154,10 +153,10 @@ Ref KDTree<execution_model>::Generator::gen(const Settings &settings,
   }
 }
 
-template class KDTree<ExecutionModel::CPU>::Generator;
+template class NaivePartitionBVH<ExecutionModel::CPU>::Generator;
 #ifndef CPU_ONLY
-template class KDTree<ExecutionModel::GPU>::Generator;
+template class NaivePartitionBVH<ExecutionModel::GPU>::Generator;
 #endif
-} // namespace kdtree
+} // namespace naive_partition_bvh
 } // namespace accel
 } // namespace intersect

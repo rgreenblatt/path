@@ -36,7 +36,7 @@ struct Settings {
                   {
                       .individual_settings =
                           {
-                              .accel = tag_v<AccelType::KDTree>,
+                              .accel = tag_v<AccelType::NaivePartitionBVH>,
                           },
                   },
               },

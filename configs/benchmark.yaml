@@ -23,7 +23,7 @@ settings:
   #         max_samples_per_thread: 32
   #     individually_intersectable_settings:
   #       accel:
-  #         type: KDTree
+  #         type: NaivePartitionBVH
   #         value:
   #           s_a_heuristic:
   #             traversal_cost: 1
@@ -51,7 +51,7 @@ settings:
             max_size: 2097152
           individual_settings:
             accel:
-              type: KDTree
+              type: NaivePartitionBVH
               value:
                 s_a_heuristic:
                   traversal_cost: 1

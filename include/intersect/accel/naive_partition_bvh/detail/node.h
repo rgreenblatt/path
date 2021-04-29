@@ -7,7 +7,7 @@
 
 namespace intersect {
 namespace accel {
-namespace kdtree {
+namespace naive_partition_bvh {
 namespace detail {
 struct Bounds {
   AABB aabb;
@@ -32,6 +32,6 @@ struct Node {
   AABB aabb;
 };
 } // namespace detail
-} // namespace kdtree
+} // namespace naive_partition_bvh
 } // namespace accel
 } // namespace intersect

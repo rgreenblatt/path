@@ -2,21 +2,21 @@
 
 #include "execution_model/execution_model_vector_type.h"
 #include "intersect/accel/aabb.h"
-#include "intersect/accel/kdtree/detail/node.h"
-#include "intersect/accel/kdtree/kdtree.h"
-#include "intersect/accel/kdtree/settings.h"
+#include "intersect/accel/naive_partition_bvh/detail/node.h"
+#include "intersect/accel/naive_partition_bvh/naive_partition_bvh.h"
+#include "intersect/accel/naive_partition_bvh/settings.h"
 #include "lib/span.h"
 
 #include <tuple>
 
 namespace intersect {
 namespace accel {
-namespace kdtree {
+namespace naive_partition_bvh {
 // should only be used from detail context
 using namespace detail;
 
 template <ExecutionModel execution_model>
-class KDTree<execution_model>::Generator {
+class NaivePartitionBVH<execution_model>::Generator {
 public:
   Generator() = default;
 
@@ -43,6 +43,6 @@ private:
 
   Settings settings_;
 };
-} // namespace kdtree
+} // namespace naive_partition_bvh
 } // namespace accel
 } // namespace intersect

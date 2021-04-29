@@ -176,9 +176,9 @@ endmacro()
 
 add_library(
   intersect STATIC
-  "${PROJECT_SOURCE_DIR}/src/intersect/accel/kdtree/kdtree.cu"
+  "${PROJECT_SOURCE_DIR}/src/intersect/accel/naive_partition_bvh/naive_partition_bvh.cu"
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/sphere_partition.cpp"
-  "${PROJECT_SOURCE_DIR}/src/intersect/accel/kdtree/detail/generator.cu")
+  "${PROJECT_SOURCE_DIR}/src/intersect/accel/naive_partition_bvh/detail/generator.cu")
 target_add_standard(intersect)
 target_link_libraries(intersect PRIVATE OpenMP::OpenMP_CXX)
 

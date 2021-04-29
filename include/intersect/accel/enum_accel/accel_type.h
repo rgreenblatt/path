@@ -6,7 +6,7 @@ namespace enum_accel {
 // consider renaming to BoundOnly something...
 enum class AccelType {
   LoopAll,
-  KDTree,
+  NaivePartitionBVH,
   DirTree,
 };
 } // namespace enum_accel

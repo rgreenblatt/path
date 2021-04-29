@@ -138,9 +138,9 @@ TEST(Intersection, loop_all) {
   }
 }
 
-TEST(Intersection, kdtree) {
+TEST(Intersection, naive_partition_bvh) {
   std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
   for (bool is_gpu : {false, true}) {
-    test_accelerator<AccelType::KDTree>(gen, {}, is_gpu);
+    test_accelerator<AccelType::NaivePartitionBVH>(gen, {}, is_gpu);
   }
 }

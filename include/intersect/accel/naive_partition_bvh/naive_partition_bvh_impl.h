@@ -1,14 +1,14 @@
 #pragma once
 
 #include "intersect/accel/add_idx.h"
-#include "intersect/accel/kdtree/kdtree.h"
+#include "intersect/accel/naive_partition_bvh/naive_partition_bvh.h"
 #include "intersect/optional_min.h"
 #include "lib/stack.h"
 #include "lib/start_end.h"
 
 namespace intersect {
 namespace accel {
-namespace kdtree {
+namespace naive_partition_bvh {
 namespace detail {
 template <IntersectableAtIdx F>
 HOST_DEVICE inline AccelRet<F>
@@ -67,6 +67,7 @@ Ref::intersect_objects(const intersect::Ray &ray,
             auto first = v.left_index;
             auto second = v.right_index;
 
+            // use this as a hint for where to traverse next
             if (intersection_point > v.division_point) {
               auto temp = first;
               first = second;
@@ -105,6 +106,6 @@ Ref::intersect_objects(const intersect::Ray &ray,
   return best;
 }
 } // namespace detail
-} // namespace kdtree
+} // namespace naive_partition_bvh
 } // namespace accel
 } // namespace intersect
