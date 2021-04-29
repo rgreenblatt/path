@@ -22,6 +22,13 @@ inline HOST_DEVICE void assign_output(const BaseItems &b, unsigned x_dim,
     b.float_rgb[idx] = float_rgb;
   }
 }
+
+// assign when no additional reduction will be required
+inline HOST_DEVICE void assign_output_single(const BaseItems &b, unsigned x_dim,
+                                             unsigned x, unsigned y,
+                                             FloatRGB float_rgb) {
+  assign_output(b, x_dim, 0, 1, x, y, float_rgb);
+}
 } // namespace integrate_image
 } // namespace detail
 } // namespace render

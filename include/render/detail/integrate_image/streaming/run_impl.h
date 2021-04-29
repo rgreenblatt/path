@@ -33,7 +33,7 @@ void initialize(const Inp &inp, State &state,
   auto get_sample = [&](unsigned block_idx) {
     auto thread_info = division.get_thread_info(block_idx, 0).info;
     unsigned x_dim = division.x_dim();
-    // full 64 is required to avoid overflow (check!)
+    // full 64 is required to avoid overflow
     uint64_t locs_before =
         thread_info.y * x_dim + std::min(thread_info.x, x_dim - 1);
     return samples_per_loc * locs_before + thread_info.start_sample;
@@ -103,6 +103,43 @@ void initialize(const Inp &inp, State &state,
               };
             }
           }));
+}
+
+template <ExecutionModel exec, typename Inp>
+void copy_to_output(
+    const Inp &inp, ExecVector<exec, FloatRGB> &float_rgb_out,
+    Span<std::array<kernel::Atomic<exec, float>, 3>> float_rgb_atomic) {
+  auto start = thrust::make_counting_iterator(0u);
+  auto end = start + inp.x_dim * inp.y_dim;
+
+  unsigned x_dim = inp.x_dim;
+
+  if (inp.output_as_bgra_32) {
+    float_rgb_out.clear();
+  } else {
+    float_rgb_out.resize(inp.x_dim * inp.y_dim);
+  }
+
+  BaseItems base = {
+      .output_as_bgra_32 = inp.output_as_bgra_32,
+      .samples_per = inp.samples_per,
+      .bgra_32 = inp.bgra_32,
+      .float_rgb = float_rgb_out,
+  };
+
+  thrust::for_each(ThrustData<exec>().execution_policy(), start, end,
+                   [=] HOST_DEVICE(unsigned idx) {
+                     FloatRGB value;
+#pragma unroll FloatRGB::size
+                     for (unsigned i = 0; i < FloatRGB::size; ++i) {
+                       value[i] = float_rgb_atomic[idx][i].as_inner();
+                     }
+
+                     unsigned x = idx % x_dim;
+                     unsigned y = idx / x_dim;
+
+                     assign_output_single(base, x_dim, x, y, value);
+                   });
 }
 } // namespace detail
 
@@ -313,8 +350,8 @@ void Run<exec>::run(
                 }
               } else {
                 auto &float_rgb = float_rgb_atomic[location];
-#pragma unroll FloatRGB{}.size
-                for (unsigned i = 0; i < value.size; ++i) {
+#pragma unroll FloatRGB::size
+                for (unsigned i = 0; i < FloatRGB::size; ++i) {
                   float_rgb[i].fetch_add(value[i]);
                 }
                 static_assert(type == integrate::IterationOutputType::Finished);
@@ -351,35 +388,7 @@ void Run<exec>::run(
     parity = !parity;
   }
 
-  auto start = thrust::make_counting_iterator(0u);
-  auto end = start + inp.x_dim * inp.y_dim;
-
-  unsigned x_dim = inp.x_dim;
-
-  if (!inp.output_as_bgra_32) {
-    float_rgb_out.resize(inp.x_dim * inp.y_dim);
-  }
-
-  BaseItems base = {
-      .output_as_bgra_32 = inp.output_as_bgra_32,
-      .samples_per = inp.samples_per,
-      .bgra_32 = inp.bgra_32,
-      .float_rgb = float_rgb_out,
-  };
-
-  thrust::for_each(ThrustData<exec>().execution_policy(), start, end,
-                   [=] HOST_DEVICE(unsigned idx) {
-                     FloatRGB value;
-#pragma unroll FloatRGB{}.size
-                     for (unsigned i = 0; i < value.size; ++i) {
-                       value[i] = float_rgb_atomic[idx][i].as_inner();
-                     }
-
-                     unsigned x = idx % x_dim;
-                     unsigned y = idx / x_dim;
-
-                     assign_output(base, x_dim, 0, 1, x, y, value);
-                   });
+  copy_to_output<exec>(inp, float_rgb_out, float_rgb_atomic);
 
   if (inp.show_progress) {
     progress_bar.done();

@@ -14,8 +14,6 @@
 namespace render {
 using namespace detail;
 
-template <typename> struct Printer;
-
 template <ExecutionModel exec>
 void Renderer::Impl<exec>::general_render(
     bool output_as_bgra_32, Span<BGRA32> bgra_32_output,
@@ -26,6 +24,8 @@ void Renderer::Impl<exec>::general_render(
     bgra_32_.resize(x_dim * y_dim);
   }
 
+  // We return float_rgb_out because the mega kernel reduce can pick
+  // which value to avoid a copy. (might be premature optimization...)
   auto float_rgb_out = dispatch(settings.compile_time(), [&](auto tag) {
     constexpr auto compile_time = tag();
 
@@ -35,8 +35,6 @@ void Renderer::Impl<exec>::general_render(
     constexpr auto term_prob_type = compile_time.term_prob_type;
     constexpr auto rng_type = compile_time.rng_type;
 
-    // this will need to change somewhat... when another value is added...
-    static_assert(AllValues<KernelApproach>.size() == 2);
     constexpr auto kernel_approach = kernel_approach_type.type();
 
     auto as_intersectable_scene =
@@ -63,6 +61,8 @@ void Renderer::Impl<exec>::general_render(
         static_assert(kernel_approach == KernelApproach::Streaming);
         auto &accel = kernel_approach_settings.accel;
         return accel.visit_tagged([&](auto tag, const auto &value) {
+          // If more cases are added, this will need to be an set of if else
+          // statements.
           static_assert(
               tag ==
               StreamingSettings::BulkIntersectionApproaches::IndividualToBulk);
@@ -75,6 +75,8 @@ void Renderer::Impl<exec>::general_render(
           intersector.set_settings_intersectable(
               value.to_bulk_settings, intersectable_scene.intersector);
 
+          // Specify exact type to make sure we get a reference for
+          // intersector.
           return std::tuple<decltype(intersectable_scene.scene),
                             decltype(intersector)>{intersectable_scene.scene,
                                                    intersector};
