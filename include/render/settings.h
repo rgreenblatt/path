@@ -2,15 +2,14 @@
 
 #include "integrate/dir_sampler/enum_dir_sampler/settings.h"
 #include "integrate/light_sampler/enum_light_sampler/settings.h"
+#include "integrate/rendering_equation_settings.h"
 #include "integrate/term_prob/enum_term_prob/settings.h"
-#include "intersect/accel/enum_accel/settings.h"
-#include "intersectable_scene/to_bulk.h"
 #include "lib/settings.h"
 #include "lib/tagged_union.h"
 #include "meta/all_values/all_values.h"
 #include "meta/all_values/impl/enum.h"
 #include "meta/all_values/tag.h"
-#include "render/general_settings.h"
+#include "render/kernel_approach_settings.h"
 #include "rng/enum_rng/settings.h"
 
 namespace render {
@@ -25,27 +24,16 @@ using enum_light_sampler::LightSamplerType;
 using enum_term_prob::TermProbType;
 using rng::enum_rng::RngType;
 
-enum class IntersectionApproach {
-  MegaKernel,
-  StreamingFromGeneral,
-};
-
 struct Settings {
-  using FlatAccelSettings =
-      TaggedUnionPerInstance<AccelType, enum_accel::Settings>;
-
-  struct ToBulkSettings {
-    intersectable_scene::ToBulkSettings to_bulk_settings;
-    FlatAccelSettings accel;
-
-    AccelType type() const { return accel.type(); }
-
-    SETTING_BODY(ToBulkSettings, to_bulk_settings, accel);
-  };
-
-  TaggedUnion<IntersectionApproach, FlatAccelSettings, ToBulkSettings>
-      intersection = {tag_v<IntersectionApproach::MegaKernel>,
-                      tag_v<AccelType::KDTree>};
+  KernelApproachSettings kernel_approach = {
+      tag_v<KernelApproach::MegaKernel>,
+      {
+          .computation_settings = {},
+          .individually_intersectable_settings =
+              {
+                  .accel = tag_v<AccelType::KDTree>,
+              },
+      }};
 
   TaggedUnionPerInstance<LightSamplerType, enum_light_sampler::Settings>
       light_sampler = {tag_v<LightSamplerType::RandomTriangle>};
@@ -59,16 +47,13 @@ struct Settings {
   TaggedUnionPerInstance<RngType, rng::enum_rng::Settings> rng = {
       tag_v<RngType::Sobel>};
 
-  GeneralSettings general_settings;
+  integrate::RenderingEquationSettings rendering_equation_settings;
 
-  SETTING_BODY(Settings, intersection, light_sampler, dir_sampler, term_prob,
-               rng, general_settings)
-
-  using IntersectionType =
-      TaggedUnion<IntersectionApproach, AccelType, AccelType>;
+  SETTING_BODY(Settings, kernel_approach, light_sampler, dir_sampler, term_prob,
+               rng, rendering_equation_settings)
 
   struct CompileTime {
-    IntersectionType intersection_type;
+    KernelApproachCompileTime kernel_approach_type;
     LightSamplerType light_sampler_type;
     DirSamplerType dir_sampler_type;
     TermProbType term_prob_type;
@@ -80,9 +65,9 @@ struct Settings {
 
   constexpr CompileTime compile_time() const {
     return {
-        .intersection_type =
-            intersection.visit_tagged([&](auto tag, const auto &value) {
-              return IntersectionType(tag, value.type());
+        .kernel_approach_type = kernel_approach.visit_tagged(
+            [&](auto tag, const auto &value) -> KernelApproachCompileTime {
+              return {tag, value.compile_time()};
             }),
         .light_sampler_type = light_sampler.type(),
         .dir_sampler_type = dir_sampler.type(),

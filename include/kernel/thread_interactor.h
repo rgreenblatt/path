@@ -3,6 +3,9 @@
 #include "kernel/work_division.h"
 #include "meta/mock.h"
 
+// TBH, this is a bit overdone (probably just extra complexity/noise for
+// this project...)
+
 namespace kernel {
 template <typename T>
 concept ThreadInteractorBlockRef = requires(T &mut_ref, unsigned thread_idx) {

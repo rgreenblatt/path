@@ -1,57 +1,81 @@
 settings:
-  intersection:
-    type: MegaKernel
+  # kernel_approach:
+  #   type: MegaKernel
+  #   value:
+  #     computation_settings:
+  #       max_blocks_per_launch_gpu: 4096
+  #       max_blocks_per_launch_cpu: 128
+  #       render_work_division:
+  #         block_size: 256
+  #         target_x_block_size: 32
+  #         force_target_samples: false
+  #         forced_target_samples_per_thread: 8
+  #         base_num_threads: 16384
+  #         samples_per_thread_scaling_power: 0.5
+  #         max_samples_per_thread: 32
+  #       reduce_work_division:
+  #         block_size: 256
+  #         target_x_block_size: 256
+  #         force_target_samples: false
+  #         forced_target_samples_per_thread: 8
+  #         base_num_threads: 16384
+  #         samples_per_thread_scaling_power: 0.5
+  #         max_samples_per_thread: 32
+  #     individually_intersectable_settings:
+  #       accel:
+  #         type: KDTree
+  #         value:
+  #           s_a_heuristic:
+  #             traversal_cost: 1
+  #             intersection_cost: 1
+  #           use_s_a_heuritic: false
+  #           num_objects_terminate: 2
+  kernel_approach:
+    type: Streaming
     value:
-      # to_bulk_settings:
-      #   max_size: 2097152
-      # accel:
-        type: KDTree
+      computation_settings:
+        max_num_samples_per_launch: 4194304
+        min_num_init_blocks: 16
+        init_samples_division:
+          block_size: 256
+          target_x_block_size: 32
+          force_target_samples: false
+          forced_target_samples_per_thread: 8
+          base_num_threads: 16384
+          samples_per_thread_scaling_power: 0.5
+          max_samples_per_thread: 32
+      accel:
+        type: IndividualToBulk
         value:
-          s_a_heuristic:
-            traversal_cost: 1
-            intersection_cost: 1
-          use_s_a_heuritic: false
-          num_objects_terminate: 2
+          to_bulk_settings:
+            max_size: 2097152
+          individual_settings:
+            accel:
+              type: KDTree
+              value:
+                s_a_heuristic:
+                  traversal_cost: 1
+                  intersection_cost: 1
+                use_s_a_heuritic: false
+                num_objects_terminate: 2
   light_sampler:
     type: RandomTriangle
     value:
       binary_search_threshold: 1073741823
   dir_sampler:
     type: BSDF
-    value: {}
+    value:
+      {}
   term_prob:
     type: MultiplierFunc
     value:
       exp: 50.0
-      min_prob: 0.03
-      # prob: 0.4
+      min_prob: 0.1
   rng:
     type: Sobel
     value:
       sequence_settings:
         {}
       max_sample_size: 256
-  general_settings:
-    computation_settings:
-      max_blocks_per_launch_gpu: 4096
-      max_blocks_per_launch_cpu: 256
-      render_work_division:
-        block_size: 256
-        target_x_block_size: 32
-        force_target_samples: false
-        forced_target_samples_per_thread: 8
-        # should be increased somewhat for more complex scenes maybe to 262144
-        base_num_threads: 16384
-        samples_per_thread_scaling_power: 0.5
-        max_samples_per_thread: 32
-      reduce_work_division:
-        block_size: 256
-        target_x_block_size: 256
-        force_target_samples: false
-        forced_target_samples_per_thread: 8
-        # should be increased somewhat for more complex scenes maybe to 262144
-        base_num_threads: 16384
-        samples_per_thread_scaling_power: 0.5
-        max_samples_per_thread: 32
-    rendering_equation_settings:
-      back_cull_emission: true
+  rendering_equation_settings:
+    back_cull_emission: true

@@ -22,6 +22,16 @@ concept RngRef = requires(const T &ref, unsigned sample_idx,
   {
     ref.get_generator(sample_idx, location)
     } -> std::same_as<typename T::State>;
+  typename T::SavedState;
+  std::copyable<typename T::SavedState>;
+  requires requires(const typename T::State &state) {
+    { state.save() } -> std::same_as<typename T::SavedState>;
+  };
+  requires requires(const typename T::SavedState &saved_state) {
+    {
+      ref.state_from_saved(sample_idx, location, saved_state)
+      } -> std::same_as<typename T::State>;
+  };
 };
 
 template <typename T, typename S>
@@ -39,11 +49,15 @@ concept Rng = requires {
 
 struct MockRng : MockNoRequirements {
   struct Ref : MockCopyable {
+    struct SavedState : MockSemiregular {};
     struct State : MockSemiregular {
       float next();
+      SavedState save() const;
     };
 
     State get_generator(unsigned sample_idx, unsigned location) const;
+    State state_from_saved(unsigned sample_idx, unsigned location,
+                           const SavedState &state) const;
   };
 
   Ref gen(const EmptySettings &settings, unsigned samples_per,

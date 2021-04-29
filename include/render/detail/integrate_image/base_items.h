@@ -6,11 +6,13 @@
 
 namespace render {
 namespace detail {
-struct IntegrateImageBaseItems {
+namespace integrate_image {
+struct BaseItems {
   bool output_as_bgra_32;
   unsigned samples_per;
   Span<BGRA32> bgra_32;
   Span<FloatRGB> float_rgb;
 };
+} // namespace integrate_image
 } // namespace detail
 } // namespace render

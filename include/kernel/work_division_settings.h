@@ -4,7 +4,7 @@
 
 namespace kernel {
 struct WorkDivisionSettings {
-  // This is tuned to a decent extent (for individual)
+  // This is tuned to a decent extent (for mega kernel)
   unsigned block_size = 256;
   unsigned target_x_block_size = 32;
   bool force_target_samples = false;

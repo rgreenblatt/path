@@ -35,8 +35,7 @@ public:
     return scene_intersectable_->settings.max_size;
   }
 
-  template <typename T>
-  Span<const IntersectionOp> get_intersections(SpanSized<T> sp);
+  Span<const IntersectionOp> get_intersections(SpanSized<intersect::Ray> sp);
 
   static constexpr bool individually_intersectable = false;
 

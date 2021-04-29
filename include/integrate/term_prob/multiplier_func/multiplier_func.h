@@ -14,7 +14,7 @@ struct MultiplierFunc {
     HOST_DEVICE Ref() = default;
 
     HOST_DEVICE Ref(const Settings &settings)
-        : exp(settings.exp), min_prob(settings.min_prob) {}
+        : exp_(settings.exp), min_prob_(settings.min_prob) {}
 
     ATTR_PURE_NDEBUG HOST_DEVICE float
     operator()(unsigned, const FloatRGB &multiplier) const {
@@ -24,14 +24,14 @@ struct MultiplierFunc {
           ((multiplier / (multiplier + 1)) * 0.57).matrix().squaredNorm(), 0.0f,
           1.0f);
 
-      float term_prob = std::abs(std::pow(1 - squared_norm, exp));
+      float term_prob = std::abs(std::pow(1 - squared_norm, exp_));
 
-      return std::max(term_prob, min_prob);
+      return std::max(term_prob, min_prob_);
     }
 
   private:
-    float exp;
-    float min_prob;
+    float exp_;
+    float min_prob_;
   };
 
   Ref gen(const Settings &settings) { return Ref(settings); }

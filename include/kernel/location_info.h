@@ -3,6 +3,10 @@
 #include "kernel/grid_location_info.h"
 
 namespace kernel {
+constexpr unsigned get_location(unsigned x, unsigned y, unsigned x_dim) {
+  return x + y * x_dim;
+}
+
 struct LocationInfo {
   unsigned start_sample;
   unsigned end_sample;
@@ -13,7 +17,7 @@ struct LocationInfo {
     return {
         .start_sample = info.start_sample,
         .end_sample = info.end_sample,
-        .location = info.x + info.y * x_dim,
+        .location = get_location(info.x, info.y, x_dim),
     };
   }
 };

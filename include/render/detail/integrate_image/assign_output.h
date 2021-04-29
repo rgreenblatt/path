@@ -3,17 +3,16 @@
 #include "kernel/work_division.h"
 #include "lib/cuda/utils.h"
 #include "meta/specialization_of.h"
-#include "render/detail/integrate_image_base_items.h"
+#include "render/detail/integrate_image/base_items.h"
 
 namespace render {
 namespace detail {
-inline HOST_DEVICE void assign_output(const IntegrateImageBaseItems &b,
-                                      const kernel::WorkDivision &division,
+namespace integrate_image {
+inline HOST_DEVICE void assign_output(const BaseItems &b, unsigned x_dim,
                                       unsigned sample_block_idx,
                                       unsigned num_sample_blocks, unsigned x,
                                       unsigned y, FloatRGB float_rgb) {
-  unsigned idx =
-      sample_block_idx + num_sample_blocks * (x + y * division.x_dim());
+  unsigned idx = sample_block_idx + num_sample_blocks * (x + y * x_dim);
   if (num_sample_blocks == 1) {
     float_rgb /= b.samples_per;
   }
@@ -23,5 +22,6 @@ inline HOST_DEVICE void assign_output(const IntegrateImageBaseItems &b,
     b.float_rgb[idx] = float_rgb;
   }
 }
+} // namespace integrate_image
 } // namespace detail
 } // namespace render

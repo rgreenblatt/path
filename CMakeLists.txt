@@ -21,7 +21,7 @@ endif()
 # required for clang cuda support
 cmake_minimum_required(VERSION 3.18)
 
-add_compile_options(-Wall -Wextra)
+add_compile_options(-Wall -Wextra -Wmissing-field-initializers)
 
 # * use libc++ for this project and submodules
 # * won't work until libc++ has concepts
@@ -185,17 +185,19 @@ target_link_libraries(intersect PRIVATE OpenMP::OpenMP_CXX)
 add_library(kernel STATIC "${PROJECT_SOURCE_DIR}/src/kernel/work_division.cpp")
 target_add_standard(kernel)
 
+set(BASE_RENDER_P "${PROJECT_SOURCE_DIR}/src/render/detail/")
+
 add_library(
   renderer STATIC
-  "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl_general_render_individual_gpu.cu"
-  "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl_general_render_individual_cpu.cpp"
-  "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl_general_render_bulk_gpu.cu"
-  "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl_general_render_bulk_cpu.cpp"
+  "${BASE_RENDER_P}/renderer_impl_general_render_mega_kernel_gpu.cu"
+  "${BASE_RENDER_P}/renderer_impl_general_render_mega_kernel_cpu.cpp"
+  "${BASE_RENDER_P}/renderer_impl_general_render_streaming_individual_to_bulk_gpu.cu"
+  "${BASE_RENDER_P}/renderer_impl_general_render_streaming_individual_to_bulk_cpu.cpp"
   "${PROJECT_SOURCE_DIR}/src/render/renderer.cu"
   "${PROJECT_SOURCE_DIR}/src/integrate/light_sampler/random_triangle/random_triangle.cu"
-  "${PROJECT_SOURCE_DIR}/src/render/detail/renderer_impl.cu"
-  "${PROJECT_SOURCE_DIR}/src/render/detail/reduce_float_rgb_gpu.cu"
-  "${PROJECT_SOURCE_DIR}/src/render/detail/reduce_float_rgb_cpu.cpp"
+  "${BASE_RENDER_P}/renderer_impl.cu"
+  "${BASE_RENDER_P}/integrate_image/mega_kernel/reduce_float_rgb_gpu.cu"
+  "${BASE_RENDER_P}/integrate_image/mega_kernel/reduce_float_rgb_cpu.cpp"
   "${PROJECT_SOURCE_DIR}/src/rng/sobel/sobel.cu")
 target_add_standard(renderer)
 target_link_libraries(renderer PRIVATE OpenMP::OpenMP_CXX CUDA::curand

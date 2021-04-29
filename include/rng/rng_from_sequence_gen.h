@@ -29,6 +29,10 @@ struct RngFromSequenceGenRef {
   unsigned initial_dimension_bound;
   Span<const float> vals;
 
+  struct SavedState {
+    unsigned dim;
+  };
+
   class State {
   public:
     HOST_DEVICE State() = default;
@@ -39,7 +43,7 @@ struct RngFromSequenceGenRef {
           ref_(ref) {}
 
     HOST_DEVICE inline float next() {
-      debug_assert(ref_ != nullptr);
+      debug_assert_assume(ref_ != nullptr);
 
       float out = ref_->vals[sample_ * ref_->dimension_bound + dim_];
 
@@ -49,11 +53,15 @@ struct RngFromSequenceGenRef {
       return out;
     }
 
+    HOST_DEVICE SavedState save() const { return {.dim = dim_}; }
+
   private:
     unsigned initial_dim_;
     unsigned dim_;
     unsigned sample_;
     const RngFromSequenceGenRef *ref_;
+
+    friend struct RngFromSequenceGenRef;
   };
 
   ATTR_PURE_NDEBUG HOST_DEVICE inline State
@@ -66,6 +74,14 @@ struct RngFromSequenceGenRef {
     // For path tracing this make pixels look uncorrelated.
     return State(fnv_hash(location) % initial_dimension_bound, sample_idx,
                  this);
+  }
+
+  ATTR_PURE_NDEBUG HOST_DEVICE inline State
+  state_from_saved(unsigned sample_idx, unsigned location,
+                   SavedState saved_state) const {
+    auto out = get_generator(sample_idx, location);
+    out.dim_ = saved_state.dim;
+    return out;
   }
 };
 

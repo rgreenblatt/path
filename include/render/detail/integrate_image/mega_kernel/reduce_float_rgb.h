@@ -9,6 +9,8 @@
 
 namespace render {
 namespace detail {
+namespace integrate_image {
+namespace mega_kernel {
 // TODO: division/settings?
 template <ExecutionModel exec> struct ReduceFloatRGB {
   static ExecVector<exec, FloatRGB> *
@@ -17,5 +19,7 @@ template <ExecutionModel exec> struct ReduceFloatRGB {
       ExecVector<exec, FloatRGB> *float_rgb_in,
       ExecVector<exec, FloatRGB> *float_rgb_out, Span<BGRA32> bgras);
 };
+} // namespace mega_kernel
+} // namespace integrate_image
 } // namespace detail
 } // namespace render

@@ -4,14 +4,16 @@
 #include "kernel/make_runtime_constants_reduce_launchable.h"
 #include "kernel/work_division.h"
 #include "lib/assert.h"
-#include "render/detail/integrate_image_base_items.h"
-#include "render/detail/reduce_assign_output.h"
-#include "render/detail/reduce_float_rgb.h"
+#include "render/detail/integrate_image/base_items.h"
+#include "render/detail/integrate_image/mega_kernel/reduce_assign_output.h"
+#include "render/detail/integrate_image/mega_kernel/reduce_float_rgb.h"
 
 #include "data_structure/copyable_to_vec.h"
 
 namespace render {
 namespace detail {
+namespace integrate_image {
+namespace mega_kernel {
 template <ExecutionModel exec>
 ExecVector<exec, FloatRGB> *ReduceFloatRGB<exec>::run(
     const kernel::WorkDivisionSettings &division_settings,
@@ -25,12 +27,11 @@ ExecVector<exec, FloatRGB> *ReduceFloatRGB<exec>::run(
                                   1);
     float_rgb_out->resize(x_dim * division.num_sample_blocks());
 
-    IntegrateImageBaseItems items{.output_as_bgra_32 =
-                                      output_as_bgra_32 &&
-                                      division.num_sample_blocks() == 1,
-                                  .samples_per = samples_per,
-                                  .bgra_32 = bgras,
-                                  .float_rgb = *float_rgb_out};
+    BaseItems items{.output_as_bgra_32 =
+                        output_as_bgra_32 && division.num_sample_blocks() == 1,
+                    .samples_per = samples_per,
+                    .bgra_32 = bgras,
+                    .float_rgb = *float_rgb_out};
 
     Span<const FloatRGB> in_span = *float_rgb_in;
 
@@ -58,5 +59,7 @@ ExecVector<exec, FloatRGB> *ReduceFloatRGB<exec>::run(
 
   return float_rgb_in;
 }
+} // namespace mega_kernel
+} // namespace integrate_image
 } // namespace detail
 } // namespace render

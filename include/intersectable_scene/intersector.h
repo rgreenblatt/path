@@ -13,32 +13,13 @@ concept IntersectionsOpSpanFor = std::same_as<
     V,
     Span<const intersect::IntersectionOp<typename std::decay_t<T>::InfoType>>>;
 
-// TODO: when would something like this be useful?
-#if 0
-enum class RayholderE {
-  Ray,
-  Op,
-  Arr,
-};
-
-template <RayholderE type, unsigned arr_size>
-using RayholderT = PickType<type, intersect::Ray, std::optional<intersect::Ray>,
-                            ArrayVec<intersect::Ray, arr_size>>;
-#endif
-
 template <typename T>
-concept BulkIntersector =
-    requires(const T &t, T &t_mut, SpanSized<intersect::Ray> ray_span,
-             SpanSized<intersect::Ray> op_ray_span,
-             SpanSized<ArrayVec<intersect::Ray, 1>> arr_1_ray_span,
-             SpanSized<ArrayVec<intersect::Ray, 4>> arr_4_ray_span) {
+concept BulkIntersector = requires(const T &t, T &t_mut,
+                                   SpanSized<intersect::Ray> ray_span) {
   { t.max_size() } -> std::convertible_to<unsigned>;
 
   typename std::decay_t<T>::InfoType;
   { t_mut.get_intersections(ray_span) } -> IntersectionsOpSpanFor<T>;
-  { t_mut.get_intersections(op_ray_span) } -> IntersectionsOpSpanFor<T>;
-  { t_mut.get_intersections(arr_1_ray_span) } -> IntersectionsOpSpanFor<T>;
-  { t_mut.get_intersections(arr_4_ray_span) } -> IntersectionsOpSpanFor<T>;
 };
 
 template <typename T, typename InfoType>

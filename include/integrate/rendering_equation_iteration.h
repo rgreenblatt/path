@@ -38,7 +38,7 @@ rendering_equation_iteration(
 
   debug_assert_assume(light_samples.size() ==
                       intersections.size() - has_next_sample);
-  debug_assert_assume(has_next_sample == last_ray.has_value());
+  debug_assert(has_next_sample == last_ray.has_value());
   debug_assert_assume(light_samples.size() <= C::L::max_num_samples);
   for (unsigned i = 0; i < light_samples.size(); ++i) {
     const auto &[multiplier, target_distance] = light_samples[i];

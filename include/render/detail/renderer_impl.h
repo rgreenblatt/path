@@ -10,7 +10,7 @@
 #include "intersectable_scene/to_bulk.h"
 #include "lib/tagged_tuple.h"
 #include "meta/all_values/impl/enum.h"
-#include "render/detail/integrate_image_bulk_state.h"
+#include "render/detail/integrate_image/streaming/state.h"
 #include "render/renderer.h"
 #include "render/settings.h"
 #include "rng/enum_rng/enum_rng.h"
@@ -72,14 +72,16 @@ private:
 
   TaggedTuplePerInstance<AccelType, BulkIntersectableSceneGenerator> to_bulk_;
 
-  using BulkStateType = MetaTuple<LightSamplerType, RngType>;
+  using StreamingStateType = MetaTuple<LightSamplerType, RngType>;
 
-  template <BulkStateType type>
-  using IntegrateImageBulkState = detail::IntegrateImageBulkState<
-      exec, LightSamplerT<meta_tuple_at<0>(type)>::Ref::max_num_samples,
-      typename Rng<meta_tuple_at<1>(type)>::Ref>;
+  template <StreamingStateType type>
+  using IntegrateImageStreamingState =
+      detail::integrate_image::streaming::State<
+          exec, LightSamplerT<meta_tuple_at<0>(type)>::Ref::max_num_samples,
+          typename Rng<meta_tuple_at<1>(type)>::Ref>;
 
-  TaggedTuplePerInstance<BulkStateType, IntegrateImageBulkState> bulk_state_;
+  TaggedTuplePerInstance<StreamingStateType, IntegrateImageStreamingState>
+      streaming_state_;
 
   ThrustData<exec> thrust_data_;
 

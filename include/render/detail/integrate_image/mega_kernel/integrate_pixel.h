@@ -6,16 +6,16 @@
 #include "kernel/work_division.h"
 #include "lib/attribute.h"
 #include "render/detail/initial_ray_sample.h"
-#include "render/detail/integrate_image_items.h"
+#include "render/detail/integrate_image/items.h"
 
 namespace render {
 namespace detail {
-template <ExactSpecializationOf<IntegrateImageItems> Items,
-          intersect::Intersectable I>
+namespace integrate_image {
+namespace mega_kernel {
+template <ExactSpecializationOf<Items> Items, intersect::Intersectable I>
 ATTR_NO_DISCARD_PURE HOST_DEVICE inline FloatRGB
 integrate_pixel(const Items &items, const I &intersectable,
                 const kernel::WorkDivision &division,
-                const integrate::RenderingEquationSettings &settings,
                 const kernel::GridLocationInfo &info) {
   auto initial_ray_sampler = [&](auto &rng) {
     return initial_ray_sample(rng, info.x, info.y, division.x_dim(),
@@ -24,8 +24,10 @@ integrate_pixel(const Items &items, const I &intersectable,
 
   return integrate::rendering_equation(
       kernel::LocationInfo::from_grid_location_info(info, division.x_dim()),
-      settings, initial_ray_sampler, items.rng, intersectable,
+      items.render_settings, initial_ray_sampler, items.rng, intersectable,
       items.components);
 }
+} // namespace mega_kernel
+} // namespace integrate_image
 } // namespace detail
 } // namespace render

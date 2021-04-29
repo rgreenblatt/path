@@ -4,15 +4,14 @@
 
 namespace integrate {
 namespace term_prob {
-namespace multiplier_func {
+namespace normalize {
 struct Settings {
-  float exp = 50.0f;
   float min_prob = 0.1f;
 
-  SETTING_BODY(Settings, exp, min_prob);
+  SETTING_BODY(Settings, min_prob);
 };
 
 static_assert(Setting<Settings>);
-} // namespace multiplier_func
+} // namespace normalize
 } // namespace term_prob
 } // namespace integrate

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "execution_model/execution_model.h"
+#include "lib/attribute.h"
 #include "lib/cuda/curand_utils.h"
 #include "lib/cuda/utils.h"
 #include "meta/all_values/impl/enum.h"
@@ -39,6 +40,8 @@ template <ExecutionModel exec> struct Uniform {
         }
       }
 
+      HOST_DEVICE inline State save() const { return *this; }
+
     private:
       using GPUState = curandState;
       using CPUState = std::mt19937; // SPEED: maybe try other generators
@@ -52,9 +55,16 @@ template <ExecutionModel exec> struct Uniform {
           dist_;
     };
 
-    HOST_DEVICE inline State get_generator(unsigned sample_idx,
-                                           unsigned location) const {
+    using SavedState = State;
+
+    ATTR_PURE_NDEBUG HOST_DEVICE inline State
+    get_generator(unsigned sample_idx, unsigned location) const {
       return State(sample_idx + location * samples_per_);
+    }
+
+    ATTR_PURE_NDEBUG HOST_DEVICE inline State
+    state_from_saved(unsigned, unsigned, SavedState state) const {
+      return state;
     }
   };
 

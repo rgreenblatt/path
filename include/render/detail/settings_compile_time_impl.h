@@ -4,6 +4,7 @@
 #include "meta/all_values/impl/tuple.h"
 #include "meta/as_tuple/as_tuple.h"
 #include "meta/unpack_to.h"
+#include "render/kernel_approach_settings.h"
 #include "render/settings.h"
 
 // compile times don't change much from small constant values to 1...
@@ -18,61 +19,45 @@ private:
   using LightSamplerType = render::LightSamplerType;
   using TermProbType = render::TermProbType;
   using RngType = render::RngType;
-  using IntersectionApproach = render::IntersectionApproach;
-  using IntersectionType = render::Settings::IntersectionType;
+  using KernelApproach = render::KernelApproach;
+  using KernelApproachCompileTime = render::KernelApproachCompileTime;
+  // using IntersectionType = render::Settings::IntersectionType;
 
 public:
   constexpr static auto values = [] {
-    std::array<render::Settings::CompileTime, 2> values = {{
-        {IntersectionType(tag_v<IntersectionApproach::MegaKernel>,
-                          AccelType::KDTree),
+    std::array<render::Settings::CompileTime, 8> values = {{
+        {KernelApproachCompileTime{tag_v<KernelApproach::MegaKernel>,
+                                   AccelType::KDTree},
          LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
          TermProbType::MultiplierFunc, RngType::Sobel},
-        // {IntersectionType(tag_v<IntersectionApproach::MegaKernel>,
-        //                   AccelType::KDTree),
-        //  LightSamplerType::NoLightSampling, DirSamplerType::BSDF,
-        //  TermProbType::MultiplierFunc, RngType::Sobel},
-        // {IntersectionType(tag_v<IntersectionApproach::MegaKernel>,
-        //                   AccelType::KDTree),
-        //  LightSamplerType::RandomTriangle, DirSamplerType::Uniform,
-        //  TermProbType::MultiplierFunc, RngType::Sobel},
-        // {IntersectionType(tag_v<IntersectionApproach::MegaKernel>,
-        //                   AccelType::KDTree),
-        //  LightSamplerType::NoLightSampling, DirSamplerType::Uniform,
-        //  TermProbType::MultiplierFunc, RngType::Sobel},
-        // {IntersectionType(tag_v<IntersectionApproach::StreamingFromGeneral>,
-        //                   AccelType::KDTree),
-        //  LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
-        //  TermProbType::MultiplierFunc, RngType::Sobel},
-        // {IntersectionType(tag_v<IntersectionApproach::StreamingFromGeneral>,
-        //                   AccelType::KDTree),
-        //  LightSamplerType::NoLightSampling, DirSamplerType::BSDF,
-        //  TermProbType::MultiplierFunc, RngType::Sobel},
-
-        {IntersectionType(tag_v<IntersectionApproach::MegaKernel>,
-                          AccelType::KDTree),
+        {KernelApproachCompileTime{tag_v<KernelApproach::MegaKernel>,
+                                   AccelType::KDTree},
          LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
          TermProbType::MultiplierFunc, RngType::Uniform},
-        // {IntersectionType(tag_v<IntersectionApproach::MegaKernel>,
-        //                   AccelType::KDTree),
-        //  LightSamplerType::NoLightSampling, DirSamplerType::BSDF,
-        //  TermProbType::MultiplierFunc, RngType::Uniform},
-        // {IntersectionType(tag_v<IntersectionApproach::MegaKernel>,
-        //                   AccelType::KDTree),
-        //  LightSamplerType::RandomTriangle, DirSamplerType::Uniform,
-        //  TermProbType::MultiplierFunc, RngType::Uniform},
-        // {IntersectionType(tag_v<IntersectionApproach::MegaKernel>,
-        //                   AccelType::KDTree),
-        //  LightSamplerType::NoLightSampling, DirSamplerType::Uniform,
-        //  TermProbType::MultiplierFunc, RngType::Uniform},
-        // {IntersectionType(tag_v<IntersectionApproach::StreamingFromGeneral>,
-        //                   AccelType::KDTree),
-        //  LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
-        //  TermProbType::MultiplierFunc, RngType::Uniform},
-        // {IntersectionType(tag_v<IntersectionApproach::StreamingFromGeneral>,
-        //                   AccelType::KDTree),
-        //  LightSamplerType::NoLightSampling, DirSamplerType::BSDF,
-        //  TermProbType::MultiplierFunc, RngType::Uniform},
+        {KernelApproachCompileTime{tag_v<KernelApproach::Streaming>,
+                                   AccelType::KDTree},
+         LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
+         TermProbType::MultiplierFunc, RngType::Sobel},
+        {KernelApproachCompileTime{tag_v<KernelApproach::Streaming>,
+                                   AccelType::KDTree},
+         LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
+         TermProbType::MultiplierFunc, RngType::Uniform},
+        {KernelApproachCompileTime{tag_v<KernelApproach::MegaKernel>,
+                                   AccelType::KDTree},
+         LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
+         TermProbType::Normalize, RngType::Sobel},
+        {KernelApproachCompileTime{tag_v<KernelApproach::MegaKernel>,
+                                   AccelType::KDTree},
+         LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
+         TermProbType::Normalize, RngType::Uniform},
+        {KernelApproachCompileTime{tag_v<KernelApproach::Streaming>,
+                                   AccelType::KDTree},
+         LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
+         TermProbType::Normalize, RngType::Sobel},
+        {KernelApproachCompileTime{tag_v<KernelApproach::Streaming>,
+                                   AccelType::KDTree},
+         LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
+         TermProbType::Normalize, RngType::Uniform},
     }};
 
     std::sort(values.begin(), values.end());
@@ -87,7 +72,7 @@ public:
 // (but still increases build times...)
 template <> struct AsTupleImpl<render::Settings::CompileTime> {
   constexpr auto static as_tuple(const render::Settings::CompileTime &v) {
-    return make_meta_tuple(v.intersection_type, v.light_sampler_type,
+    return make_meta_tuple(v.kernel_approach_type, v.light_sampler_type,
                            v.dir_sampler_type, v.term_prob_type, v.rng_type);
   }
 

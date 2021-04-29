@@ -55,7 +55,7 @@ public:
   }
 
   // WARNING, this isn't thread safe in any sense
-  F as_inner() const {
+  HOST_DEVICE F as_inner() const {
     if constexpr (exec == ExecutionModel::GPU) {
       return inner_;
     } else {
