@@ -26,12 +26,19 @@ using rng::enum_rng::RngType;
 
 struct Settings {
   KernelApproachSettings kernel_approach = {
-      tag_v<KernelApproach::MegaKernel>,
+      tag_v<KernelApproach::Streaming>,
       {
           .computation_settings = {},
-          .individually_intersectable_settings =
+          .accel =
               {
-                  .accel = tag_v<AccelType::KDTree>,
+                  tag_v<StreamingSettings::BulkIntersectionApproaches::
+                            IndividualToBulk>,
+                  {
+                      .individual_settings =
+                          {
+                              .accel = tag_v<AccelType::KDTree>,
+                          },
+                  },
               },
       }};
 
