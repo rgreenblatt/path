@@ -177,7 +177,6 @@ endmacro()
 add_library(
   intersect STATIC
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/naive_partition_bvh/naive_partition_bvh.cu"
-  "${PROJECT_SOURCE_DIR}/src/intersect/accel/sphere_partition.cpp"
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/naive_partition_bvh/detail/generator.cu")
 target_add_standard(intersect)
 target_link_libraries(intersect PRIVATE OpenMP::OpenMP_CXX)
@@ -252,9 +251,6 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
   package_add_test(edges_test "${PROJECT_SOURCE_DIR}/tests/src/edges.cpp")
   package_add_test(device_vector_test
                    "${PROJECT_SOURCE_DIR}/tests/src/device_vector.cu")
-  # package_add_test(sphere_partition
-  # "${PROJECT_SOURCE_DIR}/tests/src/sphere_partition.cpp")
-  # target_link_libraries(sphere_partition PRIVATE renderer)
   package_add_test(binary_search_test
                    "${PROJECT_SOURCE_DIR}/tests/src/binary_search.cpp")
   package_add_test(projection "${PROJECT_SOURCE_DIR}/tests/src/projection.cpp")

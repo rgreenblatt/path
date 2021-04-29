@@ -1,6 +1,5 @@
 #pragma once
 
-#include "intersect/accel/s_a_heuristic_settings.h"
 #include "lib/settings.h"
 
 namespace intersect {

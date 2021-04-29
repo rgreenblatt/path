@@ -2,7 +2,6 @@
 
 #include "execution_model/execution_model.h"
 #include "intersect/accel/accel.h"
-#include "intersect/accel/dir_tree/dir_tree.h"
 #include "intersect/accel/enum_accel/accel_type.h"
 #include "intersect/accel/enum_accel/settings.h"
 #include "intersect/accel/loop_all/loop_all.h"
@@ -17,8 +16,7 @@ namespace accel {
 namespace enum_accel {
 template <AccelType type, ExecutionModel exec>
 using EnumAccel = PickType<type, loop_all::LoopAll,
-                           naive_partition_bvh::NaivePartitionBVH<exec>,
-                           dir_tree::DirTree<exec>>;
+                           naive_partition_bvh::NaivePartitionBVH<exec>>;
 
 template <AccelType type, ExecutionModel exec>
 struct IsAccel : std::bool_constant<
