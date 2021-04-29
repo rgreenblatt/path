@@ -10,8 +10,8 @@
 #include "lib/integer_division_utils.h"
 #include "meta/all_values/dispatch.h"
 #include "meta/all_values/impl/integral.h"
-#include "render/detail/initial_ray_sample.h"
 #include "render/detail/integrate_image/assign_output.h"
+#include "render/detail/integrate_image/initial_ray_sample.h"
 #include "render/detail/integrate_image/streaming/run.h"
 
 #include <cli/ProgressBar.hpp>

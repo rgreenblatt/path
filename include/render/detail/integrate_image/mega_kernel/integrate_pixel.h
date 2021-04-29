@@ -5,7 +5,7 @@
 #include "kernel/location_info.h"
 #include "kernel/work_division.h"
 #include "lib/attribute.h"
-#include "render/detail/initial_ray_sample.h"
+#include "render/detail/integrate_image/initial_ray_sample.h"
 #include "render/detail/integrate_image/items.h"
 
 namespace render {

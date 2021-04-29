@@ -9,6 +9,9 @@
 
 #include <Eigen/Geometry>
 
+namespace render {
+namespace detail {
+namespace integrate_image {
 ATTR_PURE_NDEBUG HOST_DEVICE inline intersect::Ray
 initial_ray(float x, float y, unsigned x_dim, unsigned y_dim,
             const Eigen::Affine3f &film_to_world) {
@@ -36,3 +39,6 @@ initial_ray_sample(R &rng, unsigned x, unsigned y, unsigned x_dim,
   return {initial_ray(x + x_offset, y + y_offset, x_dim, y_dim, film_to_world),
           {multiplier, std::nullopt}};
 }
+} // namespace integrate_image
+} // namespace detail
+} // namespace render
