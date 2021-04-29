@@ -341,12 +341,13 @@ void Run<exec>::run(
                   rays_out_span[i + new_ray_idx] = value.rays[i];
                 }
               } else {
+                static_assert(type == integrate::IterationOutputType::Finished);
+
                 auto &float_rgb = float_rgb_atomic[location];
 #pragma unroll FloatRGB::size
                 for (unsigned i = 0; i < FloatRGB::size; ++i) {
                   float_rgb[i].fetch_add(value[i]);
                 }
-                static_assert(type == integrate::IterationOutputType::Finished);
               }
             });
           });
