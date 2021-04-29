@@ -64,8 +64,7 @@ settings:
       binary_search_threshold: 1073741823
   dir_sampler:
     type: BSDF
-    value:
-      {}
+    value: {}
   term_prob:
     type: MultiplierFunc
     value:
@@ -74,8 +73,7 @@ settings:
   rng:
     type: Sobel
     value:
-      sequence_settings:
-        {}
+      sequence_settings: {}
       max_sample_size: 256
   rendering_equation_settings:
     back_cull_emission: true
