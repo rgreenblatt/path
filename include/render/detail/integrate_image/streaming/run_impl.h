@@ -69,8 +69,6 @@ void initialize(const Inp &inp, State &state,
   auto rng = inp.items.rng;
   auto film_to_world = inp.items.film_to_world;
 
-  // initialize
-  // TODO: SPEED: change work division used for this kernel???
   kernel::KernelLaunch<exec>::run(
       division, start_block_init, end_block_init,
       kernel::make_no_interactor_launchable(
@@ -173,12 +171,6 @@ void Run<exec>::run(
                                     max_num_extra_samples_per_thread;
 
   bool has_multiple_sample_blocks = init_division.num_sample_blocks() > 1;
-
-  // TODO: remove this assert (should be well covered???)
-  always_assert(init_division.base_samples_per_thread() *
-                        init_division.sample_block_size() +
-                    init_division.n_threads_per_unit_extra() ==
-                inp.samples_per);
 
   // In the case where we have samples over multiple different blocks, we
   // can upperbound with max_samples_per_thread.
