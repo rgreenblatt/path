@@ -1,8 +1,7 @@
 #include "render/detail/renderer_impl.h"
 
 namespace render {
-template <ExecutionModel execution_model>
-Renderer::Impl<execution_model>::Impl() {}
+template <ExecutionModel exec> Renderer::Impl<exec>::Impl() {}
 
 template class Renderer::Impl<ExecutionModel::CPU>;
 #ifndef CPU_ONLY

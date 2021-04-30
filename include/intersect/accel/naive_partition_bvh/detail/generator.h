@@ -15,8 +15,7 @@ namespace naive_partition_bvh {
 // should only be used from detail context
 using namespace detail;
 
-template <ExecutionModel execution_model>
-class NaivePartitionBVH<execution_model>::Generator {
+template <ExecutionModel exec> class NaivePartitionBVH<exec>::Generator {
 public:
   Generator() = default;
 
@@ -36,7 +35,7 @@ private:
   Span<Bounds> bounds_;
   HostVector<Node> nodes_;
 
-  template <typename T> using ExecVecT = ExecVector<execution_model, T>;
+  template <typename T> using ExecVecT = ExecVector<exec, T>;
 
   ExecVecT<Node> nodes_out_;
 

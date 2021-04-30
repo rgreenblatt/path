@@ -9,9 +9,8 @@
 
 namespace rng {
 namespace enum_rng {
-template <RngType type, ExecutionModel execution_model>
-using EnumRng = PickType<type, uniform::Uniform<execution_model>,
-                         sobel::Sobel<execution_model>>;
+template <RngType type, ExecutionModel exec>
+using EnumRng = PickType<type, uniform::Uniform<exec>, sobel::Sobel<exec>>;
 
 template <RngType type, ExecutionModel exec>
 struct IsRng : std::bool_constant<Rng<EnumRng<type, exec>, Settings<type>>> {};

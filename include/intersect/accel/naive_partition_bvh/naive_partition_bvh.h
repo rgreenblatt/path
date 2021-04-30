@@ -25,7 +25,7 @@ struct Ref {
 };
 } // namespace detail
 
-template <ExecutionModel execution_model> class NaivePartitionBVH {
+template <ExecutionModel exec> class NaivePartitionBVH {
 public:
   // need to implementated when Generator is defined
   NaivePartitionBVH();
