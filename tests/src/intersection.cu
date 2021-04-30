@@ -34,8 +34,10 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
     RefPerm ref_perm = inst.gen(settings, triangles_in);
     ASSERT_EQ(ref_perm.permutation.size(), triangles_in.size());
     HostDeviceVector<Triangle> triangles_vec(triangles_in.size());
+    HostVector<unsigned> orig_idxs(triangles_in.size());
     for (unsigned i = 0; i < triangles_in.size(); ++i) {
       triangles_vec[i] = triangles_in[ref_perm.permutation[i]];
+      orig_idxs[i] = ref_perm.permutation[i];
     }
     auto ref = ref_perm.ref;
     SpanSized<const Triangle> triangles = triangles_vec;
@@ -61,7 +63,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
       auto result = results[i];
       EXPECT_EQ(result.has_value(), expected.has_value());
       if (result.has_value() && expected.has_value()) {
-        EXPECT_EQ(*result, *expected);
+        EXPECT_EQ(orig_idxs[*result], *expected);
       }
     }
   };
@@ -85,6 +87,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
   const unsigned num_tests = 10;
 
   {
+    // TODO: consider switching to an actual property based testing framework...
     std::uniform_int_distribution<unsigned> num_triangles_gen(2, 100);
     std::uniform_real_distribution<float> float_gen(-1, 1);
     for (unsigned trial_idx = 0; trial_idx < num_trials; ++trial_idx) {
@@ -151,5 +154,12 @@ TEST(Intersection, naive_partition_bvh) {
   std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
   for (bool is_gpu : {false, true}) {
     test_accelerator<AccelType::NaivePartitionBVH>(gen, {}, is_gpu);
+  }
+}
+
+TEST(Intersection, sbvh) {
+  std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
+  for (bool is_gpu : {false, true}) {
+    test_accelerator<AccelType::SBVH>(gen, {}, is_gpu);
   }
 }
