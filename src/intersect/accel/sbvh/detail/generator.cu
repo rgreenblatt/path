@@ -67,7 +67,7 @@ Node SBVH<exec>::Generator::create_node(SpanSized<Triangle> triangles,
     }
   }
 
-  if (overall_best_split.cost < triangles.size()) {
+  if (overall_best_split.cost >= triangles.size()) {
     return {
         .value =
             {
@@ -147,9 +147,10 @@ SBVH<exec>::Generator::best_object_split(SpanSized<const Triangle> triangles_in,
     float surface_area_left = running_aabb.surface_area();
     float surface_area_right = surface_areas_backward[i];
 
-    float cost = settings_.traversal_per_intersect_cost +
-                 surface_area_left / surface_area_above_node +
-                 surface_area_right / surface_area_above_node;
+    float cost =
+        settings_.traversal_per_intersect_cost +
+        i * surface_area_left / surface_area_above_node +
+        (triangles.size() - i) * surface_area_right / surface_area_above_node;
     if (cost < best_cost) {
       best_cost = cost;
       best_split = i;
