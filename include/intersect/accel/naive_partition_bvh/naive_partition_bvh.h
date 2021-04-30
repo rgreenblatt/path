@@ -17,7 +17,6 @@ namespace detail {
 // In this case, the Ref type doesn't depend on the ExecutionModel
 struct Ref {
   SpanSized<const Node> nodes;
-  Span<const unsigned> local_idx_to_global_idx;
 
   template <IntersectableAtIdx F>
   HOST_DEVICE inline AccelRet<F>
@@ -37,8 +36,8 @@ public:
   using Ref = detail::Ref;
 
   template <Bounded B>
-  detail::Ref gen(const Settings &settings, SpanSized<const B> objects,
-                  const AABB &) {
+  RefPerm<detail::Ref> gen(const Settings &settings,
+                           SpanSized<const B> objects) {
     bounds_.resize(objects.size());
 
     for (unsigned i = 0; i < objects.size(); ++i) {
@@ -50,7 +49,7 @@ public:
   }
 
 private:
-  detail::Ref gen_internal(const Settings &settings);
+  RefPerm<detail::Ref> gen_internal(const Settings &settings);
 
   // PIMPL
   class Generator;

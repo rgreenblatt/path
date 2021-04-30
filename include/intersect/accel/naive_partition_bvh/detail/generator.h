@@ -20,7 +20,7 @@ class NaivePartitionBVH<execution_model>::Generator {
 public:
   Generator() = default;
 
-  Ref gen(const Settings &settings, SpanSized<Bounds> objects);
+  RefPerm<Ref> gen(const Settings &settings, SpanSized<Bounds> objects);
 
 private:
   unsigned partition(unsigned start, unsigned end, uint8_t axis);
@@ -38,7 +38,6 @@ private:
 
   template <typename T> using ExecVecT = ExecVector<execution_model, T>;
 
-  ExecVecT<unsigned> indexes_out_;
   ExecVecT<Node> nodes_out_;
 
   Settings settings_;

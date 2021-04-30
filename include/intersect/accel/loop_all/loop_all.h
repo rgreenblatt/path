@@ -30,8 +30,13 @@ struct LoopAll {
   };
 
   template <typename B>
-  Ref gen(const Settings &, SpanSized<const B> objects, const AABB &) {
-    return Ref{static_cast<unsigned>(objects.size())};
+  RefPerm<Ref> gen(const Settings &, SpanSized<const B> objects) {
+    std::vector<unsigned> permutation(objects.size());
+    for (unsigned i = 0; i < objects.size(); ++i) {
+      permutation[i] = i;
+    }
+    return {.ref = Ref{static_cast<unsigned>(objects.size())},
+            .permutation = permutation};
   }
 };
 

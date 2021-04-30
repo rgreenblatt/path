@@ -27,6 +27,27 @@ public:
     data_.for_each([=](auto &data) { data.clear(); });
   }
 
+  TaggedTuple<E, const T &...> get_all(unsigned idx) const {
+    return boost::hana::unpack(data_.items, [&](auto &...values) {
+      return TaggedTuple<E, const T &...>{{values[idx]...}};
+    });
+  }
+
+  template <typename... V>
+  void set_all_tup(unsigned idx, TaggedTuple<E, V...> values) {
+    boost::hana::unpack(
+        values.items, [&](const auto &...values) { set_all(idx, values...); });
+  }
+
+  void set_all(unsigned idx, const T &...vs) {
+    boost::hana::for_each(
+        boost::hana::zip(as_ptr_tuple(), boost::hana::make_tuple(vs...)),
+        [&](const auto &item) {
+          boost::hana::unpack(
+              item, [&](auto data, const auto &item) { (*data)[idx] = item; });
+        });
+  }
+
   void push_back_all(const T &...vs) {
     boost::hana::for_each(
         boost::hana::zip(as_ptr_tuple(), boost::hana::make_tuple(vs...)),

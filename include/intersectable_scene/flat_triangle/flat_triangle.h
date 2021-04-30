@@ -3,7 +3,7 @@
 #include "data_structure/copyable_to_vec.h"
 #include "execution_model/execution_model.h"
 #include "execution_model/execution_model_vector_type.h"
-#include "intersect/accel/accel.h"
+#include "intersect/accel/triangle_accel.h"
 #include "intersect/triangle.h"
 #include "intersectable_scene/flat_triangle/settings.h"
 #include "intersectable_scene/intersectable_scene.h"
@@ -69,10 +69,8 @@ template <intersect::accel::AccelRef Accel> struct IntersectableRef {
   }
 };
 
-template <
-    ExecutionModel exec, Setting AccelSettings,
-    intersect::accel::ObjectSpecificAccel<AccelSettings, intersect::Triangle>
-        Accel>
+template <ExecutionModel exec, Setting AccelSettings,
+          intersect::accel::TriangleAccel<AccelSettings> Accel>
 class Generator {
 public:
   Generator(){};
@@ -101,7 +99,20 @@ public:
       }
     }
 
-    host_triangle_values_.copy_to_other(triangle_values_);
+    intersect::accel::RefPerm ref_perm = accel_.gen(
+        settings.accel_settings,
+        host_triangle_values_.get(tag_v<TriItem::Triangle>).as_const());
+
+    always_assert(ref_perm.permutation.size() == host_triangle_values_.size());
+
+    // permute values
+    host_triangle_values_perm_.resize_all(host_triangle_values_.size());
+    for (unsigned i = 0; i < host_triangle_values_.size(); ++i) {
+      host_triangle_values_perm_.set_all_tup(
+          i, host_triangle_values_.get_all(ref_perm.permutation[i]));
+    }
+    host_triangle_values_perm_.copy_to_other(triangle_values_);
+
     copy_to_vec(scene.materials(), materials_);
 
     auto triangles = triangle_values_.get(tag_v<TriItem::Triangle>);
@@ -109,11 +120,7 @@ public:
     return {
         .intersector =
             {
-                .accel = accel_.gen(
-                    settings.accel_settings,
-                    host_triangle_values_.get(tag_v<TriItem::Triangle>)
-                        .as_const(),
-                    scene.overall_aabb()),
+                .accel = ref_perm.ref,
                 .triangles = triangles,
             },
         .scene =
@@ -135,6 +142,7 @@ private:
       VectorGroup<VecT, TriItem, intersect::Triangle, scene::TriangleData>;
 
   VectorGroup<HostVector> host_triangle_values_;
+  VectorGroup<HostVector> host_triangle_values_perm_;
   VectorGroup<ExecVecT> triangle_values_;
   ExecVecT<scene::Material> materials_;
   Accel accel_;

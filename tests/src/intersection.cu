@@ -24,14 +24,21 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
     std::optional<unsigned> expected_idx;
   };
 
-  auto run_tests = [&](auto tag, SpanSized<const Triangle> triangles,
+  auto run_tests = [&](auto tag, SpanSized<const Triangle> triangles_in,
                        const HostDeviceVector<Test> &test_expected) {
     constexpr ExecutionModel exec = tag;
 
     EnumAccel<type, exec> inst;
 
     // Perhaps test partial
-    auto ref = inst.gen(settings, triangles, AABB());
+    RefPerm ref_perm = inst.gen(settings, triangles_in);
+    ASSERT_EQ(ref_perm.permutation.size(), triangles_in.size());
+    HostDeviceVector<Triangle> triangles_vec(triangles_in.size());
+    for (unsigned i = 0; i < triangles_in.size(); ++i) {
+      triangles_vec[i] = triangles_in[ref_perm.permutation[i]];
+    }
+    auto ref = ref_perm.ref;
+    SpanSized<const Triangle> triangles = triangles_vec;
 
     HostDeviceVector<std::optional<unsigned>> results(test_expected.size());
 
@@ -60,7 +67,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
   };
 
   {
-    HostDeviceVector<Triangle> triangles = {
+    HostVector<Triangle> triangles = {
         Triangle{{{{0, 0, 0}, {1, 0, 0}, {0, 1, 0}}}}};
     HostDeviceVector<Test> tests = {
         {Ray{{0.1, 0.1, -1}, UnitVector::new_normalize({0, 0, 1})}, 0},
@@ -83,7 +90,7 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
     for (unsigned trial_idx = 0; trial_idx < num_trials; ++trial_idx) {
       unsigned num_triangles = num_triangles_gen(gen);
 
-      HostDeviceVector<Triangle> triangles_vec(num_triangles);
+      HostVector<Triangle> triangles_vec(num_triangles);
       SpanSized<Triangle> triangles = triangles_vec;
 
       auto random_vec = [&] {
@@ -98,8 +105,10 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
 
       EnumAccel<AccelType::LoopAll, ExecutionModel::CPU> loop_all_inst;
 
-      auto loop_all_ref = loop_all_inst.gen(Settings<AccelType::LoopAll>(),
-                                            triangles.as_const(), AABB());
+      auto loop_all_ref =
+          loop_all_inst
+              .gen(Settings<AccelType::LoopAll>(), triangles.as_const())
+              .ref;
 
       auto get_ground_truth = [&](const Ray &ray) -> std::optional<unsigned> {
         auto a = loop_all_ref.intersect_objects(

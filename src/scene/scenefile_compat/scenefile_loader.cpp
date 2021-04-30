@@ -26,9 +26,6 @@ std::optional<Scene> ScenefileLoader::load_scene(const std::string &filename,
   quiet_ = quiet;
   loaded_meshes_.clear();
 
-  overall_min_b_transformed_ = max_eigen_vec();
-  overall_max_b_transformed_ = min_eigen_vec();
-
   CS123XmlSceneParser parser(filename);
   if (!parser.parse(quiet)) {
     return {};
@@ -60,9 +57,6 @@ std::optional<Scene> ScenefileLoader::load_scene(const std::string &filename,
   if (!parse_tree(scene_v, *parser.get_root_node(), dir + "/")) {
     return {};
   }
-
-  scene_v.overall_aabb_ = {overall_min_b_transformed_,
-                           overall_max_b_transformed_};
 
   return scene_v;
 }
@@ -137,10 +131,6 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
   auto add_mesh_instance = [&](unsigned idx,
                                const intersect::accel::AABB &aabb) {
     intersect::TransformedObject obj{transform, aabb};
-    overall_max_b_transformed_ =
-        overall_max_b_transformed_.cwiseMax(obj.bounds().max_bound);
-    overall_min_b_transformed_ =
-        overall_min_b_transformed_.cwiseMin(obj.bounds().min_bound);
     scene_v.transformed_objects_.push_back_all(obj, idx);
   };
 

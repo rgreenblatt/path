@@ -90,11 +90,8 @@ Ref::intersect_objects(const intersect::Ray &ray,
 
     if (start_end.has_value()) {
       for (unsigned idx = start_end->start; idx < start_end->end; idx++) {
-        // TODO: SPEED
-        // would it be better to enforce the same ordering everywhere somehow?
-        unsigned global_idx = local_idx_to_global_idx[idx];
-        auto intersection = intersectable_at_idx(global_idx, ray);
-        best = optional_min(best, add_idx(intersection, global_idx));
+        auto intersection = intersectable_at_idx(idx, ray);
+        best = optional_min(best, add_idx(intersection, idx));
       }
     }
 

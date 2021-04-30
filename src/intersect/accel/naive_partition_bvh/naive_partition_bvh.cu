@@ -21,11 +21,9 @@ NaivePartitionBVH<execution_model> &
 NaivePartitionBVH<execution_model>::operator=(NaivePartitionBVH &&) = default;
 
 template <ExecutionModel execution_model>
-detail::Ref
+RefPerm<detail::Ref>
 NaivePartitionBVH<execution_model>::gen_internal(const Settings &settings) {
-  auto [nodes, permutation] = gen_->gen(settings, bounds_);
-
-  return detail::Ref{nodes, permutation};
+  return gen_->gen(settings, bounds_);
 }
 
 template class NaivePartitionBVH<ExecutionModel::CPU>;

@@ -24,6 +24,10 @@ struct Triangle {
     return (vertices[1] - vertices[0]).cross(vertices[2] - vertices[0]);
   }
 
+  ATTR_PURE_NDEBUG HOST_DEVICE inline Eigen::Vector3f centroid() const {
+    return (vertices[0] + vertices[1] + vertices[2]) / 3;
+  }
+
   ATTR_PURE_NDEBUG HOST_DEVICE inline Eigen::Vector3f
   normal_scaled_by_area() const {
     return 0.5f * normal_raw();

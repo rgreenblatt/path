@@ -45,9 +45,6 @@ private:
   std::vector<uint8_t> is_emissive;
 
   CS123SceneGlobalData global_data_; // TODO: what is global data for....
-
-  Eigen::Vector3f overall_min_b_transformed_;
-  Eigen::Vector3f overall_max_b_transformed_;
 };
 } // namespace scenefile_compat
 } // namespace scene

@@ -71,9 +71,6 @@ public:
     return meshs_.get(tag_v<MeshT::EmissiveClusterEnd>);
   }
 
-  // Note: may not be very precise...
-  ATTR_PURE const AABB &overall_aabb() const { return overall_aabb_; }
-
 private:
   Scene() {}
 
@@ -117,8 +114,6 @@ private:
   TriangleGroup triangles_;
   std::vector<Material> materials_;
   std::vector<EmissiveCluster> emissive_clusters_;
-
-  intersect::accel::AABB overall_aabb_;
 
 #if 0
   std::vector<CS123SceneLightData> lights_;

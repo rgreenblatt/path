@@ -7,6 +7,7 @@ namespace enum_accel {
 enum class AccelType {
   LoopAll,
   NaivePartitionBVH,
+  SBVH,
 };
 } // namespace enum_accel
 } // namespace accel

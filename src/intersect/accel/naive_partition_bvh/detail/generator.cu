@@ -111,18 +111,19 @@ unsigned NaivePartitionBVH<execution_model>::Generator::construct(
 }
 
 template <ExecutionModel execution_model>
-Ref NaivePartitionBVH<execution_model>::Generator::gen(
-    const Settings &settings, SpanSized<Bounds> bounds) {
+RefPerm<Ref>
+NaivePartitionBVH<execution_model>::Generator::gen(const Settings &settings,
+                                                   SpanSized<Bounds> bounds) {
   settings_ = settings;
   settings_.num_objects_terminate =
       std::max(settings_.num_objects_terminate, 1u);
 
   nodes_.clear();
   nodes_out_.clear();
-  indexes_out_.clear();
+  indexes_.clear();
 
   if (bounds.size() == 0) {
-    return {nodes_out_, indexes_out_};
+    return {.ref = {.nodes = nodes_out_}, .permutation = indexes_};
   }
 
   indexes_.resize(bounds.size());
@@ -141,15 +142,12 @@ Ref NaivePartitionBVH<execution_model>::Generator::gen(
 
   if constexpr (execution_model == ExecutionModel::GPU) {
     nodes_out_.resize(nodes_.size());
-    indexes_out_.resize(indexes_.size());
     thrust::copy(nodes_.data(), nodes_.data() + nodes_.size(),
                  nodes_out_.begin());
-    thrust::copy(indexes_.data(), indexes_.data() + indexes_.size(),
-                 indexes_out_.begin());
 
-    return {.nodes = nodes_out_, .local_idx_to_global_idx = indexes_out_};
+    return {.ref = {.nodes = nodes_out_}, .permutation = indexes_};
   } else {
-    return {.nodes = nodes_, .local_idx_to_global_idx = indexes_};
+    return {.ref = {.nodes = nodes_}, .permutation = indexes_};
   }
 }
 
