@@ -49,7 +49,7 @@ settings:
             accel:
               type: NaivePartitionBVH
               value:
-                num_objects_terminate: 2
+                num_objects_terminate: 1
   light_sampler:
     type: RandomTriangle
     value:
