@@ -22,17 +22,20 @@ public:
   RefPerm<BVH> gen(const Settings &settings, SpanSized<Bounds> objects);
 
 private:
-  unsigned partition(unsigned start, unsigned end, uint8_t axis);
-  void kth_smallest(size_t start, size_t end, size_t k, uint8_t axis);
+  unsigned partition(SpanSized<Bounds> bounds, SpanSized<unsigned> idxs,
+                     uint8_t axis);
+  void kth_smallest(SpanSized<Bounds> bounds, SpanSized<unsigned> idxs,
+                    size_t k, uint8_t axis);
 
-  AABB get_bounding(unsigned start, unsigned end);
+  AABB get_bounding(SpanSized<Bounds> bounds);
 
-  unsigned construct(unsigned start_shape, unsigned end_shape, unsigned depth);
+  Node create_node(SpanSized<Bounds> bounds, SpanSized<unsigned> idxs,
+                   std::vector<Node> &nodes, unsigned start_idx,
+                   unsigned depth);
 
   bool terminate_here(unsigned start, unsigned end);
 
   HostVector<unsigned> indexes_;
-  Span<Bounds> bounds_;
   HostVector<Node> nodes_;
 
   template <typename T> using ExecVecT = ExecVector<exec, T>;

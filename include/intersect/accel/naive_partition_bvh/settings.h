@@ -8,7 +8,7 @@ namespace naive_partition_bvh {
 struct Settings {
   // if there are less than or equal to than this many objects in a given node,
   // terminate
-  unsigned num_objects_terminate = 2;
+  unsigned num_objects_terminate = 1;
 
   SETTING_BODY(Settings, num_objects_terminate);
 };

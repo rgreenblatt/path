@@ -27,11 +27,7 @@ SBVH<exec>::Generator::gen(const Settings &settings,
 
   copy_to_vec(nodes, nodes_);
 
-  return {
-      .ref = {.nodes = nodes_, .start_idx = 0},
-      .permutation = idxs,
-
-  };
+  return {.ref = {.nodes = nodes_}, .permutation = idxs};
 }
 
 template <ExecutionModel exec>
@@ -79,40 +75,40 @@ Node SBVH<exec>::Generator::create_node(SpanSized<Triangle> triangles,
             },
         .aabb = overall_aabb,
     };
-  } else {
-    nodes.resize(nodes.size() + 2);
-    unsigned left_idx = nodes.size() - 2;
-    unsigned right_idx = nodes.size() - 1;
-
-    std::vector<Triangle> old_triangles(triangles.begin(), triangles.end());
-    std::vector<unsigned> old_idxs(idxs.begin(), idxs.end());
-
-    for (unsigned i = 0; i < triangles.size(); ++i) {
-      unsigned perm_idx = overall_best_split.perm[i];
-      triangles[i] = old_triangles[perm_idx];
-      idxs[i] = old_idxs[perm_idx];
-    }
-
-    unsigned split_point = overall_best_split.split_point;
-
-    nodes[left_idx] = create_node(triangles.slice_to(split_point),
-                                  idxs.slice_to(split_point), nodes, start_idx);
-    nodes[right_idx] = create_node(triangles.slice_from(split_point),
-                                   idxs.slice_from(split_point), nodes,
-                                   start_idx + split_point);
-
-    return {
-        .value =
-            {
-                tag_v<NodeType::Split>,
-                {
-                    .left_index = left_idx,
-                    .right_index = right_idx,
-                },
-            },
-        .aabb = overall_aabb,
-    };
   }
+
+  nodes.resize(nodes.size() + 2);
+  unsigned left_idx = nodes.size() - 2;
+  unsigned right_idx = nodes.size() - 1;
+
+  std::vector<Triangle> old_triangles(triangles.begin(), triangles.end());
+  std::vector<unsigned> old_idxs(idxs.begin(), idxs.end());
+
+  for (unsigned i = 0; i < triangles.size(); ++i) {
+    unsigned perm_idx = overall_best_split.perm[i];
+    triangles[i] = old_triangles[perm_idx];
+    idxs[i] = old_idxs[perm_idx];
+  }
+
+  unsigned split_point = overall_best_split.split_point;
+
+  nodes[left_idx] = create_node(triangles.slice_to(split_point),
+                                idxs.slice_to(split_point), nodes, start_idx);
+  nodes[right_idx] =
+      create_node(triangles.slice_from(split_point),
+                  idxs.slice_from(split_point), nodes, start_idx + split_point);
+
+  return {
+      .value =
+          {
+              tag_v<NodeType::Split>,
+              {
+                  .left_idx = left_idx,
+                  .right_idx = right_idx,
+              },
+          },
+      .aabb = overall_aabb,
+  };
 }
 
 template <ExecutionModel exec>
@@ -213,8 +209,8 @@ float SBVH<exec>::Generator::sa_heurisitic_cost(SpanSized<const Node> nodes,
                node.aabb.surface_area();
       };
 
-      return settings_.traversal_per_intersect_cost +
-             get_cost(value.left_index) + get_cost(value.right_index);
+      return settings_.traversal_per_intersect_cost + get_cost(value.left_idx) +
+             get_cost(value.right_idx);
     }
   });
 }

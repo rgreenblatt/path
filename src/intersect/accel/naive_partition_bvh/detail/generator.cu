@@ -2,52 +2,91 @@
 #include "lib/assert.h"
 #include "lib/eigen_utils.h"
 
+#include <dbg.h>
+
 namespace intersect {
 namespace accel {
 namespace naive_partition_bvh {
 // inspired by https://www.geeksforgeeks.org/quickselect-algorithm/
 template <ExecutionModel exec>
-unsigned NaivePartitionBVH<exec>::Generator::partition(unsigned start,
-                                                       unsigned end,
+unsigned NaivePartitionBVH<exec>::Generator::partition(SpanSized<Bounds> bounds,
+                                                       SpanSized<unsigned> idxs,
                                                        uint8_t axis) {
-  float x = bounds_[end].center[axis];
-  size_t i = start;
-  for (size_t j = start; j <= end - 1; j++) {
-    if (bounds_[j].center[axis] <= x) {
-      std::swap(bounds_[i], bounds_[j]);
-      std::swap(indexes_[i], indexes_[j]);
+  always_assert(bounds.size() == idxs.size());
+  always_assert(!bounds.empty());
+
+  if (bounds.size() == 1) {
+    return 0;
+  }
+
+  unsigned end = bounds.size() - 1;
+  float x = bounds[end].center[axis];
+  size_t i = 0;
+  for (size_t j = 0; j <= end - 1; j++) {
+    if (bounds[j].center[axis] <= x) {
+      std::swap(bounds[i], bounds[j]);
+      std::swap(idxs[i], idxs[j]);
       i++;
     }
   }
-  std::swap(bounds_[i], bounds_[end]);
-  std::swap(indexes_[i], indexes_[end]);
+  std::swap(bounds[i], bounds[end]);
+  std::swap(idxs[i], idxs[end]);
 
   return i;
 }
 
+void check_kth_smallest(SpanSized<Bounds> bounds, size_t k, uint8_t axis) {
+  unsigned count_less = 0;
+  unsigned count_less_eq = 0;
+  float x = bounds[k].center[axis];
+  for (const Bounds &bound : bounds) {
+    if (bound.center[axis] < x) {
+      ++count_less;
+    }
+    if (bound.center[axis] <= x) {
+      ++count_less_eq;
+    }
+  }
+
+  always_assert(count_less <= k && k <= count_less_eq);
+}
+
 // inspired by https://www.geeksforgeeks.org/quickselect-algorithm/
 template <ExecutionModel exec>
-void NaivePartitionBVH<exec>::Generator::kth_smallest(size_t start, size_t end,
+void NaivePartitionBVH<exec>::Generator::kth_smallest(SpanSized<Bounds> bounds,
+                                                      SpanSized<unsigned> idxs,
                                                       size_t k, uint8_t axis) {
+  always_assert(bounds.size() == idxs.size());
+  always_assert(!bounds.empty());
+
   // Partition the array around last
   // element and get position of pivot
   // element in sorted array
-  size_t index = partition(start, end, axis);
+  size_t index = partition(bounds, idxs, axis);
 
-  // If position is same as k
-  if (index - start == k || (index - start == 1 && k == 0) ||
-      (end - index == 1 && k == end - start)) {
+  // If position next to k
+  if (index == k || (index == 1 && k == 0) ||
+      (index == bounds.size() - 2 && k == bounds.size() - 1)) {
+#ifndef NDEBUG
+    check_kth_smallest(bounds, k, axis);
+#endif
+
     return;
   }
 
   // If position is more, recur
   // for left subarray
-  if (index - start > k) {
-    return kth_smallest(start, index - 1, k, axis);
+  if (index > k) {
+    kth_smallest(bounds.slice_to(index), idxs.slice_to(index), k, axis);
+  } else {
+    // Else recur for right subarray
+    kth_smallest(bounds.slice_from(index + 1), idxs.slice_from(index + 1),
+                 k - index - 1, axis);
   }
 
-  // Else recur for right subarray
-  kth_smallest(index + 1, end, k - index + start - 1, axis);
+#ifndef NDEBUG
+  check_kth_smallest(bounds, k, axis);
+#endif
 }
 
 template <ExecutionModel exec>
@@ -57,55 +96,64 @@ bool NaivePartitionBVH<exec>::Generator::terminate_here(unsigned start,
 }
 
 template <ExecutionModel exec>
-AABB NaivePartitionBVH<exec>::Generator::get_bounding(unsigned start,
-                                                      unsigned end) {
-  debug_assert(start != end);
+AABB NaivePartitionBVH<exec>::Generator::get_bounding(
+    SpanSized<Bounds> bounds) {
+  AABB out = AABB::empty();
 
-  AABB out = bounds_[start].aabb;
-  for (unsigned i = start + 1; i < end; i++) {
-    out = out.union_other(bounds_[i].aabb);
+  for (const Bounds &bound : bounds) {
+    out = out.union_other(bound.aabb);
   }
 
   return out;
 }
 
 template <ExecutionModel exec>
-unsigned NaivePartitionBVH<exec>::Generator::construct(unsigned start,
-                                                       unsigned end,
-                                                       unsigned depth) {
-  debug_assert(start != end);
-  if (terminate_here(start, end)) {
-    auto total_bounds = get_bounding(start, end);
-    unsigned index = nodes_.size();
-    nodes_.push_back({
-        .value = {tag_v<NodeType::Items>, {.start = start, .end = end}},
-        .aabb = total_bounds,
-    });
+Node NaivePartitionBVH<exec>::Generator::create_node(SpanSized<Bounds> bounds,
+                                                     SpanSized<unsigned> idxs,
+                                                     std::vector<Node> &nodes,
+                                                     unsigned start_idx,
+                                                     unsigned depth) {
+  always_assert(bounds.size() == idxs.size());
+  always_assert(!bounds.empty());
 
-    return index;
+  if (bounds.size() <= settings_.num_objects_terminate) {
+    auto total_bounds = get_bounding(bounds);
+    return {
+        .value = {tag_v<NodeType::Items>,
+                  {
+                      .start = start_idx,
+                      .end = start_idx + static_cast<unsigned>(bounds.size()),
+                  }},
+        .aabb = total_bounds,
+    };
   }
 
+  const size_t k = bounds.size() / 2;
+  always_assert(k != 0);
+
   const unsigned axis = depth % 3;
-  const size_t k = (end - start) / 2;
-  kth_smallest(start, end - 1, k, axis);
+
+  kth_smallest(bounds, idxs, k, axis);
+
   unsigned new_depth = depth + 1;
-  unsigned left_index, right_index;
-  left_index = construct(start, start + k, new_depth);
-  right_index = start + k == end ? 0 : construct(start + k, end, new_depth);
-  auto &left = nodes_[left_index];
-  auto &right = nodes_[right_index];
 
-  unsigned index = nodes_.size();
-  nodes_.push_back({
-      .value = {tag_v<NodeType::Split>,
-                {
-                    .left_index = left_index,
-                    .right_index = right_index,
-                }},
-      .aabb = left.aabb.union_other(right.aabb),
-  });
+  nodes.resize(nodes.size() + 2);
+  unsigned left_idx = nodes.size() - 2;
+  unsigned right_idx = nodes.size() - 1;
 
-  return index;
+  nodes[left_idx] = create_node(bounds.slice_to(k), idxs.slice_to(k), nodes,
+                                start_idx, new_depth);
+  nodes[right_idx] = create_node(bounds.slice_from(k), idxs.slice_from(k),
+                                 nodes, start_idx + k, new_depth);
+
+  return {
+      .value =
+          {
+              tag_v<NodeType::Split>,
+              {.left_idx = left_idx, .right_idx = right_idx},
+          },
+      .aabb = nodes[left_idx].aabb.union_other(nodes[right_idx].aabb),
+  };
 }
 
 template <ExecutionModel exec>
@@ -115,40 +163,30 @@ RefPerm<BVH> NaivePartitionBVH<exec>::Generator::gen(const Settings &settings,
   settings_.num_objects_terminate =
       std::max(settings_.num_objects_terminate, 1u);
 
-  nodes_.clear();
   nodes_out_.clear();
   indexes_.clear();
 
   if (bounds.size() == 0) {
-    return {.ref = {.nodes = nodes_out_, .start_idx = unsigned(-1)},
-            .permutation = indexes_};
+    return {.ref = {.nodes = nodes_out_}, .permutation = indexes_};
   }
 
   indexes_.resize(bounds.size());
-  bounds_ = bounds;
 
   for (unsigned i = 0; i < bounds.size(); ++i) {
     indexes_[i] = i;
   }
 
-  nodes_.push_back({
-      .value = {tag_v<NodeType::Items>, {.start = 0, .end = 0}},
-      .aabb = {.min_bound = max_eigen_vec(), .max_bound = min_eigen_vec()},
-  });
-
-  construct(0, bounds.size(), 0);
+  nodes_.resize(1);
+  nodes_[0] = create_node(bounds, indexes_, nodes_, 0, 0);
 
   if constexpr (exec == ExecutionModel::GPU) {
     nodes_out_.resize(nodes_.size());
     thrust::copy(nodes_.data(), nodes_.data() + nodes_.size(),
                  nodes_out_.begin());
 
-    return {
-        .ref = {.nodes = nodes_out_, .start_idx = unsigned(nodes_.size() - 1)},
-        .permutation = indexes_};
+    return {.ref = {.nodes = nodes_out_}, .permutation = indexes_};
   } else {
-    return {.ref = {.nodes = nodes_, .start_idx = unsigned(nodes_.size() - 1)},
-            .permutation = indexes_};
+    return {.ref = {.nodes = nodes_}, .permutation = indexes_};
   }
 }
 

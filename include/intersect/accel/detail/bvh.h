@@ -10,9 +10,6 @@ namespace detail {
 struct BVH {
   SpanSized<const Node> nodes;
 
-  // TODO: remove this hack...
-  unsigned start_idx;
-
   template <IntersectableAtIdx F>
   HOST_DEVICE inline AccelRet<F>
   intersect_objects(const intersect::Ray &ray,

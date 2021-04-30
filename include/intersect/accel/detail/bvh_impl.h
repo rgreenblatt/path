@@ -34,7 +34,7 @@ BVH::intersect_objects(const intersect::Ray &ray,
   auto inv_direction = (1.0f / direction_no_zeros.array()).eval();
 
   Stack<unsigned, 64> node_stack;
-  node_stack.push(start_idx);
+  node_stack.push(0);
 
   StartEnd<unsigned> start_end = {.start = 0u, .end = 0u};
 
@@ -51,8 +51,8 @@ BVH::intersect_objects(const intersect::Ray &ray,
            best->intersection_dist > *bounding_intersection)) {
         current_node.value.visit_tagged([&](auto tag, const auto &v) {
           if constexpr (tag == NodeType::Split) {
-            node_stack.push(v.right_index);
-            node_stack.push(v.left_index);
+            node_stack.push(v.right_idx);
+            node_stack.push(v.left_idx);
           } else {
             static_assert(tag == NodeType::Items);
             start_end = v;

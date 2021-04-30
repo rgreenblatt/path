@@ -64,8 +64,8 @@ Ref::intersect_objects(const intersect::Ray &ray,
             const auto intersection_point =
                 ray.origin[axis] +
                 (*ray.direction)[axis] * *bounding_intersection;
-            auto first = v.left_index;
-            auto second = v.right_index;
+            auto first = v.left_idx;
+            auto second = v.right_idx;
 
             // use this as a hint for where to traverse next
             if (intersection_point > v.division_point) {

@@ -9,8 +9,8 @@ namespace intersect {
 namespace accel {
 namespace detail {
 struct Split {
-  unsigned left_index;
-  unsigned right_index;
+  unsigned left_idx;
+  unsigned right_idx;
 };
 
 enum class NodeType {
