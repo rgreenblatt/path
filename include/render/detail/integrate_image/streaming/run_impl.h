@@ -20,52 +20,38 @@
 #include <thrust/for_each.h>
 #include <thrust/iterator/counting_iterator.h>
 
+#include <dbg.h>
+
 namespace render {
 namespace detail {
 namespace integrate_image {
 namespace streaming {
 namespace detail {
-// returns sample count
 template <ExecutionModel exec, typename Inp, typename State>
 void initialize(const Inp &inp, State &state,
-                const kernel::WorkDivision &division, unsigned samples_per_loc,
-                unsigned start_block_init, unsigned end_block_init,
+                const kernel::WorkDivision &division, unsigned start_block_init,
+                unsigned end_block_init, unsigned max_num_samples_to_init,
                 bool parity) {
-  auto get_sample = [&](unsigned block_idx) {
-    auto thread_info = division.get_thread_info(block_idx, 0).info;
-    unsigned x_dim = division.x_dim();
-    // full 64 is required to avoid overflow
-    uint64_t locs_before =
-        thread_info.y * x_dim + std::min(thread_info.x, x_dim - 1);
-    return samples_per_loc * locs_before + thread_info.start_sample;
-  };
-
-  auto start_thread_info = division.get_thread_info(start_block_init, 0).info;
-  unsigned start_x = start_thread_info.x;
-  unsigned start_y = start_thread_info.y;
-  unsigned start_loc_sample = start_thread_info.start_sample;
-
-  uint64_t start_overall_sample = get_sample(start_block_init);
-  uint64_t end_overall_sample = get_sample(end_block_init);
-  unsigned sample_count = end_overall_sample - start_overall_sample;
-
   auto &rays_in = state.rays_in_and_out[parity];
   auto &rng_states_in = state.rng_states_in_and_out[parity];
 
+  state.local_idx.set(0);
+
   unsigned existing_rays = rays_in.size();
-  unsigned new_rays = existing_rays + sample_count;
-  rays_in.resize(new_rays);
-
   unsigned existing_states = rng_states_in.size();
-  unsigned new_states = existing_states + sample_count;
-  rng_states_in.resize(new_states);
 
-  Span rays_in_span = Span{rays_in}.slice(existing_rays, new_rays).as_unsized();
+  unsigned max_new_rays = existing_rays + max_num_samples_to_init;
+  unsigned max_new_states = existing_states + max_num_samples_to_init;
+
+  rays_in.resize(max_new_rays);
+  rng_states_in.resize(max_new_states);
+  state.initial_sample_info.resize(max_num_samples_to_init);
+
+  Span rays_in_span = Span{rays_in}.slice_from(existing_rays).as_unsized();
   Span rng_states_in_span =
-      Span{rng_states_in}.slice(existing_states, new_states).as_unsized();
-
-  state.initial_sample_info.resize(sample_count);
+      Span{rng_states_in}.slice_from(existing_states).as_unsized();
   Span initial_sample_info = Span{state.initial_sample_info}.as_unsized();
+  Span local_idx_span = state.local_idx.span().as_unsized();
 
   auto rng = inp.items.rng;
   auto film_to_world = inp.items.film_to_world;
@@ -76,22 +62,20 @@ void initialize(const Inp &inp, State &state,
           [=] HOST_DEVICE(const kernel::WorkDivision &division,
                           const kernel::GridLocationInfo &info, unsigned,
                           unsigned, const auto &, const auto &) {
-            // note that info.x - start_x may underflow (which is fine)
-            unsigned locs_from_start =
-                (info.y - start_y) * division.x_dim() + (info.x - start_x);
-
-            unsigned loc_local_idx = locs_from_start * samples_per_loc;
-
             unsigned location =
                 kernel::get_location(info.x, info.y, division.x_dim());
+            // this atomic usage is pretty gross, but its simple
+            // and faster enough I guess (this kernel isn't limiting...)
+            unsigned base_local_idx = local_idx_span[0].fetch_add(
+                info.end_sample - info.start_sample);
             for (unsigned sample_idx = info.start_sample;
                  sample_idx < info.end_sample; ++sample_idx) {
-              unsigned local_idx =
-                  loc_local_idx + (sample_idx - start_loc_sample);
               auto rng_state = rng.get_generator(sample_idx, location);
               auto [ray, ray_info] = initial_ray_sample(
                   rng_state, info.x, info.y, division.x_dim(), division.y_dim(),
                   film_to_world);
+              unsigned local_idx =
+                  base_local_idx + (sample_idx - info.start_sample);
               rng_states_in_span[local_idx] = rng_state.save();
               rays_in_span[local_idx] = ray;
               initial_sample_info[local_idx] = {
@@ -102,6 +86,15 @@ void initialize(const Inp &inp, State &state,
               };
             }
           }));
+
+  unsigned num_samples = state.local_idx.get().as_inner();
+
+  unsigned new_rays = existing_rays + num_samples;
+  unsigned new_states = existing_states + num_samples;
+
+  rays_in.resize(new_rays);
+  rng_states_in.resize(new_states);
+  state.initial_sample_info.resize(num_samples);
 }
 
 template <ExecutionModel exec, typename Inp>
@@ -244,8 +237,8 @@ void Run<exec>::run(
         (attempt_end_block_init == total_num_init_blocks &&
          init_num_blocks > 0)) {
       total_init.start();
-      initialize<exec>(inp, state, init_division, inp.samples_per,
-                       start_block_init, attempt_end_block_init, parity);
+      initialize<exec>(inp, state, init_division, start_block_init,
+                       attempt_end_block_init, max_num_samples_to_init, parity);
       total_init.stop();
       always_assert(state.initial_sample_info.size() > 0);
       end_block_init = attempt_end_block_init;
@@ -269,7 +262,8 @@ void Run<exec>::run(
       auto sample_states_span = sample_states_span_in.as_unsized();
 
       Span states_out_span = Span{states_out}.as_unsized();
-      Span rng_states_out_span = Span{rng_states_out}.as_unsized();
+      // Span rng_states_out_span = Span{rng_states_out}.as_unsized();
+      Span rng_states_out_span = Span{rng_states_out};
       Span rays_out_span = Span{rays_out}.as_unsized();
       Span rng_states_in_span = Span{rng_states_in}.as_unsized().as_const();
       Span rays_in_span = Span{rays_in}.as_unsized().as_const();

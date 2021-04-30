@@ -37,6 +37,7 @@ struct State {
 
   ExecSingleItem<exec, kernel::Atomic<exec, unsigned>> state_idx = {0};
   ExecSingleItem<exec, kernel::Atomic<exec, unsigned>> ray_idx = {0};
+  ExecSingleItem<exec, kernel::Atomic<exec, unsigned>> local_idx = {0};
 
   // TODO: add things as needed for bulk approaches
   //

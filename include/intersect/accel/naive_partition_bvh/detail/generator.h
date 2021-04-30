@@ -2,7 +2,6 @@
 
 #include "execution_model/execution_model_vector_type.h"
 #include "intersect/accel/aabb.h"
-#include "intersect/accel/naive_partition_bvh/detail/node.h"
 #include "intersect/accel/naive_partition_bvh/naive_partition_bvh.h"
 #include "intersect/accel/naive_partition_bvh/settings.h"
 #include "lib/span.h"
@@ -11,6 +10,7 @@
 
 namespace intersect {
 namespace accel {
+using namespace detail;
 namespace naive_partition_bvh {
 // should only be used from detail context
 using namespace detail;
@@ -19,7 +19,7 @@ template <ExecutionModel exec> class NaivePartitionBVH<exec>::Generator {
 public:
   Generator() = default;
 
-  RefPerm<Ref> gen(const Settings &settings, SpanSized<Bounds> objects);
+  RefPerm<BVH> gen(const Settings &settings, SpanSized<Bounds> objects);
 
 private:
   unsigned partition(unsigned start, unsigned end, uint8_t axis);

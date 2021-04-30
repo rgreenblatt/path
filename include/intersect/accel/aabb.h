@@ -15,6 +15,10 @@ struct AABB {
   Eigen::Vector3f min_bound;
   Eigen::Vector3f max_bound;
 
+  ATTR_PURE_NDEBUG HOST_DEVICE static inline AABB empty() {
+    return {.min_bound = max_eigen_vec(), .max_bound = min_eigen_vec()};
+  }
+
   // implementing bounded
   ATTR_PURE_NDEBUG HOST_DEVICE inline const AABB &bounds() const {
     return *this;
@@ -53,6 +57,12 @@ struct AABB {
 
   ATTR_PURE_NDEBUG HOST_DEVICE float surface_area() const {
     auto dims = (max_bound - min_bound).eval();
+
+    // handle "empty" case
+    if (dims.x() < 0.f) {
+      return 0.;
+    }
+
     return 2 *
            (dims.x() * dims.y() + dims.z() * dims.y() + dims.z() * dims.x());
   }

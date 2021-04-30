@@ -7,17 +7,10 @@
 
 namespace intersect {
 namespace accel {
-namespace naive_partition_bvh {
 namespace detail {
-struct Bounds {
-  AABB aabb;
-  Eigen::Vector3f center;
-};
-
 struct Split {
   unsigned left_index;
   unsigned right_index;
-  float division_point;
 };
 
 enum class NodeType {
@@ -32,6 +25,5 @@ struct Node {
   AABB aabb;
 };
 } // namespace detail
-} // namespace naive_partition_bvh
 } // namespace accel
 } // namespace intersect

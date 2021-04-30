@@ -3,7 +3,7 @@
 #include "execution_model/execution_model_vector_type.h"
 #include "execution_model/thrust_data.h"
 #include "intersect/accel/accel.h"
-#include "intersect/accel/naive_partition_bvh/detail/node.h"
+#include "intersect/accel/detail/bvh.h"
 #include "intersect/accel/naive_partition_bvh/settings.h"
 #include "lib/attribute.h"
 #include "meta/all_values/impl/enum.h"
@@ -14,14 +14,9 @@ namespace intersect {
 namespace accel {
 namespace naive_partition_bvh {
 namespace detail {
-// In this case, the Ref type doesn't depend on the ExecutionModel
-struct Ref {
-  SpanSized<const Node> nodes;
-
-  template <IntersectableAtIdx F>
-  HOST_DEVICE inline AccelRet<F>
-  intersect_objects(const intersect::Ray &ray,
-                    const F &intersectable_at_idx) const;
+struct Bounds {
+  AABB aabb;
+  Eigen::Vector3f center;
 };
 } // namespace detail
 
@@ -33,11 +28,10 @@ public:
   NaivePartitionBVH(NaivePartitionBVH &&);
   NaivePartitionBVH &operator=(NaivePartitionBVH &&);
 
-  using Ref = detail::Ref;
+  using Ref = accel::detail::BVH;
 
   template <Bounded B>
-  RefPerm<detail::Ref> gen(const Settings &settings,
-                           SpanSized<const B> objects) {
+  RefPerm<Ref> gen(const Settings &settings, SpanSized<const B> objects) {
     bounds_.resize(objects.size());
 
     for (unsigned i = 0; i < objects.size(); ++i) {
@@ -49,7 +43,7 @@ public:
   }
 
 private:
-  RefPerm<detail::Ref> gen_internal(const Settings &settings);
+  RefPerm<Ref> gen_internal(const Settings &settings);
 
   // PIMPL
   class Generator;

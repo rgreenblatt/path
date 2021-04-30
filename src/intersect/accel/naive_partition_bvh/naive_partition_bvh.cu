@@ -19,8 +19,7 @@ NaivePartitionBVH<exec> &
 NaivePartitionBVH<exec>::operator=(NaivePartitionBVH &&) = default;
 
 template <ExecutionModel exec>
-RefPerm<detail::Ref>
-NaivePartitionBVH<exec>::gen_internal(const Settings &settings) {
+RefPerm<BVH> NaivePartitionBVH<exec>::gen_internal(const Settings &settings) {
   return gen_->gen(settings, bounds_);
 }
 

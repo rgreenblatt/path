@@ -88,7 +88,6 @@ unsigned NaivePartitionBVH<exec>::Generator::construct(unsigned start,
   const unsigned axis = depth % 3;
   const size_t k = (end - start) / 2;
   kth_smallest(start, end - 1, k, axis);
-  float median = bounds_[k + start].center[axis];
   unsigned new_depth = depth + 1;
   unsigned left_index, right_index;
   left_index = construct(start, start + k, new_depth);
@@ -102,7 +101,6 @@ unsigned NaivePartitionBVH<exec>::Generator::construct(unsigned start,
                 {
                     .left_index = left_index,
                     .right_index = right_index,
-                    .division_point = median,
                 }},
       .aabb = left.aabb.union_other(right.aabb),
   });
@@ -111,7 +109,7 @@ unsigned NaivePartitionBVH<exec>::Generator::construct(unsigned start,
 }
 
 template <ExecutionModel exec>
-RefPerm<Ref> NaivePartitionBVH<exec>::Generator::gen(const Settings &settings,
+RefPerm<BVH> NaivePartitionBVH<exec>::Generator::gen(const Settings &settings,
                                                      SpanSized<Bounds> bounds) {
   settings_ = settings;
   settings_.num_objects_terminate =
@@ -122,7 +120,8 @@ RefPerm<Ref> NaivePartitionBVH<exec>::Generator::gen(const Settings &settings,
   indexes_.clear();
 
   if (bounds.size() == 0) {
-    return {.ref = {.nodes = nodes_out_}, .permutation = indexes_};
+    return {.ref = {.nodes = nodes_out_, .start_idx = unsigned(-1)},
+            .permutation = indexes_};
   }
 
   indexes_.resize(bounds.size());
@@ -144,9 +143,12 @@ RefPerm<Ref> NaivePartitionBVH<exec>::Generator::gen(const Settings &settings,
     thrust::copy(nodes_.data(), nodes_.data() + nodes_.size(),
                  nodes_out_.begin());
 
-    return {.ref = {.nodes = nodes_out_}, .permutation = indexes_};
+    return {
+        .ref = {.nodes = nodes_out_, .start_idx = unsigned(nodes_.size() - 1)},
+        .permutation = indexes_};
   } else {
-    return {.ref = {.nodes = nodes_}, .permutation = indexes_};
+    return {.ref = {.nodes = nodes_, .start_idx = unsigned(nodes_.size() - 1)},
+            .permutation = indexes_};
   }
 }
 

@@ -29,6 +29,17 @@ class PathCMakeBuild(BaseCMakeBuilder):
                                 dest='cpu_only',
                                 action='store_false',
                                 help='build for the cpu and gpu')
+            # could also just use --release-with-debug but that's less explicit
+            parser.add_argument(
+                '--force-assertions',
+                dest='force_assertions',
+                action='store_true',
+                help='force assertions to be enabled')
+            parser.add_argument(
+                '--no-force-assertions',
+                dest='force_assertions',
+                action='store_false',
+                help="don't force assertions to be enabled")
             parser.add_argument('--cuda-archs',
                                 default='75',
                                 help='cuda architectures (sm_*)')
@@ -53,6 +64,8 @@ class PathCMakeBuild(BaseCMakeBuilder):
         running = ""
         if self.args.cpu_only:
             running += "_cpu_only"
+        if self.args.force_assertions:
+            running += "_force_assertions"
         if self.args.cxx_compiler == "g++" or self.args.cxx_compiler == "gcc":
             running += "_gnu"
         return running
@@ -75,6 +88,8 @@ class PathCMakeBuild(BaseCMakeBuilder):
         if self.args.cpu_only:
             print("WARN: building CPU_ONLY which is very hacky...")
             out += ["-DCPU_ONLY=ON"]
+        if self.args.force_assertions:
+            out += ["-DFORCE_ASSERTIONS=ON"]
         with suppress(AttributeError):
             if self.args.build_benchmarks:
                 out += [

@@ -81,6 +81,7 @@ option(SYNTAX_ONLY "only check syntax (-fsyntax-only)" OFF)
 # * very hacky, but saves a decent amount of compile time
 # * not much difference with SYNTAX_ONLY
 option(CPU_ONLY "don't build for the gpu (very hacky...)" OFF)
+option(FORCE_ASSERTIONS "enable assertions (in release)" OFF)
 
 if(SYNTAX_ONLY)
   add_compile_options(-fsyntax-only)
@@ -120,6 +121,10 @@ if(SYNTAX_ONLY)
   set(CMAKE_CUDA_COMPILER_LAUNCHER "")
 endif()
 
+if(FORCE_ASSERTIONS)
+  add_compile_options(-UNDEBUG)
+endif()
+
 add_subdirectory("${PROJECT_SOURCE_DIR}/extern/docopt.cpp")
 add_subdirectory("${PROJECT_SOURCE_DIR}/extern/yaml-cpp")
 
@@ -134,10 +139,7 @@ if(CPU_ONLY)
   endif()
 
   add_compile_options(
-    $<$<COMPILE_LANGUAGE:CUDA>:-xc++;-Wno-unused-command-line-argument>)
-  include_directories(
-    SYSTEM
-    $<$<COMPILE_LANGUAGE:CUDA>:"${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}")
+    "$<$<COMPILE_LANGUAGE:CUDA>:-xc++;-Wno-unused-command-line-argument;-I${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}>")
 endif()
 
 macro(target_add_standard TARGET_NAME)
@@ -177,7 +179,10 @@ endmacro()
 add_library(
   intersect STATIC
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/naive_partition_bvh/naive_partition_bvh.cu"
-  "${PROJECT_SOURCE_DIR}/src/intersect/accel/naive_partition_bvh/detail/generator.cu")
+  "${PROJECT_SOURCE_DIR}/src/intersect/accel/naive_partition_bvh/detail/generator.cu"
+  "${PROJECT_SOURCE_DIR}/src/intersect/accel/sbvh/sbvh.cu"
+  "${PROJECT_SOURCE_DIR}/src/intersect/accel/sbvh/detail/generator.cu"
+  )
 target_add_standard(intersect)
 target_link_libraries(intersect PRIVATE OpenMP::OpenMP_CXX)
 
@@ -304,9 +309,8 @@ if(BUILD_BENCHMARKS OR CMAKE_EXPORT_COMPILE_COMMANDS)
   package_add_bench(render_bench
                     "${PROJECT_SOURCE_DIR}/benchmarks/src/render.cpp")
   target_link_libraries(render_bench PRIVATE renderer_from_files)
-  # disabed because it is slow to build...
-  # package_add_bench(reduce_bench
-  #                   "${PROJECT_SOURCE_DIR}/benchmarks/src/reduce.cu")
+  # disabed because it is slow to build... package_add_bench(reduce_bench
+  # "${PROJECT_SOURCE_DIR}/benchmarks/src/reduce.cu")
   # target_compile_options(reduce_bench PRIVATE -fconstexpr-steps=10000000)
   # target_link_libraries(reduce_bench PRIVATE kernel)
 
