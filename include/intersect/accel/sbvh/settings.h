@@ -7,7 +7,7 @@ namespace accel {
 namespace sbvh {
 struct Settings {
   // NOTE: this assumes single intersection cost
-  float traversal_per_intersect_cost = 2.;
+  float traversal_per_intersect_cost = 0.2;
 
   // alpha from original paper
   float overlap_threshold = 1e-5;

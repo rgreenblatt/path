@@ -1,38 +1,11 @@
 settings:
-  # kernel_approach:
-  #   type: MegaKernel
-  #   value:
-  #     computation_settings:
-  #       max_blocks_per_launch_gpu: 4096
-  #       max_blocks_per_launch_cpu: 128
-  #       render_work_division:
-  #         block_size: 256
-  #         target_x_block_size: 32
-  #         force_target_samples: false
-  #         forced_target_samples_per_thread: 8
-  #         base_num_threads: 16384
-  #         samples_per_thread_scaling_power: 0.5
-  #         max_samples_per_thread: 32
-  #       reduce_work_division:
-  #         block_size: 256
-  #         target_x_block_size: 256
-  #         force_target_samples: false
-  #         forced_target_samples_per_thread: 8
-  #         base_num_threads: 16384
-  #         samples_per_thread_scaling_power: 0.5
-  #         max_samples_per_thread: 32
-  #     individually_intersectable_settings:
-  #       accel:
-  #         type: NaivePartitionBVH
-  #         value:
-  #           num_objects_terminate: 2
   kernel_approach:
-    type: Streaming
+    type: MegaKernel
     value:
       computation_settings:
-        max_num_samples_per_launch: 4194304
-        min_num_init_blocks: 16
-        init_samples_division:
+        max_blocks_per_launch_gpu: 4096
+        max_blocks_per_launch_cpu: 128
+        render_work_division:
           block_size: 256
           target_x_block_size: 32
           force_target_samples: false
@@ -40,16 +13,45 @@ settings:
           base_num_threads: 16384
           samples_per_thread_scaling_power: 0.5
           max_samples_per_thread: 32
-      accel:
-        type: IndividualToBulk
-        value:
-          to_bulk_settings:
-            max_size: 2097152
-          individual_settings:
-            accel:
-              type: NaivePartitionBVH
-              value:
-                num_objects_terminate: 1
+        reduce_work_division:
+          block_size: 256
+          target_x_block_size: 256
+          force_target_samples: false
+          forced_target_samples_per_thread: 8
+          base_num_threads: 16384
+          samples_per_thread_scaling_power: 0.5
+          max_samples_per_thread: 32
+      individually_intersectable_settings:
+        accel:
+          type: SBVH
+          value:
+            traversal_per_intersect_cost: .2
+            overlap_threshold: 1e-5
+  # kernel_approach:
+  #   type: Streaming
+  #   value:
+  #     computation_settings:
+  #       max_num_samples_per_launch: 4194304
+  #       min_num_init_blocks: 16
+  #       init_samples_division:
+  #         block_size: 256
+  #         target_x_block_size: 32
+  #         force_target_samples: false
+  #         forced_target_samples_per_thread: 8
+  #         base_num_threads: 16384
+  #         samples_per_thread_scaling_power: 0.5
+  #         max_samples_per_thread: 32
+  #     accel:
+  #       type: IndividualToBulk
+  #       value:
+  #         to_bulk_settings:
+  #           max_size: 2097152
+  #         individual_settings:
+  #           accel:
+  #             type: SBVH
+  #             value:
+  #               traversal_per_intersect_cost: .2
+  #               overlap_threshold: 1e-5
   light_sampler:
     type: RandomTriangle
     value:

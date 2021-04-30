@@ -6,12 +6,12 @@
 
 namespace render {
 struct IndividuallyIntersectableSettings {
+  using AccelType = intersect::accel::enum_accel::AccelType;
   using FlatAccelSettings =
-      TaggedUnionPerInstance<intersect::accel::enum_accel::AccelType,
-                             intersect::accel::enum_accel::Settings>;
+      TaggedUnionPerInstance<AccelType, intersect::accel::enum_accel::Settings>;
 
   // TODO: consider adding more accel types (like 2 layer accel)
-  FlatAccelSettings accel;
+  FlatAccelSettings accel = tag_v<AccelType::SBVH>;
 
   using CompileTime = intersect::accel::enum_accel::AccelType;
 

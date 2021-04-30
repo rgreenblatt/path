@@ -25,22 +25,7 @@ using enum_term_prob::TermProbType;
 using rng::enum_rng::RngType;
 
 struct Settings {
-  KernelApproachSettings kernel_approach = {
-      tag_v<KernelApproach::Streaming>,
-      {
-          .computation_settings = {},
-          .accel =
-              {
-                  tag_v<StreamingSettings::BulkIntersectionApproaches::
-                            IndividualToBulk>,
-                  {
-                      .individual_settings =
-                          {
-                              .accel = tag_v<AccelType::NaivePartitionBVH>,
-                          },
-                  },
-              },
-      }};
+  KernelApproachSettings kernel_approach = {tag_v<KernelApproach::MegaKernel>};
 
   TaggedUnionPerInstance<LightSamplerType, enum_light_sampler::Settings>
       light_sampler = {tag_v<LightSamplerType::RandomTriangle>};
