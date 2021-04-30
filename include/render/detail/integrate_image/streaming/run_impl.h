@@ -201,6 +201,8 @@ void Run<exec>::run(
   state.states_in_and_out[!parity].resize(0);
 
   state.float_rgb.resize(inp.x_dim * inp.y_dim);
+  thrust::fill(state.float_rgb.begin(), state.float_rgb.end(),
+               std::array<kernel::Atomic<exec, float>, 3>{});
   Span float_rgb_atomic = Span{state.float_rgb}.as_unsized();
 
   unsigned num_states = 0;
