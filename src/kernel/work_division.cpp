@@ -42,11 +42,6 @@ WorkDivision::WorkDivision(const WorkDivisionSettings &settings,
 
   sample_block_size_ = std::min(n_threads_per_location, block_size_);
 
-  always_assert(base_samples_per_thread_ * sample_block_size_ +
-                    n_threads_per_unit_extra_ ==
-                samples_per);
-  always_assert(n_threads_per_unit_extra_ < n_threads_per_location);
-
   unsigned x_y_block_size = block_size_ / sample_block_size_;
   x_block_size_ = std::min(x_y_block_size, settings.target_x_block_size);
   y_block_size_ = x_y_block_size / x_block_size_;
@@ -59,6 +54,12 @@ WorkDivision::WorkDivision(const WorkDivisionSettings &settings,
   num_sample_blocks_ = n_threads_per_location / sample_block_size_;
   num_x_blocks_ = ceil_divide(x_dim, x_block_size_);
   num_y_blocks_ = ceil_divide(y_dim, y_block_size_);
+
+  always_assert(base_samples_per_thread_ * sample_block_size_ *
+                        num_sample_blocks_ +
+                    n_threads_per_unit_extra_ ==
+                samples_per);
+  always_assert(n_threads_per_unit_extra_ < n_threads_per_location);
 
   x_dim_ = x_dim;
   y_dim_ = y_dim;
