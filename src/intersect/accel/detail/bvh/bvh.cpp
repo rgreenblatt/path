@@ -16,10 +16,11 @@ void check_and_print_stats(SpanSized<const Node> nodes, Settings settings,
   std::map<unsigned, unsigned> size_counts;
 
   for (const Node &node : nodes) {
-    if (node.value.type() != NodeType::Items) {
+    auto value = node.value.as_rep();
+    if (value.type() != NodeType::Items) {
       continue;
     }
-    unsigned size = node.value.get(tag_v<NodeType::Items>).size();
+    unsigned size = value.get(tag_v<NodeType::Items>).size();
     min_size = std::min(min_size, size);
     max_size = std::max(max_size, size);
     total_size += size;
@@ -44,7 +45,7 @@ float sa_heurisitic_cost_impl(SpanSized<const Node> nodes,
                               float traversal_per_intersect_cost,
                               unsigned start_node) {
   const auto &node = nodes[start_node];
-  return node.value.visit_tagged([&](auto tag, const auto &value) {
+  return node.value.as_rep().visit_tagged([&](auto tag, const auto &value) {
     if constexpr (tag == NodeType::Items) {
       return value.size();
     } else {

@@ -15,15 +15,21 @@ namespace sbvh {
 // should only be used from detail context
 using namespace detail;
 
+// "base_cost" refers to SAH cost, but without dividing by the outer
+// node surface area and without the traversal cost
+
 struct ObjectSplitCandidate {
   std::vector<unsigned> perm;
   unsigned split_point;
-  float cost;
+  float base_cost;
 };
 
 struct SpatialSplitCandidate {
-  float cost;
-  float position;
+  float base_cost;
+  std::vector<unsigned> left_triangles;
+  std::vector<unsigned> right_triangles;
+  AABB left_aabb;
+  AABB right_aabb;
 };
 
 template <ExecutionModel exec> class SBVH<exec>::Generator {
@@ -35,9 +41,7 @@ public:
 
 private:
   ObjectSplitCandidate best_object_split(SpanSized<const Triangle> triangles,
-                                         unsigned axis,
-                                         float surface_area_above_node,
-                                         float traversal_per_intersect_cost);
+                                         unsigned axis);
 
   SpatialSplitCandidate best_spatial_split(SpanSized<const Triangle> triangles,
                                            unsigned axis);

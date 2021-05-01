@@ -6,4 +6,7 @@ template <typename T> struct StartEnd {
 
   constexpr T size() const { return end - start; }
   constexpr bool empty() const { return start == end; }
+
+  constexpr bool operator==(const StartEnd &other) const = default;
+  constexpr auto operator<=>(const StartEnd &other) const = default;
 };

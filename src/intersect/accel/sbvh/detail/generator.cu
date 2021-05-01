@@ -56,39 +56,42 @@ Node SBVH<exec>::Generator::create_node(SpanSized<Triangle> triangles,
 
   if (triangles.empty()) {
     return {
-        .value = {tag_v<NodeType::Items>, {.start = 0, .end = 0}},
+        .value = NodeValue(NodeValueRep{
+            tag_v<NodeType::Items>,
+            {.start = 0, .end = 0},
+        }),
         .aabb = overall_aabb,
     };
   }
 
   ObjectSplitCandidate overall_best_split = {
-      .cost = std::numeric_limits<float>::max(),
+      .base_cost = std::numeric_limits<float>::max(),
   };
 
   for (const auto &triangle : triangles) {
     overall_aabb = overall_aabb.union_other(triangle.bounds());
   }
 
-  float surface_area = overall_aabb.surface_area();
-
   for (unsigned axis = 0; axis < 3; ++axis) {
-    auto split = best_object_split(triangles, axis, surface_area,
-                                   traversal_per_intersect_cost);
-    if (split.cost < overall_best_split.cost) {
+    auto split = best_object_split(triangles, axis);
+    if (split.base_cost < overall_best_split.base_cost) {
       overall_best_split = split;
     }
   }
 
-  if (overall_best_split.cost >= triangles.size()) {
+  float surface_area = overall_aabb.surface_area();
+  float best_cost = overall_best_split.base_cost / surface_area +
+                    traversal_per_intersect_cost;
+
+  if (best_cost >= triangles.size()) {
     return {
-        .value =
+        .value = NodeValue(NodeValueRep{
+            tag_v<NodeType::Items>,
             {
-                tag_v<NodeType::Items>,
-                {
-                    .start = start_idx,
-                    .end = start_idx + static_cast<unsigned>(triangles.size()),
-                },
+                .start = start_idx,
+                .end = start_idx + static_cast<unsigned>(triangles.size()),
             },
+        }),
         .aabb = overall_aabb,
     };
   }
@@ -116,25 +119,24 @@ Node SBVH<exec>::Generator::create_node(SpanSized<Triangle> triangles,
       traversal_per_intersect_cost, start_idx + split_point);
 
   return {
-      .value =
+      .value = NodeValue(NodeValueRep{
+          tag_v<NodeType::Split>,
           {
-              tag_v<NodeType::Split>,
-              {
-                  .left_idx = left_idx,
-                  .right_idx = right_idx,
-              },
+              .left_idx = left_idx,
+              .right_idx = right_idx,
           },
+      }),
       .aabb = overall_aabb,
   };
 }
 
 template <ExecutionModel exec>
-ObjectSplitCandidate SBVH<exec>::Generator::best_object_split(
-    SpanSized<const Triangle> triangles_in, unsigned axis,
-    float surface_area_above_node, float traversal_per_intersect_cost) {
+ObjectSplitCandidate
+SBVH<exec>::Generator::best_object_split(SpanSized<const Triangle> triangles_in,
+                                         unsigned axis) {
   std::vector<Triangle> triangles(triangles_in.begin(), triangles_in.end());
 
-  always_assert(triangles.size() > 0);
+  always_assert(!triangles.empty());
 
   auto sort_perm = sort_by_axis(triangles, axis);
 
@@ -149,7 +151,7 @@ ObjectSplitCandidate SBVH<exec>::Generator::best_object_split(
     surface_areas_backward[i] = running_aabb_backward.surface_area();
   }
 
-  float best_cost = std::numeric_limits<float>::max();
+  float best_base_cost = std::numeric_limits<float>::max();
   unsigned best_split = 0;
 
   // exclusive
@@ -159,12 +161,10 @@ ObjectSplitCandidate SBVH<exec>::Generator::best_object_split(
     float surface_area_left = running_aabb.surface_area();
     float surface_area_right = surface_areas_backward[i];
 
-    float cost =
-        traversal_per_intersect_cost +
-        i * surface_area_left / surface_area_above_node +
-        (triangles.size() - i) * surface_area_right / surface_area_above_node;
-    if (cost < best_cost) {
-      best_cost = cost;
+    float base_cost =
+        i * surface_area_left + (triangles.size() - i) * surface_area_right;
+    if (base_cost < best_base_cost) {
+      best_base_cost = base_cost;
       best_split = i;
     }
 
@@ -174,10 +174,9 @@ ObjectSplitCandidate SBVH<exec>::Generator::best_object_split(
   return {
       .perm = sort_perm,
       .split_point = best_split,
-      .cost = best_cost,
+      .base_cost = best_base_cost,
   };
 }
-
 template <ExecutionModel exec>
 std::vector<unsigned>
 SBVH<exec>::Generator::sort_by_axis(SpanSized<Triangle> triangles,

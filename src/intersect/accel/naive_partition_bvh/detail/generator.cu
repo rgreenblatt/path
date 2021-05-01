@@ -61,11 +61,12 @@ Node NaivePartitionBVH<exec>::Generator::create_node(SpanSized<Bounds> bounds,
   if (bounds.size() <= settings_.num_objects_terminate) {
     auto total_bounds = get_bounding(bounds);
     return {
-        .value = {tag_v<NodeType::Items>,
-                  {
-                      .start = start_idx,
-                      .end = start_idx + static_cast<unsigned>(bounds.size()),
-                  }},
+        .value = NodeValue(NodeValueRep{
+            tag_v<NodeType::Items>,
+            {
+                .start = start_idx,
+                .end = start_idx + static_cast<unsigned>(bounds.size()),
+            }}),
         .aabb = total_bounds,
     };
   }
@@ -89,11 +90,10 @@ Node NaivePartitionBVH<exec>::Generator::create_node(SpanSized<Bounds> bounds,
                                  nodes, start_idx + k, new_depth);
 
   return {
-      .value =
-          {
-              tag_v<NodeType::Split>,
-              {.left_idx = left_idx, .right_idx = right_idx},
-          },
+      .value = NodeValue(NodeValueRep{
+          tag_v<NodeType::Split>,
+          {.left_idx = left_idx, .right_idx = right_idx},
+      }),
       .aabb = nodes[left_idx].aabb.union_other(nodes[right_idx].aabb),
   };
 }

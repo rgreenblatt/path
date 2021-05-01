@@ -59,7 +59,7 @@ BVH<node_stack_size, objects_vec_size>::intersect_objects(
       if (bounding_intersection.has_value() &&
           (!best.has_value() ||
            best->intersection_dist > *bounding_intersection)) {
-        current_node.value.visit_tagged([&](auto tag, const auto &v) {
+        current_node.value.as_rep().visit_tagged([&](auto tag, const auto &v) {
           if constexpr (tag == NodeType::Split) {
             node_stack.push(v.right_idx);
             node_stack.push(v.left_idx);

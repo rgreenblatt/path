@@ -282,6 +282,7 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
   package_add_test(printf_dbg_test
                    "${PROJECT_SOURCE_DIR}/tests/src/printf_dbg.cpp")
   package_add_test(dispatch_test "${PROJECT_SOURCE_DIR}/tests/src/dispatch.cpp")
+  package_add_test(node_test "${PROJECT_SOURCE_DIR}/tests/src/node.cpp")
 
   add_custom_target(
     run_build_tests
