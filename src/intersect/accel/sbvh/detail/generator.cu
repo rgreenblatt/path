@@ -177,6 +177,7 @@ SBVH<exec>::Generator::best_object_split(SpanSized<const Triangle> triangles_in,
       .base_cost = best_base_cost,
   };
 }
+
 template <ExecutionModel exec>
 std::vector<unsigned>
 SBVH<exec>::Generator::sort_by_axis(SpanSized<Triangle> triangles,
