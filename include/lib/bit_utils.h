@@ -75,7 +75,7 @@ ATTR_PURE_NDEBUG inline constexpr T closest_power_of_2(T n) {
 }
 
 template <std::unsigned_integral T>
-ATTR_PURE inline constexpr T bit_mask(unsigned bit_idx) {
+ATTR_PURE inline constexpr T bit_mask(uint8_t bit_idx) {
   return T(1) << bit_idx;
 }
 
