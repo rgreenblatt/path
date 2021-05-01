@@ -26,8 +26,7 @@ struct AABB {
 
   ATTR_PURE_NDEBUG HOST_DEVICE inline AABB
   transform(const Eigen::Affine3f &transform) const {
-    auto min_transformed_bound = max_eigen_vec();
-    auto max_transformed_bound = min_eigen_vec();
+    AABB out = AABB::empty();
     for (auto x_is_min : {false, true}) {
       for (auto y_is_min : {false, true}) {
         for (auto z_is_min : {false, true}) {
@@ -38,21 +37,23 @@ struct AABB {
               transform * Eigen::Vector3f(get_axis(x_is_min, 0),
                                           get_axis(y_is_min, 1),
                                           get_axis(z_is_min, 2));
-          min_transformed_bound =
-              min_transformed_bound.cwiseMin(transformed_point);
-          max_transformed_bound =
-              max_transformed_bound.cwiseMax(transformed_point);
+          out = out.union_point(transformed_point);
         }
       }
     }
 
-    return {min_transformed_bound, max_transformed_bound};
+    return out;
   }
 
   ATTR_PURE_NDEBUG HOST_DEVICE inline AABB
   union_other(const AABB &other) const {
     return {min_bound.cwiseMin(other.min_bound),
             max_bound.cwiseMax(other.max_bound)};
+  }
+
+  ATTR_PURE_NDEBUG HOST_DEVICE inline AABB
+  union_point(const Eigen::Vector3f &point) const {
+    return {min_bound.cwiseMin(point), max_bound.cwiseMax(point)};
   }
 
   ATTR_PURE_NDEBUG HOST_DEVICE float surface_area() const {
