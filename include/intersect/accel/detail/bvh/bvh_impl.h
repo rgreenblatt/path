@@ -1,18 +1,22 @@
 #pragma once
 
 #include "intersect/accel/add_idx.h"
-#include "intersect/accel/detail/bvh.h"
+#include "intersect/accel/detail/bvh/bvh.h"
 #include "intersect/optional_min.h"
 #include "lib/stack.h"
-#include "lib/start_end.h"
 
 namespace intersect {
 namespace accel {
 namespace detail {
+namespace bvh {
+template <unsigned node_stack_size, unsigned objects_vec_size>
 template <IntersectableAtIdx F>
 HOST_DEVICE inline AccelRet<F>
-BVH::intersect_objects(const intersect::Ray &ray,
-                       const F &intersectable_at_idx) const {
+BVH<node_stack_size, objects_vec_size>::intersect_objects(
+    const intersect::Ray &ray, const F &intersectable_at_idx) const {
+  debug_assert_assume(target_objects > 0);
+  debug_assert_assume(target_objects <= objects_vec_size);
+
   AccelRet<F> best;
 
   if (nodes.size() == 0) {
@@ -33,13 +37,19 @@ BVH::intersect_objects(const intersect::Ray &ray,
 
   auto inv_direction = (1.0f / direction_no_zeros.array()).eval();
 
-  Stack<unsigned, 64> node_stack;
+  // reducing the size of these stack arrays appears to have no effect
+  // on perf (so we can afford to be somewhat generous noting that
+  // overflow would be UB)
+  //
+  // the size of objects_vec_size is checked by check_and_print_stats,
+  // but node_stack_size isn't checked
+  Stack<unsigned, node_stack_size> node_stack;
   node_stack.push(0);
 
-  StartEnd<unsigned> start_end = {.start = 0u, .end = 0u};
+  ArrayVec<unsigned, objects_vec_size> objects;
 
   while (!node_stack.empty()) {
-    while (start_end.empty() && !node_stack.empty()) {
+    while (objects.size() < target_objects && !node_stack.empty()) {
       const auto &current_node = nodes[node_stack.pop()];
 
       auto bounding_intersection =
@@ -55,22 +65,30 @@ BVH::intersect_objects(const intersect::Ray &ray,
             node_stack.push(v.left_idx);
           } else {
             static_assert(tag == NodeType::Items);
-            start_end = v;
+            for (unsigned idx = v.start; idx < v.end; ++idx) {
+              objects.push_back(idx);
+            }
           }
         });
       }
     }
 
-    for (unsigned idx = start_end.start; idx < start_end.end; idx++) {
+    if (objects.empty()) {
+      debug_assert(node_stack.empty());
+      break;
+    }
+
+    for (unsigned idx : objects) {
       auto intersection = intersectable_at_idx(idx, ray);
       best = optional_min(best, add_idx(intersection, idx));
     }
 
-    start_end = {.start = 0u, .end = 0u};
+    objects.clear();
   }
 
   return best;
 }
+} // namespace bvh
 } // namespace detail
 } // namespace accel
 } // namespace intersect

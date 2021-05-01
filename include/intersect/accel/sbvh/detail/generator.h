@@ -10,7 +10,7 @@
 
 namespace intersect {
 namespace accel {
-using namespace detail;
+using namespace detail::bvh;
 namespace sbvh {
 // should only be used from detail context
 using namespace detail;
@@ -30,13 +30,14 @@ template <ExecutionModel exec> class SBVH<exec>::Generator {
 public:
   Generator() = default;
 
-  RefPerm<BVH> gen(const Settings &settings,
-                   SpanSized<const Triangle> triangles);
+  RefPerm<BVH<>> gen(const Settings &settings,
+                     SpanSized<const Triangle> triangles);
 
 private:
   ObjectSplitCandidate best_object_split(SpanSized<const Triangle> triangles,
                                          unsigned axis,
-                                         float surface_area_above_node);
+                                         float surface_area_above_node,
+                                         float traversal_per_intersect_cost);
 
   SpatialSplitCandidate best_spatial_split(SpanSized<const Triangle> triangles,
                                            unsigned axis);
@@ -45,11 +46,9 @@ private:
                                      unsigned axis);
 
   Node create_node(SpanSized<Triangle> triangles, SpanSized<unsigned> idxs,
-                   std::vector<Node> &nodes, unsigned start_idx);
+                   std::vector<Node> &nodes, float traversal_per_intersect_cost,
+                   unsigned start_idx);
 
-  float sa_heurisitic_cost(SpanSized<const Node> nodes, unsigned start_node);
-
-  Settings settings_;
   ExecVector<exec, Node> nodes_;
 };
 } // namespace sbvh

@@ -1,3 +1,3 @@
 #pragma once
 
-#include "intersect/accel/detail/bvh_impl.h"
+#include "intersect/accel/detail/bvh/bvh_impl.h"

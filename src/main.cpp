@@ -10,38 +10,37 @@
 #include <iostream>
 #include <string>
 
+#include <dbg.h>
+
 // In retrospect, I don't really like docopt...
 constexpr char USAGE[] =
     R"(Path
 
     Usage:
       path <scene_file> [--width=<pixels>] [--height=<pixels>]
-        [--samples=<count>] [--output=<file_name>] [--config=<file_name>]
-        [-g | --gpu] [--profile-samples] [--samples-min=<min>]
-        [--samples-max=<max>] [--bench] [--bench-budget=<time>]
-        [--disable-progress] [--show-times]
+        [--samples=<count>] [--output=<file_name>] [--bench-budget=<time>]
+        [--config=<file_name>] [-g | --gpu] [--profile-samples] [--bench] 
+        [--disable-progress] [--show-times] [--no-print-config]
       path (-h | --help)
 
     Options:
-      -h --help             Show this screen.
-      --width=<pixels>      Width in pixels [default: 1024]
-      --height=<pixels>     Height in pixels [default: 1024]
-      --samples=<count>     Samples per pixel [default: 128]
-      --output=<file_name>  File name [default: out.png]
-      --config=<file_name>  Config file name. If no file is specified, default
-                            settings will be used.
-      -g --gpu              Use gpu
+      -h --help              Show this screen.
+      --width=<pixels>       Width in pixels [default: 1024]
+      --height=<pixels>      Height in pixels [default: 1024]
+      --samples=<count>      Samples per pixel [default: 128]
+      --output=<file_name>   File name [default: out.png]
+      --bench-budget=<time>  Approx time in seconds for bench [default: 5.0]
+      --config=<file_name>   Config file name. If no file is specified, default
+                             settings will be used.
+      -g --gpu               Use gpu
 
-      --profile-samples     Run sample profiling (compute mean absolute pixel
-                            error and time)
-      --samples-min=<min>   Min samples for profiling [default: 1]
-      --samples-max=<max>   Max samples for profiling [default: 4096]
-
-      --bench               Warm up and then run multiple times and report 
-                            statistics
-      --bench-budget=<time> Approximate time in seconds for bench [default: 5.0]
-      --disable-progress    Disable progress bar
-      --show-times          Show timings
+      --profile-samples      Run sample profiling (compute mean absolute pixel
+                             error and time)
+      --bench                Warm up and then run multiple times and report 
+                             statistics
+      --disable-progress     Disable progress bar
+      --show-times           Show timings
+      --no-print-config      Don't print config
 )";
 
 int main(int argc, char *argv[]) {
@@ -67,6 +66,7 @@ int main(int argc, char *argv[]) {
   const auto output_file_name = get_unpack_arg("--output").asString();
   const bool disable_progress = get_unpack_arg("--disable-progress").asBool();
   const bool show_times = get_unpack_arg("--show-times").asBool();
+  const bool print_config = !get_unpack_arg("--no-print-config").asBool();
 
   if (using_gpu) {
     int n_devices;
@@ -96,7 +96,9 @@ int main(int argc, char *argv[]) {
   if (config_file_name) {
     renderer.load_config(config_file_name.asString());
   }
-  renderer.print_config();
+  if (print_config) {
+    renderer.print_config();
+  }
 
   Span<BGRA32> pixels(reinterpret_cast<BGRA32 *>(image.bits()), width * height);
 
@@ -132,17 +134,24 @@ int main(int argc, char *argv[]) {
                 << " iter(s) can be run with the current budget" << std::endl;
     }
 
-    float mean_time = 0.f;
+    float total_time = 0.f;
+    float total_sqr_time = 0.f;
 
     for (unsigned i = 0; i < iters; ++i) {
       Timer render_timer;
       b_render();
-      mean_time += render_timer.elapsed();
+      float time = render_timer.elapsed();
+      total_time += time;
+      total_sqr_time += time * time;
     }
 
-    mean_time /= iters;
+    float mean_time = total_time / iters;
+    float var_time = total_sqr_time / iters - mean_time * mean_time;
+    float std_dev = std::sqrt(var_time);
+    float std_error = std_dev / std::sqrt(iters);
 
-    std::cout << "mean: " << mean_time << std::endl;
+    std::cout << "mean: " << mean_time << ", 2 * SE: " << 2 * std_error
+              << std::endl;
 
   } else {
     render(true);

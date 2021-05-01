@@ -6,8 +6,10 @@
 
 #include <concepts>
 
-template <std::semiregular T, unsigned max_size> class Stack {
+template <std::semiregular T, unsigned max_size_in> class Stack {
 public:
+  static constexpr unsigned max_size = max_size_in;
+
   constexpr void push(const T &v) { vec_.push_back(v); }
 
   constexpr T pop() {

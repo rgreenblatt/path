@@ -3,7 +3,7 @@
 #include "execution_model/execution_model_vector_type.h"
 #include "execution_model/thrust_data.h"
 #include "intersect/accel/accel.h"
-#include "intersect/accel/detail/bvh.h"
+#include "intersect/accel/detail/bvh/bvh.h"
 #include "intersect/accel/naive_partition_bvh/settings.h"
 #include "lib/attribute.h"
 #include "meta/all_values/impl/enum.h"
@@ -28,7 +28,7 @@ public:
   NaivePartitionBVH(NaivePartitionBVH &&);
   NaivePartitionBVH &operator=(NaivePartitionBVH &&);
 
-  using Ref = accel::detail::BVH;
+  using Ref = accel::detail::bvh::BVH<>;
 
   template <Bounded B>
   RefPerm<Ref> gen(const Settings &settings, SpanSized<const B> objects) {

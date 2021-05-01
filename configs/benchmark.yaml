@@ -25,8 +25,11 @@ settings:
         accel:
           type: SBVH
           value:
-            traversal_per_intersect_cost: .2
             overlap_threshold: 1e-5
+            bvh_settings:
+              traversal_per_intersect_cost: .2
+              target_objects: 4
+              print_stats: false
   # kernel_approach:
   #   type: Streaming
   #   value:
@@ -50,8 +53,11 @@ settings:
   #           accel:
   #             type: SBVH
   #             value:
-  #               traversal_per_intersect_cost: .2
   #               overlap_threshold: 1e-5
+  #               bvh_settings:
+  #                 traversal_per_intersect_cost: .2
+  #                 target_objects: 4
+  #                 print_stats: false
   light_sampler:
     type: RandomTriangle
     value:

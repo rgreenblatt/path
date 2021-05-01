@@ -8,6 +8,7 @@
 namespace intersect {
 namespace accel {
 namespace detail {
+namespace bvh {
 struct Split {
   unsigned left_idx;
   unsigned right_idx;
@@ -24,6 +25,7 @@ struct Node {
   NodeValue value;
   AABB aabb;
 };
+} // namespace bvh
 } // namespace detail
 } // namespace accel
 } // namespace intersect

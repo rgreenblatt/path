@@ -16,8 +16,8 @@ template <ExecutionModel exec>
 SBVH<exec> &SBVH<exec>::operator=(SBVH &&) = default;
 
 template <ExecutionModel exec>
-RefPerm<BVH> SBVH<exec>::gen(const Settings &settings,
-                             SpanSized<const Triangle> triangles) {
+RefPerm<BVH<>> SBVH<exec>::gen(const Settings &settings,
+                               SpanSized<const Triangle> triangles) {
   return gen_->gen(settings, triangles);
 }
 

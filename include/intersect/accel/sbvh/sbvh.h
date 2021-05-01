@@ -2,7 +2,7 @@
 
 #include "execution_model/execution_model_vector_type.h"
 #include "execution_model/thrust_data.h"
-#include "intersect/accel/detail/bvh.h"
+#include "intersect/accel/detail/bvh/bvh.h"
 #include "intersect/accel/sbvh/settings.h"
 #include "intersect/accel/triangle_accel.h"
 #include "intersect/triangle.h"
@@ -22,7 +22,7 @@ public:
   SBVH(SBVH &&);
   SBVH &operator=(SBVH &&);
 
-  using Ref = accel::detail::BVH;
+  using Ref = accel::detail::bvh::BVH<>;
 
   RefPerm<Ref> gen(const Settings &settings,
                    SpanSized<const Triangle> triangles);

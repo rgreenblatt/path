@@ -16,8 +16,10 @@
 // also, this only supports semiregular types for now
 // consider if it would be more efficient to only copy up to the
 // size of the ArrayVec when copying/moving
-template <std::semiregular T, unsigned max_size> class ArrayVec {
+template <std::semiregular T, unsigned max_size_in> class ArrayVec {
 public:
+  constexpr static unsigned max_size = max_size_in;
+
   constexpr ArrayVec() : size_(0) {}
 
   constexpr void push_back(const T &v) {
@@ -30,6 +32,8 @@ public:
     debug_assert_assume(new_size <= max_size);
     size_ = new_size;
   }
+
+  constexpr void clear() { resize(0); }
 
   ATTR_PURE_NDEBUG constexpr const T &operator[](unsigned idx) const {
     debug_assert_assume(idx < size_);

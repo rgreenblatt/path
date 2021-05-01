@@ -3,6 +3,7 @@
 #include "intersect/triangle_impl.h"
 #include "lib/assert.h"
 #include "lib/eigen_utils.h"
+#include "lib/info/timer.h"
 
 #include <dbg.h>
 
@@ -10,10 +11,10 @@ namespace intersect {
 namespace accel {
 namespace sbvh {
 template <ExecutionModel exec>
-RefPerm<BVH>
+RefPerm<BVH<>>
 SBVH<exec>::Generator::gen(const Settings &settings,
                            SpanSized<const Triangle> triangles_in) {
-  settings_ = settings;
+  Timer start;
   std::vector<Triangle> triangles(triangles_in.begin(), triangles_in.end());
   std::vector<unsigned> idxs(triangles_in.size());
   for (unsigned i = 0; i < triangles.size(); ++i) {
@@ -21,19 +22,33 @@ SBVH<exec>::Generator::gen(const Settings &settings,
   }
 
   std::vector<Node> nodes(1);
-  nodes[0] = create_node(triangles, idxs, nodes, 0);
-
-  dbg(sa_heurisitic_cost(nodes, 0));
+  nodes[0] = create_node(triangles, idxs, nodes,
+                         settings.bvh_settings.traversal_per_intersect_cost, 0);
 
   copy_to_vec(nodes, nodes_);
 
-  return {.ref = {.nodes = nodes_}, .permutation = idxs};
+  bvh::check_and_print_stats(nodes, settings.bvh_settings,
+                             BVH<>::objects_vec_size);
+
+  if (settings.bvh_settings.print_stats) {
+    start.report("sbvh gen time");
+  }
+
+  return {
+      .ref =
+          {
+              .nodes = nodes_,
+              .target_objects = settings.bvh_settings.target_objects,
+          },
+      .permutation = idxs,
+  };
 }
 
 template <ExecutionModel exec>
 Node SBVH<exec>::Generator::create_node(SpanSized<Triangle> triangles,
                                         SpanSized<unsigned> idxs,
                                         std::vector<Node> &nodes,
+                                        float traversal_per_intersect_cost,
                                         unsigned start_idx) {
   always_assert(triangles.size() == idxs.size());
 
@@ -57,7 +72,8 @@ Node SBVH<exec>::Generator::create_node(SpanSized<Triangle> triangles,
   float surface_area = overall_aabb.surface_area();
 
   for (unsigned axis = 0; axis < 3; ++axis) {
-    auto split = best_object_split(triangles, axis, surface_area);
+    auto split = best_object_split(triangles, axis, surface_area,
+                                   traversal_per_intersect_cost);
     if (split.cost < overall_best_split.cost) {
       overall_best_split = split;
     }
@@ -92,11 +108,12 @@ Node SBVH<exec>::Generator::create_node(SpanSized<Triangle> triangles,
 
   unsigned split_point = overall_best_split.split_point;
 
-  nodes[left_idx] = create_node(triangles.slice_to(split_point),
-                                idxs.slice_to(split_point), nodes, start_idx);
-  nodes[right_idx] =
-      create_node(triangles.slice_from(split_point),
-                  idxs.slice_from(split_point), nodes, start_idx + split_point);
+  nodes[left_idx] =
+      create_node(triangles.slice_to(split_point), idxs.slice_to(split_point),
+                  nodes, traversal_per_intersect_cost, start_idx);
+  nodes[right_idx] = create_node(
+      triangles.slice_from(split_point), idxs.slice_from(split_point), nodes,
+      traversal_per_intersect_cost, start_idx + split_point);
 
   return {
       .value =
@@ -112,10 +129,9 @@ Node SBVH<exec>::Generator::create_node(SpanSized<Triangle> triangles,
 }
 
 template <ExecutionModel exec>
-ObjectSplitCandidate
-SBVH<exec>::Generator::best_object_split(SpanSized<const Triangle> triangles_in,
-                                         unsigned axis,
-                                         float surface_area_above_node) {
+ObjectSplitCandidate SBVH<exec>::Generator::best_object_split(
+    SpanSized<const Triangle> triangles_in, unsigned axis,
+    float surface_area_above_node, float traversal_per_intersect_cost) {
   std::vector<Triangle> triangles(triangles_in.begin(), triangles_in.end());
 
   always_assert(triangles.size() > 0);
@@ -144,7 +160,7 @@ SBVH<exec>::Generator::best_object_split(SpanSized<const Triangle> triangles_in,
     float surface_area_right = surface_areas_backward[i];
 
     float cost =
-        settings_.traversal_per_intersect_cost +
+        traversal_per_intersect_cost +
         i * surface_area_left / surface_area_above_node +
         (triangles.size() - i) * surface_area_right / surface_area_above_node;
     if (cost < best_cost) {
@@ -193,26 +209,6 @@ SBVH<exec>::Generator::sort_by_axis(SpanSized<Triangle> triangles,
   }
 
   return out;
-}
-
-template <ExecutionModel exec>
-float SBVH<exec>::Generator::sa_heurisitic_cost(SpanSized<const Node> nodes,
-                                                unsigned start_node) {
-  const auto &node = nodes[start_node];
-  return node.value.visit_tagged([&](auto tag, const auto &value) {
-    if constexpr (tag == NodeType::Items) {
-      return value.size();
-    } else {
-      static_assert(tag == NodeType::Split);
-      auto get_cost = [&](unsigned idx) {
-        return sa_heurisitic_cost(nodes, idx) * nodes[idx].aabb.surface_area() /
-               node.aabb.surface_area();
-      };
-
-      return settings_.traversal_per_intersect_cost + get_cost(value.left_idx) +
-             get_cost(value.right_idx);
-    }
-  });
 }
 
 template class SBVH<ExecutionModel::CPU>::Generator;

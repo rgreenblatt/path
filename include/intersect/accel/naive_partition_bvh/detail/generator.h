@@ -10,7 +10,7 @@
 
 namespace intersect {
 namespace accel {
-using namespace detail;
+using namespace detail::bvh;
 namespace naive_partition_bvh {
 // should only be used from detail context
 using namespace detail;
@@ -19,7 +19,7 @@ template <ExecutionModel exec> class NaivePartitionBVH<exec>::Generator {
 public:
   Generator() = default;
 
-  RefPerm<BVH> gen(const Settings &settings, SpanSized<Bounds> objects);
+  RefPerm<BVH<>> gen(const Settings &settings, SpanSized<Bounds> objects);
 
 private:
   unsigned partition(SpanSized<Bounds> bounds, SpanSized<unsigned> idxs,
@@ -32,8 +32,6 @@ private:
   Node create_node(SpanSized<Bounds> bounds, SpanSized<unsigned> idxs,
                    std::vector<Node> &nodes, unsigned start_idx,
                    unsigned depth);
-
-  bool terminate_here(unsigned start, unsigned end);
 
   HostVector<unsigned> indexes_;
   HostVector<Node> nodes_;
