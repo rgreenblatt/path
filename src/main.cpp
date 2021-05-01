@@ -19,7 +19,7 @@ constexpr char USAGE[] =
     Usage:
       path <scene_file> [--width=<pixels>] [--height=<pixels>]
         [--samples=<count>] [--output=<file_name>] [--bench-budget=<time>]
-        [--config=<file_name>] [-g | --gpu] [--profile-samples] [--bench] 
+        [--config=<file_name>] [-g | --gpu] [--bench] 
         [--disable-progress] [--show-times] [--no-print-config]
       path (-h | --help)
 
@@ -34,8 +34,6 @@ constexpr char USAGE[] =
                              settings will be used.
       -g --gpu               Use gpu
 
-      --profile-samples      Run sample profiling (compute mean absolute pixel
-                             error and time)
       --bench                Warm up and then run multiple times and report 
                              statistics
       --disable-progress     Disable progress bar
