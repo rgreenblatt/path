@@ -19,7 +19,7 @@ BVH<node_stack_size, objects_vec_size>::intersect_objects(
 
   AccelRet<F> best;
 
-  if (nodes.size() == 0) {
+  if (nodes.empty()) {
     return std::nullopt;
   }
 
