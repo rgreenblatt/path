@@ -15,20 +15,24 @@ RefPerm<BVH<>>
 SBVH<exec>::Generator::gen(const Settings &settings,
                            SpanSized<const Triangle> triangles_in) {
   Timer start;
-  std::vector<Triangle> triangles(triangles_in.begin(), triangles_in.end());
-  std::vector<unsigned> idxs(triangles_in.size());
+  HostVector<Triangle> triangles(triangles_in.begin(), triangles_in.end());
+  HostVector<unsigned> idxs(triangles_in.size());
   for (unsigned i = 0; i < triangles.size(); ++i) {
     idxs[i] = i;
   }
 
-  std::vector<Node> nodes(1);
-  nodes[0] = create_node(triangles, idxs, nodes,
-                         settings.bvh_settings.traversal_per_intersect_cost, 0);
+  NodeGroup<HostVector> nodes;
+  nodes.resize_all(1);
+  auto node =
+      create_node(triangles, idxs, nodes,
+                  settings.bvh_settings.traversal_per_intersect_cost, 0);
+  nodes.set_all_tup(0, node);
 
-  copy_to_vec(nodes, nodes_);
+  nodes.copy_to_other(nodes_);
 
-  bvh::check_and_print_stats(nodes, settings.bvh_settings,
-                             BVH<>::objects_vec_size);
+  bvh::check_and_print_stats(nodes.get(tag_v<NodeItem::Value>),
+                             nodes.get(tag_v<NodeItem::AABB>),
+                             settings.bvh_settings, BVH<>::objects_vec_size);
 
   if (settings.bvh_settings.print_stats) {
     start.report("sbvh gen time");
@@ -37,7 +41,8 @@ SBVH<exec>::Generator::gen(const Settings &settings,
   return {
       .ref =
           {
-              .nodes = nodes_,
+              .node_values = nodes_.get(tag_v<NodeItem::Value>),
+              .node_aabbs = nodes_.get(tag_v<NodeItem::AABB>),
               .target_objects = settings.bvh_settings.target_objects,
           },
       .permutation = idxs,
@@ -45,23 +50,23 @@ SBVH<exec>::Generator::gen(const Settings &settings,
 }
 
 template <ExecutionModel exec>
-Node SBVH<exec>::Generator::create_node(SpanSized<Triangle> triangles,
-                                        SpanSized<unsigned> idxs,
-                                        std::vector<Node> &nodes,
-                                        float traversal_per_intersect_cost,
-                                        unsigned start_idx) {
+NodeTup SBVH<exec>::Generator::create_node(SpanSized<Triangle> triangles,
+                                           SpanSized<unsigned> idxs,
+                                           NodeGroup<HostVector> &nodes,
+                                           float traversal_per_intersect_cost,
+                                           unsigned start_idx) {
   always_assert(triangles.size() == idxs.size());
 
   AABB overall_aabb = AABB::empty();
 
   if (triangles.empty()) {
-    return {
-        .value = NodeValue(NodeValueRep{
+    return {{
+        NodeValue(NodeValueRep{
             tag_v<NodeType::Items>,
             {.start = 0, .end = 0},
         }),
-        .aabb = overall_aabb,
-    };
+        overall_aabb,
+    }};
   }
 
   ObjectSplitCandidate overall_best_split = {
@@ -84,24 +89,24 @@ Node SBVH<exec>::Generator::create_node(SpanSized<Triangle> triangles,
                     traversal_per_intersect_cost;
 
   if (best_cost >= triangles.size()) {
-    return {
-        .value = NodeValue(NodeValueRep{
+    return {{
+        NodeValue(NodeValueRep{
             tag_v<NodeType::Items>,
             {
                 .start = start_idx,
                 .end = start_idx + static_cast<unsigned>(triangles.size()),
             },
         }),
-        .aabb = overall_aabb,
-    };
+        overall_aabb,
+    }};
   }
 
-  nodes.resize(nodes.size() + 2);
+  nodes.resize_all(nodes.size() + 2);
   unsigned left_idx = nodes.size() - 2;
   unsigned right_idx = nodes.size() - 1;
 
-  std::vector<Triangle> old_triangles(triangles.begin(), triangles.end());
-  std::vector<unsigned> old_idxs(idxs.begin(), idxs.end());
+  HostVector<Triangle> old_triangles(triangles.begin(), triangles.end());
+  HostVector<unsigned> old_idxs(idxs.begin(), idxs.end());
 
   for (unsigned i = 0; i < triangles.size(); ++i) {
     unsigned perm_idx = overall_best_split.perm[i];
@@ -111,37 +116,40 @@ Node SBVH<exec>::Generator::create_node(SpanSized<Triangle> triangles,
 
   unsigned split_point = overall_best_split.split_point;
 
-  nodes[left_idx] =
+  auto left_node =
       create_node(triangles.slice_to(split_point), idxs.slice_to(split_point),
                   nodes, traversal_per_intersect_cost, start_idx);
-  nodes[right_idx] = create_node(
+  auto right_node = create_node(
       triangles.slice_from(split_point), idxs.slice_from(split_point), nodes,
       traversal_per_intersect_cost, start_idx + split_point);
 
-  return {
-      .value = NodeValue(NodeValueRep{
+  nodes.set_all_tup(left_idx, left_node);
+  nodes.set_all_tup(right_idx, right_node);
+
+  return {{
+      NodeValue(NodeValueRep{
           tag_v<NodeType::Split>,
           {
               .left_idx = left_idx,
               .right_idx = right_idx,
           },
       }),
-      .aabb = overall_aabb,
-  };
+      overall_aabb,
+  }};
 }
 
 template <ExecutionModel exec>
 ObjectSplitCandidate
 SBVH<exec>::Generator::best_object_split(SpanSized<const Triangle> triangles_in,
                                          unsigned axis) {
-  std::vector<Triangle> triangles(triangles_in.begin(), triangles_in.end());
+  HostVector<Triangle> triangles(triangles_in.begin(), triangles_in.end());
 
   always_assert(!triangles.empty());
 
   auto sort_perm = sort_by_axis(triangles, axis);
 
   // inclusive
-  std::vector<float> surface_areas_backward(triangles.size());
+  HostVector<float> surface_areas_backward(triangles.size());
   AABB running_aabb_backward = AABB::empty();
 
   for (unsigned i = triangles.size() - 1;
@@ -179,14 +187,14 @@ SBVH<exec>::Generator::best_object_split(SpanSized<const Triangle> triangles_in,
 }
 
 template <ExecutionModel exec>
-std::vector<unsigned>
+HostVector<unsigned>
 SBVH<exec>::Generator::sort_by_axis(SpanSized<Triangle> triangles,
                                     unsigned axis) {
   struct ValueIdx {
     float value;
     unsigned idx;
   };
-  std::vector<ValueIdx> to_sort(triangles.size());
+  HostVector<ValueIdx> to_sort(triangles.size());
 
   for (unsigned i = 0; i < triangles.size(); ++i) {
     to_sort[i] = {
@@ -198,9 +206,9 @@ SBVH<exec>::Generator::sort_by_axis(SpanSized<Triangle> triangles,
   std::sort(to_sort.begin(), to_sort.end(),
             [](ValueIdx l, ValueIdx r) { return l.value < r.value; });
 
-  std::vector<unsigned> out(triangles.size());
+  HostVector<unsigned> out(triangles.size());
 
-  std::vector<Triangle> old_triangles(triangles.begin(), triangles.end());
+  HostVector<Triangle> old_triangles(triangles.begin(), triangles.end());
 
   for (unsigned i = 0; i < triangles.size(); ++i) {
     unsigned idx = to_sort[i].idx;

@@ -70,11 +70,6 @@ private:
 
   std::array<unsigned, 2> raw_values_;
 };
-
-struct Node {
-  NodeValue value;
-  AABB aabb;
-};
 } // namespace bvh
 } // namespace detail
 } // namespace accel

@@ -4,6 +4,7 @@
 #include "intersect/accel/detail/bvh/node.h"
 #include "intersect/accel/detail/bvh/settings.h"
 #include "lib/span.h"
+#include "lib/vector_group.h"
 
 namespace intersect {
 namespace accel {
@@ -19,7 +20,8 @@ struct BVH {
   static_assert(node_stack_size > 0);
   static_assert(objects_vec_size > 0);
 
-  SpanSized<const Node> nodes;
+  SpanSized<const NodeValue> node_values;
+  SpanSized<const AABB> node_aabbs;
   unsigned target_objects;
 
   template <IntersectableAtIdx F>
@@ -28,13 +30,24 @@ struct BVH {
                     const F &intersectable_at_idx) const;
 };
 
+enum class NodeItem {
+  Value,
+  AABB,
+};
+
+template <template <typename> class VecT>
+using NodeGroup = VectorGroup<VecT, NodeItem, NodeValue, AABB>;
+using NodeTup = TaggedTuple<NodeItem, NodeValue, AABB>;
+
 // These are independent functions to avoid template params
 // (and because 'nodes' must be on the cpu!).
 
-void check_and_print_stats(SpanSized<const Node> nodes, Settings settings,
+void check_and_print_stats(SpanSized<const NodeValue> node_values,
+                           SpanSized<const AABB> node_aabbs, Settings settings,
                            unsigned objects_vec_size);
 
-float sa_heurisitic_cost(SpanSized<const Node> nodes,
+float sa_heurisitic_cost(SpanSized<const NodeValue> node_values,
+                         SpanSized<const AABB> node_aabbs,
                          float traversal_per_intersect_cost);
 
 static_assert(AccelRef<BVH<>>);

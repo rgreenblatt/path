@@ -16,10 +16,11 @@ BVH<node_stack_size, objects_vec_size>::intersect_objects(
     const intersect::Ray &ray, const F &intersectable_at_idx) const {
   debug_assert_assume(target_objects > 0);
   debug_assert_assume(target_objects <= objects_vec_size);
+  debug_assert_assume(node_values.size() == node_aabbs.size());
 
   AccelRet<F> best;
 
-  if (nodes.size() == 0) {
+  if (node_values.empty()) {
     return std::nullopt;
   }
 
@@ -50,26 +51,27 @@ BVH<node_stack_size, objects_vec_size>::intersect_objects(
 
   while (!node_stack.empty()) {
     while (objects.size() < target_objects && !node_stack.empty()) {
-      const auto &current_node = nodes[node_stack.pop()];
+      unsigned node_idx = node_stack.pop();
+      const auto &current_aabb = node_aabbs[node_idx];
 
       auto bounding_intersection =
-          current_node.aabb.solve_bounding_intersection(ray.origin,
-                                                        inv_direction);
+          current_aabb.solve_bounding_intersection(ray.origin, inv_direction);
 
       if (bounding_intersection.has_value() &&
           (!best.has_value() ||
            best->intersection_dist > *bounding_intersection)) {
-        current_node.value.as_rep().visit_tagged([&](auto tag, const auto &v) {
-          if constexpr (tag == NodeType::Split) {
-            node_stack.push(v.right_idx);
-            node_stack.push(v.left_idx);
-          } else {
-            static_assert(tag == NodeType::Items);
-            for (unsigned idx = v.start; idx < v.end; ++idx) {
-              objects.push_back(idx);
-            }
-          }
-        });
+        node_values[node_idx].as_rep().visit_tagged(
+            [&](auto tag, const auto &v) {
+              if constexpr (tag == NodeType::Split) {
+                node_stack.push(v.right_idx);
+                node_stack.push(v.left_idx);
+              } else {
+                static_assert(tag == NodeType::Items);
+                for (unsigned idx = v.start; idx < v.end; ++idx) {
+                  objects.push_back(idx);
+                }
+              }
+            });
       }
     }
 

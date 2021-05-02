@@ -29,16 +29,13 @@ private:
 
   AABB get_bounding(SpanSized<Bounds> bounds);
 
-  Node create_node(SpanSized<Bounds> bounds, SpanSized<unsigned> idxs,
-                   std::vector<Node> &nodes, unsigned start_idx,
-                   unsigned depth);
-
-  HostVector<unsigned> indexes_;
-  HostVector<Node> nodes_;
+  NodeTup create_node(SpanSized<Bounds> bounds, SpanSized<unsigned> idxs,
+                      NodeGroup<HostVector> &nodes, unsigned start_idx,
+                      unsigned depth);
 
   template <typename T> using ExecVecT = ExecVector<exec, T>;
 
-  ExecVecT<Node> nodes_out_;
+  NodeGroup<ExecVecT> nodes_out_;
 
   Settings settings_;
 };

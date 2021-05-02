@@ -5,6 +5,8 @@
 #include "intersect/accel/sbvh/sbvh.h"
 #include "intersect/accel/sbvh/settings.h"
 #include "lib/span.h"
+#include "lib/vector_group.h"
+#include "meta/tuple.h"
 
 #include <tuple>
 
@@ -19,15 +21,15 @@ using namespace detail;
 // node surface area and without the traversal cost
 
 struct ObjectSplitCandidate {
-  std::vector<unsigned> perm;
+  HostVector<unsigned> perm;
   unsigned split_point;
   float base_cost;
 };
 
 struct SpatialSplitCandidate {
   float base_cost;
-  std::vector<unsigned> left_triangles;
-  std::vector<unsigned> right_triangles;
+  HostVector<unsigned> left_triangles;
+  HostVector<unsigned> right_triangles;
   AABB left_aabb;
   AABB right_aabb;
 };
@@ -46,14 +48,16 @@ private:
   SpatialSplitCandidate best_spatial_split(SpanSized<const Triangle> triangles,
                                            unsigned axis);
 
-  std::vector<unsigned> sort_by_axis(SpanSized<Triangle> triangles,
-                                     unsigned axis);
+  HostVector<unsigned> sort_by_axis(SpanSized<Triangle> triangles,
+                                    unsigned axis);
 
-  Node create_node(SpanSized<Triangle> triangles, SpanSized<unsigned> idxs,
-                   std::vector<Node> &nodes, float traversal_per_intersect_cost,
-                   unsigned start_idx);
+  NodeTup create_node(SpanSized<Triangle> triangles, SpanSized<unsigned> idxs,
+                      NodeGroup<HostVector> &nodes,
+                      float traversal_per_intersect_cost, unsigned start_idx);
 
-  ExecVector<exec, Node> nodes_;
+  template <typename T> using ExecVecT = ExecVector<exec, T>;
+
+  NodeGroup<ExecVecT> nodes_;
 };
 } // namespace sbvh
 } // namespace accel
