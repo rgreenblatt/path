@@ -20,6 +20,7 @@ struct BVH {
   static_assert(objects_vec_size > 0);
 
   SpanSized<const Node> nodes;
+  SpanSized<const unsigned> extra_idxs;
   unsigned target_objects;
 
   template <IntersectableAtIdx F>

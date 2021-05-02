@@ -139,7 +139,8 @@ if(CPU_ONLY)
   endif()
 
   add_compile_options(
-    "$<$<COMPILE_LANGUAGE:CUDA>:-xc++;-Wno-unused-command-line-argument;-I${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}>")
+    "$<$<COMPILE_LANGUAGE:CUDA>:-xc++;-Wno-unused-command-line-argument;-I${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}>"
+  )
 endif()
 
 macro(target_add_standard TARGET_NAME)
@@ -182,8 +183,7 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/naive_partition_bvh/detail/generator.cu"
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/sbvh/sbvh.cu"
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/sbvh/detail/generator.cu"
-  "${PROJECT_SOURCE_DIR}/src/intersect/accel/detail/bvh/bvh.cpp"
-  )
+  "${PROJECT_SOURCE_DIR}/src/intersect/accel/detail/bvh/bvh.cpp")
 target_add_standard(intersect)
 target_link_libraries(intersect PRIVATE OpenMP::OpenMP_CXX)
 
@@ -283,6 +283,8 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
                    "${PROJECT_SOURCE_DIR}/tests/src/printf_dbg.cpp")
   package_add_test(dispatch_test "${PROJECT_SOURCE_DIR}/tests/src/dispatch.cpp")
   package_add_test(node_test "${PROJECT_SOURCE_DIR}/tests/src/node.cpp")
+  package_add_test(chop_triangle_aabb
+                   "${PROJECT_SOURCE_DIR}/tests/src/chop_triangle_aabb.cpp")
 
   add_custom_target(
     run_build_tests

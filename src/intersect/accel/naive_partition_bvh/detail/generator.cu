@@ -64,8 +64,12 @@ Node NaivePartitionBVH<exec>::Generator::create_node(SpanSized<Bounds> bounds,
         .value = NodeValue(NodeValueRep{
             tag_v<NodeType::Items>,
             {
-                .start = start_idx,
-                .end = start_idx + static_cast<unsigned>(bounds.size()),
+                .is_for_extra = false,
+                .start_end =
+                    {
+                        .start = start_idx,
+                        .end = start_idx + static_cast<unsigned>(bounds.size()),
+                    },
             }}),
         .aabb = total_bounds,
     };

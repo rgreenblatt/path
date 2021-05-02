@@ -23,19 +23,7 @@ BVH<node_stack_size, objects_vec_size>::intersect_objects(
     return std::nullopt;
   }
 
-  // TODO: how important is this...
-  Eigen::Vector3f direction_no_zeros = *ray.direction;
-  auto remove_zero = [](float &v) {
-    if (v == 0.0f || v == -0.0f) {
-      v = 1e-20f;
-    }
-  };
-
-  remove_zero(direction_no_zeros.x());
-  remove_zero(direction_no_zeros.y());
-  remove_zero(direction_no_zeros.z());
-
-  auto inv_direction = (1.0f / direction_no_zeros.array()).eval();
+  auto inv_direction = get_inv_direction(*ray.direction);
 
   // reducing the size of these stack arrays appears to have no effect
   // on perf (so we can afford to be somewhat generous noting that
@@ -65,8 +53,17 @@ BVH<node_stack_size, objects_vec_size>::intersect_objects(
             node_stack.push(v.left_idx);
           } else {
             static_assert(tag == NodeType::Items);
-            for (unsigned idx = v.start; idx < v.end; ++idx) {
-              objects.push_back(idx);
+            // Maybe faster with if statement inside the loop? Probably doesn't
+            // matter at all.
+            auto se = v.start_end;
+            if (v.is_for_extra) {
+              for (unsigned idx = se.start; idx < se.end; ++idx) {
+                objects.push_back(extra_idxs[idx]);
+              }
+            } else {
+              for (unsigned idx = se.start; idx < se.end; ++idx) {
+                objects.push_back(idx);
+              }
             }
           }
         });

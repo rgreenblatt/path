@@ -20,7 +20,7 @@ void check_and_print_stats(SpanSized<const Node> nodes, Settings settings,
     if (value.type() != NodeType::Items) {
       continue;
     }
-    unsigned size = value.get(tag_v<NodeType::Items>).size();
+    unsigned size = value.get(tag_v<NodeType::Items>).start_end.size();
     min_size = std::min(min_size, size);
     max_size = std::max(max_size, size);
     total_size += size;
@@ -47,7 +47,7 @@ float sa_heurisitic_cost_impl(SpanSized<const Node> nodes,
   const auto &node = nodes[start_node];
   return node.value.as_rep().visit_tagged([&](auto tag, const auto &value) {
     if constexpr (tag == NodeType::Items) {
-      return value.size();
+      return value.start_end.size();
     } else {
       static_assert(tag == NodeType::Split);
       auto get_cost = [&](unsigned idx) {

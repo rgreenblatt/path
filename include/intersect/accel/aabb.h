@@ -4,6 +4,7 @@
 #include "lib/cuda/utils.h"
 #include "lib/eigen_utils.h"
 #include "lib/optional.h"
+#include "lib/unit_vector.h"
 
 #include <Eigen/Geometry>
 
@@ -11,6 +12,22 @@
 
 namespace intersect {
 namespace accel {
+
+HOST_DEVICE inline Eigen::Vector3f
+get_inv_direction(const Eigen::Vector3f &direction) {
+  Eigen::Vector3f direction_no_zeros = direction;
+
+  // TODO: how important is removing zeros?
+  for (unsigned i = 0; i < unsigned(direction_no_zeros.size()); ++i) {
+    float &v = direction_no_zeros[i];
+    if (v == 0.0f || v == -0.0f) {
+      v = 1e-20f;
+    }
+  }
+
+  return 1.0f / direction_no_zeros.array();
+}
+
 struct AABB {
   Eigen::Vector3f min_bound;
   Eigen::Vector3f max_bound;
@@ -54,6 +71,12 @@ struct AABB {
   ATTR_PURE_NDEBUG HOST_DEVICE inline AABB
   union_point(const Eigen::Vector3f &point) const {
     return {min_bound.cwiseMin(point), max_bound.cwiseMax(point)};
+  }
+
+  ATTR_PURE_NDEBUG HOST_DEVICE bool
+  contains(const Eigen::Vector3f &point) const {
+    return (min_bound.array() <= point.array()).all() &&
+           (max_bound.array() >= point.array()).all();
   }
 
   ATTR_PURE_NDEBUG HOST_DEVICE float surface_area() const {

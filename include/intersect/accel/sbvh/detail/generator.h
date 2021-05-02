@@ -15,22 +15,42 @@ namespace sbvh {
 // should only be used from detail context
 using namespace detail;
 
+enum class SplitType {
+  Object,
+  Spatial,
+};
+
+struct ClippedTriangle {
+  AABB bounding;
+  Triangle triangle;
+};
+
+struct SplitCandidate {
+  float base_cost;
+
+  struct Object {
+    std::vector<unsigned> perm;
+    unsigned split_point;
+  };
+
+  struct Spatial {
+    std::vector<unsigned> left_triangles;
+    std::vector<unsigned> right_triangles;
+    AABB left_aabb;
+    AABB right_aabb;
+  };
+
+  using Item = TaggedUnion<SplitType, Object, Spatial>;
+
+  Item item;
+
+  bool operator<(const SplitCandidate &other) const {
+    return base_cost < other.base_cost;
+  }
+};
+
 // "base_cost" refers to SAH cost, but without dividing by the outer
 // node surface area and without the traversal cost
-
-struct ObjectSplitCandidate {
-  std::vector<unsigned> perm;
-  unsigned split_point;
-  float base_cost;
-};
-
-struct SpatialSplitCandidate {
-  float base_cost;
-  std::vector<unsigned> left_triangles;
-  std::vector<unsigned> right_triangles;
-  AABB left_aabb;
-  AABB right_aabb;
-};
 
 template <ExecutionModel exec> class SBVH<exec>::Generator {
 public:
@@ -40,18 +60,19 @@ public:
                      SpanSized<const Triangle> triangles);
 
 private:
-  ObjectSplitCandidate best_object_split(SpanSized<const Triangle> triangles,
-                                         unsigned axis);
+  SplitCandidate best_object_split(SpanSized<const Triangle> triangles,
+                                   unsigned axis);
 
-  SpatialSplitCandidate best_spatial_split(SpanSized<const Triangle> triangles,
-                                           unsigned axis);
+  SplitCandidate best_spatial_split(SpanSized<const Triangle> triangles,
+                                    unsigned axis);
 
   std::vector<unsigned> sort_by_axis(SpanSized<Triangle> triangles,
                                      unsigned axis);
 
   Node create_node(SpanSized<Triangle> triangles, SpanSized<unsigned> idxs,
-                   std::vector<Node> &nodes, float traversal_per_intersect_cost,
-                   unsigned start_idx);
+                   SpanSized<std::optional<unsigned>> final_idxs_for_right_dups,
+                   std::vector<Node> &nodes, std::vector<unsigned> &extra_idxs,
+                   float traversal_per_intersect_cost, unsigned start_idx);
 
   ExecVector<exec, Node> nodes_;
 };
