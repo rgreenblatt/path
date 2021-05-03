@@ -5,12 +5,14 @@
 
 #include "execution_model/device_vector.h"
 
+#include <debug/vector>
 #include <vector>
 
 namespace detail {
 template <typename T>
 concept ArrayOrVector =
-    StdArraySpecialization<T> || SpecializationOf<T, std::vector>;
+    StdArraySpecialization<T> || SpecializationOf<T, __gnu_debug::vector> ||
+    SpecializationOf<T, std::vector>;
 
 #ifdef __CUDACC__
 template <typename T>
