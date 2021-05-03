@@ -427,7 +427,7 @@ SBVH<exec>::Generator::best_spatial_split(SpanSized<const Triangle> triangles,
     aabbs_backward[i] = running_aabb_backward;
   }
 
-  unsigned best_base_cost = std::numeric_limits<float>::max();
+  float best_base_cost = std::numeric_limits<float>::max();
   unsigned best_edge = 0;
   std::unordered_set<unsigned> best_left_only_tris;
   std::unordered_set<unsigned> best_right_only_tris;
