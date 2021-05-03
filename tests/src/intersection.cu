@@ -83,12 +83,12 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
     run_tests(tag_v<ExecutionModel::CPU>, triangles, tests);
   }
 
-  const unsigned num_trials = 10;
-  const unsigned num_tests = 10;
+  const unsigned num_trials = 16;
+  const unsigned num_tests = 256;
 
   {
     // TODO: consider switching to an actual property based testing framework...
-    std::uniform_int_distribution<unsigned> num_triangles_gen(2, 100);
+    std::uniform_int_distribution<unsigned> num_triangles_gen(1, 100);
     std::uniform_real_distribution<float> float_gen(-1, 1);
     for (unsigned trial_idx = 0; trial_idx < num_trials; ++trial_idx) {
       unsigned num_triangles = num_triangles_gen(gen);
