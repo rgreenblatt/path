@@ -1,29 +1,14 @@
 #pragma once
 
 #include "intersect/accel/detail/clipped_triangle.h"
+#include "intersect/triangle_impl.h"
 #include "lib/start_end.h"
 
 namespace intersect {
 namespace accel {
 namespace detail {
-// source:
-// https://stackoverflow.com/questions/2049582/how-to-determine-if-a-point-is-in-a-2d-triangle
-bool point_in_triangle(const Eigen::Vector2f &pt, const Eigen::Vector2f &v1,
-                       const Eigen::Vector2f &v2, const Eigen::Vector2f &v3) {
-  auto sign = [](const Eigen::Vector2f &p1, const Eigen::Vector2f &p2,
-                 const Eigen::Vector2f &p3) {
-    return (p1.x() - p3.x()) * (p2.y() - p3.y()) -
-           (p2.x() - p3.x()) * (p1.y() - p3.y());
-  };
-  float d1 = sign(pt, v1, v2);
-  float d2 = sign(pt, v2, v3);
-  float d3 = sign(pt, v3, v1);
-
-  bool has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
-  bool has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
-
-  return !(has_neg && has_pos);
-}
+HOST_DEVICE inline ClippedTriangle::ClippedTriangle(const Triangle &triangle)
+    : triangle(triangle), bounds(triangle.bounds()) {}
 
 HOST_DEVICE inline AABB ClippedTriangle::new_bounds(const float left_bound,
                                                     const float right_bound,
@@ -33,11 +18,26 @@ HOST_DEVICE inline AABB ClippedTriangle::new_bounds(const float left_bound,
   //  - special casing common patterns
   //  - algebric simplification?
 
-  AABB new_bounding = bounding;
-  new_bounding.min_bound[axis] =
-      std::max(new_bounding.min_bound[axis], left_bound);
-  new_bounding.max_bound[axis] =
-      std::min(new_bounding.max_bound[axis], right_bound);
+  debug_assert(bounds.min_bound[axis] <= right_bound &&
+               bounds.max_bound[axis] >= left_bound);
+
+  AABB new_bounds = bounds;
+  new_bounds.min_bound[axis] = std::max(new_bounds.min_bound[axis], left_bound);
+  new_bounds.max_bound[axis] =
+      std::min(new_bounds.max_bound[axis], right_bound);
+
+  for (unsigned axis = 0; axis < 3; ++axis) {
+    if (new_bounds.min_bound[axis] == new_bounds.max_bound[axis]) {
+      debug_assert(triangle.vertices[0][axis] == new_bounds.max_bound[axis] &&
+                   triangle.vertices[1][axis] == new_bounds.max_bound[axis] &&
+                   triangle.vertices[2][axis] == new_bounds.max_bound[axis]);
+
+      // this is a hack to ensure we actually get triangle -> aabb collisions
+      // when the triangle is axis aligned...
+      new_bounds.min_bound[axis] -= 1.;
+      new_bounds.max_bound[axis] += 1.;
+    }
+  }
 
   constexpr unsigned n_verts = 3;
 
@@ -45,7 +45,7 @@ HOST_DEVICE inline AABB ClippedTriangle::new_bounds(const float left_bound,
 
   // check if triangle points lie inside AABB
   for (const auto &vertex : triangle.vertices) {
-    if (new_bounding.contains(vertex)) {
+    if (new_bounds.contains(vertex)) {
       out = out.union_point(vertex);
     }
   }
@@ -64,7 +64,7 @@ HOST_DEVICE inline AABB ClippedTriangle::new_bounds(const float left_bound,
       const auto dir_sign = dir * sign;
 
       auto inv_direction = get_inv_direction(dir_sign);
-      auto intersection = new_bounding.solve_bounding_intersection(
+      auto intersection = new_bounds.solve_bounding_intersection(
           triangle.vertices[start], inv_direction);
       if (intersection.has_value()) {
         out = out.union_point(dir_sign * (*intersection) +
@@ -80,10 +80,10 @@ HOST_DEVICE inline AABB ClippedTriangle::new_bounds(const float left_bound,
         unsigned next_axis = (projection_dir + 1) % 3;
         unsigned next_next_axis = (projection_dir + 2) % 3;
         Eigen::Vector2f p = {
-            (is_min_next ? new_bounding.min_bound
-                         : new_bounding.max_bound)[next_axis],
-            (is_min_next_next ? new_bounding.min_bound
-                              : new_bounding.max_bound)[next_next_axis],
+            (is_min_next ? new_bounds.min_bound
+                         : new_bounds.max_bound)[next_axis],
+            (is_min_next_next ? new_bounds.min_bound
+                              : new_bounds.max_bound)[next_next_axis],
         };
         auto get_point = [&](const Eigen::Vector3f &vec) -> Eigen::Vector2f {
           return {vec[next_axis], vec[next_next_axis]};
@@ -98,6 +98,8 @@ HOST_DEVICE inline AABB ClippedTriangle::new_bounds(const float left_bound,
         auto v_1 = get_point(triangle.vertices[1]);
         auto v_2 = get_point(triangle.vertices[2]);
 
+        // source:
+        // https://stackoverflow.com/questions/2049582/how-to-determine-if-a-point-is-in-a-2d-triangle
         float area =
             0.5 * (-v_1.y() * v_2.x() + v_0.y() * (-v_1.x() + v_2.x()) +
                    v_0.x() * (v_1.y() - v_2.y()) + v_1.x() * v_2.y());

@@ -2,6 +2,7 @@
 
 #include "execution_model/execution_model_vector_type.h"
 #include "intersect/accel/aabb.h"
+#include "intersect/accel/detail/clipped_triangle.h"
 #include "intersect/accel/sbvh/sbvh.h"
 #include "intersect/accel/sbvh/settings.h"
 #include "lib/span.h"
@@ -20,22 +21,19 @@ enum class SplitType {
   Spatial,
 };
 
-struct ClippedTriangle {
-  AABB bounding;
-  Triangle triangle;
-};
-
 struct SplitCandidate {
   float base_cost;
 
   struct Object {
-    std::vector<unsigned> perm;
+    HostVector<unsigned> perm;
     unsigned split_point;
   };
 
   struct Spatial {
-    std::vector<unsigned> left_triangles;
-    std::vector<unsigned> right_triangles;
+    HostVector<unsigned> left_triangles;
+    HostVector<unsigned> right_triangles;
+    HostVector<AABB> left_bounds;
+    HostVector<AABB> right_bounds;
     AABB left_aabb;
     AABB right_aabb;
   };
@@ -60,21 +58,23 @@ public:
                      SpanSized<const Triangle> triangles);
 
 private:
-  SplitCandidate best_object_split(SpanSized<const Triangle> triangles,
+  SplitCandidate best_object_split(SpanSized<const ClippedTriangle> triangles,
                                    unsigned axis);
 
-  SplitCandidate best_spatial_split(SpanSized<const Triangle> triangles,
+  SplitCandidate best_spatial_split(SpanSized<const ClippedTriangle> triangles,
                                     unsigned axis);
 
-  std::vector<unsigned> sort_by_axis(SpanSized<Triangle> triangles,
-                                     unsigned axis);
+  HostVector<unsigned> sort_by_axis(SpanSized<ClippedTriangle> triangles,
+                                    unsigned axis);
 
-  Node create_node(SpanSized<Triangle> triangles, SpanSized<unsigned> idxs,
+  Node create_node(SpanSized<ClippedTriangle> triangles,
+                   SpanSized<unsigned> idxs,
                    SpanSized<std::optional<unsigned>> final_idxs_for_right_dups,
-                   std::vector<Node> &nodes, std::vector<unsigned> &extra_idxs,
+                   HostVector<Node> &nodes, HostVector<unsigned> &extra_idxs,
                    float traversal_per_intersect_cost, unsigned start_idx);
 
   ExecVector<exec, Node> nodes_;
+  ExecVector<exec, unsigned> extra_idxs_;
 };
 } // namespace sbvh
 } // namespace accel

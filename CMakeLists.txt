@@ -283,8 +283,8 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
                    "${PROJECT_SOURCE_DIR}/tests/src/printf_dbg.cpp")
   package_add_test(dispatch_test "${PROJECT_SOURCE_DIR}/tests/src/dispatch.cpp")
   package_add_test(node_test "${PROJECT_SOURCE_DIR}/tests/src/node.cpp")
-  package_add_test(chop_triangle_aabb
-                   "${PROJECT_SOURCE_DIR}/tests/src/chop_triangle_aabb.cpp")
+  package_add_test(clipped_triangle
+                   "${PROJECT_SOURCE_DIR}/tests/src/clipped_triangle.cpp")
 
   add_custom_target(
     run_build_tests

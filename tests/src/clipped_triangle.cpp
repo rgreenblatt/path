@@ -1,4 +1,5 @@
-#include "intersect/accel/detail/chop_triangle_aabb.h"
+#include "intersect/accel/detail/clipped_triangle.h"
+#include "intersect/accel/detail/clipped_triangle_impl.h"
 
 #include <gtest/gtest.h>
 
@@ -9,14 +10,20 @@ using namespace intersect::accel::detail;
 constexpr std::array<std::array<unsigned, 3>, 6> perms{
     {{0, 1, 2}, {0, 2, 1}, {1, 0, 2}, {1, 2, 0}, {2, 0, 1}, {2, 1, 0}}};
 
-void expect_aabb_eq(const AABB &actual, const AABB &expected) {
+void expect_aabb_eq(const AABB &expected, const AABB &actual) {
   for (unsigned axis = 0; axis < 3; ++axis) {
     EXPECT_FLOAT_EQ(actual.min_bound[axis], expected.min_bound[axis]);
     EXPECT_FLOAT_EQ(actual.max_bound[axis], expected.max_bound[axis]);
   }
 }
 
-TEST(copy_triangle_aabb, basic) {
+static AABB chop_triangle_aabb(const Triangle &triangle, float left_bound,
+                               float right_bound, unsigned axis) {
+  ClippedTriangle clipped(triangle);
+  return clipped.new_bounds(left_bound, right_bound, axis);
+}
+
+TEST(copy_triangle_aabb, basic_2d) {
   const Triangle basic = {{
       Eigen::Vector3f{0.f, 0.f, 0.f},
       Eigen::Vector3f{1.f, 2.f, 0.f},
@@ -77,6 +84,33 @@ TEST(copy_triangle_aabb, basic) {
           {
               .min_bound = {0.25f, 0.5f, 0.f},
               .max_bound = {0.75f, 2.f, 0.f},
+          },
+          actual);
+    }
+
+    {
+      ClippedTriangle clipped(permutated);
+      clipped.bounds = clipped.new_bounds(0.25f, 0.5f, 0);
+      clipped.bounds = clipped.new_bounds(1.25f, 1.5f, 1);
+      auto actual = clipped.bounds;
+
+      expect_aabb_eq(
+          {
+              .min_bound = {0.25f, 1.25f, 0.f},
+              .max_bound = {0.5f, 1.5f, 0.f},
+          },
+          actual);
+    }
+    {
+      ClippedTriangle clipped(permutated);
+      clipped.bounds = clipped.new_bounds(1.25f, 1.5f, 1);
+      clipped.bounds = clipped.new_bounds(0.25f, 0.5f, 0);
+      auto actual = clipped.bounds;
+
+      expect_aabb_eq(
+          {
+              .min_bound = {0.25f, 1.25f, 0.f},
+              .max_bound = {0.5f, 1.5f, 0.f},
           },
           actual);
     }

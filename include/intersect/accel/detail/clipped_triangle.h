@@ -9,11 +9,14 @@ namespace detail {
 struct ClippedTriangle {
   ClippedTriangle() = default;
 
-  HOST_DEVICE inline ClippedTriangle(const Triangle &triangle)
-      : bounding(triangle.bounds()), triangle(triangle) {}
+  HOST_DEVICE inline ClippedTriangle(const Triangle &triangle);
 
-  AABB bounding;
+  HOST_DEVICE inline ClippedTriangle(const Triangle &triangle,
+                                     const AABB &bounds)
+      : triangle(triangle), bounds(bounds) {}
+
   Triangle triangle;
+  AABB bounds;
 
   HOST_DEVICE inline AABB new_bounds(const float left_bound,
                                      const float right_bound,

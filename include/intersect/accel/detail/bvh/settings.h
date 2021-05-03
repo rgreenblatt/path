@@ -9,7 +9,9 @@ namespace bvh {
 struct Settings {
   // for SA heuristic
   // this assumes single intersection cost (of one)
-  float traversal_per_intersect_cost = 0.2;
+  // TODO: this maybe should be lower, but that causes infinitely
+  // deep SBVH hierarchies! This will be fixed more directly later...
+  float traversal_per_intersect_cost = 0.5;
 
   unsigned target_objects = 4;
 
