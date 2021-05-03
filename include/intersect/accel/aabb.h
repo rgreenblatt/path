@@ -17,7 +17,6 @@ HOST_DEVICE inline Eigen::Vector3f
 get_inv_direction(const Eigen::Vector3f &direction) {
   Eigen::Vector3f direction_no_zeros = direction;
 
-  // TODO: how important is removing zeros?
   for (unsigned i = 0; i < unsigned(direction_no_zeros.size()); ++i) {
     float &v = direction_no_zeros[i];
     if (v == 0.0f || v == -0.0f) {
@@ -89,6 +88,10 @@ struct AABB {
 
     return 2 *
            (dims.x() * dims.y() + dims.z() * dims.y() + dims.z() * dims.x());
+  }
+
+  ATTR_PURE_NDEBUG HOST_DEVICE Eigen::Vector3f centroid() const {
+    return (min_bound + max_bound) / 2.f;
   }
 
   // needs to be inline
