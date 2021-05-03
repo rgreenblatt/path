@@ -55,6 +55,10 @@ enum class NodeType {
 };
 
 struct Items {
+#ifndef NDEBUG
+  // work around for https://bugs.llvm.org/show_bug.cgi?id=50203
+  size_t pad = 0;
+#endif
   bool is_for_extra;
   StartEnd<unsigned> start_end;
 
@@ -90,7 +94,6 @@ public:
         first_value_.bool_value(),
         [&]<unsigned idx>(NTag<idx>) -> NodeValueRep {
           if constexpr (idx == 0) {
-
             return {
                 tag_v<NodeType::Items>,
                 {
