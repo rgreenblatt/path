@@ -42,7 +42,7 @@ set(RELEASE_ARGS -Ofast;-ffast-math;-march=native)
 # must be quoted for some reason I don't understand?
 add_compile_options("$<$<CONFIG:RELEASE>:${RELEASE_ARGS}>")
 add_compile_options("$<$<CONFIG:RELWITHDEBINFO>:${RELEASE_ARGS};-UNDEBUG>")
-add_compile_options($<$<CONFIG:DEBUG>:-ftrapv>)
+add_compile_options("$<$<CONFIG:DEBUG>:-ftrapv>")
 
 option(FORCE_COLORED_OUTPUT
        "Always produce ANSI-colored output (GNU/Clang only)." TRUE)
