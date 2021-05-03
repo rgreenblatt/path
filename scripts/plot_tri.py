@@ -1,66 +1,89 @@
+from itertools import product, combinations
+
 import mpl_toolkits.mplot3d as a3
 import matplotlib.pyplot as plt
 import numpy as np
 
-ax = a3.Axes3D(plt.figure())
-vtx = np.array([
-    [-0.240000, 1.800000, 0.160000],
-    [-0.240000, 1.800000, -0.220000],
-    [0.230000, 1.800000, -0.220000],
-])
 
-tri = a3.art3d.Poly3DCollection([vtx])
-tri.set_edgecolor('k')
-ax.add_collection3d(tri)
-ax.set_xlim(-1., 1.)
-ax.set_ylim(0., 2.5)
-ax.set_zlim(-1., 1.)
-origin = np.array([-0.577188, 0.000000, 0.609341])
-direction = 3. * np.array([0.351965, 0.860200, -0.369020])
-ax.quiver(*origin, *direction)
-plt.show()
+def draw_tri(ax, vertices, edge_color='k'):
+    tri = a3.art3d.Poly3DCollection([vertices])
+    tri.set_edgecolor(edge_color)
+    ax.add_collection3d(tri)
 
-def intersectionRayModel(self, rayStart, rayEnd):
-    w = rayEnd - rayStart
-    w /= np.linalg.norm(w)
 
-    data = self.temp_mesh
+def draw_aabb(ax, min_bound, max_bound, color='b'):
+    for (axis, is_min_next, is_min_next_next) in product([0, 1, 2],
+                                                         [False, True],
+                                                         [False, True]):
+        s = [0] * len(min_bound)
+        e = [0] * len(min_bound)
 
-    counter = 0
-    for tri in data.vectors+self.pos:
-        b = [.0, .0, .0]
+        s[axis] = min_bound[axis]
+        e[axis] = max_bound[axis]
 
-        e1 = tri[1]
-        e1 -= tri[0]
-        e2 = tri[2]
-        e2 -= tri[0]
+        next_axis = (axis + 1) % 3
+        next_next = (axis + 2) % 3
 
-        n = self.temp_mesh.normals[counter]
+        s[next_axis] = e[next_axis] = min_bound[
+            next_axis] if is_min_next else max_bound[next_axis]
+        s[next_next] = e[next_next] = min_bound[
+            next_next] if is_min_next_next else max_bound[next_next]
 
-        q = np.cross(w, e2)
-        a = np.dot(e1, q)
+        ax.plot3D(*zip(s, e), color=color)
 
-        counter += 1
-        if (np.dot(n, w) >= .0) or (abs(a) <= .0001):
-            continue
 
-        s = np.array(rayStart)
-        s -= tri[0]
-        s /= a
+def main():
+    ax = a3.Axes3D(plt.figure())
 
-        r = np.cross(s, e1)
-        b[0] = np.dot(s, q)
-        b[1] = np.dot(r, w)
-        b[2] = 1.0 - b[0] - b[1]
+    tri_1 = [
+        [-0.823972, 0.278462, -0.201798],
+        [0.247798, 0.561288, 0.556085],
+        [0.551506, -0.0437729, 0.311236],
+    ]
 
-        if (b[0] < .0) or (b[1] < .0) or (b[2] < .0):
-            continue
+    tri_2 = [
+        [0.918268, 0.91624, 0.994868],
+        [-0.891941, 0.665027, -0.00640327],
+        [-0.59231, 0.482882, -0.7319],
+    ]
 
-        t = np.dot(e2, r)
-        if t >= .0:
-            point = rayStart + t*w
-            return True, point
-        else:
-            continue
+    draw_tri(ax, tri_1, edge_color='r')
+    draw_tri(ax, tri_2, edge_color='b')
 
-    return False, None
+    # 1
+    draw_aabb(ax, [-0.823972, -0.0437729, -0.201798],
+              [0.551506, 0.561288, 0.556085],
+              color='tab:blue')
+
+    # 2
+    draw_aabb(ax, [-0.891941, 0.482882, -0.7319],
+              [0.918268, 0.91624, 0.994868],
+              color='tab:red')
+    # 3
+    draw_aabb(ax, [-0.891941, 0.482882, -0.7319],
+              [0.162979, 0.699622, 0.131484],
+              color='tab:orange')
+
+    # 4
+    draw_aabb(ax, [-0.642653, 0.699561, 0.131484],
+              [0.918268, 0.91624, 0.994868],
+              color='tab:green')
+
+    # # 5
+    # draw_aabb(ax, [-0.370497, -0.859653, -0.0181154],
+    #           [0.536472, -0.294918, 0.927199],
+    #           color='tab:purple')
+
+    # # 6
+    # draw_aabb(ax, [-0.399936, -0.727924, 0.219983],
+    #           [0.395036, -0.0408303, 0.9123],
+    #           color='tab:brown')
+
+    origin = np.array([-0.172138, 0.928332, -0.264846])
+    direction = 3. * np.array([-0.109091, -0.461965, 0.880164])
+    ax.quiver(*origin, *direction)
+    plt.show()
+
+
+if __name__ == "__main__":
+    main()
