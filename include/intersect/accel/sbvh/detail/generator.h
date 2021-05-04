@@ -71,7 +71,8 @@ private:
                    SpanSized<unsigned> idxs,
                    SpanSized<std::optional<unsigned>> final_idxs_for_right_dups,
                    HostVector<Node> &nodes, HostVector<unsigned> &extra_idxs,
-                   float traversal_per_intersect_cost, unsigned start_idx);
+                   float traversal_per_intersect_cost, bool use_spatial_splits,
+                   unsigned start_idx);
 
   ExecVector<exec, Node> nodes_;
   ExecVector<exec, unsigned> extra_idxs_;

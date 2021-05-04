@@ -9,9 +9,10 @@ namespace sbvh {
 struct Settings {
   // alpha from original paper
   float overlap_threshold = 1e-5;
+  bool use_spatial_splits = true;
   detail::bvh::Settings bvh_settings;
 
-  SETTING_BODY(Settings, overlap_threshold, bvh_settings);
+  SETTING_BODY(Settings, overlap_threshold, use_spatial_splits, bvh_settings);
 };
 
 static_assert(Setting<Settings>);

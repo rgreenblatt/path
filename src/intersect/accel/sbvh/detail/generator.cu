@@ -31,7 +31,8 @@ SBVH<exec>::Generator::gen(const Settings &settings,
   HostVector<unsigned> extra_idxs;
   nodes[0] =
       create_node(triangles, idxs, final_idxs_for_dups, nodes, extra_idxs,
-                  settings.bvh_settings.traversal_per_intersect_cost, 0);
+                  settings.bvh_settings.traversal_per_intersect_cost,
+                  settings.use_spatial_splits, 0);
 
   copy_to_vec(nodes, nodes_);
   copy_to_vec(extra_idxs, extra_idxs_);
@@ -69,7 +70,8 @@ Node SBVH<exec>::Generator::create_node(
     SpanSized<ClippedTriangle> triangles, SpanSized<unsigned> idxs,
     SpanSized<std::optional<unsigned>> final_idxs_for_dups,
     HostVector<Node> &nodes, HostVector<unsigned> &extra_idxs,
-    float traversal_per_intersect_cost, unsigned start_idx) {
+    float traversal_per_intersect_cost, bool use_spatial_splits,
+    unsigned start_idx) {
   always_assert(triangles.size() == idxs.size());
   always_assert(triangles.size() == final_idxs_for_dups.size());
   always_assert(!triangles.empty());
@@ -79,10 +81,12 @@ Node SBVH<exec>::Generator::create_node(
   };
 
   for (unsigned axis = 0; axis < 3; ++axis) {
-    auto best_object = best_object_split(triangles.as_const(), axis);
-    auto best_spatial = best_spatial_split(triangles.as_const(), axis);
-    overall_best_split =
-        std::min(overall_best_split, std::min(best_object, best_spatial));
+    auto best_split_for_axis = best_object_split(triangles.as_const(), axis);
+    if (use_spatial_splits) {
+      best_split_for_axis = std::min(
+          best_split_for_axis, best_spatial_split(triangles.as_const(), axis));
+    }
+    overall_best_split = std::min(overall_best_split, best_split_for_axis);
   }
 
   AABB overall_aabb = AABB::empty();
@@ -178,11 +182,12 @@ Node SBVH<exec>::Generator::create_node(
       nodes[left_idx] = create_node(
           triangles.slice_to(split_point), idxs.slice_to(split_point),
           final_idxs_for_dups.slice_to(split_point), nodes, extra_idxs,
-          traversal_per_intersect_cost, start_idx);
+          traversal_per_intersect_cost, use_spatial_splits, start_idx);
       nodes[right_idx] = create_node(
           triangles.slice_from(split_point), idxs.slice_from(split_point),
           final_idxs_for_dups.slice_from(split_point), nodes, extra_idxs,
-          traversal_per_intersect_cost, start_idx + num_in_order_before_split);
+          traversal_per_intersect_cost, use_spatial_splits,
+          start_idx + num_in_order_before_split);
     } else {
       always_assert(split.left_triangles.size() == split.left_bounds.size());
       always_assert(split.right_triangles.size() == split.right_bounds.size());
@@ -200,7 +205,7 @@ Node SBVH<exec>::Generator::create_node(
       nodes[left_idx] = create_node(
           triangles.slice_to(split_point), idxs.slice_to(split_point),
           final_idxs_for_dups.slice_to(split_point), nodes, extra_idxs,
-          traversal_per_intersect_cost, start_idx);
+          traversal_per_intersect_cost, use_spatial_splits, start_idx);
 
       std::unordered_set<unsigned> dups;
       std::set_intersection(
@@ -257,10 +262,10 @@ Node SBVH<exec>::Generator::create_node(
         }
       }
 
-      nodes[right_idx] = create_node(triangles_for_right, idxs_for_right,
-                                     final_idxs_for_dups_for_right, nodes,
-                                     extra_idxs, traversal_per_intersect_cost,
-                                     start_idx + num_in_order_before_split);
+      nodes[right_idx] = create_node(
+          triangles_for_right, idxs_for_right, final_idxs_for_dups_for_right,
+          nodes, extra_idxs, traversal_per_intersect_cost, use_spatial_splits,
+          start_idx + num_in_order_before_split);
 
       unsigned overall_idx = split.left_triangles.size();
       for (unsigned i = 0; i < split.right_triangles.size(); ++i) {

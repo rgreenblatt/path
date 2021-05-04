@@ -26,6 +26,7 @@ settings:
           type: SBVH
           value:
             overlap_threshold: 1e-5
+            use_spatial_splits: true
             bvh_settings:
               traversal_per_intersect_cost: .2
               target_objects: 4
