@@ -38,6 +38,9 @@ void check_and_print_stats(SpanSized<const Node> nodes, Settings settings,
 float sa_heurisitic_cost(SpanSized<const Node> nodes,
                          float traversal_per_intersect_cost);
 
+void print_out_bvh(Span<const Node> nodes, Span<const unsigned> extra_idxs,
+                   float traversal_per_intersect_cost);
+
 static_assert(AccelRef<BVH<>>);
 } // namespace bvh
 } // namespace detail

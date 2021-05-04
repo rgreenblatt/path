@@ -67,6 +67,42 @@ float sa_heurisitic_cost(SpanSized<const Node> nodes,
   return sa_heurisitic_cost_impl(nodes, traversal_per_intersect_cost, 0);
 }
 
+void print_out_bvh(Span<const Node> nodes, Span<const unsigned> extra_idxs,
+                   unsigned node_idx) {
+  std::cout << "node: " << node_idx << std::endl;
+  const auto &node = nodes[node_idx];
+
+  std::cout << "[" << std::endl;
+  std::cout << "[" << node.aabb.min_bound[0] << ", " << node.aabb.min_bound[1]
+            << ", " << node.aabb.min_bound[2] << "]," << std::endl;
+  std::cout << "[" << node.aabb.max_bound[0] << ", " << node.aabb.max_bound[1]
+            << ", " << node.aabb.max_bound[2] << "]," << std::endl;
+  std::cout << "]" << std::endl;
+
+  node.value.as_rep().visit_tagged([&](auto tag, const auto &value) {
+    if constexpr (tag == NodeType::Items) {
+      std::cout << "triangle idxs: ";
+      auto se = value.start_end;
+      if (value.is_for_extra) {
+        for (unsigned idx = se.start; idx < se.end; ++idx) {
+          std::cout << extra_idxs[idx] << ", ";
+        }
+      } else {
+        for (unsigned idx = se.start; idx < se.end; ++idx) {
+          std::cout << idx << ", ";
+        }
+      }
+      std::cout << std::endl;
+    } else {
+      static_assert(tag == NodeType::Split);
+      std::cout << "\nleft node:\n";
+      print_out_bvh(nodes, extra_idxs, value.left_idx);
+      std::cout << "\nright node:\n";
+      print_out_bvh(nodes, extra_idxs, value.right_idx);
+    }
+  });
+}
+
 } // namespace bvh
 } // namespace detail
 } // namespace accel
