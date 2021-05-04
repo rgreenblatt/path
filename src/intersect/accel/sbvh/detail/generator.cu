@@ -18,6 +18,7 @@ RefPerm<BVH<>>
 SBVH<exec>::Generator::gen(const Settings &settings,
                            SpanSized<const Triangle> triangles_in) {
   Timer start;
+  triangles_in_ = triangles_in;
   HostVector<ClippedTriangle> triangles(triangles_in.size());
   HostVector<unsigned> idxs(triangles.size());
   for (unsigned i = 0; i < triangles.size(); ++i) {
@@ -75,6 +76,24 @@ Node SBVH<exec>::Generator::create_node(
   always_assert(triangles.size() == idxs.size());
   always_assert(triangles.size() == final_idxs_for_dups.size());
   always_assert(!triangles.empty());
+
+#ifndef NDEBUG
+  {
+    HostVector<unsigned> idxs_to_check(idxs.begin(), idxs.end());
+    std::sort(idxs_to_check.begin(), idxs_to_check.end());
+    debug_assert(
+        std::adjacent_find(idxs_to_check.begin(), idxs_to_check.end()) ==
+        idxs_to_check.end());
+    for (unsigned i = 0; i < triangles.size(); ++i) {
+      unsigned idx = idxs[i];
+      for (unsigned vert_idx = 0; vert_idx < 3; ++vert_idx) {
+        debug_assert((triangles_in_[idx].vertices[vert_idx].array() ==
+                      triangles[i].triangle.vertices[vert_idx].array())
+                         .all());
+      }
+    }
+  }
+#endif
 
   SplitCandidate overall_best_split = {
       .base_cost = std::numeric_limits<float>::max(),
@@ -262,10 +281,23 @@ Node SBVH<exec>::Generator::create_node(
         }
       }
 
+#ifndef NDEBUG
+      HostVector<Triangle> triangles_for_debug_in(triangles_for_right.size());
+      std::transform(triangles_for_right.begin(), triangles_for_right.end(),
+                     triangles_for_debug_in.begin(),
+                     [](const ClippedTriangle &tri) { return tri.triangle; });
+      auto old_in = triangles_in_;
+      triangles_in_ = triangles_for_debug_in;
+#endif
+
       nodes[right_idx] = create_node(
           triangles_for_right, idxs_for_right, final_idxs_for_dups_for_right,
           nodes, extra_idxs, traversal_per_intersect_cost, use_spatial_splits,
           start_idx + num_in_order_before_split);
+
+#ifndef NDEBUG
+      triangles_in_ = old_in;
+#endif
 
       unsigned overall_idx = split.left_triangles.size();
       for (unsigned i = 0; i < split.right_triangles.size(); ++i) {
@@ -280,6 +312,8 @@ Node SBVH<exec>::Generator::create_node(
 
         ++overall_idx;
       }
+
+      debug_assert(overall_idx == triangles.size());
     }
   });
 
@@ -425,6 +459,8 @@ SplitCandidate SBVH<exec>::Generator::best_spatial_split(
     auto bounds = triangle.bounds;
     float min_axis = bounds.min_bound[axis];
     float max_axis = bounds.max_bound[axis];
+
+    debug_assert((bounds.min_bound.array() <= bounds.max_bound.array()).all());
 
     float min_prop = (min_axis - overall_aabb.min_bound[axis]) / total;
     float max_prop = (max_axis - overall_aabb.min_bound[axis]) / total;
@@ -603,7 +639,6 @@ SplitCandidate SBVH<exec>::Generator::best_spatial_split(
 
     bool on_split = !to_left && !to_right;
     if (to_left || on_split) {
-
       auto new_bounds = triangle.new_bounds(
           std::numeric_limits<float>::lowest(), split_point, axis);
 

@@ -76,6 +76,9 @@ private:
 
   ExecVector<exec, Node> nodes_;
   ExecVector<exec, unsigned> extra_idxs_;
+
+  // just for debug asserts
+  Span<const Triangle> triangles_in_;
 };
 } // namespace sbvh
 } // namespace accel
