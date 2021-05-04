@@ -270,7 +270,7 @@ Node SBVH<exec>::Generator::create_node(
       unsigned overall_idx = split.left_triangles.size();
       for (unsigned i = 0; i < split.right_triangles.size(); ++i) {
         unsigned prev_step_idx = idxs_for_right[i];
-        if (dups.contains(Span{split.right_triangles}[prev_step_idx])) {
+        if (dups.contains(split.right_triangles[prev_step_idx])) {
           continue;
         }
 
