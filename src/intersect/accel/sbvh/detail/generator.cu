@@ -270,6 +270,8 @@ Node SBVH<exec>::Generator::create_node(
         }
 
         idxs[overall_idx] = old_idxs[split.right_triangles[prev_step_idx]];
+        final_idxs_for_dups[overall_idx] =
+            old_final_idxs_for_dups[split.right_triangles[prev_step_idx]];
 
         ++overall_idx;
       }
@@ -428,6 +430,25 @@ SplitCandidate SBVH<exec>::Generator::best_spatial_split(
     unsigned max_loc = std::min(unsigned(std::floor(max_prop * num_divisions)),
                                 num_divisions - 1);
 
+    // special case some floating point issues....
+    // maybe find a better solution later...
+    if (get_split_point(min_loc) > bounds.min_bound[axis]) {
+      debug_assert_assume(min_loc > 0);
+      --min_loc;
+    }
+    if (get_split_point(max_loc + 1) < bounds.max_bound[axis]) {
+      debug_assert_assume(max_loc < num_divisions - 1);
+      ++max_loc;
+    }
+    if (min_loc != max_loc) {
+      if (get_split_point(max_loc) >= max_axis) {
+        --max_loc;
+      }
+      if (get_split_point(min_loc + 1) <= min_axis) {
+        ++min_loc;
+      }
+    }
+
     ++bin_infos[min_loc].entries;
     ++bin_infos[max_loc].exits;
 
@@ -475,15 +496,19 @@ SplitCandidate SBVH<exec>::Generator::best_spatial_split(
   std::unordered_set<unsigned> best_left_only_tris;
   std::unordered_set<unsigned> best_right_only_tris;
 
-  unsigned total_left = 0;
-  unsigned total_right = triangles.size();
+  unsigned total_left_overall = 0;
+  unsigned total_right_overall = triangles.size();
   AABB running_aabb = AABB::empty();
   for (unsigned edge = 0; edge < num_divisions - 1; ++edge) {
     unsigned loc_left = edge;
     unsigned loc_right = edge + 1;
 
-    total_left += bin_infos[loc_left].entries;
-    total_right -= bin_infos[loc_left].exits;
+    total_left_overall += bin_infos[loc_left].entries;
+    total_right_overall -= bin_infos[loc_left].exits;
+
+    unsigned total_left = total_left_overall;
+    unsigned total_right = total_right_overall;
+
     running_aabb = running_aabb.union_other(bin_infos[loc_left].aabb);
 
     AABB left_aabb = running_aabb;
@@ -512,12 +537,13 @@ SplitCandidate SBVH<exec>::Generator::best_spatial_split(
 
       if (std::min(base_cost_left_only, base_cost_right_only) < base_cost) {
         if (base_cost_left_only < base_cost_right_only) {
-
+          total_right -= 1;
           base_cost = base_cost_left_only;
           surface_area_left = left_only.surface_area();
           left_aabb = left_only;
           left_only_tris.insert(triangle_idx);
         } else {
+          total_left -= 1;
           base_cost = base_cost_right_only;
           surface_area_right = right_only.surface_area();
           right_aabb = right_only;
