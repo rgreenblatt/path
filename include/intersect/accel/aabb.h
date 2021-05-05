@@ -82,7 +82,7 @@ struct AABB {
     auto dims = (max_bound - min_bound).eval();
 
     // handle "empty" case
-    if (dims.x() < 0.f) {
+    if ((dims.array() < 0.f).any()) {
       return 0.;
     }
 
