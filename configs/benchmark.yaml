@@ -26,11 +26,11 @@ settings:
           type: SBVH
           value:
             overlap_threshold: 1e-5
-            use_spatial_splits: true
+            use_spatial_splits: false
             bvh_settings:
-              traversal_per_intersect_cost: .2
+              traversal_per_intersect_cost: 0.5
               target_objects: 4
-              print_stats: false
+              print_stats: true
   # kernel_approach:
   #   type: Streaming
   #   value:

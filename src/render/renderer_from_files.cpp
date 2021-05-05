@@ -53,21 +53,21 @@ void RendererFromFiles::print_config() const {
   std::cout << os.str() << std::endl;
 }
 
-void RendererFromFiles::render(ExecutionModel execution_model,
-                               Span<BGRA32> pixels, unsigned samples_per,
-                               unsigned x_dim, unsigned y_dim,
-                               bool progress_bar, bool show_times) {
-  renderer_->render(execution_model, pixels, *scene_, samples_per, x_dim, y_dim,
-                    *settings_, progress_bar, show_times);
+double RendererFromFiles::render(ExecutionModel execution_model,
+                                 Span<BGRA32> pixels, unsigned samples_per,
+                                 unsigned x_dim, unsigned y_dim,
+                                 bool progress_bar, bool show_times) {
+  return renderer_->render(execution_model, pixels, *scene_, samples_per, x_dim,
+                           y_dim, *settings_, progress_bar, show_times);
 }
 
-void RendererFromFiles::render_float_rgb(ExecutionModel execution_model,
-                                         Span<FloatRGB> float_rgb,
-                                         unsigned samples_per, unsigned x_dim,
-                                         unsigned y_dim, bool progress_bar,
-                                         bool show_times) {
-  renderer_->render_float_rgb(execution_model, float_rgb, *scene_, samples_per,
-                              x_dim, y_dim, *settings_, progress_bar,
-                              show_times);
+double RendererFromFiles::render_float_rgb(ExecutionModel execution_model,
+                                           Span<FloatRGB> float_rgb,
+                                           unsigned samples_per, unsigned x_dim,
+                                           unsigned y_dim, bool progress_bar,
+                                           bool show_times) {
+  return renderer_->render_float_rgb(execution_model, float_rgb, *scene_,
+                                     samples_per, x_dim, y_dim, *settings_,
+                                     progress_bar, show_times);
 }
 } // namespace render

@@ -55,12 +55,10 @@ enum class NodeType {
 };
 
 struct Items {
-#ifndef NDEBUG
+  // order matters!
   // work around for https://bugs.llvm.org/show_bug.cgi?id=50203
-  size_t pad = 0;
-#endif
-  bool is_for_extra;
   StartEnd<unsigned> start_end;
+  bool is_for_extra;
 
   constexpr bool operator==(const Items &other) const = default;
   constexpr auto operator<=>(const Items &other) const = default;
@@ -97,12 +95,12 @@ public:
             return {
                 tag_v<NodeType::Items>,
                 {
-                    .is_for_extra = second_value_.bool_value(),
                     .start_end =
                         {
                             .start = first_value_.unsigned_value(),
                             .end = second_value_.unsigned_value(),
                         },
+                    .is_for_extra = second_value_.bool_value(),
                 },
             };
           } else {

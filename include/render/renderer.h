@@ -18,20 +18,20 @@ public:
   Renderer(Renderer &&);
   Renderer &operator=(Renderer &&);
 
-  void render(ExecutionModel execution_model, Span<BGRA32> pixels,
-              const scene::Scene &s, unsigned samples_per, unsigned x_dim,
-              unsigned y_dim, const Settings &settings,
-              bool progress_bar = false, bool show_times = false);
+  double render(ExecutionModel execution_model, Span<BGRA32> pixels,
+                const scene::Scene &s, unsigned samples_per, unsigned x_dim,
+                unsigned y_dim, const Settings &settings,
+                bool progress_bar = false, bool show_times = false);
 
-  void render_float_rgb(ExecutionModel execution_model,
-                        Span<FloatRGB> float_rgb, const scene::Scene &s,
-                        unsigned samples_per, unsigned x_dim, unsigned y_dim,
-                        const Settings &settings, bool progress_bar = false,
-                        bool show_times = false);
+  double render_float_rgb(ExecutionModel execution_model,
+                          Span<FloatRGB> float_rgb, const scene::Scene &s,
+                          unsigned samples_per, unsigned x_dim, unsigned y_dim,
+                          const Settings &settings, bool progress_bar = false,
+                          bool show_times = false);
 
 private:
   template <typename F>
-  void visit_renderer(ExecutionModel execution_model, F &&f);
+  double visit_renderer(ExecutionModel execution_model, F &&f);
 
   template <ExecutionModel execution_model> class Impl;
 

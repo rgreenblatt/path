@@ -29,14 +29,14 @@ public:
   void load_config(const std::filesystem::path &config_file_path);
   void print_config() const;
 
-  void render(ExecutionModel execution_model, Span<BGRA32> pixels,
-              unsigned samples_per, unsigned x_dim, unsigned y_dim,
-              bool progress_bar = false, bool show_times = false);
+  double render(ExecutionModel execution_model, Span<BGRA32> pixels,
+                unsigned samples_per, unsigned x_dim, unsigned y_dim,
+                bool progress_bar = false, bool show_times = false);
 
-  void render_float_rgb(ExecutionModel execution_model,
-                        Span<FloatRGB> float_rgb, unsigned samples_per,
-                        unsigned x_dim, unsigned y_dim,
-                        bool progress_bar = false, bool show_times = false);
+  double render_float_rgb(ExecutionModel execution_model,
+                          Span<FloatRGB> float_rgb, unsigned samples_per,
+                          unsigned x_dim, unsigned y_dim,
+                          bool progress_bar = false, bool show_times = false);
 
 private:
   std::unique_ptr<Renderer> renderer_;

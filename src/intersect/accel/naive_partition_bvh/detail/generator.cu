@@ -3,8 +3,6 @@
 #include "lib/assert.h"
 #include "lib/eigen_utils.h"
 
-#include <dbg.h>
-
 namespace intersect {
 namespace accel {
 namespace naive_partition_bvh {
@@ -64,12 +62,12 @@ Node NaivePartitionBVH<exec>::Generator::create_node(SpanSized<Bounds> bounds,
         .value = NodeValue(NodeValueRep{
             tag_v<NodeType::Items>,
             {
-                .is_for_extra = false,
                 .start_end =
                     {
                         .start = start_idx,
                         .end = start_idx + static_cast<unsigned>(bounds.size()),
                     },
+                .is_for_extra = false,
             }}),
         .aabb = total_bounds,
     };

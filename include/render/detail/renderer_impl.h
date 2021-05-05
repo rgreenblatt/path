@@ -27,11 +27,12 @@ template <ExecutionModel exec> class Renderer::Impl {
 public:
   Impl();
 
-  void general_render(bool output_as_bgra_32, Span<BGRA32> bgra_32_output,
-                      Span<FloatRGB> float_rgb_output, const scene::Scene &s,
-                      unsigned samples_per, unsigned x_dim, unsigned y_dim,
-                      const Settings &settings, bool show_progress,
-                      bool show_times);
+  // returns execution time (not including build time)
+  double general_render(bool output_as_bgra_32, Span<BGRA32> bgra_32_output,
+                        Span<FloatRGB> float_rgb_output, const scene::Scene &s,
+                        unsigned samples_per, unsigned x_dim, unsigned y_dim,
+                        const Settings &settings, bool show_progress,
+                        bool show_times);
 
 private:
   template <typename T> using ExecVecT = ExecVector<exec, T>;

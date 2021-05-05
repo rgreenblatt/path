@@ -19,7 +19,7 @@ constexpr char USAGE[] =
     Usage:
       path <scene_file> [--width=<pixels>] [--height=<pixels>]
         [--samples=<count>] [--output=<file_name>] [--bench-budget=<time>]
-        [--config=<file_name>] [-g | --gpu] [--bench] 
+        [--config=<file_name>] [-g | --gpu] [--bench] [--bench-ignore-accel]
         [--disable-progress] [--show-times] [--no-print-config]
       path (-h | --help)
 
@@ -36,6 +36,7 @@ constexpr char USAGE[] =
 
       --bench                Warm up and then run multiple times and report 
                              statistics
+      --bench-ignore-accel   Ignore the computation used to build the accel
       --disable-progress     Disable progress bar
       --show-times           Show timings
       --no-print-config      Don't print config
@@ -101,8 +102,8 @@ int main(int argc, char *argv[]) {
   Span<BGRA32> pixels(reinterpret_cast<BGRA32 *>(image.bits()), width * height);
 
   auto render = [&](bool show_progress) {
-    renderer.render(execution_model, pixels, samples, width, height,
-                    show_progress && !disable_progress, show_times);
+    return renderer.render(execution_model, pixels, samples, width, height,
+                           show_progress && !disable_progress, show_times);
   };
 
   if (get_unpack_arg("--bench").asBool()) {
@@ -110,43 +111,46 @@ int main(int argc, char *argv[]) {
 
     Timer total_warm_up;
 
-    auto b_render = [&] { render(false); };
+    auto b_render = [&] { return render(false); };
 
     b_render();
 
     Timer warmup_time;
+    double total_warm_up_time_ignore_accel = 0.f;
 
     for (unsigned i = 0; i < warmup_iters; i++) {
-      b_render();
+      total_warm_up_time_ignore_accel += b_render();
     }
 
-    float time_per = warmup_time.elapsed() / warmup_iters;
+    double time_per = warmup_time.elapsed() / warmup_iters;
 
     unsigned iters = unsigned(std::ceil(
-        std::max(0.f, boost::lexical_cast<float>(
-                          get_unpack_arg("--bench-budget").asString()) /
-                          time_per)));
+        std::max(0., boost::lexical_cast<double>(
+                         get_unpack_arg("--bench-budget").asString()) /
+                         time_per)));
 
     if (iters < 3) {
       std::cerr << "Note that only " << iters
                 << " iter(s) can be run with the current budget" << std::endl;
     }
 
-    float total_time = 0.f;
-    float total_sqr_time = 0.f;
+    double total_time = 0.f;
+    double total_sqr_time = 0.f;
+
+    bool ignore_accel = get_unpack_arg("--bench-ignore-accel").asBool();
 
     for (unsigned i = 0; i < iters; ++i) {
       Timer render_timer;
-      b_render();
-      float time = render_timer.elapsed();
+      double time_ignore_accel = b_render();
+      double time = ignore_accel ? time_ignore_accel : render_timer.elapsed();
       total_time += time;
       total_sqr_time += time * time;
     }
 
-    float mean_time = total_time / iters;
-    float var_time = total_sqr_time / iters - mean_time * mean_time;
-    float std_dev = std::sqrt(var_time);
-    float std_error = std_dev / std::sqrt(iters);
+    double mean_time = total_time / iters;
+    double var_time = total_sqr_time / iters - mean_time * mean_time;
+    double std_dev = std::sqrt(var_time);
+    double std_error = std_dev / std::sqrt(iters);
 
     std::cout << "mean: " << mean_time << ", 2 * SE: " << 2 * std_error
               << std::endl;

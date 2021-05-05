@@ -17,7 +17,6 @@ HOST_DEVICE inline AABB ClippedTriangle::new_bounds(const float left_bound,
   // optimizations:
   //  - special casing common patterns
   //  - algebric simplification?
-
   debug_assert(bounds.min_bound[axis] <= right_bound &&
                bounds.max_bound[axis] >= left_bound);
 
@@ -25,7 +24,9 @@ HOST_DEVICE inline AABB ClippedTriangle::new_bounds(const float left_bound,
   new_bounds.min_bound[axis] = std::max(new_bounds.min_bound[axis], left_bound);
   new_bounds.max_bound[axis] =
       std::min(new_bounds.max_bound[axis], right_bound);
-
+#if 0
+  return new_bounds;
+#else
   for (unsigned axis = 0; axis < 3; ++axis) {
     if (new_bounds.min_bound[axis] == new_bounds.max_bound[axis]) {
       debug_assert(triangle.vertices[0][axis] == new_bounds.max_bound[axis] &&
@@ -119,6 +120,7 @@ HOST_DEVICE inline AABB ClippedTriangle::new_bounds(const float left_bound,
   }
 
   return out;
+#endif
 }
 } // namespace detail
 } // namespace accel

@@ -5,6 +5,7 @@
 #include "intersect/triangle_impl.h"
 #include "intersectable_scene/to_bulk_impl.h"
 #include "kernel/work_division.h"
+#include "lib/info/timer.h"
 #include "meta/all_values/dispatch.h"
 #include "render/detail//integrate_image/mega_kernel/run.h"
 #include "render/detail//integrate_image/streaming/run.h"
@@ -15,7 +16,7 @@ namespace render {
 using namespace detail;
 
 template <ExecutionModel exec>
-void Renderer::Impl<exec>::general_render(
+double Renderer::Impl<exec>::general_render(
     bool output_as_bgra_32, Span<BGRA32> bgra_32_output,
     Span<FloatRGB> float_rgb_output, const scene::Scene &s,
     unsigned samples_per, unsigned x_dim, unsigned y_dim,
@@ -23,6 +24,8 @@ void Renderer::Impl<exec>::general_render(
   if (output_as_bgra_32) {
     bgra_32_.resize(x_dim * y_dim);
   }
+
+  Timer run_timer(std::nullopt);
 
   // We return float_rgb_out because the mega kernel reduce can pick
   // which value to avoid a copy. (might be premature optimization...)
@@ -134,6 +137,7 @@ void Renderer::Impl<exec>::general_render(
         .show_times = show_times,
     };
     return [&]() -> ExecVecT<FloatRGB> * {
+      run_timer.start();
       if constexpr (kernel_approach == KernelApproach::MegaKernel) {
         return integrate_image::mega_kernel::Run<exec>::run(
             inputs, intersector, kernel_approach_settings, float_rgb_,
@@ -163,5 +167,9 @@ void Renderer::Impl<exec>::general_render(
     thrust::copy(float_rgb_out->begin(), float_rgb_out->end(),
                  float_rgb_output.begin());
   }
+
+  run_timer.stop();
+
+  return run_timer.elapsed();
 }
 } // namespace render

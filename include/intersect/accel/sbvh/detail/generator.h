@@ -27,6 +27,7 @@ struct SplitCandidate {
   struct Object {
     HostVector<unsigned> perm;
     unsigned split_point;
+    float intersection_surface_area;
   };
 
   struct Spatial {
@@ -71,11 +72,12 @@ private:
                    SpanSized<unsigned> idxs,
                    SpanSized<std::optional<unsigned>> final_idxs_for_right_dups,
                    HostVector<Node> &nodes, HostVector<unsigned> &extra_idxs,
-                   float traversal_per_intersect_cost, bool use_spatial_splits,
-                   unsigned start_idx);
+                   unsigned start_idx, bool is_root);
 
   ExecVector<exec, Node> nodes_;
   ExecVector<exec, unsigned> extra_idxs_;
+  Settings settings_;
+  float root_surface_area_;
 
   // just for debug asserts
   Span<const Triangle> triangles_in_;

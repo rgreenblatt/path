@@ -24,31 +24,31 @@ TEST(NodeValue, convert) {
   for (bool is_for_extra : {false, true}) {
     check_identity(NodeValueRep{tag_v<NodeType::Items>,
                                 {
-                                    .is_for_extra = is_for_extra,
                                     .start_end = {.start = 2838382, .end = 82},
+                                    .is_for_extra = is_for_extra,
                                 }});
     check_identity(
         NodeValueRep{tag_v<NodeType::Items>,
                      {
-                         .is_for_extra = is_for_extra,
                          .start_end = {.start = 2147483647, .end = 2147483647},
+                         .is_for_extra = is_for_extra,
                      }});
     check_identity(
         NodeValueRep{tag_v<NodeType::Items>,
                      {
-                         .is_for_extra = is_for_extra,
                          .start_end = {.start = 0, .end = 2147483647},
+                         .is_for_extra = is_for_extra,
                      }});
     check_identity(
         NodeValueRep{tag_v<NodeType::Items>,
                      {
-                         .is_for_extra = is_for_extra,
                          .start_end = {.start = 2147483647, .end = 0},
+                         .is_for_extra = is_for_extra,
                      }});
     check_identity(NodeValueRep{tag_v<NodeType::Items>,
                                 {
-                                    .is_for_extra = is_for_extra,
                                     .start_end = {.start = 0, .end = 0},
+                                    .is_for_extra = is_for_extra,
                                 }});
   }
 }
