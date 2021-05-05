@@ -13,6 +13,69 @@
 namespace intersect {
 namespace accel {
 namespace sbvh {
+void voxelize_triangles(SpanSized<const Triangle> triangles,
+                        Eigen::Array3<unsigned> num_divisions) {
+  AABB overall_aabb = AABB::empty();
+
+  for (unsigned i = 0; i < triangles.size(); ++i) {
+    overall_aabb = overall_aabb.union_other(triangles[i].bounds());
+  }
+
+  const Eigen::Array3f total = overall_aabb.max_bound - overall_aabb.min_bound;
+
+  Eigen::Array3f num_divisions_float = num_divisions.template cast<float>();
+
+  auto get_split_points = [&](Eigen::Vector3<unsigned> loc) {
+    Eigen::Vector3f fracs = loc.cast<float>().array() / num_divisions_float;
+    Eigen::Vector3f out =
+        (fracs.array() * total).matrix() + overall_aabb.min_bound;
+
+    for (unsigned i = 0; i < 3; ++i) {
+      if (loc[i] == num_divisions[i]) {
+        // reduce float error (needed?)
+        out[i] = overall_aabb.max_bound[i];
+      }
+    }
+
+    return out;
+  };
+
+  for (unsigned i = 0; i < triangles.size(); ++i) {
+    const auto &triangle = triangles[i];
+    auto bounds = triangle.bounds();
+
+    auto get_locs =
+        [&](const Eigen::Vector3f &bounds) -> Eigen::Array3<unsigned> {
+      auto props = (bounds - overall_aabb.min_bound).array() / total;
+      return (props * num_divisions_float)
+          .floor()
+          .cast<unsigned>()
+          .cwiseMin(num_divisions - 1);
+    };
+
+    auto min_locs = get_locs(bounds.min_bound);
+    auto max_locs = get_locs(bounds.max_bound);
+
+    for (unsigned x_loc = min_locs.x(); x_loc <= max_locs.x(); ++x_loc) {
+      for (unsigned y_loc = min_locs.y(); y_loc <= max_locs.y(); ++y_loc) {
+        for (unsigned z_loc = min_locs.z(); z_loc <= max_locs.z(); ++z_loc) {
+          Eigen::Vector3<unsigned> locs = {x_loc, y_loc, z_loc};
+          AABB bounds{
+              .min_bound = get_split_points(locs),
+              .max_bound =
+                  get_split_points(locs + Eigen::Vector3<unsigned>::Ones()),
+          };
+
+          // clip_triangle(triangle, bounds);
+        }
+      }
+    }
+
+    // min_props
+    // unsigned min_loc =
+  }
+}
+
 template <ExecutionModel exec>
 RefPerm<BVH<>>
 SBVH<exec>::Generator::gen(const Settings &settings,
