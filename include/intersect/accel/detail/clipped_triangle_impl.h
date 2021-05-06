@@ -68,7 +68,7 @@ HOST_DEVICE inline AABB ClippedTriangle::new_bounds(const float left_bound,
       auto intersection = new_bounds.solve_bounding_intersection(
           triangle.vertices[start], inv_direction);
       if (intersection.has_value()) {
-        out = out.union_point(dir_sign * (*intersection) +
+        out = out.union_point(dir_sign * intersection->t_min +
                               triangle.vertices[start]);
       }
     }

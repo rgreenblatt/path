@@ -1,6 +1,7 @@
 #pragma once
 
 #include "execution_model/execution_model.h"
+#include "intersect/accel/direction_grid/direction_grid.h"
 #include "intersect/accel/enum_accel/accel_type.h"
 #include "intersect/accel/enum_accel/settings.h"
 #include "intersect/accel/loop_all/loop_all.h"
@@ -18,7 +19,8 @@ namespace enum_accel {
 template <AccelType type, ExecutionModel exec>
 using EnumAccel =
     PickType<type, loop_all::LoopAll,
-             naive_partition_bvh::NaivePartitionBVH<exec>, sbvh::SBVH<exec>>;
+             naive_partition_bvh::NaivePartitionBVH<exec>, sbvh::SBVH<exec>,
+             direction_grid::DirectionGrid<exec>>;
 
 template <AccelType type, ExecutionModel exec>
 struct IsTriangleAccel

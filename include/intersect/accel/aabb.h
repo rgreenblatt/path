@@ -94,20 +94,29 @@ struct AABB {
     return (min_bound + max_bound) / 2.f;
   }
 
+  // contains both intersection points
+  struct BoundingIntersection {
+    float t_min;
+    float t_max;
+  };
+
   // needs to be inline
-  ATTR_PURE_NDEBUG HOST_DEVICE std::optional<float>
+  ATTR_PURE_NDEBUG HOST_DEVICE inline std::optional<BoundingIntersection>
   solve_bounding_intersection(const Eigen::Vector3f &point,
                               const Eigen::Vector3f &inv_direction) const {
     auto t_0 = (min_bound - point).cwiseProduct(inv_direction).eval();
     auto t_1 = (max_bound - point).cwiseProduct(inv_direction).eval();
-    auto t_min = t_0.cwiseMin(t_1);
-    auto t_max = t_0.cwiseMax(t_1);
+    auto all_t_min = t_0.cwiseMin(t_1);
+    auto all_t_max = t_0.cwiseMax(t_1);
 
-    float max_of_min = t_min.maxCoeff();
-    float min_of_max = t_max.minCoeff();
+    float overall_t_min = all_t_min.maxCoeff();
+    float overall_t_max = all_t_max.minCoeff();
 
-    if (max_of_min <= min_of_max) {
-      return max_of_min;
+    if (overall_t_min <= overall_t_max) {
+      return BoundingIntersection{
+          .t_min = overall_t_min,
+          .t_max = overall_t_max,
+      };
     } else {
       return std::nullopt;
     }

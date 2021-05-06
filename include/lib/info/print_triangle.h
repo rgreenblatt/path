@@ -2,7 +2,7 @@
 
 #include "intersect/triangle.h"
 
-void print_triangle(const intersect::Triangle &triangle) {
+inline void print_triangle(const intersect::Triangle &triangle) {
   std::cout << "[" << std::endl;
   for (const auto &vert : triangle.vertices) {
     std::cout << "[" << vert[0] << ", " << vert[1] << ", " << vert[2] << "],"

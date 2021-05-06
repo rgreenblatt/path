@@ -46,7 +46,7 @@ BVH<node_stack_size, objects_vec_size>::intersect_objects(
 
       if (bounding_intersection.has_value() &&
           (!best.has_value() ||
-           best->intersection_dist > *bounding_intersection)) {
+           best->intersection_dist > bounding_intersection->t_min)) {
         auto value = current_node.value.as_rep();
 
         value.visit_tagged([&](auto tag, const auto &v) {

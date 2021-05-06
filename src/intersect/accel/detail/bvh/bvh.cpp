@@ -102,7 +102,6 @@ void print_out_bvh(Span<const Node> nodes, Span<const unsigned> extra_idxs,
     }
   });
 }
-
 } // namespace bvh
 } // namespace detail
 } // namespace accel

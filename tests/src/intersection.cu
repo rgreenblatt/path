@@ -11,6 +11,9 @@
 
 #include <random>
 
+#include "dbg.h"
+#include "lib/info/print_triangle.h"
+
 using namespace intersect;
 using namespace intersect::accel;
 using namespace intersect::accel::enum_accel;
@@ -29,6 +32,12 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
     constexpr ExecutionModel exec = tag;
 
     EnumAccel<type, exec> inst;
+
+    // for (unsigned i = 0; i < triangles_in.size(); ++i) {
+    //   std::cout << "triangle: " << i << std::endl;
+    //   print_triangle(triangles_in[i]);
+    //   std::cout << std::endl;
+    // }
 
     // Perhaps test partial
     RefPerm ref_perm = inst.gen(settings, triangles_in);
@@ -61,10 +70,57 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
     for (unsigned i = 0; i < test_expected.size(); i++) {
       auto [ray, expected] = test_expected[i];
       auto result = results[i];
+      if (result.has_value() != expected.has_value()) {
+        dbg(i);
+        dbg(ray.origin);
+        dbg(*ray.direction);
+      }
       EXPECT_EQ(result.has_value(), expected.has_value());
       if (result.has_value() && expected.has_value()) {
         EXPECT_EQ(orig_idxs[*result], *expected);
       }
+    }
+  };
+
+  auto random_vec = [&](auto float_gen) {
+    return Eigen::Vector3f{float_gen(gen), float_gen(gen), float_gen(gen)};
+  };
+
+  auto random_tests_for_tris = [&](SpanSized<const Triangle> triangles,
+                                   auto float_gen, unsigned num_tests) {
+    HostDeviceVector<Test> tests(num_tests);
+
+    EnumAccel<AccelType::LoopAll, ExecutionModel::CPU> loop_all_inst;
+
+    auto loop_all_ref =
+        loop_all_inst.gen(Settings<AccelType::LoopAll>(), triangles.as_const())
+            .ref;
+
+    auto get_ground_truth = [&](const Ray &ray) -> std::optional<unsigned> {
+      auto a = loop_all_ref.intersect_objects(
+          ray, [&](unsigned idx, const Ray &ray) {
+            return triangles[idx].intersect(ray);
+          });
+      if (a.has_value()) {
+        return a->info.idx;
+      } else {
+        return std::nullopt;
+      }
+    };
+
+    for (unsigned i = 0; i < num_tests; i++) {
+      auto eye = random_vec(float_gen);
+      auto direction = UnitVector::new_normalize(random_vec(float_gen));
+      Ray ray = {eye, direction};
+      tests[i] = Test{ray, get_ground_truth(ray)};
+    }
+
+    if (is_gpu) {
+#ifndef CPU_ONLY
+      run_tests(tag_v<ExecutionModel::GPU>, triangles, tests);
+#endif
+    } else {
+      run_tests(tag_v<ExecutionModel::CPU>, triangles, tests);
     }
   };
 
@@ -80,65 +136,51 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
         {Ray{{0.1, 0.1, -1}, UnitVector::new_normalize({0, 0, 1})}, 0},
     };
 
-    run_tests(tag_v<ExecutionModel::CPU>, triangles, tests);
+    if (is_gpu) {
+#ifndef CPU_ONLY
+      run_tests(tag_v<ExecutionModel::GPU>, triangles, tests);
+#endif
+    } else {
+      run_tests(tag_v<ExecutionModel::CPU>, triangles, tests);
+    }
+
+    std::uniform_real_distribution<float> float_gen(-1, 1);
+    random_tests_for_tris(triangles, float_gen, 64);
   }
 
-  const unsigned num_trials = 16;
-  const unsigned num_tests = 256;
+  {
+    HostVector<Triangle> triangles = {
+        Triangle{{{{0.13, 0, 0}, {0.13, 0.6, 0}, {0.7, 0.6, 0.17}}}},
+        Triangle{{{{0.13, 0, 0}, {0.7, 0.6, 0.17}, {0.7, 0, 0.17}}}},
+        Triangle{
+            {{{-0.24, 1.98, 0.16}, {-0.24, 1.98, -0.22}, {0.23, 1.98, -0.22}}}},
+        Triangle{
+            {{{-0.24, 1.98, 0.16}, {0.23, 1.98, -0.22}, {0.23, 1.98, 0.16}}}},
+    };
+
+    std::uniform_real_distribution<float> float_gen(-2, 2);
+    random_tests_for_tris(triangles, float_gen, 512);
+  }
 
   {
+    const unsigned num_trials = 16;
+    const unsigned num_tests = 256;
+
     // TODO: consider switching to an actual property based testing framework...
-    std::uniform_int_distribution<unsigned> num_triangles_gen(1, 100);
     std::uniform_real_distribution<float> float_gen(-1, 1);
+    std::uniform_int_distribution<unsigned> num_triangles_gen(1, 100);
     for (unsigned trial_idx = 0; trial_idx < num_trials; ++trial_idx) {
       unsigned num_triangles = num_triangles_gen(gen);
 
       HostVector<Triangle> triangles_vec(num_triangles);
       SpanSized<Triangle> triangles = triangles_vec;
 
-      auto random_vec = [&] {
-        return Eigen::Vector3f{float_gen(gen), float_gen(gen), float_gen(gen)};
-      };
-
       for (unsigned i = 0; i < num_triangles; i++) {
-        triangles[i] = Triangle{{random_vec(), random_vec(), random_vec()}};
+        triangles[i] = Triangle{{random_vec(float_gen), random_vec(float_gen),
+                                 random_vec(float_gen)}};
       }
 
-      HostDeviceVector<Test> tests(num_tests);
-
-      EnumAccel<AccelType::LoopAll, ExecutionModel::CPU> loop_all_inst;
-
-      auto loop_all_ref =
-          loop_all_inst
-              .gen(Settings<AccelType::LoopAll>(), triangles.as_const())
-              .ref;
-
-      auto get_ground_truth = [&](const Ray &ray) -> std::optional<unsigned> {
-        auto a = loop_all_ref.intersect_objects(
-            ray, [&](unsigned idx, const Ray &ray) {
-              return triangles[idx].intersect(ray);
-            });
-        if (a.has_value()) {
-          return a->info.idx;
-        } else {
-          return std::nullopt;
-        }
-      };
-
-      for (unsigned i = 0; i < num_tests; i++) {
-        auto eye = random_vec();
-        auto direction = UnitVector::new_normalize(random_vec());
-        Ray ray = {eye, direction};
-        tests[i] = Test{ray, get_ground_truth(ray)};
-      }
-
-      if (is_gpu) {
-#ifndef CPU_ONLY
-        run_tests(tag_v<ExecutionModel::GPU>, triangles, tests);
-#endif
-      } else {
-        run_tests(tag_v<ExecutionModel::CPU>, triangles, tests);
-      }
+      random_tests_for_tris(triangles, float_gen, num_tests);
     }
   }
 }
@@ -161,5 +203,12 @@ TEST(Intersection, sbvh) {
   std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
   for (bool is_gpu : {false, true}) {
     test_accelerator<AccelType::SBVH>(gen, {}, is_gpu);
+  }
+}
+
+TEST(Intersection, direction_grid) {
+  std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
+  for (bool is_gpu : {false, true}) {
+    test_accelerator<AccelType::DirectionGrid>(gen, {}, is_gpu);
   }
 }
