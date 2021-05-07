@@ -1,3 +1,4 @@
+.lldbinit
 benchmark_plots/
 benchmark_ground_truth/
 .ccls-cache
