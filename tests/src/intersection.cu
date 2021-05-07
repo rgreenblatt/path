@@ -11,9 +11,6 @@
 
 #include <random>
 
-#include "dbg.h"
-#include "lib/info/print_triangle.h"
-
 using namespace intersect;
 using namespace intersect::accel;
 using namespace intersect::accel::enum_accel;
@@ -70,11 +67,6 @@ static void test_accelerator(std::mt19937 &gen, const Settings<type> &settings,
     for (unsigned i = 0; i < test_expected.size(); i++) {
       auto [ray, expected] = test_expected[i];
       auto result = results[i];
-      if (result.has_value() != expected.has_value()) {
-        dbg(i);
-        dbg(ray.origin);
-        dbg(*ray.direction);
-      }
       EXPECT_EQ(result.has_value(), expected.has_value());
       if (result.has_value() && expected.has_value()) {
         EXPECT_EQ(orig_idxs[*result], *expected);

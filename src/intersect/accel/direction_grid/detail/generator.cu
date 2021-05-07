@@ -7,26 +7,17 @@
 
 #include <unordered_set>
 
-#include "dbg.h"
-#include "intersect/accel/detail/bvh/bvh.h"
-#include "lib/info/print_triangle.h"
-
 namespace intersect {
 namespace accel {
 namespace direction_grid {
 
 template <ExecutionModel exec>
 RefPerm<typename DirectionGrid<exec>::Ref>
-DirectionGrid<exec>::Generator::gen(const Settings &settings,
+DirectionGrid<exec>::Generator::gen(const Settings &,
                                     SpanSized<const Triangle> triangles) {
   unsigned grid = 5;
 
   // TODO: z-curve sort...
-
-  // HostVector<unsigned> idxs;
-  // HostVector<StartEnd<unsigned>> idx_start_ends;
-
-  // HostVector<HostVector<unsigned>> idxs(;
 
   struct PosInfo {
     bool is_positive;
@@ -274,13 +265,6 @@ DirectionGrid<exec>::Generator::gen(const Settings &settings,
                       min_prop = next_props[axis];
                     }
                   }
-                  if (min_prop <= 0.f) {
-                    dbg(min_prop);
-                    dbg(next_props);
-                    dbg(next_points);
-                    dbg(current_point);
-                    dbg(dists);
-                  }
                   debug_assert(min_prop > 0.f);
 
                   current_point += connecting_edges[i] * min_prop;
@@ -336,10 +320,6 @@ DirectionGrid<exec>::Generator::gen(const Settings &settings,
     const Triangle &triangle = triangles[i];
     const auto bounds = triangle.bounds();
 
-    // if (i != 18 && i != 19 && triangle.vertices[0][1] != 1.98f) {
-    //   continue;
-    // }
-
     // dbg(i);
     // print_triangle(triangle);
 
@@ -369,12 +349,9 @@ DirectionGrid<exec>::Generator::gen(const Settings &settings,
       }
     }
 
-    // dbg(begin_bound);
-    // dbg(end_bound);
     for (unsigned x = begin_bound.x(); x < end_bound.x(); ++x) {
       for (unsigned y = begin_bound.y(); y < end_bound.y(); ++y) {
         for (unsigned z = begin_bound.z(); z < end_bound.z(); ++z) {
-          // dbg(x, y, z);
           for (unsigned idx :
                voxel_connecting_faces[x * grid * grid + y * grid + z]) {
             direction_idxs[idx].push_back(i);
