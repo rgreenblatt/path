@@ -3,6 +3,7 @@
 #include "kernel/work_division.h"
 #include "render/detail/integrate_image/items.h"
 #include "render/kernel_approach_settings.h"
+#include "render/renderer.h"
 
 namespace render {
 namespace detail {
@@ -10,12 +11,9 @@ namespace integrate_image {
 template <ExactSpecializationOf<Items> Items> struct Inputs {
   const Items &items;
 
-  bool output_as_bgra_32;
-  Span<BGRA32> bgra_32;
-
+  OutputType output_type;
+  SampleSpec sample_spec;
   unsigned samples_per;
-  unsigned x_dim;
-  unsigned y_dim;
 
   bool show_progress;
   bool show_times;

@@ -28,9 +28,8 @@ public:
   Impl();
 
   // returns execution time (not including build time)
-  double general_render(bool output_as_bgra_32, Span<BGRA32> bgra_32_output,
-                        Span<FloatRGB> float_rgb_output, const scene::Scene &s,
-                        unsigned samples_per, unsigned x_dim, unsigned y_dim,
+  double general_render(const SampleSpec &sample_spec, const Output &output,
+                        const scene::Scene &s, unsigned samples_per,
                         const Settings &settings, bool show_progress,
                         bool show_times);
 
@@ -84,10 +83,14 @@ private:
   TaggedTuplePerInstance<StreamingStateType, IntegrateImageStreamingState>
       streaming_state_;
 
-  ThrustData<exec> thrust_data_;
-
-  ExecVecT<FloatRGB> float_rgb_;
-  ExecVecT<FloatRGB> reduced_float_rgb_;
   ExecVecT<BGRA32> bgra_32_;
+  std::array<ExecVecT<FloatRGB>, 2> float_rgb_;
+  std::array<HostVector<ExecVecT<FloatRGB>>, 2> output_per_step_rgb_;
+  std::array<HostVector<Span<FloatRGB>>, 2> output_per_step_rgb_spans_;
+  std::array<ExecVecT<Span<FloatRGB>>, 2> output_per_step_rgb_spans_device_;
+
+  ExecVecT<intersect::Ray> sample_rays_;
+
+  ThrustData<exec> thrust_data_;
 };
 } // namespace render

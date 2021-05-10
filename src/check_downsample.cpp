@@ -19,14 +19,18 @@ int main() {
   unsigned samples = 1024;
 
   std::vector<FloatRGB> float_rgb(width * width);
-  renderer.render_float_rgb(ExecutionModel::GPU, float_rgb, samples, width,
-                            width, true);
+  renderer.render(
+      ExecutionModel::GPU, width, width,
+      render::Output{tag_v<render::OutputType::FloatRGB>, float_rgb},
+
+      samples, true);
   unsigned reduced_size = reduced_width * reduced_width;
   std::vector<FloatRGB> reduced_float_rgb(reduced_size);
   unsigned reduced_samples = samples * reduction_factor * reduction_factor;
-  renderer.render_float_rgb(ExecutionModel::GPU, reduced_float_rgb,
-                            reduced_samples, reduced_width, reduced_width,
-                            true);
+  renderer.render(
+      ExecutionModel::GPU, reduced_width, reduced_width,
+      render::Output{tag_v<render::OutputType::FloatRGB>, reduced_float_rgb},
+      reduced_samples, true);
 
   std::vector<FloatRGB> downsampled_float_rgb(reduced_size);
   downsample_to(float_rgb, downsampled_float_rgb, width, reduced_width);

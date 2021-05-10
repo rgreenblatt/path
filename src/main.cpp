@@ -102,8 +102,10 @@ int main(int argc, char *argv[]) {
   Span<BGRA32> pixels(reinterpret_cast<BGRA32 *>(image.bits()), width * height);
 
   auto render = [&](bool show_progress) {
-    return renderer.render(execution_model, pixels, samples, width, height,
-                           show_progress && !disable_progress, show_times);
+    return renderer.render(
+        execution_model, width, height,
+        render::Output{tag_v<render::OutputType::BGRA>, pixels}, samples,
+        show_progress && !disable_progress, show_times);
   };
 
   if (get_unpack_arg("--bench").asBool()) {

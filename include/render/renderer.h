@@ -10,6 +10,28 @@
 #include <memory>
 
 namespace render {
+enum class OutputType {
+  BGRA,
+  FloatRGB,
+  OutputPerStep,
+};
+
+enum class SampleSpecType {
+  SquareImage,
+  InitialRays,
+};
+
+struct SquareImageSpec {
+  unsigned x_dim;
+  unsigned y_dim;
+  Eigen::Affine3f film_to_world;
+};
+
+using Output = TaggedUnion<OutputType, Span<BGRA32>, Span<FloatRGB>,
+                           SpanSized<const Span<FloatRGB>>>;
+using SampleSpec = TaggedUnion<SampleSpecType, SquareImageSpec,
+                               SpanSized<const intersect::Ray>>;
+
 class Renderer {
 public:
   // need to implementated when Impl is defined
@@ -18,16 +40,10 @@ public:
   Renderer(Renderer &&);
   Renderer &operator=(Renderer &&);
 
-  double render(ExecutionModel execution_model, Span<BGRA32> pixels,
-                const scene::Scene &s, unsigned samples_per, unsigned x_dim,
-                unsigned y_dim, const Settings &settings,
-                bool progress_bar = false, bool show_times = false);
-
-  double render_float_rgb(ExecutionModel execution_model,
-                          Span<FloatRGB> float_rgb, const scene::Scene &s,
-                          unsigned samples_per, unsigned x_dim, unsigned y_dim,
-                          const Settings &settings, bool progress_bar = false,
-                          bool show_times = false);
+  double render(ExecutionModel execution_model, const SampleSpec &sample_spec,
+                const Output &output, const scene::Scene &s,
+                unsigned samples_per, const Settings &settings,
+                bool show_progress, bool show_times = false);
 
 private:
   template <typename F>
@@ -36,8 +52,6 @@ private:
   template <ExecutionModel execution_model> class Impl;
 
   std::unique_ptr<Impl<ExecutionModel::CPU>> cpu_renderer_impl_;
-
-  struct EmptyT {};
 
   // NOTE this makes it invalid to use a renderer in different compilation
   // units with different values of CPU_ONLY

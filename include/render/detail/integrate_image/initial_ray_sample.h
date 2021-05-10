@@ -5,6 +5,7 @@
 #include "lib/attribute.h"
 #include "lib/cuda/utils.h"
 #include "lib/optional.h"
+#include "render/renderer.h"
 #include "rng/rng.h"
 
 #include <Eigen/Geometry>
@@ -28,16 +29,30 @@ initial_ray(float x, float y, unsigned x_dim, unsigned y_dim,
   return ray;
 }
 
+using SampleValue = TaggedUnion<SampleSpecType, eigen_wrapper::Affine3f,
+                                Span<const intersect::Ray>>;
+
 template <rng::RngState R>
 ATTR_PURE_NDEBUG HOST_DEVICE inline integrate::FRayRayInfo
 initial_ray_sample(R &rng, unsigned x, unsigned y, unsigned x_dim,
-                   unsigned y_dim, const Eigen::Affine3f &film_to_world) {
-  float x_offset = rng.next();
-  float y_offset = rng.next();
+                   unsigned y_dim, const SampleValue &sample) {
+
+  auto ray = sample.visit_tagged([&](auto tag, const auto &spec) {
+    if constexpr (tag == SampleSpecType::SquareImage) {
+
+      float x_offset = rng.next();
+      float y_offset = rng.next();
+
+      return initial_ray(x + x_offset, y + y_offset, x_dim, y_dim, spec);
+    } else {
+      static_assert(tag == SampleSpecType::InitialRays);
+
+      return spec[x];
+    }
+  });
 
   float multiplier = 1.f;
-  return {initial_ray(x + x_offset, y + y_offset, x_dim, y_dim, film_to_world),
-          {multiplier, std::nullopt}};
+  return {ray, {multiplier, std::nullopt}};
 }
 } // namespace integrate_image
 } // namespace detail

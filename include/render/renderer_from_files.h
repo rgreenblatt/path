@@ -4,6 +4,7 @@
 #include "lib/bgra_32.h"
 #include "lib/float_rgb.h"
 #include "lib/span.h"
+#include "render/renderer.h"
 
 #include <filesystem>
 #include <memory>
@@ -29,14 +30,9 @@ public:
   void load_config(const std::filesystem::path &config_file_path);
   void print_config() const;
 
-  double render(ExecutionModel execution_model, Span<BGRA32> pixels,
-                unsigned samples_per, unsigned x_dim, unsigned y_dim,
-                bool progress_bar = false, bool show_times = false);
-
-  double render_float_rgb(ExecutionModel execution_model,
-                          Span<FloatRGB> float_rgb, unsigned samples_per,
-                          unsigned x_dim, unsigned y_dim,
-                          bool progress_bar = false, bool show_times = false);
+  double render(ExecutionModel execution_model, unsigned x_dim, unsigned y_dim,
+                const Output &output, unsigned samples_per, bool show_progress,
+                bool show_times = false);
 
 private:
   std::unique_ptr<Renderer> renderer_;

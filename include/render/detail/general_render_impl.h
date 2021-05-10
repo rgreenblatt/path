@@ -7,29 +7,27 @@
 #include "kernel/work_division.h"
 #include "lib/info/timer.h"
 #include "meta/all_values/dispatch.h"
-#include "render/detail//integrate_image/mega_kernel/run.h"
-#include "render/detail//integrate_image/streaming/run.h"
+#include "render/detail/integrate_image/mega_kernel/run.h"
+#include "render/detail/integrate_image/streaming/run.h"
 #include "render/detail/renderer_impl.h"
 #include "render/detail/settings_compile_time_impl.h"
+
+#include <thrust/device_ptr.h>
 
 namespace render {
 using namespace detail;
 
 template <ExecutionModel exec>
 double Renderer::Impl<exec>::general_render(
-    bool output_as_bgra_32, Span<BGRA32> bgra_32_output,
-    Span<FloatRGB> float_rgb_output, const scene::Scene &s,
-    unsigned samples_per, unsigned x_dim, unsigned y_dim,
-    const Settings &settings, bool show_progress, bool show_times) {
-  if (output_as_bgra_32) {
-    bgra_32_.resize(x_dim * y_dim);
-  }
+    const SampleSpec &sample_spec, const Output &output, const scene::Scene &s,
+    unsigned samples_per, const Settings &settings, bool show_progress,
+    bool show_times) {
 
   Timer run_timer(std::nullopt);
 
   // We return float_rgb_out because the mega kernel reduce can pick
   // which value to avoid a copy. (might be premature optimization...)
-  auto float_rgb_out = dispatch(settings.compile_time(), [&](auto tag) {
+  auto intermediate_output = dispatch(settings.compile_time(), [&](auto tag) {
     constexpr auto compile_time = tag();
 
     constexpr auto kernel_approach_type = compile_time.kernel_approach_type;
@@ -104,11 +102,36 @@ double Renderer::Impl<exec>::general_render(
     auto term_prob = term_probs_.get(tag_v<term_prob_type>)
                          .gen(settings.term_prob.get(tag_v<term_prob_type>));
 
-    unsigned n_locations = x_dim * y_dim;
+    unsigned n_locations =
+        sample_spec.visit_tagged([&](auto tag, const auto &sample_spec) {
+          if constexpr (tag == SampleSpecType::SquareImage) {
+            return sample_spec.x_dim * sample_spec.y_dim;
+          } else {
+            static_assert(tag == SampleSpecType::InitialRays);
+            return sample_spec.size();
+          }
+        });
 
     auto rng =
         rngs_.get(tag_v<rng_type>)
             .gen(settings.rng.get(tag_v<rng_type>), samples_per, n_locations);
+
+    if (output.type() == OutputType::BGRA) {
+      bgra_32_.resize(n_locations);
+    }
+
+    const auto device_sample_spec =
+        sample_spec.visit_tagged([&](auto tag, const auto &spec) -> SampleSpec {
+          if constexpr (tag == SampleSpecType::SquareImage) {
+            return sample_spec;
+          } else {
+            static_assert(tag == SampleSpecType::InitialRays);
+
+            copy_to_vec(spec, sample_rays_);
+
+            return {tag, sample_rays_};
+          }
+        });
 
     // not really any good way to infer these arguments...
     using Components = integrate::RenderingEquationComponents<
@@ -128,45 +151,76 @@ double Renderer::Impl<exec>::general_render(
                 .rng = rng,
                 .film_to_world = s.film_to_world(),
             },
-        .output_as_bgra_32 = output_as_bgra_32,
-        .bgra_32 = bgra_32_,
+        .output_type = output.type(),
+        .sample_spec = device_sample_spec,
         .samples_per = samples_per,
-        .x_dim = x_dim,
-        .y_dim = y_dim,
         .show_progress = show_progress,
         .show_times = show_times,
     };
-    return [&]() -> ExecVecT<FloatRGB> * {
+    return [&]() {
       run_timer.start();
       if constexpr (kernel_approach == KernelApproach::MegaKernel) {
         return integrate_image::mega_kernel::Run<exec>::run(
-            inputs, intersector, kernel_approach_settings, float_rgb_,
-            reduced_float_rgb_);
+            inputs, intersector, kernel_approach_settings, bgra_32_, float_rgb_,
+            output_per_step_rgb_);
       } else {
         static_assert(kernel_approach == KernelApproach::Streaming);
 
         auto &streaming_state = streaming_state_.get(
             tag_v<make_meta_tuple(light_sampler_type, rng_type)>);
 
-        integrate_image::streaming::Run<exec>::run(
+        return integrate_image::streaming::Run<exec>::run(
             inputs, intersector, streaming_state, kernel_approach_settings,
-            float_rgb_);
-
-        return &float_rgb_;
+            bgra_32_, float_rgb_[0], output_per_step_rgb_[0]);
       }
     }();
   });
+
+  always_assert(intermediate_output.type() == output.type());
 
   // We could save a copy in the cpu case by directly outputing to the input
   // bgra_32/float_rgb when possible.
   // However, the perf gains are small and we don't really
   // case about the performance of the cpu use case.
-  if (output_as_bgra_32) {
-    thrust::copy(bgra_32_.begin(), bgra_32_.end(), bgra_32_output.begin());
-  } else {
-    thrust::copy(float_rgb_out->begin(), float_rgb_out->end(),
-                 float_rgb_output.begin());
-  }
+  intermediate_output.visit_tagged([&](auto tag,
+                                       const auto &intermediate_output_v) {
+    auto get_ptr = [](auto ptr) {
+      if constexpr (exec == ExecutionModel::GPU) {
+        return thrust::device_pointer_cast(ptr);
+      } else {
+        static_assert(exec == ExecutionModel::CPU);
+        return ptr;
+      }
+    };
+
+    auto output_v = output.get(tag);
+
+    // TODO: dedup with integrate_image misc
+    unsigned size = sample_spec.visit_tagged([&](auto tag, const auto &spec) {
+      if constexpr (tag == SampleSpecType::SquareImage) {
+        return spec.x_dim * spec.y_dim;
+      } else {
+        return spec.size();
+      }
+    });
+
+    auto copy_to_out = [&](auto span_in, auto span_out) {
+      thrust::copy(get_ptr(span_in.begin()), get_ptr(span_in.begin() + size),
+                   span_out.begin());
+    };
+
+    if constexpr (tag == OutputType::BGRA || tag == OutputType::FloatRGB) {
+      copy_to_out(intermediate_output_v, output_v);
+    } else {
+      static_assert(tag == OutputType::OutputPerStep);
+
+      always_assert(intermediate_output_v.size() == output_v.size());
+
+      for (unsigned i = 0; i < intermediate_output_v.size(); ++i) {
+        copy_to_out(intermediate_output_v[i], output_v[i]);
+      }
+    }
+  });
 
   run_timer.stop();
 

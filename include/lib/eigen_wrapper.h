@@ -118,8 +118,23 @@ template <typename Scalar, int rows, int cols>
 requires(rows > 0 &&
          cols > 0) using Matrix = Wrapper<Eigen::Matrix<Scalar, rows, cols>>;
 template <typename Scalar, int dim, int mode>
-requires(dim >
-         0) using Transform = Wrapper<Eigen::Transform<Scalar, dim, mode>>;
+requires(dim > 0) struct Transform {
+  using T = Eigen::Transform<Scalar, dim, mode>;
+  static constexpr unsigned size = T::MatrixType::SizeAtCompileTime;
+  std::array<Scalar, size> arr;
+
+  constexpr Transform() = default;
+  constexpr Transform(const T &value) {
+    std::copy(value.data(), value.data() + size, arr.begin());
+  }
+  constexpr operator T() const {
+    T value;
+
+    std::copy(arr.begin(), arr.end(), value.data());
+
+    return value;
+  }
+};
 
 template <typename Scalar, int rows> using Vector = Matrix<Scalar, rows, 1>;
 template <typename Scalar, int cols> using RowVector = Matrix<Scalar, 1, cols>;
@@ -179,6 +194,4 @@ using RowVector1d = RowVector1<double>;
 using RowVector2d = RowVector2<double>;
 using RowVector3d = RowVector3<double>;
 using RowVector4d = RowVector4<double>;
-using Affine2d = Affine2<double>;
-using Affine3d = Affine3<double>;
 } // namespace eigen_wrapper

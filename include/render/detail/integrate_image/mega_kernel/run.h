@@ -12,10 +12,12 @@ namespace mega_kernel {
 template <ExecutionModel exec> struct Run {
   template <ExactSpecializationOf<Items> Items, intersect::Intersectable I>
   requires std::same_as<typename Items::InfoType, typename I::InfoType>
-  static ExecVector<exec, FloatRGB> *
-  run(Inputs<Items> inp, const I &intersectable,
-      const MegaKernelSettings &settings, ExecVector<exec, FloatRGB> &float_rgb,
-      ExecVector<exec, FloatRGB> &reduced_float_rgb);
+  static Output run(Inputs<Items> inp, const I &intersectable,
+                    const MegaKernelSettings &settings,
+                    ExecVector<exec, BGRA32> &bgra_32,
+                    std::array<ExecVector<exec, FloatRGB>, 2> &float_rgb,
+                    std::array<HostVector<ExecVector<exec, FloatRGB>>, 2>
+                        &output_per_step_rgb);
 };
 } // namespace mega_kernel
 } // namespace integrate_image

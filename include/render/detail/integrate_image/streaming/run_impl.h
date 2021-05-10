@@ -54,7 +54,17 @@ void initialize(const Inp &inp, State &state,
   Span local_idx_span = state.local_idx.span().as_unsized();
 
   auto rng = inp.items.rng;
-  auto film_to_world = inp.items.film_to_world;
+
+  // TODO: dedup with megakernel
+  auto sample_value = inp.sample_spec.visit_tagged(
+      [&](auto tag, const auto &spec) -> SampleValue {
+        if constexpr (tag == SampleSpecType::SquareImage) {
+          return {tag, spec.film_to_world};
+        } else {
+          static_assert(tag == SampleSpecType::InitialRays);
+          return {tag, spec};
+        }
+      });
 
   kernel::KernelLaunch<exec>::run(
       division, start_block_init, end_block_init,
@@ -73,7 +83,7 @@ void initialize(const Inp &inp, State &state,
               auto rng_state = rng.get_generator(sample_idx, location);
               auto [ray, ray_info] = initial_ray_sample(
                   rng_state, info.x, info.y, division.x_dim(), division.y_dim(),
-                  film_to_world);
+                  sample_value);
               unsigned local_idx =
                   base_local_idx + (sample_idx - info.start_sample);
               rng_states_in_span[local_idx] = rng_state.save();
@@ -99,23 +109,28 @@ void initialize(const Inp &inp, State &state,
 
 template <ExecutionModel exec, typename Inp>
 void copy_to_output(
-    const Inp &inp, ExecVector<exec, FloatRGB> &float_rgb_out,
+    const Inp &inp, unsigned x_dim, unsigned num_locs,
+    ExecVector<exec, BGRA32> &bgra_32,
+    ExecVector<exec, FloatRGB> &float_rgb_out,
     Span<std::array<kernel::Atomic<exec, float>, 3>> float_rgb_atomic) {
   auto start = thrust::make_counting_iterator(0u);
-  auto end = start + inp.x_dim * inp.y_dim;
+  auto end = start + num_locs;
 
-  unsigned x_dim = inp.x_dim;
-
-  if (inp.output_as_bgra_32) {
+  if (inp.output_type == OutputType::OutputPerStep) {
+    unreachable(); // NYI
+  } else if (inp.output_type == OutputType::BGRA) {
+    bgra_32.resize(num_locs);
     float_rgb_out.clear();
   } else {
-    float_rgb_out.resize(inp.x_dim * inp.y_dim);
+    always_assert(inp.output_type == OutputType::FloatRGB);
+    bgra_32.clear();
+    float_rgb_out.resize(num_locs);
   }
 
   BaseItems base = {
-      .output_as_bgra_32 = inp.output_as_bgra_32,
+      .output_as_bgra_32 = inp.output_type == OutputType::BGRA,
       .samples_per = inp.samples_per,
-      .bgra_32 = inp.bgra_32,
+      .bgra_32 = bgra_32,
       .float_rgb = float_rgb_out,
   };
 
@@ -138,20 +153,41 @@ void copy_to_output(
 template <ExecutionModel exec>
 template <ExactSpecializationOf<Items> Items,
           intersectable_scene::BulkIntersector I>
-requires std::same_as<typename Items::InfoType, typename I::InfoType>
-void Run<exec>::run(
+requires std::same_as<typename Items::InfoType, typename I::InfoType> Output
+Run<exec>::run(
     Inputs<Items> inp, I &intersector,
     State<exec, Items::C::max_num_light_samples(), typename Items::R> &state,
-    const StreamingSettings &settings,
-    ExecVector<exec, FloatRGB> &float_rgb_out) {
+    const StreamingSettings &settings, ExecVector<exec, BGRA32> &bgra_32,
+    ExecVector<exec, FloatRGB> &float_rgb_out,
+    HostVector<ExecVector<exec, FloatRGB>> &output_per_step_rgb_out) {
   using namespace detail;
 
-  const kernel::WorkDivision init_division = {
-      settings.computation_settings.init_samples_division,
-      inp.samples_per,
-      inp.x_dim,
-      inp.y_dim,
-  };
+  // TODO: dedup with mega_kernel?
+  kernel::WorkDivision init_division = inp.sample_spec.visit_tagged(
+      [&](auto tag, const auto &spec) -> kernel::WorkDivision {
+        if constexpr (tag == SampleSpecType::SquareImage) {
+          return {
+              settings.computation_settings.init_samples_division,
+              inp.samples_per,
+              spec.x_dim,
+              spec.y_dim,
+          };
+        } else {
+          return {
+              // TODO: is this a sane work division in this case?
+              // TODO: should we really be using WorkDivision when it
+              // isn't a grid (it is convenient...) - see also reduce
+              settings.computation_settings.init_samples_division,
+              inp.samples_per,
+              unsigned(spec.size()),
+              1,
+          };
+        }
+      });
+
+  if (inp.output_type == OutputType::OutputPerStep) {
+    unreachable(); // NYI!!!
+  }
 
   constexpr unsigned max_num_light_samples_per =
       Items::C::max_num_light_samples();
@@ -174,10 +210,11 @@ void Run<exec>::run(
           ? init_division.sample_block_size() * max_samples_per_thread
           : inp.samples_per;
 
-  unsigned num_locs =
+  unsigned num_locs_per_block =
       init_division.x_block_size() * init_division.y_block_size();
 
-  unsigned max_samples_per_init_block = num_locs * max_samples_per_loc;
+  unsigned max_samples_per_init_block =
+      num_locs_per_block * max_samples_per_loc;
 
   unsigned max_num_rays = intersector.max_size();
 
@@ -200,7 +237,10 @@ void Run<exec>::run(
   state.states_in_and_out[parity].resize(0);
   state.states_in_and_out[!parity].resize(0);
 
-  state.float_rgb.resize(inp.x_dim * inp.y_dim);
+  unsigned overall_num_locations =
+      init_division.x_dim() * init_division.y_dim();
+
+  state.float_rgb.resize(overall_num_locations);
   thrust::fill(state.float_rgb.begin(), state.float_rgb.end(),
                std::array<kernel::Atomic<exec, float>, 3>{});
   Span float_rgb_atomic = Span{state.float_rgb}.as_unsized();
@@ -274,7 +314,7 @@ void Run<exec>::run(
       auto components = inp.items.components;
       auto rng = inp.items.rng;
 
-      unsigned x_dim = inp.x_dim;
+      unsigned x_dim = init_division.x_dim();
       auto render_settings = inp.items.render_settings;
 
       // NOTE: this is very inefficient in the cpu context
@@ -388,7 +428,8 @@ void Run<exec>::run(
     parity = !parity;
   }
 
-  copy_to_output<exec>(inp, float_rgb_out, float_rgb_atomic);
+  copy_to_output<exec>(inp, init_division.x_dim(), overall_num_locations,
+                       bgra_32, float_rgb_out, float_rgb_atomic);
 
   if (inp.show_progress) {
     progress_bar.done();
@@ -398,6 +439,15 @@ void Run<exec>::run(
     total_init.report("total init");
     total_intersect.report("total intersect");
     total_shade.report("total shade");
+  }
+
+  if (inp.output_type == OutputType::BGRA) {
+    return {tag_v<OutputType::BGRA>, bgra_32};
+  } else {
+    // OutputPerStep NYI!!!
+    always_assert(inp.output_type == OutputType::FloatRGB);
+
+    return {tag_v<OutputType::FloatRGB>, float_rgb_out};
   }
 }
 } // namespace streaming

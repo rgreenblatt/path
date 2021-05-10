@@ -33,26 +33,14 @@ double Renderer::visit_renderer(ExecutionModel execution_model, F &&f) {
   };
 }
 
-double Renderer::render(ExecutionModel execution_model, Span<BGRA32> pixels,
+double Renderer::render(ExecutionModel execution_model,
+                        const SampleSpec &sample_spec, const Output &output,
                         const scene::Scene &s, unsigned samples_per,
-                        unsigned x_dim, unsigned y_dim,
                         const Settings &settings, bool show_progress,
                         bool show_times) {
   return visit_renderer(execution_model, [&](auto &&renderer) {
-    return renderer->general_render(true, pixels, {}, s, samples_per, x_dim,
-                                    y_dim, settings, show_progress, show_times);
-  });
-}
-
-double Renderer::render_float_rgb(ExecutionModel execution_model,
-                                  Span<FloatRGB> float_rgb,
-                                  const scene::Scene &s, unsigned samples_per,
-                                  unsigned x_dim, unsigned y_dim,
-                                  const Settings &settings, bool show_progress,
-                                  bool show_times) {
-  return visit_renderer(execution_model, [&](auto &&renderer) {
-    return renderer->general_render(false, {}, float_rgb, s, samples_per, x_dim,
-                                    y_dim, settings, show_progress, show_times);
+    return renderer->general_render(sample_spec, output, s, samples_per,
+                                    settings, show_progress, show_times);
   });
 }
 } // namespace render

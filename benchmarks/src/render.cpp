@@ -119,9 +119,11 @@ int main(int argc, char *argv[]) {
 
       ground_truth_float_rgb[i].resize(ground_truth_width * ground_truth_width);
 
-      renderer.render_float_rgb(ExecutionModel::GPU, ground_truth_float_rgb[i],
-                                n_ground_truth_samples, ground_truth_width,
-                                ground_truth_width, true, false);
+      renderer.render(ExecutionModel::GPU, ground_truth_width,
+                      ground_truth_width,
+                      render::Output{tag_v<render::OutputType::FloatRGB>,
+                                     ground_truth_float_rgb[i]},
+                      n_ground_truth_samples, true);
 
       ar(ground_truth_float_rgb[i]);
     }
@@ -166,9 +168,11 @@ int main(int argc, char *argv[]) {
                                                     desired_width);
               auto render = [&] {
                 unsigned actual_n_samples = n_samples;
-                renderer.render_float_rgb(ExecutionModel::GPU, bench_float_rgb,
-                                          actual_n_samples, desired_width,
-                                          desired_width, false);
+                renderer.render(
+                    ExecutionModel::GPU, desired_width, desired_width,
+                    render::Output{tag_v<render::OutputType::FloatRGB>,
+                                   bench_float_rgb},
+                    actual_n_samples, false);
                 always_assert(actual_n_samples == n_samples);
               };
 

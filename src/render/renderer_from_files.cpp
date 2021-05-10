@@ -53,21 +53,16 @@ void RendererFromFiles::print_config() const {
   std::cout << os.str() << std::endl;
 }
 
-double RendererFromFiles::render(ExecutionModel execution_model,
-                                 Span<BGRA32> pixels, unsigned samples_per,
-                                 unsigned x_dim, unsigned y_dim,
-                                 bool progress_bar, bool show_times) {
-  return renderer_->render(execution_model, pixels, *scene_, samples_per, x_dim,
-                           y_dim, *settings_, progress_bar, show_times);
-}
-
-double RendererFromFiles::render_float_rgb(ExecutionModel execution_model,
-                                           Span<FloatRGB> float_rgb,
-                                           unsigned samples_per, unsigned x_dim,
-                                           unsigned y_dim, bool progress_bar,
-                                           bool show_times) {
-  return renderer_->render_float_rgb(execution_model, float_rgb, *scene_,
-                                     samples_per, x_dim, y_dim, *settings_,
-                                     progress_bar, show_times);
+double RendererFromFiles::render(ExecutionModel execution_model, unsigned x_dim,
+                                 unsigned y_dim, const Output &output,
+                                 unsigned samples_per, bool show_progress,
+                                 bool show_times) {
+  return renderer_->render(execution_model,
+                           {tag_v<SampleSpecType::SquareImage>,
+                            {.x_dim = x_dim,
+                             .y_dim = y_dim,
+                             .film_to_world = scene_->film_to_world()}},
+                           output, *scene_, samples_per, *settings_,
+                           show_progress, show_times);
 }
 } // namespace render

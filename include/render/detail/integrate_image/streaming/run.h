@@ -14,10 +14,12 @@ template <ExecutionModel exec> struct Run {
   template <ExactSpecializationOf<Items> Items,
             intersectable_scene::BulkIntersector I>
   requires std::same_as<typename Items::InfoType, typename I::InfoType>
-  static void
+  static Output
   run(Inputs<Items> inp, I &intersector,
       State<exec, Items::C::max_num_light_samples(), typename Items::R> &state,
-      const StreamingSettings &settings, ExecVector<exec, FloatRGB> &float_rgb);
+      const StreamingSettings &settings, ExecVector<exec, BGRA32> &bgra_32,
+      ExecVector<exec, FloatRGB> &float_rgb,
+      HostVector<ExecVector<exec, FloatRGB>> &output_per_step_rgb);
 };
 } // namespace streaming
 } // namespace integrate_image
