@@ -17,7 +17,7 @@ class DenseBlock(nn.Module):
         self._expand = nn.Linear(input_size, self._hidden_size)
         self._contract = nn.Linear(self._hidden_size, output_size)
 
-        # self._norm = nn.LayerNorm(output_size)
+        self._norm = nn.LayerNorm(output_size)
 
     def forward(self, x):
         padding = torch.zeros(*x.size()[:-1],
@@ -27,7 +27,7 @@ class DenseBlock(nn.Module):
         padded_input = torch.cat((x, padding), -1)
         # TODO: take a look at this!!!
         x = self._activation(self._contract(self._activation(self._expand(x))))
-        return padded_input + x
+        return self._norm(padded_input + x)
 
 
 class Net(nn.Module):
