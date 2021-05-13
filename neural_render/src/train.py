@@ -110,12 +110,8 @@ def main():
     if use_distributed and not cfg.no_sync_bn:
         net = convert_syncbn_model(net)
 
-    if torch.cuda.is_available() and not cfg.no_fused_adam:
-        Adam = optimizers.FusedAdam
-    else:
-        Adam = torch.optim.Adam
-
-    optimizer = Adam(net.parameters(), lr=0.1, weight_decay=0.0)
+    lr = 0.05
+    optimizer = torch.optim.LBFGS(net.parameters(), lr=lr)
 
     net = net.to(device)
 
@@ -149,7 +145,7 @@ def main():
         print("===== Training =====")
         print()
 
-    factor = 2e-6
+    factor = 1e-4
     world_batch_size = batch_size * world_size
 
     epoch_size = make_divisible(cfg.epoch_size, world_batch_size)
@@ -159,10 +155,6 @@ def main():
 
     scaled_lr = cfg.lr_multiplier * world_batch_size * factor
     lr_schedule = LRSched(scaled_lr, cfg.epochs * epoch_size)
-
-    lr = 0
-
-    norm_avg = EMATracker(0.9, 50.0)
 
     train_seed_start = 0
     validation_seed_start = 2**30
@@ -205,17 +197,6 @@ def main():
 
         set_lr()
 
-        def evaluate_on_seed(seed):
-            (scenes, coords, values) = neural_render_generate_data.gen_data(
-                batch_size, cfg.rays_per_tri, cfg.samples_per_ray, seed)
-
-            (scenes, coords, values) = (scenes.to(device), coords.to(device),
-                                        values.to(device))
-
-            outputs = net(scenes, coords)
-
-            return criterion(outputs, values)
-
         for i, base_seed in enumerate(
                 range(which_gpu, num_local_batchs_per_epoch, world_size)):
             seed = base_seed * world_batch_size + train_seed_start
@@ -225,25 +206,35 @@ def main():
             steps_since_display += world_batch_size
             steps_since_set_lr += world_batch_size
 
-            optimizer.zero_grad()
+            (scenes, coords, values) = neural_render_generate_data.gen_data(
+                batch_size, cfg.rays_per_tri, cfg.samples_per_ray, seed)
 
-            loss = evaluate_on_seed(seed)
+            (scenes, coords, values) = (scenes.to(device), coords.to(device),
+                                        values.to(device))
 
-            is_nan = train_loss_tracker.update(loss)
+            is_first = True
 
-            with amp.scale_loss(loss, optimizer) as scaled_loss:
-                scaled_loss.backward()
+            def get_loss():
+                if torch.is_grad_enabled():
+                    optimizer.zero_grad()
 
-            if not is_nan:
-                max_norm = norm_avg.x * 1.5
-                this_norm = nn.utils.clip_grad_norm_(net.parameters(),
-                                                     max_norm)
-                norm_avg.update(this_norm)
-                if not disable_all_output:
-                    writer.add_scalar("max_norm", max_norm, step)
-                    writer.add_scalar("norm", this_norm, step)
+                outputs = net(scenes, coords)
+                loss = criterion(outputs, values)
 
-                optimizer.step()
+                nonlocal is_first
+                if is_first:
+                    is_nan = train_loss_tracker.update(loss)
+                    assert not is_nan
+                    is_first = False
+
+                if torch.is_grad_enabled():
+
+                    with amp.scale_loss(loss, optimizer) as scaled_loss:
+                        scaled_loss.backward()
+
+                return loss
+
+            optimizer.step(get_loss)
 
             if steps_since_set_lr >= cfg.set_lr_freq:
                 set_lr()
@@ -267,7 +258,15 @@ def main():
                     range(which_gpu, num_local_batchs_per_validation,
                           world_size)):
                 seed = base_seed * world_batch_size + validation_seed_start
-                loss = evaluate_on_seed(seed)
+                (scenes, coords,
+                 values) = neural_render_generate_data.gen_data(
+                     batch_size, cfg.rays_per_tri, cfg.samples_per_ray, seed)
+
+                (scenes, coords,
+                 values) = (scenes.to(device), coords.to(device),
+                            values.to(device))
+                outputs = net(scenes, coords)
+                loss = criterion(outputs, values)
 
                 test_loss_tracker.update(loss)
 

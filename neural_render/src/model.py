@@ -35,14 +35,14 @@ class Net(nn.Module):
         super().__init__()
 
         self._activation = nn.CELU()
-        self._input_size = 24
+        self._input_size = 37
         self._start_size = 128
-        self._end_size = 512
+        self._end_size = 256
 
         self._input_expand = nn.Linear(self._input_size, self._start_size)
         self._final = nn.Linear(self._end_size, self._end_size)
 
-        self._n_blocks = 6
+        self._n_blocks = 5
 
         self._scene_blocks = nn.ModuleList()
 

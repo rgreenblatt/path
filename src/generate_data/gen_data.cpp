@@ -72,7 +72,7 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
   //       baryocentric_to_ray(x_v, y_v, tris.triangle_onto, dir_towards));
   // }
 
-  int n_scene_values = 24;
+  int n_scene_values = 37;
   torch::Tensor scenes = torch::empty({n_scenes, n_scene_values});
   torch::Tensor baryocentric_coords =
       torch::empty({n_scenes, n_samples_per_scene, 2});
@@ -103,12 +103,8 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
 
     auto new_tris = normalize_scene_triangles(tris);
     int scene_idx = 0;
-    for (const auto &point : new_tris.triangle_onto.vertices) {
-      for (float v : {point.x(), point.y()}) {
-        scenes.index_put_({i, scene_idx++}, v);
-      }
-    }
     for (const auto &tri : {
+             new_tris.triangle_onto,
              new_tris.triangle_blocking,
              new_tris.triangle_light,
          }) {
@@ -116,6 +112,16 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
         for (const auto v : point) {
           scenes.index_put_({i, scene_idx++}, v);
         }
+      }
+    }
+    auto onto_normal = new_tris.triangle_onto.normal();
+    for (const auto &other_tri :
+         {new_tris.triangle_blocking, new_tris.triangle_light}) {
+      scenes.index_put_({i, scene_idx++},
+                        other_tri.normal()->dot(*onto_normal));
+      scenes.index_put_({i, scene_idx++}, other_tri.area());
+      for (int j = 0; j < 3; ++j) {
+        scenes.index_put_({i, scene_idx++}, other_tri.centroid()[j]);
       }
     }
 
