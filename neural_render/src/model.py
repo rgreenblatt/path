@@ -1,8 +1,6 @@
 import torch
 from torch import nn
 
-from torch_utils import Swish, MemoryEfficientSwish
-
 
 class DenseBlock(nn.Module):
     def __init__(self, input_size, output_size):
@@ -62,10 +60,20 @@ class Net(nn.Module):
                                         self._coord_block_size)
         self._coords_to_multiplier = nn.Linear(self._coord_block_size,
                                                self._end_size)
+        self._coords_to_addr = nn.Linear(self._coord_block_size,
+                                         self._end_size)
 
+        self._output_block_size = 64
         self._output_size = 3
 
-        self._output = nn.Linear(self._end_size, self._output_size)
+        self._output = nn.Linear(self._end_size, self._output_block_size)
+        self._output_block1 = DenseBlock(self._output_block_size,
+                                         self._output_block_size)
+        self._output_block2 = DenseBlock(self._output_block_size,
+                                         self._output_block_size)
+        self._project_output = nn.Linear(self._output_block_size,
+                                         self._output_size)
+        self._output_activation = nn.CELU(alpha=0.05)
 
     def forward(self, scenes, coords):
         x = self._activation(self._input_expand(scenes))
@@ -76,4 +84,10 @@ class Net(nn.Module):
         y = self._coords_block(self._activation(self._coords_expand(coords)))
         multiplier = torch.sigmoid(self._coords_to_multiplier(y))
 
-        return self._output(torch.unsqueeze(x, 1) * multiplier)
+        out = self._activation(
+            self._output(
+                torch.unsqueeze(x, 1) * multiplier +
+                self._activation(self._coords_to_addr(y))))
+        out = self._output_block1(out)
+        out = self._output_block2(out)
+        return self._output_activation(self._project_output(out))
