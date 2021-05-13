@@ -2,6 +2,8 @@
 #include "generate_data/get_dir_towards.h"
 #include "lib/projection.h"
 
+#include "dbg.h"
+
 namespace generate_data {
 SceneTriangles normalize_scene_triangles(const SceneTriangles &tris) {
   // this is obviously not the most efficient way of doing this, but
@@ -46,17 +48,17 @@ SceneTriangles normalize_scene_triangles(const SceneTriangles &tris) {
   apply_sort(new_tris.triangle_light);
   apply_sort(new_tris.triangle_blocking);
 
-  always_assert(new_tris.triangle_onto.centroid().norm() < 1e-12);
+  always_assert(new_tris.triangle_onto.centroid().norm() < 1e-10);
   always_assert(((*new_tris.triangle_onto.normal()).cwiseAbs() -
                  (*desired_normal).cwiseAbs())
-                    .norm() < 1e-12);
+                    .norm() < 1e-10);
   always_assert(
       (new_tris.triangle_onto.vertices[0].normalized() - *desired_first_point)
-          .norm() < 1e-12);
-  always_assert(std::abs(new_tris.triangle_onto.area() - 1.) < 1e-12);
+          .norm() < 1e-10);
+  always_assert(std::abs(new_tris.triangle_onto.area() - 1.) < 1e-10);
 
   for (const auto &point : new_tris.triangle_onto.vertices) {
-    always_assert(std::abs(point.z()) < 1e-12);
+    always_assert(std::abs(point.z()) < 1e-10);
   }
 
   return new_tris.template apply_gen<float>(
