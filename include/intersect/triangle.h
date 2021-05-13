@@ -12,33 +12,48 @@
 #include <array>
 
 namespace intersect {
-struct Triangle {
-  std::array<Eigen::Vector3f, 3> vertices;
+template <typename T> struct TriangleGen {
+  std::array<Eigen::Vector3<T>, 3> vertices;
 
-  ATTR_PURE_NDEBUG HOST_DEVICE inline Triangle
-  transform(const Eigen::Affine3f &t) const {
-    return {{t * vertices[0], t * vertices[1], t * vertices[2]}};
+  template <typename NewT, typename F>
+  ATTR_PURE_NDEBUG HOST_DEVICE inline TriangleGen<NewT> apply_gen(F &&f) const {
+    return {{f(vertices[0]), f(vertices[1]), f(vertices[2])}};
   }
 
-  ATTR_PURE_NDEBUG HOST_DEVICE inline Eigen::Vector3f normal_raw() const {
+  template <typename F>
+  ATTR_PURE_NDEBUG HOST_DEVICE inline TriangleGen apply(F &&f) const {
+    return apply_gen<T>(f);
+  }
+
+  template <typename Transform>
+  ATTR_PURE_NDEBUG HOST_DEVICE inline TriangleGen
+  transform(const Transform &t) const {
+    return apply([&](const Eigen::Vector3<T> &vert) { return t * vert; });
+  }
+
+  ATTR_PURE_NDEBUG HOST_DEVICE inline Eigen::Vector3<T> normal_raw() const {
     return (vertices[1] - vertices[0]).cross(vertices[2] - vertices[0]);
   }
 
-  ATTR_PURE_NDEBUG HOST_DEVICE inline Eigen::Vector3f centroid() const {
+  ATTR_PURE_NDEBUG HOST_DEVICE inline Eigen::Vector3<T> centroid() const {
     return (vertices[0] + vertices[1] + vertices[2]) / 3;
   }
 
-  ATTR_PURE_NDEBUG HOST_DEVICE inline Eigen::Vector3f
+  ATTR_PURE_NDEBUG HOST_DEVICE inline Eigen::Vector3<T>
   normal_scaled_by_area() const {
-    return 0.5f * normal_raw();
+    return 0.5 * normal_raw();
   }
 
-  ATTR_PURE_NDEBUG HOST_DEVICE inline UnitVector normal() const {
-    return UnitVector::new_normalize(normal_raw());
+  ATTR_PURE_NDEBUG HOST_DEVICE inline T area() const {
+    return normal_scaled_by_area().norm();
   }
 
-  ATTR_PURE_NDEBUG HOST_DEVICE inline std::array<float, 3>
-  interpolation_values(const Eigen::Vector3f &point) const;
+  ATTR_PURE_NDEBUG HOST_DEVICE inline UnitVectorGen<T> normal() const {
+    return UnitVectorGen<T>::new_normalize(normal_raw());
+  }
+
+  ATTR_PURE_NDEBUG HOST_DEVICE inline std::array<T, 3>
+  interpolation_values(const Eigen::Vector3<T> &point) const;
 
   ATTR_PURE_NDEBUG HOST_DEVICE inline accel::AABB bounds() const;
 
@@ -47,6 +62,8 @@ struct Triangle {
   ATTR_PURE_NDEBUG HOST_DEVICE inline IntersectionOp<InfoType>
   intersect(const Ray &ray) const;
 };
+
+using Triangle = TriangleGen<float>;
 
 static_assert(Object<Triangle>);
 } // namespace intersect

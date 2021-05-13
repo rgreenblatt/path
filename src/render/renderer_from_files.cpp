@@ -1,15 +1,10 @@
 #include "render/renderer_from_files.h"
-#include "lib/assert.h"
-#include "lib/serialize_enum.h"
-#include "lib/serialize_tagged_union.h"
-#include "meta/as_tuple/serialize.h"
+
+#include "render/config_io.h"
 #include "render/renderer.h"
 #include "render/settings.h"
 #include "scene/scenefile_compat/scenefile_loader.h"
 
-#include <cereal-yaml/archives/yaml.hpp>
-
-#include <fstream>
 #include <iostream>
 
 namespace render {
@@ -31,26 +26,17 @@ void RendererFromFiles::load_scene(const std::filesystem::path &scene_file_path,
     std::cerr << "failed to load scene" << std::endl;
     unreachable();
   }
-  scene_ = std::make_unique<scene::Scene>(*scene_op);
+  scene_camera_ =
+      std::make_unique<scene::scenefile_compat::SceneCamera>(*scene_op);
 }
 
 void RendererFromFiles::load_config(
     const std::filesystem::path &config_file_path) {
-  std::ifstream i(config_file_path);
-  always_assert(!i.fail());
-  always_assert(!i.bad());
-  always_assert(i.is_open());
-  cereal::YAMLInputArchive archive(i);
-  archive(cereal::make_nvp("settings", *settings_));
+  *settings_ = render::load_config(config_file_path);
 }
 
 void RendererFromFiles::print_config() const {
-  std::ostringstream os;
-  {
-    cereal::YAMLOutputArchive archive(os);
-    archive(cereal::make_nvp("settings", *settings_));
-  }
-  std::cout << os.str() << std::endl;
+  render::print_config(*settings_);
 }
 
 double RendererFromFiles::render(ExecutionModel execution_model, unsigned x_dim,
@@ -61,8 +47,8 @@ double RendererFromFiles::render(ExecutionModel execution_model, unsigned x_dim,
                            {tag_v<SampleSpecType::SquareImage>,
                             {.x_dim = x_dim,
                              .y_dim = y_dim,
-                             .film_to_world = scene_->film_to_world()}},
-                           output, *scene_, samples_per, *settings_,
-                           show_progress, show_times);
+                             .film_to_world = scene_camera_->film_to_world}},
+                           output, scene_camera_->scene, samples_per,
+                           *settings_, show_progress, show_times);
 }
 } // namespace render

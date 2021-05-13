@@ -10,8 +10,10 @@
 #include <memory>
 
 namespace scene {
-class Scene;
+namespace scenefile_compat {
+struct SceneCamera;
 }
+} // namespace scene
 
 namespace render {
 class Renderer;
@@ -36,7 +38,7 @@ public:
 
 private:
   std::unique_ptr<Renderer> renderer_;
-  std::unique_ptr<scene::Scene> scene_;
+  std::unique_ptr<scene::scenefile_compat::SceneCamera> scene_camera_;
   std::unique_ptr<Settings> settings_;
 };
 } // namespace render

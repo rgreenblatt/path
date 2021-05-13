@@ -6,24 +6,27 @@
 
 #include <Eigen/Geometry>
 
-ATTR_PURE_NDEBUG inline HOST_DEVICE Eigen::AngleAxisf
-find_rotate_vector_to_vector(const UnitVector &inp, const UnitVector &target) {
+template <typename T>
+ATTR_PURE_NDEBUG inline HOST_DEVICE Eigen::AngleAxis<T>
+find_rotate_vector_to_vector(const UnitVectorGen<T> &inp,
+                             const UnitVectorGen<T> &target) {
   // SPEED: better approach
   // SPEED: cache/don't recompute cos etc
-  float angle_between = std::acos(inp->dot(*target));
+  T angle_between = std::acos(inp->dot(*target));
   auto orthagonal = (inp->cross(*target)).normalized();
 
-  return Eigen::AngleAxisf(angle_between, orthagonal);
+  return Eigen::AngleAxis<T>(angle_between, orthagonal);
 }
 
-ATTR_PURE_NDEBUG inline HOST_DEVICE UnitVector
-find_relative_vec(const UnitVector &vec, float phi, float theta) {
+template <typename T>
+ATTR_PURE_NDEBUG inline HOST_DEVICE UnitVectorGen<T>
+find_relative_vec(const UnitVectorGen<T> &vec, T phi, T theta) {
   // SPEED: better approach
-  float sin_theta = std::sin(theta);
-  return UnitVector::new_normalize(
-      find_rotate_vector_to_vector(vec,
-                                   UnitVector::new_unchecked({0.f, 0.f, 1.f}))
+  T sin_theta = std::sin(theta);
+  return UnitVectorGen<T>::new_normalize(
+      find_rotate_vector_to_vector(
+          vec, UnitVectorGen<T>::new_unchecked({0., 0., 1.}))
           .inverse() *
-      Eigen::Vector3f(sin_theta * std::cos(phi), sin_theta * std::sin(phi),
-                      std::cos(theta)));
+      Eigen::Vector3<T>(sin_theta * std::cos(phi), sin_theta * std::sin(phi),
+                        std::cos(theta)));
 }

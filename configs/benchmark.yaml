@@ -23,36 +23,14 @@ settings:
           max_samples_per_thread: 32
       individually_intersectable_settings:
         accel:
-          type: DirectionGrid
-          value: {}
-  # kernel_approach:
-  #   type: Streaming
-  #   value:
-  #     computation_settings:
-  #       max_num_samples_per_launch: 4194304
-  #       min_num_init_blocks: 16
-  #       init_samples_division:
-  #         block_size: 256
-  #         target_x_block_size: 32
-  #         force_target_samples: false
-  #         forced_target_samples_per_thread: 8
-  #         base_num_threads: 16384
-  #         samples_per_thread_scaling_power: 0.5
-  #         max_samples_per_thread: 32
-  #     accel:
-  #       type: IndividualToBulk
-  #       value:
-  #         to_bulk_settings:
-  #           max_size: 2097152
-  #         individual_settings:
-  #           accel:
-  #             type: SBVH
-  #             value:
-  #               overlap_threshold: 1e-5
-  #               bvh_settings:
-  #                 traversal_per_intersect_cost: .2
-  #                 target_objects: 4
-  #                 print_stats: false
+          type: SBVH
+          value:
+            overlap_threshold: 1e-5
+            use_spatial_splits: false
+            bvh_settings:
+              traversal_per_intersect_cost: 0.5
+              target_objects: 4
+              print_stats: false
   light_sampler:
     type: RandomTriangle
     value:
@@ -61,14 +39,15 @@ settings:
     type: BSDF
     value: {}
   term_prob:
-    type: MultiplierFunc
+    type: NIters
     value:
-      exp: 50.0
-      min_prob: 0.1
+      iters: 0
+    # type: MultiplierFunc
+    # value:
+    #   exp: 50.0
+    #   min_prob: 0.1
   rng:
-    type: Sobel
-    value:
-      sequence_settings: {}
-      max_sample_size: 256
+    type: Uniform
+    value: {}
   rendering_equation_settings:
-    back_cull_emission: true
+    back_cull_emission: false

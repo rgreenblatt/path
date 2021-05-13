@@ -11,6 +11,13 @@ def draw_tri(ax, vertices, edge_color='k'):
     ax.add_collection3d(tri)
 
 
+def connect_tris(ax, vertices_first, vertices_second, edge_color='k'):
+    for i in range(3):
+        for j in range(3):
+            ax.plot3D(*zip(vertices_first[i], vertices_second[j]),
+                      color=edge_color)
+
+
 def draw_aabb(ax, min_bound, max_bound, color='b'):
     grid = 2
     for (axis, edge_next, edge_next_next) in product([0, 1, 2],
@@ -38,47 +45,42 @@ def main():
     ax = a3.Axes3D(plt.figure())
 
     triangle_0 = [
-        [0.185689, 0.430379, 0.688532],
-        [0.205527, 0.715891, 0.0897664],
-        [0.694503, -0.15269, 0.247127],
+        [0.441879, -0.528226, 0.629064],
+        [0.997233, -0.289026, -0.629806],
+        [-0.337353, 0.0197618, -0.0778064],
     ]
 
     triangle_1 = [
-        [0.291788, -0.231237, -0.124826],
-        [-0.404931, 0.783546, -0.886574],
-        [0.927325, -0.454687, -0.233117],
+        [-0.388798, 0.489003, 0.927466],
+        [0.0411417, -0.214853, 0.393545],
+        [0.916666, 0.81895, -0.494201],
+    ]
+
+    triangle_2 = [
+        [-0.101216, -0.1975, -0.51163],
+        [0.928564, 0.966285, -0.428953],
+        [0.330397, -0.306568, -0.741083],
     ]
 
     draw_tri(ax, triangle_0, edge_color='r')
-    draw_tri(ax, triangle_1, edge_color='r')
+    draw_tri(ax, triangle_1, edge_color='g')
+    draw_tri(ax, triangle_2, edge_color='b')
+    # connect_tris(ax, triangle_0, triangle_2, edge_color='g')
 
-    min_bound = [-0.404931, -0.454687, -0.886574]
-    max_bound = [0.927325, 0.783546, 0.688532]
+    ax.scatter([-0.641504], [ -2.92644], [-0.976747])
 
-    draw_aabb(ax, min_bound, max_bound)
-
-    min_bound = np.array(min_bound)
-    max_bound = np.array(max_bound)
-
-    for direc, start in np.array([
-        [[-2, 1, -1], [2, 1, 2]],
-        [[-2, 1, -1], [2, 1, 1]],
-        [[-2, 1, -1], [2, 0, 2]],
-        [[-2, 1, -1], [2, 0, 1]],
-    ]):
-        grid = 2
-        start = (max_bound - min_bound ) * start / grid + min_bound
-        direc = (max_bound - min_bound ) * direc / grid
-
-        ax.plot3D(*zip(start, start + direc), color='g')
-
-    origin = np.array([0.914902, 0.0364014, -0.0564969])
-    direction = 3. * np.array([-0.795732, 0.354946, -0.490738])
-    origin -= direction / 3
-    ax.quiver(*origin, *direction, color='r')
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_zlabel("z")
+    ax.set_xlim(-2., 2.)
+    ax.set_ylim(-2., 2.)
+    ax.set_zlim(-2., 2.)
+
+    # end = np.array([0.52142638, 0.36578992, 0.182400629])
+    # origin = np.array([0.362145573, 0.0209254418, 0.572940052])
+    # direction = end - origin
+    # ax.quiver(*origin, *direction * 2, color='r')
+
     plt.show()
 
 

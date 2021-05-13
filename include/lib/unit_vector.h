@@ -8,30 +8,32 @@
 
 #include <cmath>
 
-class UnitVector {
+template <typename T> class UnitVectorGen {
 public:
-  HOST_DEVICE UnitVector() : v_({1.f, 0.f, 0.f}) {}
+  HOST_DEVICE UnitVectorGen() : v_({1., 0., 0.}) {}
 
-  ATTR_PURE_NDEBUG HOST_DEVICE static UnitVector
-  new_normalize(const Eigen::Vector3f &v) {
-    return UnitVector(v.normalized());
+  ATTR_PURE_NDEBUG HOST_DEVICE static UnitVectorGen
+  new_normalize(const Eigen::Vector3<T> &v) {
+    return UnitVectorGen(v.normalized());
   }
 
-  ATTR_PURE_NDEBUG HOST_DEVICE static UnitVector
-  new_unchecked(const Eigen::Vector3f &v) {
+  ATTR_PURE_NDEBUG HOST_DEVICE static UnitVectorGen
+  new_unchecked(const Eigen::Vector3<T> &v) {
     // TODO: epsilon?
-    debug_assert(std::abs(v.norm() - 1.f) < 1e-6);
-    return UnitVector(v);
+    debug_assert(std::abs(v.norm() - 1.) < 1e-6);
+    return UnitVectorGen(v);
   }
 
-  ATTR_PURE_NDEBUG HOST_DEVICE const Eigen::Vector3f &operator*() const {
+  ATTR_PURE_NDEBUG HOST_DEVICE const Eigen::Vector3<T> &operator*() const {
     return v_;
   }
 
-  HOST_DEVICE const Eigen::Vector3f *operator->() const { return &v_; }
+  HOST_DEVICE const Eigen::Vector3<T> *operator->() const { return &v_; }
 
 private:
-  HOST_DEVICE explicit UnitVector(const Eigen::Vector3f &v) : v_(v) {}
+  HOST_DEVICE explicit UnitVectorGen(const Eigen::Vector3<T> &v) : v_(v) {}
 
-  Eigen::Vector3f v_;
+  Eigen::Vector3<T> v_;
 };
+
+using UnitVector = UnitVectorGen<float>;

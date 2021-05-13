@@ -58,6 +58,7 @@ public:
   }
 
   unsigned size() const { return get(Tag<E, 0>{}).size(); }
+  bool empty() const { return size() == 0; }
 
   template <unsigned idx>
   SpanSized<PackElement<idx, T...>> get(Tag<E, idx> tag) {

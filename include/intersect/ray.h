@@ -8,14 +8,17 @@
 #include <Eigen/Geometry>
 
 namespace intersect {
-struct Ray {
-  Eigen::Vector3f origin;
-  UnitVector direction;
+template <typename T> struct GenRay {
+  Eigen::Vector3<T> origin;
+  UnitVectorGen<T> direction;
 
-  ATTR_PURE_NDEBUG HOST_DEVICE inline Ray
-  transform(const Eigen::Affine3f &transform) const {
-    return Ray{transform * origin,
-               UnitVector::new_normalize(transform.linear() * *direction)};
+  template <typename Transform>
+  ATTR_PURE_NDEBUG HOST_DEVICE inline GenRay
+  transform(const Transform &transform) const {
+    return {transform * origin,
+            UnitVectorGen<T>::new_normalize(transform.linear() * *direction)};
   }
 };
+
+using Ray = GenRay<float>;
 } // namespace intersect

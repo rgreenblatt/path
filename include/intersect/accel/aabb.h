@@ -72,6 +72,13 @@ struct AABB {
     return {min_bound.cwiseMin(point), max_bound.cwiseMax(point)};
   }
 
+  // NOTE: can be negative
+  ATTR_PURE_NDEBUG HOST_DEVICE inline AABB
+  intersection_other(const AABB &other) const {
+    return {min_bound.cwiseMax(other.min_bound),
+            max_bound.cwiseMin(other.max_bound)};
+  }
+
   ATTR_PURE_NDEBUG HOST_DEVICE bool
   contains(const Eigen::Vector3f &point) const {
     return (min_bound.array() <= point.array()).all() &&

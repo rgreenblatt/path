@@ -141,6 +141,7 @@ double Renderer::Impl<exec>::general_render(
     integrate_image::Inputs<Items> inputs = {
         .items =
             {
+                .render_settings = settings.rendering_equation_settings,
                 .components =
                     {
                         .scene = scene,
@@ -149,7 +150,6 @@ double Renderer::Impl<exec>::general_render(
                         .term_prob = term_prob,
                     },
                 .rng = rng,
-                .film_to_world = s.film_to_world(),
             },
         .output_type = output.type(),
         .sample_spec = device_sample_spec,

@@ -22,7 +22,6 @@ struct Items {
   integrate::RenderingEquationSettings render_settings;
   C components;
   R rng;
-  Eigen::Affine3f film_to_world;
 };
 } // namespace integrate_image
 } // namespace detail

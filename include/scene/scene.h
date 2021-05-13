@@ -5,6 +5,7 @@
 #include "intersect/triangle.h"
 #include "lib/span.h"
 #include "lib/vector_group.h"
+#include "lib/vector_type.h"
 #include "meta/all_values/impl/enum.h"
 #include "scene/emissive_cluster.h"
 #include "scene/material.h"
@@ -13,6 +14,7 @@
 #include <vector>
 
 namespace scene {
+class TriangleConstructor;
 namespace scenefile_compat {
 class ScenefileLoader;
 }
@@ -21,10 +23,6 @@ class ScenefileLoader;
 // scenes and alternate material
 class Scene {
 public:
-  ATTR_PURE const Eigen::Affine3f &film_to_world() const {
-    return film_to_world_;
-  }
-
   using Triangle = intersect::Triangle;
   using TransformedObject = intersect::TransformedObject;
   using AABB = intersect::accel::AABB;
@@ -74,7 +72,7 @@ public:
 private:
   Scene() {}
 
-  template <typename T> using Vec = std::vector<T>;
+  template <typename T> using Vec = VectorT<T>;
 
   enum class MeshT {
     End,
@@ -119,8 +117,7 @@ private:
   std::vector<CS123SceneLightData> lights_;
 #endif
 
-  Eigen::Affine3f film_to_world_;
-
   friend class scenefile_compat::ScenefileLoader;
+  friend class TriangleConstructor;
 };
 } // namespace scene

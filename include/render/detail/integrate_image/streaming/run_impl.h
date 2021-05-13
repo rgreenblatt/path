@@ -20,8 +20,6 @@
 #include <thrust/for_each.h>
 #include <thrust/iterator/counting_iterator.h>
 
-#include <dbg.h>
-
 namespace render {
 namespace detail {
 namespace integrate_image {

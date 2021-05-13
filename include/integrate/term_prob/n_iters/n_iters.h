@@ -2,6 +2,7 @@
 
 #include "integrate/term_prob/n_iters/settings.h"
 #include "integrate/term_prob/term_prob.h"
+#include "lib/attribute.h"
 #include "lib/cuda/utils.h"
 
 namespace integrate {

@@ -373,11 +373,7 @@ SplitCandidate SBVH<exec>::Generator::best_object_split(
     const auto &right_aabb = aabbs_backward[i];
 
     float intersection_surface_area =
-        AABB{
-            .min_bound = left_aabb.min_bound.cwiseMax(right_aabb.min_bound),
-            .max_bound = left_aabb.max_bound.cwiseMin(right_aabb.max_bound),
-        }
-            .surface_area();
+        left_aabb.intersection_other(right_aabb).surface_area();
 
     float surface_area_left = left_aabb.surface_area();
     float surface_area_right = right_aabb.surface_area();

@@ -20,9 +20,9 @@
 
 namespace scene {
 namespace scenefile_compat {
-std::optional<Scene> ScenefileLoader::load_scene(const std::string &filename,
-                                                 float width_height_ratio,
-                                                 bool quiet) {
+std::optional<SceneCamera>
+ScenefileLoader::load_scene(const std::string &filename,
+                            float width_height_ratio, bool quiet) {
   quiet_ = quiet;
   loaded_meshes_.clear();
 
@@ -33,9 +33,9 @@ std::optional<Scene> ScenefileLoader::load_scene(const std::string &filename,
   CS123SceneCameraData cameraData;
   parser.get_camera_data(cameraData);
 
-  Scene scene_v;
+  Scene scene;
 
-  scene_v.film_to_world_ = get_camera_transform(
+  auto film_to_world = get_camera_transform(
       UnitVector::new_normalize(cameraData.look.head<3>()),
       UnitVector::new_normalize(cameraData.up.head<3>()),
       cameraData.pos.head<3>(), cameraData.heightAngle, width_height_ratio);
@@ -47,27 +47,27 @@ std::optional<Scene> ScenefileLoader::load_scene(const std::string &filename,
   CS123SceneLightData light_data;
   for (int i = 0, size = parser.get_num_lights(); i < size; ++i) {
     parser.get_light_data(i, light_data);
-    if (!add_light(scene_v, light_data)) {
+    if (!add_light(scene, light_data)) {
       return {};
     }
   }
 
   QFileInfo info(filename.c_str());
   std::string dir = info.path().toStdString();
-  if (!parse_tree(scene_v, *parser.get_root_node(), dir + "/")) {
+  if (!parse_tree(scene, *parser.get_root_node(), dir + "/")) {
     return {};
   }
 
-  return scene_v;
+  return SceneCamera{.scene = scene, .film_to_world = film_to_world};
 }
 
-bool ScenefileLoader::parse_tree(Scene &scene_v, const CS123SceneNode &root,
+bool ScenefileLoader::parse_tree(Scene &scene, const CS123SceneNode &root,
                                  const std::string &base_dir) {
-  return parse_node(scene_v, root, Eigen::Affine3f::Identity(), base_dir) &&
-         scene_v.meshs_.size() != 0;
+  return parse_node(scene, root, Eigen::Affine3f::Identity(), base_dir) &&
+         scene.meshs_.size() != 0;
 }
 
-bool ScenefileLoader::parse_node(Scene &scene_v, const CS123SceneNode &node,
+bool ScenefileLoader::parse_node(Scene &scene, const CS123SceneNode &node,
                                  const Eigen::Affine3f &parent_transform,
                                  const std::string &base_dir) {
   Eigen::Affine3f transform = parent_transform;
@@ -90,13 +90,13 @@ bool ScenefileLoader::parse_node(Scene &scene_v, const CS123SceneNode &node,
   }
 
   for (CS123ScenePrimitive *prim : node.primitives) {
-    if (!add_primitive(scene_v, *prim, transform, base_dir)) {
+    if (!add_primitive(scene, *prim, transform, base_dir)) {
       return false;
     }
   }
 
   for (CS123SceneNode *child : node.children) {
-    if (!parse_node(scene_v, *child, transform, base_dir)) {
+    if (!parse_node(scene, *child, transform, base_dir)) {
       return false;
     }
   }
@@ -104,20 +104,20 @@ bool ScenefileLoader::parse_node(Scene &scene_v, const CS123SceneNode &node,
   return true;
 }
 
-bool ScenefileLoader::add_primitive(Scene &scene_v,
+bool ScenefileLoader::add_primitive(Scene &scene,
                                     const CS123ScenePrimitive &prim,
                                     const Eigen::Affine3f &transform,
                                     const std::string &base_dir) {
   switch (prim.type) {
   case PrimitiveType::Mesh:
-    return load_mesh(scene_v, prim.meshfile, transform, base_dir);
+    return load_mesh(scene, prim.meshfile, transform, base_dir);
   default:
     std::cerr << "We don't handle any other formats yet" << std::endl;
     return false;
   }
 }
 
-bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
+bool ScenefileLoader::load_mesh(Scene &scene, std::string file_path,
                                 const Eigen::Affine3f &transform,
                                 const std::string &base_dir) {
   tinyobj::attrib_t attrib;
@@ -131,19 +131,19 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
   auto add_mesh_instance = [&](unsigned idx,
                                const intersect::accel::AABB &aabb) {
     intersect::TransformedObject obj{transform, aabb};
-    scene_v.transformed_objects_.push_back_all(obj, idx);
+    scene.transformed_objects_.push_back_all(obj, idx);
   };
 
   auto map_it = loaded_meshes_.find(absolute_path);
   if (map_it != loaded_meshes_.end()) {
     add_mesh_instance(
         map_it->second,
-        scene_v.meshs_.get(tag_v<Scene::MeshT::AABB>)[map_it->second]);
+        scene.meshs_.get(tag_v<Scene::MeshT::AABB>)[map_it->second]);
 
     return true;
   }
 
-  unsigned materials_offset = scene_v.materials_.size();
+  unsigned materials_offset = scene.materials_.size();
 
   std::string err;
   bool ret = tinyobj::LoadObj(
@@ -159,7 +159,7 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
 
     is_emissive.push_back(material.emission.matrix().squaredNorm() > 1e-9f);
 
-    scene_v.materials_.push_back(material);
+    scene.materials_.push_back(material);
   }
 
   if (!ret) {
@@ -167,7 +167,7 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
     return false;
   }
 
-  unsigned mesh_idx = scene_v.meshs_.size();
+  unsigned mesh_idx = scene.meshs_.size();
 
   auto min_b = max_eigen_vec();
   auto max_b = min_eigen_vec();
@@ -179,8 +179,8 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
   unsigned emissive_start_idx;
 
   auto end_emissive_cluster = [&] {
-    unsigned emissive_end_idx = scene_v.triangles_.size();
-    scene_v.emissive_clusters_.push_back(
+    unsigned emissive_end_idx = scene.triangles_.size();
+    scene.emissive_clusters_.push_back(
         {emissive_material_idx,
          emissive_start_idx,
          emissive_end_idx,
@@ -250,7 +250,7 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
         emissive_cluster_min_b = max_eigen_vec();
         emissive_cluster_max_b = min_eigen_vec();
         adding_to_emissive_cluster = true;
-        emissive_start_idx = scene_v.triangles_.size();
+        emissive_start_idx = scene.triangles_.size();
         emissive_material_idx = material_idx;
 
         add_vertices_emissive_cluster();
@@ -283,7 +283,7 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
                                              [&] { return triangle.normal(); });
       }
 
-      scene_v.triangles_.push_back_all(triangle, {normals, material_idx});
+      scene.triangles_.push_back_all(triangle, {normals, material_idx});
 
       index_offset += fv;
     }
@@ -293,21 +293,21 @@ bool ScenefileLoader::load_mesh(Scene &scene_v, std::string file_path,
     end_emissive_cluster();
   }
 
-  unsigned mesh_end = scene_v.triangles_.size();
+  unsigned mesh_end = scene.triangles_.size();
   intersect::accel::AABB aabb{min_b, max_b};
-  unsigned emissive_cluster_end = scene_v.emissive_clusters_.size();
-  scene_v.meshs_.push_back_all(mesh_end, aabb, absolute_path,
-                               emissive_cluster_end);
+  unsigned emissive_cluster_end = scene.emissive_clusters_.size();
+  scene.meshs_.push_back_all(mesh_end, aabb, absolute_path,
+                             emissive_cluster_end);
 
   add_mesh_instance(mesh_idx, aabb);
   loaded_meshes_.insert({absolute_path, mesh_idx});
 
   if (!quiet_) {
     std::cout << "added mesh" << std::endl;
-    std::cout << "total triangle count: " << scene_v.triangles_.size()
+    std::cout << "total triangle count: " << scene.triangles_.size()
               << std::endl;
     std::cout << "total num emissive clusters: "
-              << scene_v.emissive_clusters_.size() << std::endl;
+              << scene.emissive_clusters_.size() << std::endl;
   }
 
   return true;

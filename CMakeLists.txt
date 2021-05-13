@@ -21,7 +21,7 @@ endif()
 # required for clang cuda support
 cmake_minimum_required(VERSION 3.18)
 
-add_compile_options(-Wall -Wextra -Wmissing-field-initializers)
+add_compile_options(-Wall -Wextra -Wmissing-field-initializers -fPIC)
 
 # * use libc++ for this project and submodules
 # * won't work until libc++ has concepts
@@ -66,6 +66,9 @@ find_package(
 find_package(OpenMP REQUIRED)
 find_package(Threads REQUIRED)
 find_package(CUDAToolkit REQUIRED)
+find_package(Torch REQUIRED)
+find_package(pybind11 REQUIRED)
+find_package(Python COMPONENTS Development)
 
 set(BUILD_SHARED_LIBS OFF)
 
@@ -218,8 +221,10 @@ add_library(
 target_add_standard(scenefile_compat)
 target_link_libraries(scenefile_compat PRIVATE Qt5::Xml)
 
-add_library(renderer_from_files STATIC
-            "${PROJECT_SOURCE_DIR}/src/render/renderer_from_files.cpp")
+add_library(
+  renderer_from_files STATIC
+  "${PROJECT_SOURCE_DIR}/src/render/renderer_from_files.cpp"
+  "${PROJECT_SOURCE_DIR}/src/render/config_io.cpp")
 target_add_standard(renderer_from_files)
 target_link_libraries(renderer_from_files PRIVATE yaml-cpp renderer
                                                   scenefile_compat)
@@ -285,8 +290,15 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
                    "${PROJECT_SOURCE_DIR}/tests/src/printf_dbg.cpp")
   package_add_test(dispatch_test "${PROJECT_SOURCE_DIR}/tests/src/dispatch.cpp")
   package_add_test(node_test "${PROJECT_SOURCE_DIR}/tests/src/node.cpp")
-  package_add_test(clipped_triangle
+  package_add_test(clipped_triangle_test
                    "${PROJECT_SOURCE_DIR}/tests/src/clipped_triangle.cpp")
+  package_add_test(is_triangle_test
+                   "${PROJECT_SOURCE_DIR}/tests/src/is_triangle.cpp")
+  set(ORIG_CXX_COMPILER "${CMAKE_CXX_COMPILER}")
+  set(CMAKE_CXX_COMPILER "/usr/bin/g++")
+  package_add_test(gen_data_test "${PROJECT_SOURCE_DIR}/tests/src/gen_data.cpp")
+  target_link_libraries(gen_data_test PRIVATE gen_data)
+  set(CMAKE_CXX_COMPILER "${ORIG_CXX_COMPILER}")
 
   add_custom_target(
     run_build_tests
@@ -330,6 +342,36 @@ endif()
 add_executable(path "${PROJECT_SOURCE_DIR}/src/main.cpp")
 target_link_libraries(path PRIVATE renderer_from_files docopt_s Qt5::Widgets)
 target_add_standard(path)
+
+add_library(
+  generate_data STATIC
+  "${PROJECT_SOURCE_DIR}/src/generate_data/generate_scene.cpp"
+  "${PROJECT_SOURCE_DIR}/src/generate_data/normalize_scene_triangles.cpp"
+  "${PROJECT_SOURCE_DIR}/src/scene/triangle_constructor.cpp")
+target_add_standard(generate_data)
+
+add_executable(
+  generate_data_visualizer
+  "${PROJECT_SOURCE_DIR}/src/generate_data/generate_data_visualizer.cpp")
+target_link_libraries(
+  generate_data_visualizer PRIVATE renderer_from_files generate_data docopt_s
+                                   Qt5::Widgets)
+target_add_standard(generate_data_visualizer)
+
+# TODO: rename!
+add_library(gen_data STATIC
+            "${PROJECT_SOURCE_DIR}/src/generate_data/gen_data.cpp")
+target_link_libraries(
+  gen_data
+  PUBLIC torch Python::Python
+  PRIVATE renderer_from_files generate_data torch_python)
+target_add_standard(gen_data)
+
+pybind11_add_module(
+  neural_render_generate_data
+  "${PROJECT_SOURCE_DIR}/src/generate_data/neural_render_generate_data.cpp")
+target_link_libraries(neural_render_generate_data PRIVATE gen_data)
+target_add_standard(neural_render_generate_data)
 
 add_executable(check_downsample
                "${PROJECT_SOURCE_DIR}/src/check_downsample.cpp")

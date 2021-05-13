@@ -10,7 +10,7 @@
 namespace bsdf {
 struct Diffuse {
   static constexpr float normalizing_factor = 1 / M_PI;
-  FloatRGB diffuse_;
+  FloatRGB diffuse;
 
   static constexpr bool discrete = false;
   static constexpr bool continuous = true;
@@ -19,7 +19,7 @@ struct Diffuse {
 
   ATTR_PURE_NDEBUG HOST_DEVICE FloatRGB continuous_eval(
       const UnitVector &, const UnitVector &, const UnitVector &) const {
-    return diffuse_ * normalizing_factor;
+    return diffuse * normalizing_factor;
   }
 
   template <rng::RngState R>
@@ -36,7 +36,7 @@ struct Diffuse {
     float phi = 2 * M_PI * v0;
     float theta = std::asin(std::sqrt(v1));
 
-    return {find_relative_vec(normal, phi, theta), diffuse_};
+    return {find_relative_vec(normal, phi, theta), diffuse};
   }
 };
 

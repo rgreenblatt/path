@@ -4,6 +4,7 @@
 #include "execution_model/host_vector.h"
 #include "integrate/light_sampler/random_triangle/settings.h"
 #include "integrate/light_sampler/triangle_light_sampler.h"
+#include "integrate/sample_triangle.h"
 #include "lib/assert.h"
 #include "lib/edges.h"
 #include "lib/optional.h"
@@ -68,23 +69,7 @@ public:
       debug_assert(sample_idx < cumulative_weights_.size());
 
       const auto &triangle = triangles_[sample_idx];
-
-      float weight0 = rng.next();
-      float weight1 = rng.next();
-
-      if (weight0 + weight1 > 1.f) {
-        weight0 = 1 - weight0;
-        weight1 = 1 - weight1;
-      }
-
-      const auto &vertices = triangle.vertices;
-
-      // SPEED: cache vecs?
-      const auto vec0 = vertices[1] - vertices[0];
-      const auto vec1 = vertices[2] - vertices[0];
-
-      const auto point = vertices[0] + vec0 * weight0 + vec1 * weight1;
-
+      auto point = sample_triangle(triangle, rng);
       const Eigen::Vector3f direction_unnormalized = point - position;
       const UnitVector direction =
           UnitVector::new_normalize(direction_unnormalized);
