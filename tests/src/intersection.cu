@@ -198,9 +198,9 @@ TEST(Intersection, sbvh) {
   }
 }
 
-TEST(Intersection, direction_grid) {
-  std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
-  for (bool is_gpu : {false, true}) {
-    test_accelerator<AccelType::DirectionGrid>(gen, {}, is_gpu);
-  }
-}
+// TEST(Intersection, direction_grid) {
+//   std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
+//   for (bool is_gpu : {false, true}) {
+//     test_accelerator<AccelType::DirectionGrid>(gen, {}, is_gpu);
+//   }
+// }
