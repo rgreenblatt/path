@@ -22,6 +22,7 @@ endif()
 cmake_minimum_required(VERSION 3.18)
 
 add_compile_options(-Wall -Wextra -Wmissing-field-initializers -fPIC)
+add_definitions(-DCUDA_API_PER_THREAD_DEFAULT_STREAM)
 
 # * use libc++ for this project and submodules
 # * won't work until libc++ has concepts
@@ -342,6 +343,7 @@ add_library(
   generate_data STATIC
   "${PROJECT_SOURCE_DIR}/src/generate_data/generate_scene.cpp"
   "${PROJECT_SOURCE_DIR}/src/generate_data/normalize_scene_triangles.cpp"
+  "${PROJECT_SOURCE_DIR}/src/generate_data/baryocentric_coords.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/triangle_constructor.cpp")
 target_add_standard(generate_data)
 
@@ -359,7 +361,7 @@ add_library(gen_data STATIC
 target_link_libraries(
   gen_data
   PUBLIC torch Python::Python
-  PRIVATE renderer_from_files generate_data torch_python)
+  PRIVATE renderer_from_files generate_data torch_python OpenMP::OpenMP_CXX)
 target_add_standard(gen_data)
 
 pybind11_add_module(

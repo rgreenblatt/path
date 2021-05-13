@@ -97,7 +97,7 @@ TEST(Reduce, sum) {
               constexpr ExecutionModel exec = tag;
 
               kernel::KernelLaunch<exec>::run(
-                  division, 0, division.total_num_blocks(),
+                  ThrustData<exec>{}, division, 0, division.total_num_blocks(),
                   kernel::make_runtime_constants_reduce_launchable<exec, T>(
                       [=] HOST_DEVICE(const WorkDivision &division,
                                       const kernel::GridLocationInfo &info,

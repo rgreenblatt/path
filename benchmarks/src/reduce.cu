@@ -448,7 +448,7 @@ int main(int argc, char *argv[]) {
                       }
 
                       kernel::KernelLaunch<ExecutionModel::GPU>::run(
-                          division, 0, num_blocks,
+                          ThrustData<exec>{}, division, 0, num_blocks,
                           kernel::make_runtime_constants_reduce_launchable<
                               ExecutionModel::GPU, ItemT>(
                               [=](const kernel::WorkDivision &,

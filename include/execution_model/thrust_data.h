@@ -42,6 +42,11 @@ public:
     }
   }
 
+  cudaStream_t get_stream_v() const {
+    static_assert(execution_model == ExecutionModel::GPU);
+    return stream_v->stream_v();
+  }
+
 private:
   CachingThrustAllocator<execution_model> alloc;
   struct EmptyT {};

@@ -35,7 +35,8 @@ max_blocks_per_launch(const MegaKernelSettings::ComputationSettings &settings) {
 template <ExecutionModel exec>
 template <ExactSpecializationOf<Items> Items, intersect::Intersectable I>
 requires std::same_as<typename Items::InfoType, typename I::InfoType>
-    Output Run<exec>::run(Inputs<Items> inp, const I &intersectable,
+    Output Run<exec>::run(ThrustData<exec> &data, Inputs<Items> inp,
+                          const I &intersectable,
                           const MegaKernelSettings &settings,
                           ExecVector<exec, BGRA32> &bgra_32,
                           std::array<ExecVector<exec, FloatRGB>, 2> &float_rgb,
@@ -105,7 +106,7 @@ requires std::same_as<typename Items::InfoType, typename I::InfoType>
         auto items = inp.items;
 
         kernel::KernelLaunch<exec>::run(
-            division, start, end,
+            data, division, start, end,
             kernel::make_runtime_constants_reduce_launchable<exec, FloatRGB>(
                 [=] HOST_DEVICE(const kernel::WorkDivision &division,
                                 const kernel::GridLocationInfo &info,
@@ -120,7 +121,7 @@ requires std::same_as<typename Items::InfoType, typename I::InfoType>
       });
 
   auto float_rgb_reduce_out = ReduceFloatRGB<exec>::run(
-      settings.computation_settings.reduce_work_division,
+      data, settings.computation_settings.reduce_work_division,
       base.output_as_bgra_32, division.num_sample_blocks(), inp.samples_per,
       &float_rgb[0], &float_rgb[1], bgra_32);
   always_assert(float_rgb_reduce_out != nullptr);

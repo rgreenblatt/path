@@ -1,5 +1,6 @@
 #include "execution_model/execution_model.h"
 #include "generate_data/amend_config.h"
+#include "generate_data/baryocentric_coords.h"
 #include "generate_data/baryocentric_to_ray.h"
 #include "generate_data/generate_scene.h"
 #include "generate_data/generate_scene_triangles.h"
@@ -134,20 +135,15 @@ int main(int argc, char *argv[]) {
   unsigned baryocentric_height = baryocentric_width;
   unsigned baryocentric_num_samples = 4096;
 
-  VectorT<intersect::Ray> baryocentric_grid;
-  VectorT<std::tuple<unsigned, unsigned>> baryocentric_grid_coords;
+  auto [baryocentric_indexes, baryocentric_grid_values] =
+      baryocentric_coords(baryocentric_width, baryocentric_height);
 
-  for (unsigned y = 0; y < baryocentric_height; ++y) {
-    for (unsigned x = 0; x < baryocentric_width; ++x) {
-      float x_v = float(x + 1) / (baryocentric_width + 1);
-      float y_v = float(y + 1) / (baryocentric_height + 1);
+  VectorT<intersect::Ray> baryocentric_grid(baryocentric_grid_values.size());
 
-      if (x_v + y_v < 1.f) {
-        baryocentric_grid.push_back(
-            baryocentric_to_ray(x_v, y_v, tris.triangle_onto, dir_towards));
-        baryocentric_grid_coords.push_back({x, y});
-      }
-    }
+  for (unsigned i = 0; i < baryocentric_grid_values.size(); ++i) {
+    auto [x_v, y_v] = baryocentric_grid_values[i];
+    baryocentric_grid[i] =
+        baryocentric_to_ray(x_v, y_v, tris.triangle_onto, dir_towards);
   }
 
   std::vector<BGRA32> baryocentric_pixels(baryocentric_grid.size(),
@@ -167,7 +163,7 @@ int main(int argc, char *argv[]) {
   std::fill(baryocentric_image_pixels.begin(), baryocentric_image_pixels.end(),
             BGRA32::Zero());
   for (unsigned i = 0; i < baryocentric_grid.size(); ++i) {
-    auto [x, y] = baryocentric_grid_coords[i];
+    auto [x, y] = baryocentric_indexes[i];
     baryocentric_image_pixels[x + y * baryocentric_width] =
         baryocentric_pixels[i];
   }

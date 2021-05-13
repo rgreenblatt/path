@@ -64,8 +64,9 @@ void initialize(const Inp &inp, State &state,
         }
       });
 
+  // TODO: fix thrust data!!!
   kernel::KernelLaunch<exec>::run(
-      division, start_block_init, end_block_init,
+      ThrustData<exec>{}, division, start_block_init, end_block_init,
       kernel::make_no_interactor_launchable(
           [=] HOST_DEVICE(const kernel::WorkDivision &division,
                           const kernel::GridLocationInfo &info, unsigned,

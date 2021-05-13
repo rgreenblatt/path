@@ -22,12 +22,12 @@ __global__ void gpu_kernel(const WorkDivision division, unsigned start_block,
 template <>
 template <Launchable L>
 void KernelLaunch<ExecutionModel::GPU>::run_internal(
-    const WorkDivision &division, unsigned start_block, unsigned end_block,
-    const L &l, bool sync) {
-  gpu_kernel<<<end_block - start_block, division.block_size()>>>(
-      division, start_block, l);
+    const ThrustData<ExecutionModel::GPU> &data, const WorkDivision &division,
+    unsigned start_block, unsigned end_block, const L &l, bool sync) {
+  gpu_kernel<<<end_block - start_block, division.block_size(), 0,
+               data.get_stream_v()>>>(division, start_block, l);
   if (sync) {
-    CUDA_SYNC_CHK();
+    CUDA_ERROR_CHK(cudaStreamSynchronize(data.get_stream_v()));
   }
 }
 } // namespace kernel

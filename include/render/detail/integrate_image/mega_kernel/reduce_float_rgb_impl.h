@@ -16,6 +16,7 @@ namespace integrate_image {
 namespace mega_kernel {
 template <ExecutionModel exec>
 ExecVector<exec, FloatRGB> *ReduceFloatRGB<exec>::run(
+    ThrustData<exec> &data,
     const kernel::WorkDivisionSettings &division_settings,
     bool output_as_bgra_32, unsigned reduction_factor, unsigned samples_per,
     ExecVector<exec, FloatRGB> *float_rgb_in,
@@ -36,7 +37,7 @@ ExecVector<exec, FloatRGB> *ReduceFloatRGB<exec>::run(
     Span<const FloatRGB> in_span = *float_rgb_in;
 
     kernel::KernelLaunch<exec>::run(
-        division, 0, division.total_num_blocks(),
+        data, division, 0, division.total_num_blocks(),
         kernel::make_runtime_constants_reduce_launchable<exec, FloatRGB>(
             [=](const kernel::WorkDivision &division,
                 const kernel::GridLocationInfo &info, const unsigned block_idx,

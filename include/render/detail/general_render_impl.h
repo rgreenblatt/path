@@ -161,8 +161,8 @@ double Renderer::Impl<exec>::general_render(
       run_timer.start();
       if constexpr (kernel_approach == KernelApproach::MegaKernel) {
         return integrate_image::mega_kernel::Run<exec>::run(
-            inputs, intersector, kernel_approach_settings, bgra_32_, float_rgb_,
-            output_per_step_rgb_);
+            thrust_data_, inputs, intersector, kernel_approach_settings,
+            bgra_32_, float_rgb_, output_per_step_rgb_);
       } else {
         static_assert(kernel_approach == KernelApproach::Streaming);
 
