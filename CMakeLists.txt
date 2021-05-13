@@ -294,11 +294,6 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
                    "${PROJECT_SOURCE_DIR}/tests/src/clipped_triangle.cpp")
   package_add_test(is_triangle_test
                    "${PROJECT_SOURCE_DIR}/tests/src/is_triangle.cpp")
-  set(ORIG_CXX_COMPILER "${CMAKE_CXX_COMPILER}")
-  set(CMAKE_CXX_COMPILER "/usr/bin/g++")
-  package_add_test(gen_data_test "${PROJECT_SOURCE_DIR}/tests/src/gen_data.cpp")
-  target_link_libraries(gen_data_test PRIVATE gen_data)
-  set(CMAKE_CXX_COMPILER "${ORIG_CXX_COMPILER}")
 
   add_custom_target(
     run_build_tests
