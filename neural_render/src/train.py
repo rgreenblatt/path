@@ -239,20 +239,20 @@ def main():
                     if is_nan:
                         raise NanLoss()
 
-                    max_norm = norm_avg.x * 1.5
-                    this_norm = nn.utils.clip_grad_norm_(
-                        net.parameters(), max_norm)
-                    norm_avg.update(this_norm)
-                    if not disable_all_output:
-                        writer.add_scalar("max_norm", max_norm, step)
-                        writer.add_scalar("norm", this_norm, step)
-
-                    is_first = False
-
                 if torch.is_grad_enabled():
-
                     with amp.scale_loss(loss, optimizer) as scaled_loss:
                         scaled_loss.backward()
+
+                    if is_first:
+                        max_norm = norm_avg.x * 1.5
+                        this_norm = nn.utils.clip_grad_norm_(
+                            net.parameters(), max_norm)
+                        norm_avg.update(this_norm)
+                        if not disable_all_output:
+                            writer.add_scalar("max_norm", max_norm, step)
+                            writer.add_scalar("norm", this_norm, step)
+
+                is_first = False
 
                 return loss
 
@@ -328,7 +328,8 @@ def main():
                     get_or_nan(test_loss), count_nan * world_batch_size),
                 flush=True)
 
-            writer.add_scalar("loss/test", test_loss, step)
+            if test_loss is not None:
+                writer.add_scalar("loss/test", test_loss, step)
 
         # if not disable_all_output and (epoch + 1) % cfg.save_model_every == 0:
         #     torch.save(
