@@ -18,7 +18,7 @@ class DenseBlock(nn.Module):
         self._mul_divider = 16
         self._mul_size = output_size // self._mul_divider
         self._output_mul_size = self._mul_size * self._mul_divider
-        # self._contract_for_mul = nn.Linear(output_size, self._mul_size)
+        self._contract_for_mul = nn.Linear(output_size, self._mul_size)
 
         self._norm = nn.LayerNorm(output_size)
 
@@ -30,14 +30,14 @@ class DenseBlock(nn.Module):
         padded_input = torch.cat((x, padding), -1)
         x = self._activation(self._contract(self._activation(self._expand(x))))
 
-        # x_for_mul = x[..., :self._output_mul_size]
-        # x_not_mul = x[..., self._output_mul_size:]
+        x_for_mul = x[..., :self._output_mul_size]
+        x_not_mul = x[..., self._output_mul_size:]
 
-        # sub_shape = x_for_mul.size()[:-1]
-        # multiplier = torch.sigmoid(self._contract_for_mul(x)).unsqueeze(-1)
-        # x_mul = multiplier * x_for_mul.view(*sub_shape, self._mul_size, -1)
+        sub_shape = x_for_mul.size()[:-1]
+        multiplier = torch.tanh(self._contract_for_mul(x)).unsqueeze(-1)
+        x_mul = multiplier * x_for_mul.view(*sub_shape, self._mul_size, -1)
 
-        # x = torch.cat((x_mul.view(*sub_shape, -1), x_not_mul), -1)
+        x = torch.cat((x_mul.view(*sub_shape, -1), x_not_mul), -1)
 
         return self._norm(padded_input + x)
 
@@ -87,6 +87,6 @@ class Net(nn.Module):
         x = self._activation(self._final(x))
 
         y = self._coords_block(self._activation(self._coords_expand(coords)))
-        multiplier = torch.sigmoid(self._coords_to_multiplier(y))
+        multiplier = torch.tanh(self._coords_to_multiplier(y))
 
         return self._output(torch.unsqueeze(x, 1) * multiplier)
