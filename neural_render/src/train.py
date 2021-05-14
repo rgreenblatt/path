@@ -160,6 +160,8 @@ def main():
     validation_seed_start = 2**30
     image_seed = validation_seed_start - 1
 
+    norm_avg = EMATracker(0.9, 50.0)
+
     for epoch in range(cfg.epochs):
         net.train()
 
@@ -171,16 +173,23 @@ def main():
         max_train_step = epoch_size
         format_len = math.floor(math.log10(max_train_step)) + 1
 
+        def get_or_nan(v):
+            if v is None:
+                return float('nan')
+            else:
+                return v
+
         def train_display():
             train_loss, nan_count = train_loss_tracker.query_reset()
             if not disable_all_output:
                 print("{}, epoch {}/{}, step {}/{}, train loss {:.4e}, NaN {}".
                       format(datetime.datetime.now(), epoch, cfg.epochs - 1,
                              str((i + 1) * world_batch_size).zfill(format_len),
-                             max_train_step, train_loss,
+                             max_train_step, get_or_nan(train_loss),
                              nan_count * world_batch_size),
                       flush=True)
-                writer.add_scalar("loss/train", train_loss, step)
+                if train_loss is not None:
+                    writer.add_scalar("loss/train", train_loss, step)
                 writer.add_scalar("lr", lr, step)
                 writer.flush()
 
@@ -214,6 +223,9 @@ def main():
 
             is_first = True
 
+            class NanLoss(Exception):
+                pass
+
             def get_loss():
                 if torch.is_grad_enabled():
                     optimizer.zero_grad()
@@ -224,7 +236,17 @@ def main():
                 nonlocal is_first
                 if is_first:
                     is_nan = train_loss_tracker.update(loss)
-                    assert not is_nan
+                    if is_nan:
+                        raise NanLoss()
+
+                    max_norm = norm_avg.x * 1.5
+                    this_norm = nn.utils.clip_grad_norm_(
+                        net.parameters(), max_norm)
+                    norm_avg.update(this_norm)
+                    if not disable_all_output:
+                        writer.add_scalar("max_norm", max_norm, step)
+                        writer.add_scalar("norm", this_norm, step)
+
                     is_first = False
 
                 if torch.is_grad_enabled():
@@ -234,7 +256,10 @@ def main():
 
                 return loss
 
-            optimizer.step(get_loss)
+            try:
+                optimizer.step(get_loss)
+            except NanLoss:
+                continue
 
             if steps_since_set_lr >= cfg.set_lr_freq:
                 set_lr()
@@ -300,7 +325,7 @@ def main():
             print(
                 "{}, epoch {}/{}, lr {:.4e}, test loss {:.4e}, NaN {}".format(
                     datetime.datetime.now(), epoch, cfg.epochs - 1, lr,
-                    test_loss, count_nan * world_batch_size),
+                    get_or_nan(test_loss), count_nan * world_batch_size),
                 flush=True)
 
             writer.add_scalar("loss/test", test_loss, step)
