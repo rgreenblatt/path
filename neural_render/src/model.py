@@ -34,13 +34,14 @@ class Net(nn.Module):
 
         self._activation = nn.CELU()
         self._input_size = 37
-        self._start_size = 128
+        self._start_size = 256
         self._end_size = 256
+        self._multiplier_size = 1024
 
         self._input_expand = nn.Linear(self._input_size, self._start_size)
-        self._final = nn.Linear(self._end_size, self._end_size)
+        self._final = nn.Linear(self._end_size, self._multiplier_size)
 
-        self._n_blocks = 10
+        self._n_blocks = 4
 
         self._scene_blocks = nn.ModuleList()
 
@@ -59,11 +60,11 @@ class Net(nn.Module):
         self._coords_block = DenseBlock(self._coord_block_size,
                                         self._coord_block_size)
         self._coords_to_multiplier = nn.Linear(self._coord_block_size,
-                                               self._end_size)
+                                               self._multiplier_size)
 
         self._output_size = 3
 
-        self._output = nn.Linear(self._end_size, self._output_size)
+        self._output = nn.Linear(self._multiplier_size, self._output_size)
 
     def forward(self, scenes, coords):
         x = self._activation(self._input_expand(scenes))
