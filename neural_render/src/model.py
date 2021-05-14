@@ -1,8 +1,6 @@
 import torch
 from torch import nn
 
-from torch_utils import Swish, MemoryEfficientSwish
-
 
 class DenseBlock(nn.Module):
     def __init__(self, input_size, output_size):
@@ -42,7 +40,7 @@ class Net(nn.Module):
         self._input_expand = nn.Linear(self._input_size, self._start_size)
         self._final = nn.Linear(self._end_size, self._end_size)
 
-        self._n_blocks = 5
+        self._n_blocks = 10
 
         self._scene_blocks = nn.ModuleList()
 
@@ -71,7 +69,7 @@ class Net(nn.Module):
         x = self._activation(self._input_expand(scenes))
         for block in self._scene_blocks:
             x = block(x)
-        x = self._final(x)
+        x = self._activation(self._final(x))
 
         y = self._coords_block(self._activation(self._coords_expand(coords)))
         multiplier = torch.sigmoid(self._coords_to_multiplier(y))
