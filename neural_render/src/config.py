@@ -83,8 +83,7 @@ class Config(argparse.Namespace):
         parser.add_argument('--show-model-info', action='store_true')
         parser.add_argument('--name', required=True)
 
-        # TODO!!!
-        parser.add_argument('--use-se', action='store_true')
+        parser.add_argument('--use-attention', action='store_true')
 
         return parser
 

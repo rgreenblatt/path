@@ -15,6 +15,11 @@ class DenseBlock(nn.Module):
         self._expand = nn.Linear(input_size, self._hidden_size)
         self._contract = nn.Linear(self._hidden_size, output_size)
 
+        self._mul_divider = 16
+        self._mul_size = output_size // self._mul_divider
+        self._output_mul_size = self._mul_size * self._mul_divider
+        self._contract_for_mul = nn.Linear(output_size, self._mul_size)
+
         self._norm = nn.LayerNorm(output_size)
 
     def forward(self, x):
@@ -23,8 +28,17 @@ class DenseBlock(nn.Module):
                               device=x.device,
                               dtype=x.dtype)
         padded_input = torch.cat((x, padding), -1)
-        # TODO: take a look at this!!!
         x = self._activation(self._contract(self._activation(self._expand(x))))
+
+        x_for_mul = x[..., :self._output_mul_size]
+        x_not_mul = x[..., self._output_mul_size:]
+
+        sub_shape = x_for_mul.size()[:-1]
+        multiplier = torch.tanh(self._contract_for_mul(x)).unsqueeze(-1)
+        x_mul = multiplier * x_for_mul.view(*sub_shape, self._mul_size, -1)
+
+        x = torch.cat((x_mul.view(*sub_shape, -1), x_not_mul), -1)
+
         return self._norm(padded_input + x)
 
 
@@ -36,12 +50,12 @@ class Net(nn.Module):
         self._input_size = 37
         self._start_size = 256
         self._end_size = 256
-        self._multiplier_size = 1024
+        self._multiplier_size = 256
 
         self._input_expand = nn.Linear(self._input_size, self._start_size)
         self._final = nn.Linear(self._end_size, self._multiplier_size)
 
-        self._n_blocks = 4
+        self._n_blocks = 8
 
         self._scene_blocks = nn.ModuleList()
 
@@ -73,6 +87,6 @@ class Net(nn.Module):
         x = self._activation(self._final(x))
 
         y = self._coords_block(self._activation(self._coords_expand(coords)))
-        multiplier = torch.sigmoid(self._coords_to_multiplier(y))
+        multiplier = torch.tanh(self._coords_to_multiplier(y))
 
         return self._output(torch.unsqueeze(x, 1) * multiplier)
