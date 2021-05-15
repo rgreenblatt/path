@@ -80,6 +80,9 @@ class Net(nn.Module):
 
         self._output = nn.Linear(self._multiplier_size, self._output_size)
 
+        negative_allowance = 0.002
+        self._output_activation = nn.CELU(alpha=negative_allowance)
+
     def forward(self, scenes, coords):
         x = self._activation(self._input_expand(scenes))
         for block in self._scene_blocks:
@@ -89,4 +92,5 @@ class Net(nn.Module):
         y = self._coords_block(self._activation(self._coords_expand(coords)))
         multiplier = torch.sigmoid(self._coords_to_multiplier(y))
 
-        return torch.relu(self._output(torch.unsqueeze(x, 1) * multiplier))
+        return self._output_activation(
+            self._output(torch.unsqueeze(x, 1) * multiplier))
