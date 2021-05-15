@@ -188,6 +188,8 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/naive_partition_bvh/detail/generator.cu"
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/sbvh/sbvh.cu"
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/sbvh/detail/generator.cu"
+  "${PROJECT_SOURCE_DIR}/src/intersect/accel/direction_grid/direction_grid.cu"
+  "${PROJECT_SOURCE_DIR}/src/intersect/accel/direction_grid/detail/generator.cu"
   "${PROJECT_SOURCE_DIR}/src/intersect/accel/detail/bvh/bvh.cpp")
 target_add_standard(intersect)
 target_link_libraries(intersect PRIVATE OpenMP::OpenMP_CXX)
