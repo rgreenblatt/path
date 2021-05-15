@@ -58,7 +58,7 @@ class Config(argparse.Namespace):
         parser.add_argument('--lr-multiplier', type=float, default=1.0)
         parser.add_argument('--no-perceptual-loss', action='store_true')
         parser.add_argument('--batch-size', type=int, default=2048)
-        parser.add_argument('--epoch-size', type=int, default=38400)
+        parser.add_argument('--epoch-size', type=int, default=65536)
         parser.add_argument('--validation-size', type=int, default=1024)
         parser.add_argument('--image-count', type=int, default=32)
         parser.add_argument('--image-dim', type=int, default=128)
