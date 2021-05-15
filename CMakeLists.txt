@@ -1,5 +1,4 @@
 cmake_policy(SET CMP0048 NEW)
-set(CMAKE_CUDA_COMPILER_WORKS 1)
 project(
   path
   VERSION 0.1
