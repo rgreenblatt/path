@@ -87,6 +87,6 @@ class Net(nn.Module):
         x = self._activation(self._final(x))
 
         y = self._coords_block(self._activation(self._coords_expand(coords)))
-        multiplier = torch.tanh(self._coords_to_multiplier(y))
+        multiplier = torch.sigmoid(self._coords_to_multiplier(y))
 
-        return self._output(torch.unsqueeze(x, 1) * multiplier)
+        return torch.relu(self._output(torch.unsqueeze(x, 1) * multiplier))
