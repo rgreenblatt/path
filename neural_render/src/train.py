@@ -115,7 +115,7 @@ def main():
     if use_distributed and not cfg.no_sync_bn:
         net = convert_syncbn_model(net)
 
-    lr = 0.05
+    lr = 0.5
     optimizer = torch.optim.LBFGS(net.parameters(),
                                   lr=lr,
                                   line_search_fn='strong_wolfe')
@@ -155,7 +155,7 @@ def main():
         print("===== Training =====")
         print()
 
-    factor = 1e-4
+    factor = 1e-3
     world_batch_size = batch_size * world_size
 
     epoch_size = make_divisible(cfg.epoch_size, world_batch_size)

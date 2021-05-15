@@ -57,8 +57,8 @@ class Config(argparse.Namespace):
 
         parser.add_argument('--lr-multiplier', type=float, default=1.0)
         parser.add_argument('--no-perceptual-loss', action='store_true')
-        parser.add_argument('--batch-size', type=int, default=1024)
-        parser.add_argument('--epoch-size', type=int, default=262144)
+        parser.add_argument('--batch-size', type=int, default=2048)
+        parser.add_argument('--epoch-size', type=int, default=38400)
         parser.add_argument('--validation-size', type=int, default=1024)
         parser.add_argument('--image-count', type=int, default=32)
         parser.add_argument('--image-dim', type=int, default=128)
@@ -67,7 +67,7 @@ class Config(argparse.Namespace):
         parser.add_argument('--no-cudnn-benchmark', action='store_true')
         parser.add_argument('--no-fused-adam', action='store_true')
         parser.add_argument('--opt-level', default='O0')
-        parser.add_argument('--epochs', type=int, default=200)
+        parser.add_argument('--epochs', type=int, default=300)
         parser.add_argument('--amp-verbosity', type=int, default=0)
         parser.add_argument('--save-model-every', type=int, default=5)
         parser.add_argument(
