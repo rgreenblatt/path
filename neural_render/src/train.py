@@ -111,7 +111,9 @@ def main():
         net = convert_syncbn_model(net)
 
     lr = 0.05
-    optimizer = torch.optim.LBFGS(net.parameters(), lr=lr)
+    optimizer = torch.optim.LBFGS(net.parameters(),
+                                  lr=lr,
+                                  line_search_fn='strong_wolfe')
 
     net = net.to(device)
 
