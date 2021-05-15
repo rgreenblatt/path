@@ -7,17 +7,18 @@ import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.utils import make_grid
-from criterion import PerceptualLoss
-from model import Net
 from apex.parallel import DistributedDataParallel, convert_syncbn_model
-from apex import amp, optimizers
+from apex import amp
 import git
 
+import neural_render_generate_data
+
+from model import Net
 from config import Config
 from torch_utils import (LRSched, LossTracker, EMATracker,
                          recursive_param_print)
 from utils import mkdirs, PrintAndLog
-import neural_render_generate_data
+from criterion import PerceptualLoss
 
 
 def ceildiv(a, b):
@@ -26,6 +27,10 @@ def ceildiv(a, b):
 
 def make_divisible(a, b):
     return ceildiv(a, b) * b
+
+
+def time_for_log():
+    return datetime.datetime.now().replace(microsecond=0)
 
 
 def main():
@@ -126,10 +131,13 @@ def main():
     if use_distributed:
         net = DistributedDataParallel(net)
 
+    mse = torch.nn.MSELoss().to(device)
+    perceptual = PerceptualLoss().to(device)
+
     if cfg.no_perceptual_loss:
-        criterion = torch.nn.MSELoss().to(device)
+        criterion = mse
     else:
-        criterion = PerceptualLoss().to(device)
+        criterion = perceptual
 
     if show_model_info:
         print(net)
@@ -169,7 +177,8 @@ def main():
 
         i = 0
 
-        train_loss_tracker = LossTracker(reduce_tensor)
+        train_perceptual_loss_tracker = LossTracker(reduce_tensor)
+        train_mse_loss_tracker = LossTracker(reduce_tensor)
 
         steps_since_display = 0
         max_train_step = epoch_size
@@ -178,24 +187,28 @@ def main():
         def get_or_nan(v):
             if v is None:
                 return float('nan')
-            else:
-                return v
+            return v
 
         def train_display():
-            train_loss, nan_count = train_loss_tracker.query_reset()
+            train_mse_loss, nan_count = train_mse_loss_tracker.query_reset()
+            train_perceptual_loss, _ = train_perceptual_loss_tracker.query_reset(
+            )
             if not disable_all_output:
-                print("{}, epoch {}/{}, step {}/{}, train loss {:.4e}, NaN {}".
-                      format(datetime.datetime.now(), epoch, cfg.epochs - 1,
-                             str((i + 1) * world_batch_size).zfill(format_len),
-                             max_train_step, get_or_nan(train_loss),
-                             nan_count * world_batch_size),
-                      flush=True)
-                if train_loss is not None:
-                    writer.add_scalar("loss/train", train_loss, step)
+                print(
+                    "{}, epoch {}/{}, step {}/{}, train mse {:.4e}, perc {:4e}, NaN {}"
+                    .format(time_for_log(), epoch, cfg.epochs - 1,
+                            str((i + 1) * world_batch_size).zfill(format_len),
+                            max_train_step, get_or_nan(train_mse_loss),
+                            get_or_nan(train_perceptual_loss),
+                            nan_count * world_batch_size),
+                    flush=True)
+                if train_mse_loss is not None:
+                    writer.add_scalar("loss/train_mse", train_mse_loss, step)
+                if train_perceptual_loss is not None:
+                    writer.add_scalar("loss/train_perceptual",
+                                      train_perceptual_loss, step)
                 writer.add_scalar("lr", lr, step)
                 writer.flush()
-
-        # TODO: consider some sort of visualization tracking!
 
         steps_since_set_lr = 0
 
@@ -229,30 +242,33 @@ def main():
                 pass
 
             def get_loss():
+                nonlocal is_first
+
                 if torch.is_grad_enabled():
                     optimizer.zero_grad()
 
                 outputs = net(scenes, coords)
                 loss = criterion(outputs, values)
 
-                nonlocal is_first
+                if torch.isnan(loss).any():
+                    raise NanLoss()
+
                 if is_first:
-                    is_nan = train_loss_tracker.update(loss)
-                    if is_nan:
-                        raise NanLoss()
+                    train_perceptual_loss_tracker.update(
+                        perceptual(outputs, values))
+                    train_mse_loss_tracker.update(mse(outputs, values))
 
                 if torch.is_grad_enabled():
                     with amp.scale_loss(loss, optimizer) as scaled_loss:
                         scaled_loss.backward()
 
-                    if is_first:
-                        max_norm = norm_avg.x * 1.5
-                        this_norm = nn.utils.clip_grad_norm_(
-                            net.parameters(), max_norm)
-                        norm_avg.update(this_norm)
-                        if not disable_all_output:
-                            writer.add_scalar("max_norm", max_norm, step)
-                            writer.add_scalar("norm", this_norm, step)
+                    max_norm = norm_avg.x * 1.5
+                    this_norm = nn.utils.clip_grad_norm_(
+                        net.parameters(), max_norm)
+                    norm_avg.update(this_norm)
+                    if is_first and not disable_all_output:
+                        writer.add_scalar("max_norm", max_norm, step)
+                        writer.add_scalar("norm", this_norm, step)
 
                 is_first = False
 
@@ -278,7 +294,8 @@ def main():
 
         net.eval()
 
-        test_loss_tracker = LossTracker(reduce_tensor)
+        test_perceptual_loss_tracker = LossTracker(reduce_tensor)
+        test_mse_loss_tracker = LossTracker(reduce_tensor)
 
         with torch.no_grad():
             for i, base_seed in enumerate(
@@ -293,9 +310,10 @@ def main():
                  values) = (scenes.to(device), coords.to(device),
                             values.to(device))
                 outputs = net(scenes, coords)
-                loss = criterion(outputs, values)
 
-                test_loss_tracker.update(loss)
+                test_perceptual_loss_tracker.update(perceptual(
+                    outputs, values))
+                test_mse_loss_tracker.update(mse(outputs, values))
 
             (scenes, coords, values,
              indexes) = neural_render_generate_data.gen_data_for_image(
@@ -322,16 +340,22 @@ def main():
                              make_grid(tone_map(output_img.moveaxis(-1, 1))),
                              step)
 
-        test_loss, count_nan = test_loss_tracker.query_reset()
+        test_mse_loss, nan_count = test_mse_loss_tracker.query_reset()
+        test_perceptual_loss, _ = test_perceptual_loss_tracker.query_reset()
         if not disable_all_output:
             print(
-                "{}, epoch {}/{}, lr {:.4e}, test loss {:.4e}, NaN {}".format(
-                    datetime.datetime.now(), epoch, cfg.epochs - 1, lr,
-                    get_or_nan(test_loss), count_nan * world_batch_size),
+                "{}, epoch {}/{}, lr {:.4e}, test mse {:.4e}, perc {:4e}, NaN {}"
+                .format(time_for_log(), epoch, cfg.epochs - 1, lr,
+                        get_or_nan(test_mse_loss),
+                        get_or_nan(test_perceptual_loss),
+                        nan_count * world_batch_size),
                 flush=True)
 
-            if test_loss is not None:
-                writer.add_scalar("loss/test", test_loss, step)
+            if test_mse_loss is not None:
+                writer.add_scalar("loss/test_mse", test_mse_loss, step)
+            if test_perceptual_loss is not None:
+                writer.add_scalar("loss/test_perceptual", test_perceptual_loss,
+                                  step)
 
         # if not disable_all_output and (epoch + 1) % cfg.save_model_every == 0:
         #     torch.save(
@@ -342,7 +366,7 @@ def main():
     del logger
 
 
-class Deinit(object):
+class Deinit():
     @staticmethod
     def __enter__():
         pass
