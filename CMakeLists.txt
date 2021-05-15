@@ -4,19 +4,19 @@ project(
   VERSION 0.1
   LANGUAGES CUDA CXX)
 
-# if(NOT ((CMAKE_CXX_COMPILER_ID STREQUAL "Clang") OR (CMAKE_CXX_COMPILER_ID
-#                                                      STREQUAL "GNU")))
-#   message(
-#     FATAL_ERROR
-#       "only clang and gcc are supported for c++ - using ${CMAKE_CXX_COMPILER_ID}"
-#   )
-# endif()
+if(NOT ((CMAKE_CXX_COMPILER_ID STREQUAL "Clang") OR (CMAKE_CXX_COMPILER_ID
+                                                     STREQUAL "GNU")))
+  message(
+    FATAL_ERROR
+      "only clang and gcc are supported for c++ - using ${CMAKE_CXX_COMPILER_ID}"
+  )
+endif()
 
-# if(NOT (CMAKE_CUDA_COMPILER_ID STREQUAL "Clang"))
-#   message(
-#     FATAL_ERROR
-#       "only clang is supported for cuda - using ${CMAKE_CUDA_COMPILER_ID}")
-# endif()
+if(NOT (CMAKE_CUDA_COMPILER_ID STREQUAL "Clang"))
+  message(
+    FATAL_ERROR
+      "only clang is supported for cuda - using ${CMAKE_CUDA_COMPILER_ID}")
+endif()
 
 # required for clang cuda support
 cmake_minimum_required(VERSION 3.18)
@@ -135,12 +135,12 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/extern/yaml-cpp")
 if(CPU_ONLY)
   set(CMAKE_CUDA_COMPILE_WHOLE_COMPILATION "${CMAKE_CXX_COMPILE_OBJECT}")
 
-  # if(NOT (CMAKE_CXX_COMPILER_ID STREQUAL "Clang"))
-  #   message(
-  #     FATAL_ERROR
-  #       "only clang works with CPU_ONLY? (TODO). Using ${CMAKE_CXX_COMPILER_ID}"
-  #   )
-  # endif()
+  if(NOT (CMAKE_CXX_COMPILER_ID STREQUAL "Clang"))
+    message(
+      FATAL_ERROR
+        "only clang works with CPU_ONLY? (TODO). Using ${CMAKE_CXX_COMPILER_ID}"
+    )
+  endif()
 
   add_compile_options(
     "$<$<COMPILE_LANGUAGE:CUDA>:-xc++;-Wno-unused-command-line-argument;-I${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}>"
