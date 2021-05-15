@@ -358,11 +358,11 @@ target_add_standard(generate_data_visualizer)
 # TODO: rename!
 add_library(gen_data STATIC
             "${PROJECT_SOURCE_DIR}/src/generate_data/gen_data.cpp")
-target_link_directories(gen_data PRIVATE "${TORCH_INSTALL_PREFIX}/lib/")
 target_link_libraries(
   gen_data
   PUBLIC torch Python::Python
-  PRIVATE renderer_from_files generate_data torch_python OpenMP::OpenMP_CXX)
+  PRIVATE renderer_from_files generate_data
+          "${TORCH_INSTALL_PREFIX}/lib/libtorch_python.so" OpenMP::OpenMP_CXX)
 target_add_standard(gen_data)
 
 pybind11_add_module(
