@@ -358,6 +358,7 @@ target_add_standard(generate_data_visualizer)
 # TODO: rename!
 add_library(gen_data STATIC
             "${PROJECT_SOURCE_DIR}/src/generate_data/gen_data.cpp")
+target_link_directories(gen_data PRIVATE "${TORCH_INSTALL_PREFIX}/lib/")
 target_link_libraries(
   gen_data
   PUBLIC torch Python::Python
