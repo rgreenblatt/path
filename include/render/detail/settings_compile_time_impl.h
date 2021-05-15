@@ -25,7 +25,7 @@ private:
 
 public:
   constexpr static auto values = [] {
-    std::array<render::Settings::CompileTime, 12> values = {{
+    std::array<render::Settings::CompileTime, 6> values = {{
         {KernelApproachCompileTime{tag_v<KernelApproach::MegaKernel>,
                                    AccelType::SBVH},
          LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
@@ -48,30 +48,6 @@ public:
          TermProbType::NIters, RngType::Sobel},
         {KernelApproachCompileTime{tag_v<KernelApproach::MegaKernel>,
                                    AccelType::SBVH},
-         LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
-         TermProbType::NIters, RngType::Uniform},
-        {KernelApproachCompileTime{tag_v<KernelApproach::MegaKernel>,
-                                   AccelType::LoopAll},
-         LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
-         TermProbType::MultiplierFunc, RngType::Sobel},
-        {KernelApproachCompileTime{tag_v<KernelApproach::MegaKernel>,
-                                   AccelType::LoopAll},
-         LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
-         TermProbType::MultiplierFunc, RngType::Uniform},
-        {KernelApproachCompileTime{tag_v<KernelApproach::MegaKernel>,
-                                   AccelType::LoopAll},
-         LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
-         TermProbType::Normalize, RngType::Sobel},
-        {KernelApproachCompileTime{tag_v<KernelApproach::MegaKernel>,
-                                   AccelType::LoopAll},
-         LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
-         TermProbType::Normalize, RngType::Uniform},
-        {KernelApproachCompileTime{tag_v<KernelApproach::MegaKernel>,
-                                   AccelType::LoopAll},
-         LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
-         TermProbType::NIters, RngType::Sobel},
-        {KernelApproachCompileTime{tag_v<KernelApproach::MegaKernel>,
-                                   AccelType::LoopAll},
          LightSamplerType::RandomTriangle, DirSamplerType::BSDF,
          TermProbType::NIters, RngType::Uniform},
     }};
