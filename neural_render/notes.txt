@@ -1,0 +1,10 @@
+2021-05-15
+Started many jobs as we now have a decent prototype (of the most basic thing).
+Seems like wider is better. No multiplier is way worse. 
+mse vs perceptual loss probably doesn't matter much, will keep perceptual for now.
+Celu for output doesn't seem better, just keep Relu.
+More mul size doesn't seem better.
+Larger output multiplier doesn't seem better.
+
+2021-05-16
+Residual connection is important (no real surprise here...)
