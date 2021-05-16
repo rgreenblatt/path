@@ -39,7 +39,7 @@ class DenseBlock(nn.Module):
 
         x = torch.cat((x_mul.view(*sub_shape, -1), x_not_mul), -1)
 
-        return self._norm(padded_input + x)
+        return padded_input + x
 
 
 class Net(nn.Module):
