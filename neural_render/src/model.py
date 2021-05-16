@@ -31,14 +31,9 @@ class ResBlock(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
 
-        # n_subblocks = 2
-        # sizes = interpolate_sizes(input_size, output_size, n_subblocks)
-        # self._subblocks = nn.ModuleList(
-        #     [LinearAndMultiply(inp, out) for inp, out in sizes])
-
         self._activation = nn.CELU()
         self._linear = nn.Linear(input_size, output_size)
-        self._last = LinearAndMultiply(output_size, output_size)
+        self._sub_block = LinearAndMultiply(output_size, output_size)
         self._norm = nn.LayerNorm(output_size)
 
         self._pad_size = output_size - input_size
@@ -46,7 +41,7 @@ class ResBlock(nn.Module):
 
     def forward(self, x):
         padded_input = F.pad(x, (0, self._pad_size))
-        x = self._last(self._activation(self._linear(x)))
+        x = self._sub_block(self._activation(self._linear(x)))
         return self._norm(padded_input + x)
 
 
