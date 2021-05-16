@@ -50,7 +50,7 @@ class Net(nn.Module):
         self._input_size = 37
         self._start_size = 256
         self._end_size = 256
-        self._multiplier_size = 256
+        self._multiplier_size = 2048
 
         self._input_expand = nn.Linear(self._input_size, self._start_size)
         self._final = nn.Linear(self._end_size, self._multiplier_size)
