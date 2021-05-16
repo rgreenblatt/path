@@ -43,7 +43,7 @@ class ResBlock(nn.Module):
     def forward(self, x):
         padded_input = F.pad(x, (0, self._pad_size))
         for block in self._subblocks:
-            x = block
+            x = block(x)
         return padded_input + x
 
 
