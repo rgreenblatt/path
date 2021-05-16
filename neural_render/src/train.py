@@ -334,10 +334,10 @@ def main():
                 return x / (x + 1)
 
             writer.add_image("images/actual",
-                             make_grid(tone_map(actual_img.moveaxis(-1, 1))),
+                             make_grid(tone_map(actual_img.movedim(-1, 1))),
                              step)
             writer.add_image("images/output",
-                             make_grid(tone_map(output_img.moveaxis(-1, 1))),
+                             make_grid(tone_map(output_img.movedim(-1, 1))),
                              step)
 
         test_mse_loss, nan_count = test_mse_loss_tracker.query_reset()
