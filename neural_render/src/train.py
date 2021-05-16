@@ -186,8 +186,8 @@ def main():
     # get validation data
     validation_data = []
     with torch.no_grad():
-        for base_seed in enumerate(
-                range(which_gpu, num_local_batchs_per_validation, world_size)):
+        for base_seed in range(which_gpu, num_local_batchs_per_validation,
+                               world_size):
             seed = base_seed * world_batch_size + validation_seed_start
             (scenes, coords, values) = neural_render_generate_data.gen_data(
                 batch_size, cfg.rays_per_tri, cfg.samples_per_ray, seed)
