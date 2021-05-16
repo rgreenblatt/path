@@ -174,6 +174,37 @@ def main():
 
     norm_avg = EMATracker(0.9, 50.0)
 
+    def save_image(name, indexes, values):
+        img = torch.zeros(cfg.image_count, cfg.image_dim, cfg.image_dim, 3)
+        img[:, indexes[:, 1], indexes[:, 0]] = values
+
+        def tone_map(x):
+            return x / (x + 1)
+
+        writer.add_image(name, make_grid(tone_map(img.movedim(-1, 1))), step)
+
+    # get validation data
+    validation_data = []
+    with torch.no_grad():
+        for base_seed in enumerate(
+                range(which_gpu, num_local_batchs_per_validation, world_size)):
+            seed = base_seed * world_batch_size + validation_seed_start
+            (scenes, coords, values) = neural_render_generate_data.gen_data(
+                batch_size, cfg.rays_per_tri, cfg.samples_per_ray, seed)
+
+            # TODO: if this is too much vram, could keep on cpu until needed
+            # (same with imgs)
+            data = (scenes.to(device), coords.to(device), values.to(device))
+            validation_data.append(data)
+
+        (scenes, coords, values,
+         indexes) = neural_render_generate_data.gen_data_for_image(
+             cfg.image_count, cfg.image_dim, cfg.samples_per_ray, image_seed)
+
+        image_data = (scenes.to(device), coords.to(device))
+
+        save_image("images/actual", indexes, values)
+
     for epoch in range(cfg.epochs):
         net.train()
 
@@ -300,47 +331,15 @@ def main():
         test_mse_loss_tracker = LossTracker(reduce_tensor)
 
         with torch.no_grad():
-            for i, base_seed in enumerate(
-                    range(which_gpu, num_local_batchs_per_validation,
-                          world_size)):
-                seed = base_seed * world_batch_size + validation_seed_start
-                (scenes, coords,
-                 values) = neural_render_generate_data.gen_data(
-                     batch_size, cfg.rays_per_tri, cfg.samples_per_ray, seed)
-
-                (scenes, coords,
-                 values) = (scenes.to(device), coords.to(device),
-                            values.to(device))
+            for (scenes, coords, values) in validation_data:
                 outputs = net(scenes, coords)
 
                 test_perceptual_loss_tracker.update(perceptual(
                     outputs, values))
                 test_mse_loss_tracker.update(mse(outputs, values))
 
-            (scenes, coords, values,
-             indexes) = neural_render_generate_data.gen_data_for_image(
-                 cfg.image_count, cfg.image_dim, cfg.samples_per_ray,
-                 image_seed)
-
-            (scenes, coords) = (scenes.to(device), coords.to(device))
-
-            outputs = net(scenes, coords)
-            actual_img = torch.zeros(cfg.image_count, cfg.image_dim,
-                                     cfg.image_dim, 3)
-            output_img = torch.zeros(cfg.image_count, cfg.image_dim,
-                                     cfg.image_dim, 3)
-            actual_img[:, indexes[:, 1], indexes[:, 0]] = values
-            output_img[:, indexes[:, 1], indexes[:, 0]] = outputs.cpu()
-
-            def tone_map(x):
-                return x / (x + 1)
-
-            writer.add_image("images/actual",
-                             make_grid(tone_map(actual_img.movedim(-1, 1))),
-                             step)
-            writer.add_image("images/output",
-                             make_grid(tone_map(output_img.movedim(-1, 1))),
-                             step)
+            (scenes, coords) = image_data
+            save_image("images/output", indexes, net(scenes, coords))
 
         test_mse_loss, nan_count = test_mse_loss_tracker.query_reset()
         test_perceptual_loss, _ = test_perceptual_loss_tracker.query_reset()
