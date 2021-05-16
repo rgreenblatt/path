@@ -29,16 +29,6 @@ class DenseBlock(nn.Module):
                               dtype=x.dtype)
         padded_input = torch.cat((x, padding), -1)
         x = self._activation(self._contract(self._activation(self._expand(x))))
-
-        x_for_mul = x[..., :self._output_mul_size]
-        x_not_mul = x[..., self._output_mul_size:]
-
-        sub_shape = x_for_mul.size()[:-1]
-        multiplier = torch.tanh(self._contract_for_mul(x)).unsqueeze(-1)
-        x_mul = multiplier * x_for_mul.view(*sub_shape, self._mul_size, -1)
-
-        x = torch.cat((x_mul.view(*sub_shape, -1), x_not_mul), -1)
-
         return self._norm(padded_input + x)
 
 
