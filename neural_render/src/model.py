@@ -16,6 +16,12 @@ class DenseBlock(nn.Module):
         self._contract = nn.Linear(self._hidden_size, output_size)
 
         self._mul_divider = 1
+
+        self._expanded_mul_size = output_size // self._mul_divider
+        self._output_expanded_mul_size = self._expanded_mul_size * self._mul_divider
+        self._expanded_contract_for_mul = nn.Linear(self._hidden_size,
+                                                    self._expanded_mul_size)
+
         self._mul_size = output_size // self._mul_divider
         self._output_mul_size = self._mul_size * self._mul_divider
         self._contract_for_mul = nn.Linear(output_size, self._mul_size)
@@ -28,16 +34,23 @@ class DenseBlock(nn.Module):
                               device=x.device,
                               dtype=x.dtype)
         padded_input = torch.cat((x, padding), -1)
-        x = self._activation(self._contract(self._activation(self._expand(x))))
 
-        x_for_mul = x[..., :self._output_mul_size]
-        x_not_mul = x[..., self._output_mul_size:]
+        def apply_mul(x, output_size, size, layer):
+            x_for_mul = x[..., :output_size]
+            x_not_mul = x[..., output_size:]
 
-        sub_shape = x_for_mul.size()[:-1]
-        multiplier = torch.tanh(self._contract_for_mul(x)).unsqueeze(-1)
-        x_mul = multiplier * x_for_mul.view(*sub_shape, self._mul_size, -1)
+            sub_shape = x_for_mul.size()[:-1]
+            multiplier = torch.tanh(layer(x)).unsqueeze(-1)
+            x_mul = multiplier * x_for_mul.view(*sub_shape, size, -1)
 
-        x = torch.cat((x_mul.view(*sub_shape, -1), x_not_mul), -1)
+            return torch.cat((x_mul.view(*sub_shape, -1), x_not_mul), -1)
+
+        x = self._activation(self._expand(x))
+        x = apply_mul(x, self._output_expanded_mul_size,
+                      self._expanded_mul_size, self._expanded_contract_for_mul)
+        x = self._activation(self._contract())
+        x = apply_mul(x, self._output_mul_size, self._mul_size,
+                      self._contract_for_mul)
 
         return self._norm(padded_input + x)
 
