@@ -7,7 +7,7 @@ class DenseBlock(nn.Module):
         super().__init__()
 
         self._activation = nn.CELU()
-        self._hidden_size_multiplier = 1
+        self._hidden_size_multiplier = 4
         self._hidden_size = output_size * self._hidden_size_multiplier
         self._pad_size = output_size - input_size
         assert self._pad_size >= 0
