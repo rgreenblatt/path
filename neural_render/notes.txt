@@ -15,3 +15,17 @@ of different batch size (use same batch size).
 Doesn't seem like hidden size expansion accomplishes anything (this is
 pretty surprising to me).
 
+For bizarre and unclear reasons:
+  - large hidden feed forward with multiply: fine
+  - large hidden feed forward with multiply + output extension: fine
+  - not large (1x multiplier) hidden feed forward with multiply + output
+    extension: doesn't train
+  - not large (1x multiplier) hidden feed forward with multiply: bad (but does
+    train a bit)
+
+So conclusion is just use 1 multiply per block. Also probably worth looking
+into output extension somewhat...
+
+Layer norm isn't very important, but it does seem slightly better and
+it reduces noise a bit (maybe?)
+
