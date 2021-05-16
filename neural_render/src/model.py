@@ -219,7 +219,7 @@ class Net(nn.Module):
         multiplier = torch.sigmoid(self._coords_to_multiplier(y))
         multiplied = self._final(x) * multiplier
 
-        attn, attn_weight = self._attn(x, multiplier)
+        attn, attn_weight = self._attn(x, y)
 
         if self._use_attn_weight:
             # attn_weight is already multiplied by _attn
