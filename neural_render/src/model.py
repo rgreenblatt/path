@@ -203,7 +203,7 @@ class Net(nn.Module):
         self._output = nn.Linear(self._output_block_size, self._output_size)
 
     def forward(self, scenes, coords):
-        assert scenes.size(0) == coords.size()
+        assert scenes.size(0) == coords.size(0)
 
         x = self._activation(self._input_expand(scenes))
         for block in self._scene_blocks:
