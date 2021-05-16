@@ -10,11 +10,10 @@ class LinearAndMultiply(nn.Module):
         self._activation = nn.CELU()
         self._linear = nn.Linear(input_size, output_size)
         self._to_multiplier = nn.Linear(output_size, output_size)
-        self._norm = nn.LayerNorm(output_size)
 
     def forward(self, x):
         x = self._activation(self._linear(x))
-        return self._norm(x * torch.tanh(self._to_multiplier(x)))
+        return x * torch.tanh(self._to_multiplier(x))
 
 
 def interpolate_sizes(input_size, output_size, count):
@@ -37,6 +36,8 @@ class ResBlock(nn.Module):
         self._subblocks = nn.ModuleList(
             [LinearAndMultiply(inp, out) for inp, out in sizes])
 
+        self._norm = nn.LayerNorm(output_size)
+
         self._pad_size = output_size - input_size
         assert self._pad_size >= 0
 
@@ -44,7 +45,7 @@ class ResBlock(nn.Module):
         padded_input = F.pad(x, (0, self._pad_size))
         for block in self._subblocks:
             x = block(x)
-        return padded_input + x
+        return self._norm(padded_input + x)
 
 
 class Net(nn.Module):
