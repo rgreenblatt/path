@@ -8,3 +8,10 @@ Larger output multiplier doesn't seem better.
 
 2021-05-16
 Residual connection is important (no real surprise here...)
+Actually, more mul size is better (and maybe 1:1 is the right ratio).
+Deeper is slightly better (but maybe not best way to make net bigger).
+Results around different output block and wider are questionable because
+of different batch size (use same batch size).
+Doesn't seem like hidden size expansion accomplishes anything (this is
+pretty surprising to me).
+
