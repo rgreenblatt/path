@@ -23,11 +23,6 @@ class DenseBlock(nn.Module):
         self._norm = nn.LayerNorm(output_size)
 
     def forward(self, x):
-        padding = torch.zeros(*x.size()[:-1],
-                              self._pad_size,
-                              device=x.device,
-                              dtype=x.dtype)
-        padded_input = torch.cat((x, padding), -1)
         x = self._activation(self._contract(self._activation(self._expand(x))))
 
         x_for_mul = x[..., :self._output_mul_size]
@@ -39,7 +34,7 @@ class DenseBlock(nn.Module):
 
         x = torch.cat((x_mul.view(*sub_shape, -1), x_not_mul), -1)
 
-        return self._norm(padded_input + x)
+        return self._norm(x)
 
 
 class Net(nn.Module):
