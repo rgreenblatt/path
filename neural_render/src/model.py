@@ -15,7 +15,7 @@ class DenseBlock(nn.Module):
         self._expand = nn.Linear(input_size, self._hidden_size)
         self._contract = nn.Linear(self._hidden_size, output_size)
 
-        self._mul_divider = 16
+        self._mul_divider = 4
         self._mul_size = output_size // self._mul_divider
         self._output_mul_size = self._mul_size * self._mul_divider
         self._contract_for_mul = nn.Linear(output_size, self._mul_size)
