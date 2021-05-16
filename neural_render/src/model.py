@@ -55,7 +55,7 @@ class Net(nn.Module):
         self._input_expand = nn.Linear(self._input_size, self._start_size)
         self._final = nn.Linear(self._end_size, self._multiplier_size)
 
-        self._n_blocks = 8
+        self._n_blocks = 16
 
         self._scene_blocks = nn.ModuleList()
 
