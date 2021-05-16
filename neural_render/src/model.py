@@ -184,7 +184,7 @@ class Net(nn.Module):
                                           self._output_block_size)
 
         self._values_per_head = 8
-        self._n_heads = 128
+        self._n_heads = 64
         self._use_attn_weight = True
 
         self._attn = CoordAttention(self._end_size,
