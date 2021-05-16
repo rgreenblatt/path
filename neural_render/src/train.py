@@ -339,7 +339,7 @@ def main():
                 test_mse_loss_tracker.update(mse(outputs, values))
 
             (scenes, coords) = image_data
-            save_image("images/output", indexes, net(scenes, coords))
+            save_image("images/output", indexes, net(scenes, coords).cpu())
 
         test_mse_loss, nan_count = test_mse_loss_tracker.query_reset()
         test_perceptual_loss, _ = test_perceptual_loss_tracker.query_reset()
