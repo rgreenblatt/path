@@ -89,9 +89,19 @@ class Net(nn.Module):
         self._coords_to_multiplier = nn.Linear(self._coord_block_size,
                                                self._multiplier_size)
 
+        self._output_block_size = 64
+
+        self._coords_to_addr = nn.Linear(self._coord_block_size,
+                                         self._output_block_size)
+
+        self._to_output_block = nn.Linear(self._multiplier_size,
+                                          self._output_block_size)
+        self._output_block = DenseBlock(self._output_block_size,
+                                        self._output_block_size)
+
         self._output_size = 3
 
-        self._output = nn.Linear(self._multiplier_size, self._output_size)
+        self._output = nn.Linear(self._output_block_size, self._output_size)
 
     def forward(self, scenes, coords):
         x = self._activation(self._input_expand(scenes))
@@ -101,5 +111,7 @@ class Net(nn.Module):
 
         y = self._coords_block(self._activation(self._coords_expand(coords)))
         multiplier = torch.sigmoid(self._coords_to_multiplier(y))
+        addr = self._coords_to_addr(y)
+        out = self._to_output_block(torch.unsqueeze(x, 1) * multiplier) + addr
 
-        return torch.relu(self._output(torch.unsqueeze(x, 1) * multiplier))
+        return torch.relu(self._output(self._output_block(out)))
