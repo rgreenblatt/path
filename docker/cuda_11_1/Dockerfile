@@ -38,4 +38,4 @@ RUN git clone https://github.com/rgreenblatt/path && cd path && \
 	cmake_cli build --target neural_render_generate_data --release \
 	--gen-args ' -DCMAKE_PREFIX_PATH=/opt/conda/lib/python3.8/site-packages/torch/share/cmake/;/opt/conda/lib/python3.8/site-packages/pybind11/share/cmake/' && \
 	python setup.py install
-WORKDIR /root/path/neural_render
+RUN touch /root/.no_auto_tmux
