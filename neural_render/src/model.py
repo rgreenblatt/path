@@ -48,7 +48,7 @@ class DenseBlock(nn.Module):
         x = self._activation(self._expand(x))
         x = apply_mul(x, self._output_expanded_mul_size,
                       self._expanded_mul_size, self._expanded_contract_for_mul)
-        x = self._activation(self._contract())
+        x = self._activation(self._contract(x))
         x = apply_mul(x, self._output_mul_size, self._mul_size,
                       self._contract_for_mul)
 
