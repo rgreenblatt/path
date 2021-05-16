@@ -4,15 +4,19 @@ import torch.nn.functional as F
 
 
 class LinearAndMultiply(nn.Module):
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size, output_size, use_multiply=True):
         super().__init__()
 
         self._activation = nn.CELU()
         self._linear = nn.Linear(input_size, output_size)
-        self._to_multiplier = nn.Linear(output_size, output_size)
+        self._use_multiply = use_multiply
+        if self._use_multiply:
+            self._to_multiplier = nn.Linear(output_size, output_size)
 
     def forward(self, x):
         x = self._activation(self._linear(x))
+        if not self._use_multiply:
+            return x
         return x * torch.tanh(self._to_multiplier(x))
 
 
@@ -28,12 +32,15 @@ def interpolate_sizes(input_size, output_size, count):
 
 
 class ResBlock(nn.Module):
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size, output_size, use_multiply=True):
         super().__init__()
 
-        self._activation = nn.CELU()
-        self._linear = nn.Linear(input_size, output_size)
-        self._sub_block = LinearAndMultiply(output_size, output_size)
+        self._linear_block = LinearAndMultiply(input_size,
+                                               output_size,
+                                               use_multiply=False)
+        self._mul_block = LinearAndMultiply(output_size,
+                                            output_size,
+                                            use_multiply=use_multiply)
         self._norm = nn.LayerNorm(output_size)
 
         self._pad_size = output_size - input_size
@@ -41,7 +48,7 @@ class ResBlock(nn.Module):
 
     def forward(self, x):
         padded_input = F.pad(x, (0, self._pad_size))
-        x = self._sub_block(self._activation(self._linear(x)))
+        x = self._mul_block(self._linear_block(x))
         return self._norm(padded_input + x)
 
 
