@@ -164,7 +164,9 @@ def main():
     num_local_batchs_per_validation = validation_size // batch_size
 
     scaled_lr = cfg.lr_multiplier * world_batch_size * factor
-    lr_schedule = LRSched(scaled_lr, cfg.epochs * epoch_size)
+    lr_schedule = LRSched(scaled_lr,
+                          cfg.epochs * epoch_size,
+                          final_div_factor=200)
 
     train_seed_start = 0
     validation_seed_start = 2**30

@@ -98,28 +98,33 @@ class LRSched():
                  epochs,
                  start_div_factor=4.0,
                  pct_start=0.1,
-                 final_div_factor=None,
+                 pct_final_flat=0.2,
+                 final_div_factor=50,
                  offset=0):
         start_lr = lr_max / start_div_factor
         if final_div_factor is None:
-            final_lr = 0.0
+            self.final_lr = 0.0
         else:
-            final_lr = lr_max / final_div_factor
-        self.decay_start_epoch = int(pct_start * epochs)
+            self.final_lr = lr_max / final_div_factor
+        self.decay_start_epoch = round(pct_start * epochs)
+        self.final_flat_start_epoch = int((1 - pct_final_flat) * epochs)
 
         self.linear_part = PiecewiseLinear([(0, start_lr),
                                             (self.decay_start_epoch, lr_max)])
         if epochs - self.decay_start_epoch > 0:
-            self.cos_part = CosineDecay(self.decay_start_epoch, lr_max, epochs,
-                                        final_lr)
+            self.cos_part = CosineDecay(self.decay_start_epoch, lr_max,
+                                        self.final_flat_start_epoch,
+                                        self.final_lr)
         self.offset = offset
 
     def __call__(self, epoch):
         epoch = epoch - self.offset
         if epoch <= self.decay_start_epoch:
             return self.linear_part(epoch)
-        else:
+        elif epoch <= self.final_flat_start_epoch:
             return self.cos_part(epoch)
+        else:
+            return self.final_lr
 
 
 class EMATracker():
