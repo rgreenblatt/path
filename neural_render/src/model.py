@@ -103,8 +103,7 @@ class Net(nn.Module):
 
         y = self._coords_block(self._activation(self._coords_expand(coords)))
         multiplier = torch.sigmoid(self._coords_to_multiplier(y))
-        addr = self._coords_to_addr(y)
-        out = self._to_output_block(torch.unsqueeze(x, 1) * multiplier) + addr
+        out = self._to_output_block(torch.unsqueeze(x, 1) * multiplier)
 
         return torch.relu(self._output(self._output_block(out)))
 
