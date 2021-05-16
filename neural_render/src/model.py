@@ -217,7 +217,7 @@ class Net(nn.Module):
         # TODO are there redundant params/should there be activation
         # here (or later before out is put into block)
         multiplier = torch.sigmoid(self._coords_to_multiplier(y))
-        multiplied = self._final(x) * multiplier
+        multiplied = self._to_output_block(self._final(x) * multiplier)
 
         attn, attn_weight = self._attn(x, y)
 
@@ -226,8 +226,6 @@ class Net(nn.Module):
             out = (1 - attn_weight) * multiplied + attn
         else:
             out = multiplied + attn
-
-        out = self._to_output_block(out)
 
         return torch.relu(self._output(self._output_block(out)))
 
