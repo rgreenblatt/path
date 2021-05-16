@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+import numpy as np
 
 
 class LinearAndMultiply(nn.Module):
@@ -29,6 +30,102 @@ def interpolate_sizes(input_size, output_size, count):
         last_size = new_size
 
     assert last_size == output_size
+
+
+def split_last(x, shape):
+    "split the last dimension to given shape"
+    shape = list(shape)
+    assert shape.count(-1) <= 1
+    if -1 in shape:
+        shape[shape.index(-1)] = int(x.size(-1) / -np.prod(shape))
+
+    return x.view(*x.size()[:-1], *shape)
+
+
+def merge_last(x, n_dims):
+    "merge the last n_dims to a dimension"
+    s = x.size()
+    assert n_dims > 1 and n_dims < len(s)
+
+    return x.view(*s[:-n_dims], -1)
+
+
+class CoordAttention(nn.Module):
+    """ Multi-Headed Dot Product Attention for coord values """
+    def __init__(self,
+                 value_input_size,
+                 coord_input_size,
+                 key_size,
+                 output_size,
+                 n_heads,
+                 overall_weighting=True,
+                 mix_bias=0.0):
+        super().__init__()
+
+        self.overall_weighting = overall_weighting
+        self.output_size = output_size
+        self.mix_bias = mix_bias
+
+        self.n_heads = n_heads
+
+        self._proj_k = nn.Linear(value_input_size, key_size)
+        self._proj_v = nn.Linear(value_input_size, output_size * self.n_heads)
+        self._proj_q = nn.Linear(coord_input_size, key_size)
+
+        if self.overall_weighting:
+            self._overall_gain = nn.Parameter(torch.Tensor(1))
+            self._overall_bias = nn.Parameter(torch.Tensor(1))
+
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        if self.overall_weighting:
+            nn.init.ones_(self._overall_gain)
+            nn.init.constant_(self._overall_bias, self.mix_bias)
+
+    def forward(self, pre_value_key, coords):
+        """
+        pre_value_key is used to compute value/key
+        coords is used to compute query
+        pre_value_key has size (..., D_v)
+        coords has size (..., D_q)
+
+        key size is D_k
+        output size is D_o
+        """
+
+        # (..., D_q) -proj-> (..., D_k)
+        q = self._proj_q(coords)
+        # (..., D_v) -proj-> (..., D_k)
+        k = self._proj_k(pre_value_key)
+        # (..., D_v) -proj-> (..., D_o * H)
+        v = self._proj_v(pre_value_key)
+
+        # (..., D) -split-> (..., H, W)
+        q, k, v = (split_last(x, (self.n_heads, -1)) for x in [q, k, v])
+
+        # (..., H, W) * (..., H, W) -dot-> (..., H)
+        scores = (q * k).sum(axis=-1)
+
+        overall_weight = None
+        if self.overall_weighting:
+            # (..., H) -mean-> (..., 1)
+            pooled_scores = scores.mean(-1, keepdim=True)
+            overall_weight = torch.sigmoid(pooled_scores * self._overall_gain +
+                                           self._overall_bias)
+
+        # (..., H) -softmax-> (..., H)
+        softmax_scores = F.softmax(scores, dim=-1)
+
+        # (..., H, 1) * (..., H, D_o) -sum-> (..., D_o)
+        h = (softmax_scores.unsqueeze(-1) * v).sum(-2)
+
+        if self.overall_weighting:
+            out = h * overall_weight
+        else:
+            out = h
+
+        return out, overall_weight
 
 
 class ResBlock(nn.Module):
@@ -83,11 +180,21 @@ class Net(nn.Module):
 
         self._output_block_size = 64
 
-        self._coords_to_addr = nn.Linear(self._coord_block_size,
-                                         self._output_block_size)
-
         self._to_output_block = nn.Linear(self._multiplier_size,
                                           self._output_block_size)
+
+        self._values_per_head = 8
+        self._n_heads = 128
+        self._use_attn_weight = True
+
+        self._attn = CoordAttention(self._end_size,
+                                    self._coord_block_size,
+                                    self._values_per_head * self._n_heads,
+                                    self._output_block_size,
+                                    self._n_heads,
+                                    overall_weighting=self._use_attn_weight,
+                                    mix_bias=0)
+
         self._output_block = ResBlock(self._output_block_size,
                                       self._output_block_size)
 
@@ -96,14 +203,31 @@ class Net(nn.Module):
         self._output = nn.Linear(self._output_block_size, self._output_size)
 
     def forward(self, scenes, coords):
+        assert scenes.size(0) == coords.size()
+
         x = self._activation(self._input_expand(scenes))
         for block in self._scene_blocks:
             x = block(x)
-        x = self._activation(self._final(x))
 
         y = self._coords_block(self._activation(self._coords_expand(coords)))
+        x = x.unsqueeze(1)
+
+        assert len(y.size()) == len(x.size())
+
+        # TODO are there redundant params/should there be activation
+        # here (or later before out is put into block)
         multiplier = torch.sigmoid(self._coords_to_multiplier(y))
-        out = self._to_output_block(torch.unsqueeze(x, 1) * multiplier)
+        multiplied = self._final(x) * multiplier
+
+        attn, attn_weight = self._attn(x, multiplier)
+
+        if self._use_attn_weight:
+            # attn_weight is already multiplied by _attn
+            out = (1 - attn_weight) * multiplied + attn
+        else:
+            out = multiplied + attn
+
+        out = self._to_output_block(out)
 
         return torch.relu(self._output(self._output_block(out)))
 
