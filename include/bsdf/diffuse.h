@@ -23,7 +23,7 @@ struct Diffuse {
   }
 
   template <rng::RngState R>
-  HOST_DEVICE BSDFSample continuous_sample(const UnitVector &,
+  HOST_DEVICE BSDFSample continuous_sample(const UnitVector &incoming_dir,
                                            const UnitVector &normal,
                                            R &rng) const {
     float v0 = rng.next();
@@ -36,7 +36,15 @@ struct Diffuse {
     float phi = 2 * M_PI * v0;
     float theta = std::asin(std::sqrt(v1));
 
-    return {find_relative_vec(normal, phi, theta), diffuse};
+    // handle case where we hit back of triangle (the behaviour is a bit ill
+    // specified/maybe shouldn't happen in most meshes, but we want to be
+    // correct...)
+    auto aligned_normal = normal;
+    if (incoming_dir->dot(*normal) > 0.) {
+      aligned_normal = -normal;
+    }
+
+    return {find_relative_vec(aligned_normal, phi, theta), diffuse};
   }
 };
 
