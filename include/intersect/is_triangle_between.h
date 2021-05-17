@@ -8,13 +8,15 @@ HOST_DEVICE inline bool is_triangle_between(const std::array<Triangle, 2> &tris,
   // TODO: there is probably a more efficient way of doing this...
   // And/or use filtering where possible...
   // TODO: check totally blocked case?
+
+  // This is just to improve perf
   float intersection_surface_area =
       tris[0]
           .bounds()
           .union_other(tris[1].bounds())
           .intersection_other(possibly_between.bounds())
           .surface_area();
-  if (intersection_surface_area < 0.f) {
+  if (intersection_surface_area <= 0.f) {
     return false;
   }
 
