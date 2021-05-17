@@ -115,9 +115,7 @@ def main():
     if use_distributed and not cfg.no_sync_bn:
         net = convert_syncbn_model(net)
 
-    lr = 0.5
     optimizer = torch.optim.LBFGS(net.parameters(),
-                                  lr=lr,
                                   line_search_fn='strong_wolfe')
 
     net = net.to(device)
@@ -166,6 +164,7 @@ def main():
     scaled_lr = cfg.lr_multiplier * world_batch_size * factor
     lr_schedule = LRSched(scaled_lr,
                           cfg.epochs * epoch_size,
+                          pct_start=0.,
                           final_div_factor=800)
 
     train_seed_start = 0
@@ -244,6 +243,8 @@ def main():
                 writer.flush()
 
         steps_since_set_lr = 0
+
+        lr = None
 
         def set_lr():
             nonlocal lr
