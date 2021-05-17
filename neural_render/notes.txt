@@ -29,3 +29,24 @@ into output extension somewhat...
 Layer norm isn't very important, but it does seem slightly better and
 it reduces noise a bit (maybe?)
 
+2021-05-17
+Unsurprisingly, bigger is better.
+
+Seems like lr isn't actually that important, but training time is very important.
+I may need to give the net an absurd amount of training time...
+
+Better features for input?
+  - compute "cut off region" (for when emitter triangle is partially behind)
+  - compute regions of emitter which are totally cut off
+  - compute regions of receiver which are totally cut off
+  - compute regions of emitter/receiver which are effected.
+  - Any "nice" features?
+
+Also, how to handle multiple blocking triangles? Approaches:
+  - transformer over blockers (could work might be slow)
+  - simple reduction over high dimensional feature of blockers 
+    (could work (to some extent...), shouldn't be too slow...)
+  - Some sort of set union intersection approach (can't seem to
+    find a coherent way of doing this...)
+For now, use blocking feature reduction I think.
+
