@@ -8,6 +8,7 @@
 #include "lib/assert.h"
 #include "lib/edges.h"
 #include "lib/optional.h"
+#include "lib/search_inclusive.h"
 #include "lib/vector_group.h"
 #include "meta/all_values/impl/enum.h"
 #include "meta/all_values/predicate_for_all_values.h"
@@ -18,24 +19,6 @@ namespace integrate {
 namespace light_sampler {
 namespace random_triangle {
 namespace detail {
-inline HOST_DEVICE unsigned search(const float target,
-                                   SpanSized<const float> values,
-                                   const unsigned binary_search_threshold) {
-  if (values.size() < binary_search_threshold) {
-    for (unsigned i = 0; i < values.size(); ++i) {
-      if (values[i] >= target) {
-        return i;
-      }
-    }
-
-    unreachable_unchecked();
-  } else {
-    // binary search
-    // UNIMPLEMENTED...
-    unreachable_unchecked();
-  }
-}
-
 class Ref {
 public:
   // SPEED: don't store triangles in here, use indices instead?
@@ -63,7 +46,7 @@ public:
     ArrayVec<LightSample, max_num_samples> out;
     for (unsigned i = 0; i < max_num_samples; ++i) {
       const float search_value = rng.next();
-      const unsigned sample_idx = detail::search(
+      const unsigned sample_idx = search_inclusive(
           search_value, cumulative_weights_, binary_search_threshold_);
 
       debug_assert(sample_idx < cumulative_weights_.size());
