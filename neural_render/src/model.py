@@ -58,9 +58,9 @@ class Net(nn.Module):
 
         self._activation = nn.CELU()
         self._input_size = 37
-        self._start_size = 512
-        self._end_size = 512
-        self._multiplier_size = 512
+        self._start_size = 384
+        self._end_size = 384
+        self._multiplier_size = 384
 
         self._input_expand = nn.Linear(self._input_size, self._start_size)
         self._final = nn.Linear(self._end_size, self._multiplier_size)
