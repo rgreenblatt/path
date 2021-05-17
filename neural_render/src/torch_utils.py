@@ -98,7 +98,7 @@ class LRSched():
                  epochs,
                  start_div_factor=4.0,
                  pct_start=0.1,
-                 pct_final_flat=0.2,
+                 pct_final_flat=0.0,
                  final_div_factor=50,
                  offset=0):
         start_lr = lr_max / start_div_factor
