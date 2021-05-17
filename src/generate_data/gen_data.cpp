@@ -66,12 +66,6 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
     }
   }();
 
-  // for (unsigned i = 0; i < baryocentric_grid_values.size(); ++i) {
-  //   auto [x_v, y_v] = baryocentric_grid_values[i];
-  //   baryocentric_grid.push_back(
-  //       baryocentric_to_ray(x_v, y_v, tris.triangle_onto, dir_towards));
-  // }
-
   int n_scene_values = 37;
   torch::Tensor scenes = torch::empty({n_scenes, n_scene_values});
   torch::Tensor baryocentric_coords =

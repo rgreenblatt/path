@@ -20,8 +20,7 @@ SceneTriangles normalize_scene_triangles(const SceneTriangles &tris) {
     });
   });
 
-  auto dir_towards = get_dir_towards(new_tris);
-  auto dir_away = UnitVectorGen<double>::new_normalize(-(*dir_towards));
+  auto dir_away = -get_dir_towards(new_tris);
 
   auto desired_normal = UnitVectorGen<double>::new_normalize({0., 0., 1.});
   auto desired_first_point = UnitVectorGen<double>::new_normalize({1., 0., 0.});
