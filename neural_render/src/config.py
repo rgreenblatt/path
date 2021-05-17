@@ -65,7 +65,6 @@ class Config(argparse.Namespace):
         parser.add_argument('--rays-per-tri', type=int, default=128)
         parser.add_argument('--samples-per-ray', type=int, default=512)
         parser.add_argument('--no-cudnn-benchmark', action='store_true')
-        parser.add_argument('--no-fused-adam', action='store_true')
         parser.add_argument('--opt-level', default='O0')
         parser.add_argument('--epochs', type=int, default=300)
         parser.add_argument('--amp-verbosity', type=int, default=0)
