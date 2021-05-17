@@ -34,7 +34,7 @@ public:
 
   template <bsdf::BSDF B, rng::RngState R>
   HOST_DEVICE ArrayVec<LightSample, max_num_samples>
-  operator()(const Eigen::Vector3f &position, const bsdf::Material<B> & /*mat*/,
+  operator()(const Eigen::Vector3f &position, const bsdf::Material<B> &mat,
              const UnitVector & /*incoming_dir*/, const UnitVector &normal,
              R &rng) const {
     if (cumulative_weights_.size() == 0) {
@@ -54,6 +54,15 @@ public:
       const auto &triangle = triangles_[sample_idx];
       auto point = sample_triangle(triangle, rng);
       const Eigen::Vector3f direction_unnormalized = point - position;
+
+      if (mat.bsdf.is_brdf() && direction_unnormalized.dot(*normal) <= 0.f) {
+        // we could instead try to find a different sample, but that would
+        // increase divergence on the gpu and could result in an infinite loop
+        // if we aren't careful...
+        // (same with below 'continue')
+        continue;
+      }
+
       const UnitVector direction =
           UnitVector::new_normalize(direction_unnormalized);
 
@@ -68,9 +77,6 @@ public:
 
       // case where we sample from the current triangle (or a parallel triangle)
       if (normal_weight < 1e-8) {
-        // we could instead try to find a different sample, but that would
-        // increase divergence on the gpu and could result in an infinite loop
-        // if we aren't careful...
         continue;
       }
 

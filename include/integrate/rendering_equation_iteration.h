@@ -27,7 +27,8 @@ rendering_equation_iteration(
   };
 
   auto include_lighting = [&](const auto &intersection) {
-    // TODO generalize
+    // TODO it might be a good idea to more generally have a setting
+    // to back cull everything except bsdfs
     return !settings.back_cull_emission || !intersection.is_back_intersection;
   };
 
@@ -89,15 +90,13 @@ rendering_equation_iteration(
       const auto samples = inp.light_sampler(intersection_point, material,
                                              ray.direction, normal, rng);
       for (const auto &[dir_sample, light_target_distance] : samples) {
-        debug_assert(material.bsdf.is_brdf());
-        // TODO: BSDF case
-        if (dir_sample.direction->dot(*normal) <= 0.f) {
-          continue;
-        }
+        // brdf isn't required to handle this case (and light sampler must
+        // filter)
+        debug_assert(!material.bsdf.is_brdf() ||
+                     dir_sample.direction->dot(*normal) >= -1e-6);
 
         intersect::Ray light_ray{intersection_point, dir_sample.direction};
 
-        // FIXME: CHECK ME... multiplier
         const auto light_multiplier =
             (multiplier *
              material.bsdf.continuous_eval(ray.direction, light_ray.direction,
