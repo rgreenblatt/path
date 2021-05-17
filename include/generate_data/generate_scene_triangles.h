@@ -21,15 +21,8 @@ template <rng::RngState R> SceneTriangles generate_scene_triangles(R &rng) {
     }};
   };
 
-  intersect::Triangle triangle_onto;
-  intersect::Triangle triangle_blocking;
-  intersect::Triangle triangle_light;
-
-  bool found = false;
-  unsigned count = 0;
-  while (!found) {
+  while (true) {
   start:
-    ++count;
     std::array<intersect::Triangle, 3> triangles{gen_tri(), gen_tri(),
                                                  gen_tri()};
 
@@ -70,20 +63,12 @@ template <rng::RngState R> SceneTriangles generate_scene_triangles(R &rng) {
         continue;
       }
 
-      found = true;
-
-      triangle_onto = triangles[outer_first];
-      triangle_blocking = triangles[inner];
-      triangle_light = triangles[outer_second];
-
-      break;
+      return {
+          .triangle_onto = triangles[outer_first],
+          .triangle_blocking = triangles[inner],
+          .triangle_light = triangles[outer_second],
+      };
     }
   }
-
-  return {
-      .triangle_onto = triangle_onto,
-      .triangle_blocking = triangle_blocking,
-      .triangle_light = triangle_light,
-  };
 }
 } // namespace generate_data
