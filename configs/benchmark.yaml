@@ -39,15 +39,15 @@ settings:
     type: BSDF
     value: {}
   term_prob:
-    type: NIters
-    value:
-      iters: 0
-    # type: MultiplierFunc
+    # type: NIters
     # value:
-    #   exp: 50.0
-    #   min_prob: 0.1
+    #   iters: 1
+    type: MultiplierFunc
+    value:
+      exp: 50.0
+      min_prob: 0.1
   rng:
-    type: Uniform
+    type: Sobel
     value: {}
   rendering_equation_settings:
-    back_cull_emission: false
+    back_cull_emission: true
