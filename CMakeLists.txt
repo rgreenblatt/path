@@ -152,9 +152,8 @@ macro(target_add_standard TARGET_NAME)
                              PUBLIC "${PROJECT_SOURCE_DIR}/include")
   target_include_directories(
     ${TARGET_NAME} SYSTEM
-    PUBLIC 
-    "${PROJECT_SOURCE_DIR}/extern/eigen/"
-    "${PROJECT_SOURCE_DIR}/extern/thrust/"
+    PUBLIC "${PROJECT_SOURCE_DIR}/extern/eigen/"
+           "${PROJECT_SOURCE_DIR}/extern/thrust/"
            "${PROJECT_SOURCE_DIR}/extern/include/"
            "${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}")
   # required for Eigen: https://gitlab.com/libeigen/eigen/-/issues/1826
@@ -341,7 +340,6 @@ add_executable(path "${PROJECT_SOURCE_DIR}/src/main.cpp")
 target_link_libraries(path PRIVATE renderer_from_files docopt_s Qt5::Widgets)
 target_add_standard(path)
 
-
 add_library(
   generate_data STATIC
   "${PROJECT_SOURCE_DIR}/src/generate_data/generate_scene.cpp"
@@ -383,7 +381,3 @@ add_executable(loaded_float_rgb
                "${PROJECT_SOURCE_DIR}/src/loaded_float_rgb.cpp")
 target_link_libraries(loaded_float_rgb PRIVATE Qt5::Widgets)
 target_add_standard(loaded_float_rgb)
-
-add_executable(temp "${BASE_RENDER_P}/renderer_impl_general_render_mega_kernel_gpu.cu")
-target_add_standard(temp)
-
