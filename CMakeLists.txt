@@ -29,12 +29,6 @@ add_definitions(-DCUDA_API_PER_THREAD_DEFAULT_STREAM)
 
 # add_compile_options(-stdlib=libc++)
 
-# * unfortunately required with c++20 when using clang 11 and libstdc++
-# * not required (right now) on trunk
-
-# include_directories( SYSTEM
-# $<$<COMPILE_LANGUAGE:CUDA>:${CMAKE_SOURCE_DIR}/system/include/>)
-
 # I think -ffast-math is enabled by -Ofast, but the documentation isn't
 # perfectly clear (certainly most options of -ffast-math are enabled by -Ofast,
 # but I'm not sure about the cuda specific ones)
