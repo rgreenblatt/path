@@ -1,5 +1,6 @@
 import shutil
-import glob
+import os
+import sys
 import pathlib
 
 from setuptools import setup, Extension
@@ -21,20 +22,16 @@ class build_ext(build_ext_orig):
     def build_cmake(self, ext):
         # this is quite hacky...
 
-        build_arg_mode = ['--debug'] if self.debug else ['--release']
-        gen_args = ['--skip-build'] if self.dry_run else []
-
-        # example of build args
-        self.spawn(['cmake_cli'] +
-                   ['build', '--target', 'neural_render_generate_data'] +
-                   build_arg_mode + gen_args)
-
         # these dirs will be created in build_py, so if you don't have
         # any python sources to bundle, the dirs will be missing
         extdir = pathlib.Path(self.get_ext_fullpath(ext.name))
         extdir.parent.mkdir(parents=True, exist_ok=True)
         file = 'build/{}/{}'.format('debug' if self.debug else 'release',
                                     extdir.name)
+
+        if not os.path.exists(file):
+            print("NOTE: must compile prior to running!!!")
+            sys.exit(1)
 
         shutil.copyfile(file, extdir.absolute())
 
