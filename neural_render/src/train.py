@@ -162,6 +162,8 @@ def main():
     num_local_batchs_per_validation = validation_size // batch_size
 
     scaled_lr = cfg.lr_multiplier * world_batch_size * factor
+    # lr sched isn't very important because we use line search,
+    # but it does have some effect...
     lr_schedule = LRSched(scaled_lr,
                           cfg.epochs * epoch_size,
                           pct_start=0.,
