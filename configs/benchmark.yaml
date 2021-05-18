@@ -48,6 +48,8 @@ settings:
       min_prob: 0.1
   rng:
     type: Sobel
-    value: {}
+    value: 
+      sequence_settings: {}
+      max_sample_size: 256
   rendering_equation_settings:
     back_cull_emission: true
