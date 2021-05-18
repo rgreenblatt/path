@@ -32,7 +32,7 @@ add_definitions(-DCUDA_API_PER_THREAD_DEFAULT_STREAM)
 # I think -ffast-math is enabled by -Ofast, but the documentation isn't
 # perfectly clear (certainly most options of -ffast-math are enabled by -Ofast,
 # but I'm not sure about the cuda specific ones)
-set(RELEASE_ARGS -Ofast;-ffast-math;-march=native)
+set(RELEASE_ARGS -Ofast;-ffast-math)
 
 # must be quoted for some reason I don't understand?
 add_compile_options("$<$<CONFIG:RELEASE>:${RELEASE_ARGS}>")
