@@ -12,4 +12,4 @@
 	url = https://github.com/jbeder/yaml-cpp
 [submodule "extern/eigen"]
 	path = extern/eigen
-	url = https://gitlab.com/libeigen/eigen
+	url = https://gitlab.com/libeigen/eigen.git
