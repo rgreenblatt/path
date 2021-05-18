@@ -30,16 +30,14 @@ class PathCMakeBuild(BaseCMakeBuilder):
                                 action='store_false',
                                 help='build for the cpu and gpu')
             # could also just use --release-with-debug but that's less explicit
-            parser.add_argument(
-                '--force-assertions',
-                dest='force_assertions',
-                action='store_true',
-                help='force assertions to be enabled')
-            parser.add_argument(
-                '--no-force-assertions',
-                dest='force_assertions',
-                action='store_false',
-                help="don't force assertions to be enabled")
+            parser.add_argument('--force-assertions',
+                                dest='force_assertions',
+                                action='store_true',
+                                help='force assertions to be enabled')
+            parser.add_argument('--no-force-assertions',
+                                dest='force_assertions',
+                                action='store_false',
+                                help="don't force assertions to be enabled")
             parser.add_argument('--cuda-archs',
                                 default='75',
                                 help='cuda architectures (sm_*)')
