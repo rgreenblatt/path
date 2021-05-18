@@ -8,15 +8,14 @@ from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.utils import make_grid
 from apex.parallel import DistributedDataParallel, convert_syncbn_model
-from apex import amp
 import git
 
 import neural_render_generate_data
 
+from LBFGS import LBFGS
 from model import Net
 from config import Config
-from torch_utils import (LRSched, LossTracker, EMATracker,
-                         recursive_param_print)
+from torch_utils import (LossTracker, EMATracker, recursive_param_print)
 from utils import mkdirs, PrintAndLog
 from criterion import PerceptualLoss
 
@@ -115,16 +114,9 @@ def main():
     if use_distributed and not cfg.no_sync_bn:
         net = convert_syncbn_model(net)
 
-    optimizer = torch.optim.LBFGS(net.parameters(),
-                                  line_search_fn='strong_wolfe')
+    optimizer = LBFGS(net.parameters(), line_search='Armijo')
 
     net = net.to(device)
-
-    net, optimizer = amp.initialize(net,
-                                    optimizer,
-                                    opt_level=cfg.opt_level,
-                                    min_loss_scale=65536.0,
-                                    verbosity=cfg.amp_verbosity)
 
     if use_distributed:
         net = DistributedDataParallel(net)
@@ -153,7 +145,6 @@ def main():
         print("===== Training =====")
         print()
 
-    factor = 1e-3
     world_batch_size = batch_size * world_size
 
     epoch_size = make_divisible(cfg.epoch_size, world_batch_size)
@@ -161,17 +152,9 @@ def main():
     num_local_batchs_per_epoch = epoch_size // batch_size
     num_local_batchs_per_validation = validation_size // batch_size
 
-    scaled_lr = cfg.lr_multiplier * world_batch_size * factor
-    lr_schedule = LRSched(scaled_lr,
-                          cfg.epochs * epoch_size,
-                          pct_start=0.,
-                          final_div_factor=800)
-
     train_seed_start = 0
     validation_seed_start = 2**30
     image_seed = validation_seed_start - 1
-
-    norm_avg = EMATracker(0.9, 50.0)
 
     def save_image(name, indexes, values):
         img = torch.zeros(cfg.image_count, cfg.image_dim, cfg.image_dim, 3)
@@ -221,6 +204,9 @@ def main():
                 return float('nan')
             return v
 
+        base_lr = 1.
+        lr = base_lr
+
         def train_display():
             train_mse_loss, nan_count = train_mse_loss_tracker.query_reset()
             train_perceptual_loss, _ = train_perceptual_loss_tracker.query_reset(
@@ -242,14 +228,7 @@ def main():
                 writer.add_scalar("lr", lr, step)
                 writer.flush()
 
-        steps_since_set_lr = 0
-
-        lr = None
-
         def set_lr():
-            nonlocal lr
-            lr = lr_schedule(step)
-
             for param_group in optimizer.param_groups:
                 param_group['lr'] = lr
 
@@ -262,7 +241,6 @@ def main():
             # this wouldn't be strictly accurate if we had partial batches
             step += world_batch_size
             steps_since_display += world_batch_size
-            steps_since_set_lr += world_batch_size
 
             (scenes, coords, values) = neural_render_generate_data.gen_data(
                 batch_size, cfg.rays_per_tri, cfg.samples_per_ray, seed)
@@ -270,52 +248,46 @@ def main():
             (scenes, coords, values) = (scenes.to(device), coords.to(device),
                                         values.to(device))
 
-            is_first = True
-
-            class NanLoss(Exception):
-                pass
+            outputs = None
 
             def get_loss():
-                nonlocal is_first
+                optimizer.zero_grad()
 
-                if torch.is_grad_enabled():
-                    optimizer.zero_grad()
-
+                nonlocal outputs
                 outputs = net(scenes, coords)
                 loss = criterion(outputs, values)
 
-                if torch.isnan(loss).any():
-                    raise NanLoss()
-
-                if is_first:
-                    train_perceptual_loss_tracker.update(
-                        perceptual(outputs, values))
-                    train_mse_loss_tracker.update(mse(outputs, values))
-
-                if torch.is_grad_enabled():
-                    with amp.scale_loss(loss, optimizer) as scaled_loss:
-                        scaled_loss.backward()
-
-                    max_norm = norm_avg.x * 1.5
-                    this_norm = nn.utils.clip_grad_norm_(
-                        net.parameters(), max_norm)
-                    norm_avg.update(this_norm)
-                    if is_first and not disable_all_output:
-                        writer.add_scalar("max_norm", max_norm, step)
-                        writer.add_scalar("norm", this_norm, step)
-
-                is_first = False
-
                 return loss
 
-            try:
-                optimizer.step(get_loss)
-            except NanLoss:
-                continue
+            optimizer.zero_grad()
 
-            if steps_since_set_lr >= cfg.set_lr_freq:
-                set_lr()
-                steps_since_set_lr = 0
+            # compute initial gradient and objective
+            loss = get_loss()
+
+            train_perceptual_loss_tracker.update(perceptual(outputs, values))
+            train_mse_loss_tracker.update(mse(outputs, values))
+            outputs = None
+
+            loss.backward()
+            # gather flat gradient
+            grad = optimizer._gather_flat_grad()
+
+            # two-loop recursion to compute search direction
+            p = optimizer.two_loop_recursion(-grad)
+
+            options = {'closure': get_loss, 'current_loss': loss, 'max_ls': 10}
+            loss, lr, ls_step, closure_eval, _, failed = optimizer.step(
+                p, grad, options=options)
+            if failed:
+                lr = base_lr
+                print("failed!!!")
+                print("ls_step:", ls_step, "closure_eval:", closure_eval)
+                print("loss:", loss)
+                print("final is:", perceptual(outputs, values))
+
+            optimizer.curvature_update(grad)
+
+            set_lr()
 
             if steps_since_display >= cfg.display_freq:
                 train_display()
