@@ -1,4 +1,5 @@
 #include "generate_data/generate_scene.h"
+
 #include "scene/triangle_constructor.h"
 
 namespace generate_data {

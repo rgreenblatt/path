@@ -1,4 +1,5 @@
 #include "generate_data/normalize_scene_triangles.h"
+
 #include "generate_data/get_dir_towards.h"
 #include "lib/projection.h"
 
@@ -7,13 +8,10 @@
 namespace generate_data {
 SceneTriangles normalize_scene_triangles(const SceneTriangles &tris) {
   // this is obviously not the most efficient way of doing this, but
-  // it shouldn't matter...
-  SceneTrianglesGen<double> new_tris =
-      tris.template apply_gen<double>([&](const intersect::Triangle &tri) {
-        return tri.template apply_gen<double>([&](const Eigen::Vector3f &vec) {
-          return vec.template cast<double>();
-        });
-      });
+  // it shouldn't matter too much for now...
+  auto new_tris = tris.template cast<double>();
+  auto light_normal = new_tris.triangle_light.normal_scaled_by_area();
+
   new_tris = new_tris.apply([&](const intersect::TriangleGen<double> &tri) {
     return tri.apply([&](const Eigen::Vector3d &vec) {
       return vec / std::sqrt(new_tris.triangle_onto.area());
@@ -29,6 +27,7 @@ SceneTriangles normalize_scene_triangles(const SceneTriangles &tris) {
 
   new_tris = new_tris.apply_transform(rotate_to_vert);
   auto centroid = new_tris.triangle_onto.centroid();
+  light_normal = rotate_to_vert * light_normal;
   new_tris = new_tris.apply_transform(Eigen::Translation3d{-centroid});
 
   auto rotate_to_x = find_rotate_vector_to_vector(
@@ -36,6 +35,7 @@ SceneTriangles normalize_scene_triangles(const SceneTriangles &tris) {
       desired_first_point);
 
   new_tris = new_tris.apply_transform(rotate_to_x);
+  light_normal = rotate_to_x * light_normal;
 
   auto apply_sort = [](intersect::TriangleGen<double> &tri) {
     std::sort(tri.vertices.begin(), tri.vertices.end(),
@@ -47,11 +47,21 @@ SceneTriangles normalize_scene_triangles(const SceneTriangles &tris) {
   apply_sort(new_tris.triangle_light);
   apply_sort(new_tris.triangle_blocking);
 
-  return new_tris.template apply_gen<float>(
-      [&](const intersect::TriangleGen<double> &tri) {
-        return tri.template apply_gen<float>([&](const Eigen::Vector3d &vec) {
-          return vec.template cast<float>();
-        });
-      });
+  light_normal.normalize();
+  auto actual_light_normal = *new_tris.triangle_light.normal();
+  auto dotted = light_normal.dot(actual_light_normal);
+  // should be aligned (dotted is about 1 or -1)
+  debug_assert(std::abs(std::abs(dotted) - 1.f) < 1e-10);
+  if (std::abs(dotted + 1) < 1e-10) {
+    // case where vector points away
+    std::swap(new_tris.triangle_light.vertices[1],
+              new_tris.triangle_light.vertices[2]);
+  }
+  [[maybe_unused]] auto new_actual_light_normal =
+      *new_tris.triangle_light.normal();
+  [[maybe_unused]] auto new_dotted = light_normal.dot(new_actual_light_normal);
+  debug_assert(std::abs(new_dotted - 1.f) < 1e-10);
+
+  return new_tris.template cast<float>();
 }
 } // namespace generate_data

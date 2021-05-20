@@ -3,6 +3,7 @@
 #include "intersect/triangle.h"
 
 namespace intersect {
+// TODO: remove in favor of general geometry approach (eventually)
 HOST_DEVICE inline bool is_triangle_between(const std::array<Triangle, 2> &tris,
                                             const Triangle &possibly_between) {
   // TODO: there is probably a more efficient way of doing this...

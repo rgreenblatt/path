@@ -14,7 +14,7 @@ get_dir_towards(const SceneTrianglesGen<T> &tris) {
 
   if (onto_normal->dot(light_centroid - onto_point) > 0.) {
     // positive side of plane
-    return UnitVectorGen<T>::new_unchecked(-(*onto_normal));
+    return -onto_normal;
   } else {
     // negative side of plane
     return onto_normal;

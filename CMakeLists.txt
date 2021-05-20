@@ -314,7 +314,7 @@ if(BUILD_BENCHMARKS OR CMAKE_EXPORT_COMPILE_COMMANDS)
   package_add_bench(scan_bench "${PROJECT_SOURCE_DIR}/benchmarks/src/scan.cu")
   # sometimes there are some issues with cub and warp intrinsics with sorting
   # not sure if this has been fixed - some inconsistancy in the past? (on clang)
-  package_add_bench(sort_bench "${PROJECT_SOURCE_DIR}/benchmarks/src/sort.cu")
+  # package_add_bench(sort_bench "${PROJECT_SOURCE_DIR}/benchmarks/src/sort.cu")
   package_add_bench(render_bench
                     "${PROJECT_SOURCE_DIR}/benchmarks/src/render.cpp")
   target_link_libraries(render_bench PRIVATE renderer_from_files)
@@ -337,6 +337,9 @@ target_add_standard(path)
 add_library(
   generate_data STATIC
   "${PROJECT_SOURCE_DIR}/src/generate_data/generate_scene.cpp"
+  "${PROJECT_SOURCE_DIR}/src/generate_data/clip_by_plane.cpp"
+  "${PROJECT_SOURCE_DIR}/src/generate_data/shadowed.cpp"
+  "${PROJECT_SOURCE_DIR}/src/generate_data/mesh_scene_generator.cpp"
   "${PROJECT_SOURCE_DIR}/src/generate_data/normalize_scene_triangles.cpp"
   "${PROJECT_SOURCE_DIR}/src/generate_data/baryocentric_coords.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/triangle_constructor.cpp")
@@ -349,6 +352,14 @@ target_link_libraries(
   generate_data_visualizer PRIVATE renderer_from_files generate_data docopt_s
                                    Qt5::Widgets)
 target_add_standard(generate_data_visualizer)
+
+add_executable(
+  mesh_scene_visualizer
+  "${PROJECT_SOURCE_DIR}/src/generate_data/mesh_scene_visualizer.cpp")
+target_link_libraries(
+  mesh_scene_visualizer PRIVATE renderer_from_files generate_data docopt_s
+                                Qt5::Widgets)
+target_add_standard(mesh_scene_visualizer)
 
 # TODO: rename!
 add_library(gen_data STATIC
@@ -375,3 +386,7 @@ add_executable(loaded_float_rgb
                "${PROJECT_SOURCE_DIR}/src/loaded_float_rgb.cpp")
 target_link_libraries(loaded_float_rgb PRIVATE Qt5::Widgets)
 target_add_standard(loaded_float_rgb)
+
+add_executable(temp "${PROJECT_SOURCE_DIR}/src/temp.cpp")
+target_link_libraries(temp PRIVATE gen_data)
+target_add_standard(temp)

@@ -4,6 +4,7 @@
 
 namespace intersect {
 // TODO: more efficient general approach along with is_triangle_between
+// TODO: remove in favor of general geometry approach (eventually)
 HOST_DEVICE inline bool
 is_triangle_blocking(const std::array<Triangle, 2> &tris,
                      const Triangle &possibly_blocking) {

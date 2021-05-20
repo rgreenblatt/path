@@ -1,7 +1,5 @@
 #pragma once
 
-#include "render/renderer.h"
-
 #include <torch/extension.h>
 
 #include <tuple>

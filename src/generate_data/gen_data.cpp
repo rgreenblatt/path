@@ -2,12 +2,17 @@
 #include "generate_data/amend_config.h"
 #include "generate_data/baryocentric_coords.h"
 #include "generate_data/baryocentric_to_ray.h"
+#include "generate_data/clip_by_plane.h"
 #include "generate_data/generate_scene.h"
 #include "generate_data/generate_scene_triangles.h"
 #include "generate_data/get_dir_towards.h"
+#include "generate_data/get_points_from_subset.h"
 #include "generate_data/normalize_scene_triangles.h"
+#include "generate_data/shadowed.h"
 #include "generate_data/torch_rng_state.h"
+#include "generate_data/triangle_subset_intersection.h"
 #include "integrate/sample_triangle.h"
+#include "lib/array_vec.h"
 #include "lib/async_for.h"
 #include "lib/projection.h"
 #include "render/renderer.h"
@@ -21,6 +26,7 @@
 #include <vector>
 
 #include "dbg.h"
+#include "lib/info/print_triangle.h"
 
 namespace generate_data {
 static VectorT<render::Renderer> renderers;
@@ -116,6 +122,103 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
       scenes.index_put_({i, scene_idx++}, other_tri.area());
       for (int j = 0; j < 3; ++j) {
         scenes.index_put_({i, scene_idx++}, other_tri.centroid()[j]);
+      }
+    }
+
+    std::cout << "triangle_onto = ";
+    print_triangle(new_tris.triangle_onto);
+    std::cout << "triangle_blocking = ";
+    print_triangle(new_tris.triangle_blocking);
+    std::cout << "triangle_light = ";
+    print_triangle(new_tris.triangle_light);
+
+    // TODO: use regions + feature etc..
+
+    auto print_subset = [](const TriangleSubset &subset) {
+      subset.visit_tagged([&](auto tag, const auto &value) {
+        if constexpr (tag == TriangleSubsetType::None) {
+          std::cout << "None";
+        } else if constexpr (tag == TriangleSubsetType::All) {
+          std::cout << "'all'";
+        } else {
+          static_assert(tag == TriangleSubsetType::Some);
+          std::cout << "[";
+          debug_assert(value.inners().empty());
+          for (auto point : value.outer()) {
+            std::cout << "[" << point.x() << ", " << point.y() << "], ";
+          }
+          std::cout << "]";
+        }
+        std::cout << "\n";
+      });
+    };
+
+    // clip by triangle_onto plane
+    auto light_region =
+        clip_by_plane(Eigen::Vector3d::UnitZ(), Eigen::Vector3d::Zero(),
+                      new_tris.triangle_light.template cast<double>());
+    std::cout << "light_region = ";
+    print_subset(light_region);
+    auto blocking_region_initial =
+        clip_by_plane(Eigen::Vector3d::UnitZ(), Eigen::Vector3d::Zero(),
+                      new_tris.triangle_blocking.template cast<double>());
+    std::cout << "blocking_region_initial = ";
+    print_subset(blocking_region_initial);
+
+    // clip by triangle_light plane
+    auto light_normal =
+        new_tris.triangle_light.template cast<double>().normal_raw();
+    auto light_point =
+        new_tris.triangle_light.template cast<double>().vertices[0];
+    auto onto_region =
+        clip_by_plane(light_normal, light_point,
+                      new_tris.triangle_onto.template cast<double>());
+    std::cout << "onto_region = ";
+    print_subset(onto_region);
+    auto blocking_region = triangle_subset_intersection(
+        blocking_region_initial,
+        clip_by_plane(light_normal, light_point,
+                      new_tris.triangle_blocking.template cast<double>()));
+    std::cout << "blocking_region = ";
+    print_subset(blocking_region);
+
+    auto tris_as_double = new_tris.template cast<double>();
+    for (bool onto_light : {false, true}) {
+      std::array<const intersect::TriangleGen<double> *, 2> end_tris{
+          &tris_as_double.triangle_light, &tris_as_double.triangle_onto};
+      std::array<const TriangleSubset *, 2> end_region{&light_region,
+                                                       &onto_region};
+      if (onto_light) {
+        std::swap(end_tris[0], end_tris[1]);
+        std::swap(end_region[0], end_region[1]);
+      }
+
+      auto from_points = get_points_from_subset(*end_tris[0], *end_region[0]);
+      Eigen::Vector3d centroid = Eigen::Vector3d::Zero();
+      for (const auto &p : from_points) {
+        centroid += p;
+      }
+      centroid /= from_points.size();
+
+      // TODO: use this stuff (including centroid!)
+
+      const auto base = onto_light ? "onto_light_" : "onto_";
+
+      auto centroid_shadow = shadowed_from_point(
+          centroid, tris_as_double.triangle_blocking, *end_tris[1]);
+      std::cout << base << "centroid_shadow = ";
+      print_subset(centroid_shadow);
+
+      auto shadow_info =
+          shadowed(from_points, tris_as_double.triangle_blocking, *end_tris[1]);
+
+      std::cout << base << "some_blocking = ";
+      print_subset(shadow_info.some_blocking);
+      std::cout << base << "totally_blocked = ";
+      print_subset(shadow_info.totally_blocked);
+      for (unsigned i = 0; i < shadow_info.from_each_point.size(); ++i) {
+        std::cout << base << "from_each_point_" << i << " = ";
+        print_subset(shadow_info.from_each_point[i]);
       }
     }
 
