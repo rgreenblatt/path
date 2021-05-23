@@ -169,8 +169,8 @@ bool ScenefileLoader::load_mesh(Scene &scene, std::string file_path,
 
   unsigned mesh_idx = scene.meshs_.size();
 
-  auto min_b = max_eigen_vec();
-  auto max_b = min_eigen_vec();
+  auto min_b = max_eigen_vec<float>();
+  auto max_b = min_eigen_vec<float>();
 
   Eigen::Vector3f emissive_cluster_min_b;
   Eigen::Vector3f emissive_cluster_max_b;
@@ -247,8 +247,8 @@ bool ScenefileLoader::load_mesh(Scene &scene, std::string file_path,
       };
 
       auto new_emissive_cluster = [&] {
-        emissive_cluster_min_b = max_eigen_vec();
-        emissive_cluster_max_b = min_eigen_vec();
+        emissive_cluster_min_b = max_eigen_vec<float>();
+        emissive_cluster_max_b = min_eigen_vec<float>();
         adding_to_emissive_cluster = true;
         emissive_start_idx = scene.triangles_.size();
         emissive_material_idx = material_idx;

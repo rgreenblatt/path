@@ -4,7 +4,6 @@
 #include "generate_data/baryocentric_to_ray.h"
 #include "generate_data/generate_scene.h"
 #include "generate_data/generate_scene_triangles.h"
-#include "generate_data/get_dir_towards.h"
 #include "generate_data/normalize_scene_triangles.h"
 #include "integrate/sample_triangle.h"
 #include "intersect/triangle.h"
@@ -86,19 +85,20 @@ int main(int argc, char *argv[]) {
   ExecutionModel execution_model =
       using_gpu ? ExecutionModel::GPU : ExecutionModel::CPU;
 
-  auto rng = rng::uniform::Uniform<ExecutionModel::CPU>::Ref::State(seed);
+  UniformState rng{seed};
 
   // auto tris = generate_scene_triangles(rng);
   auto tris = normalize_scene_triangles(generate_scene_triangles(rng));
   auto scene = generate_scene(tris);
 
-  auto dir_towards = get_dir_towards(tris);
+  auto dir_towards = -tris.triangle_onto.template cast<float>().normal();
 
-  Eigen::Vector3f onto_centroid = tris.triangle_onto.centroid();
+  Eigen::Vector3f onto_centroid =
+      tris.triangle_onto.centroid().template cast<float>();
 
   auto film_to_world = scene::get_camera_transform(
       dir_towards, UnitVector::new_normalize({0.f, 1.f, 0.f}),
-      onto_centroid - 3 * (*dir_towards), 45.f, 1.f);
+      onto_centroid - 8 * (*dir_towards), 45.f, 1.f);
 
   render::Renderer renderer;
 
@@ -142,8 +142,8 @@ int main(int argc, char *argv[]) {
 
   for (unsigned i = 0; i < baryocentric_grid_values.size(); ++i) {
     auto [x_v, y_v] = baryocentric_grid_values[i];
-    baryocentric_grid[i] =
-        baryocentric_to_ray(x_v, y_v, tris.triangle_onto, dir_towards);
+    baryocentric_grid[i] = baryocentric_to_ray(
+        x_v, y_v, tris.triangle_onto.template cast<float>(), dir_towards);
   }
 
   std::vector<BGRA32> baryocentric_pixels(baryocentric_grid.size(),

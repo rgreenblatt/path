@@ -7,31 +7,67 @@
 #include "lib/vector_type.h"
 
 namespace generate_data {
-ATTR_PURE_NDEBUG inline VectorT<Eigen::Vector3d>
-get_points_from_subset(const intersect::TriangleGen<double> &tri,
-                       const TriangleSubset &subset) {
+struct PointsWithBaryo {
+  VectorT<Eigen::Vector3d> points;
+  VectorT<BaryoPoint> baryo;
+};
+
+template <bool has_baryo>
+ATTR_PURE_NDEBUG inline std::conditional_t<has_baryo, PointsWithBaryo,
+                                           VectorT<Eigen::Vector3d>>
+get_points_from_subset_with_baryo_impl(
+    const intersect::TriangleGen<double> &tri, const TriangleSubset &subset) {
   return subset.visit_tagged(
-      [&](auto tag, const auto &poly) -> VectorT<Eigen::Vector3d> {
+      [&](auto tag,
+          const auto &poly) -> std::conditional_t<has_baryo, PointsWithBaryo,
+                                                  VectorT<Eigen::Vector3d>> {
         if constexpr (tag == TriangleSubsetType::None) {
           return {};
         } else if constexpr (tag == TriangleSubsetType::All) {
-          return {
+          VectorT<Eigen::Vector3d> points{
               tri.vertices[0],
               tri.vertices[1],
               tri.vertices[2],
           };
+          if constexpr (has_baryo) {
+            return {.points = points,
+                    .baryo = {
+                        {0., 0.},
+                        {1., 0.},
+                        {0., 1.},
+                    }};
+          } else {
+            return points;
+          }
         } else {
           static_assert(tag == TriangleSubsetType::Some);
 
           debug_assert(poly.outer().size() >= 4);
           // -1 because poly loops back to original point
-          std::vector<Eigen::Vector3d> out(poly.outer().size() - 1);
+          VectorT<Eigen::Vector3d> points(poly.outer().size() - 1);
           std::transform(poly.outer().begin(), poly.outer().end() - 1,
-                         out.begin(), [&](const BaryoPoint &point) {
+                         points.begin(), [&](const BaryoPoint &point) {
                            return tri.value_from_baryo({point.x(), point.y()});
                          });
-          return out;
+          if constexpr (has_baryo) {
+            return {.points = points,
+                    .baryo = {poly.outer().begin(), poly.outer().end() - 1}};
+          } else {
+            return points;
+          }
         }
       });
+}
+
+ATTR_PURE_NDEBUG inline VectorT<Eigen::Vector3d>
+get_points_from_subset(const intersect::TriangleGen<double> &tri,
+                       const TriangleSubset &subset) {
+  return get_points_from_subset_with_baryo_impl<false>(tri, subset);
+}
+
+ATTR_PURE_NDEBUG inline PointsWithBaryo
+get_points_from_subset_with_baryo(const intersect::TriangleGen<double> &tri,
+                                  const TriangleSubset &subset) {
+  return get_points_from_subset_with_baryo_impl<true>(tri, subset);
 }
 } // namespace generate_data

@@ -41,5 +41,5 @@ template <typename T> struct SceneTrianglesGen {
   }
 };
 
-using SceneTriangles = SceneTrianglesGen<float>;
+using SceneTriangles = SceneTrianglesGen<double>;
 } // namespace generate_data

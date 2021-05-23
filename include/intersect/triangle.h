@@ -62,6 +62,13 @@ template <typename T> struct TriangleGen {
   ATTR_PURE_NDEBUG HOST_DEVICE inline std::array<T, 3>
   interpolation_values(const Eigen::Vector3<T> &point) const;
 
+  // we typically just use these baryo coords
+  ATTR_PURE_NDEBUG HOST_DEVICE inline std::array<T, 2>
+  baryo_values(const Eigen::Vector3<T> &point) const {
+    const auto arr = interpolation_values(point);
+    return {arr[1], arr[2]};
+  }
+
   ATTR_PURE_NDEBUG HOST_DEVICE inline Eigen::Vector3<T>
   value_from_baryo(const std::array<T, 2> &baryo) const {
     auto v0 = vertices[1] - vertices[0];
@@ -73,8 +80,8 @@ template <typename T> struct TriangleGen {
 
   struct InfoType {};
 
-  ATTR_PURE_NDEBUG HOST_DEVICE inline IntersectionOp<InfoType>
-  intersect(const Ray &ray) const;
+  ATTR_PURE_NDEBUG HOST_DEVICE inline IntersectionOp<InfoType, T>
+  intersect(const GenRay<T> &ray) const;
 
   static constexpr T intersect_epsilon =
       std::is_same_v<T, double> ? 1e-10 : 1e-6;

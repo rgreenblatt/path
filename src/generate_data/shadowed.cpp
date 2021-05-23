@@ -1,138 +1,256 @@
 #include "generate_data/shadowed.h"
 
 #include "generate_data/clip_by_plane.h"
+#include "generate_data/get_points_from_subset.h"
 #include "generate_data/triangle_subset.h"
-#include "generate_data/triangle_subset_convex_union.h"
 #include "generate_data/triangle_subset_intersection.h"
 #include "intersect/triangle.h"
 #include "intersect/triangle_impl.h"
 #include "lib/array_vec.h"
+#include "lib/span.h"
 
 #include <boost/geometry.hpp>
-#include <boost/geometry/geometries/multi_point.hpp>
+#include <unordered_set>
 
-#include "dbg.h"
+namespace std {
+// from
+// https://codereview.stackexchange.com/questions/171999/specializing-stdhash-for-stdarray
+template <class T, size_t N> struct hash<array<T, N>> {
+  auto operator()(const array<T, N> &key) const {
+    size_t result = 0;
+    for (size_t i = 0; i < N; ++i) {
+      result = result * 31 + hasher(key[i]);
+    }
+    return result;
+  }
+
+  std::hash<T> hasher;
+};
+} // namespace std
 
 namespace generate_data {
-ATTR_PURE_NDEBUG static ArrayVec<BaryoPoint, 4>
-intersecting_points(Eigen::Vector3d origin,
-                    const intersect::TriangleGen<double> &blocker,
-                    const intersect::TriangleGen<double> &onto) {
-  // TODO: consider precomputing some of these values later...
-  // We mostly don't need the normal vector to be unit vec...
+
+// TODO: fix epsilons
+// TODO: could be sooooo much faster probably
+ATTR_PURE_NDEBUG SomeShadowedInfo
+some_shadowed(const intersect::TriangleGen<double> &from,
+              const TriangleSubset &from_clipped_region,
+              const intersect::TriangleGen<double> &blocker,
+              const TriangleSubset &blocker_clipped_region,
+              const intersect::TriangleGen<double> &onto) {
+  auto from_pb = get_points_from_subset_with_baryo(from, from_clipped_region);
+  const auto blocker_pb =
+      get_points_from_subset_with_baryo(blocker, blocker_clipped_region);
+  const auto &from_vertices = from_pb.points;
+  const auto &from_baryo = from_pb.baryo;
+  const auto &blocker_vertices = blocker_pb.points;
+  const auto &blocker_baryo = blocker_pb.baryo;
+  debug_assert(from_vertices.size() == from_baryo.size());
+  debug_assert(blocker_vertices.size() == blocker_baryo.size());
+
   auto normal = *onto.normal();
-  auto get_numerator = [&]() { return normal.dot(onto.vertices[0] - origin); };
-  double numerator = get_numerator();
+  auto plane_vertex = onto.vertices[0];
 
-  // TODO: check these numbers...
-  if (std::abs(numerator) < 1e-10) {
-    dbg("IN PLANE!");
-    // we are in the plane, so we will "push" ourselves outside just a bit
-    origin += normal * 1e-6;
-    dbg(numerator);
-    numerator = get_numerator();
-    dbg(numerator);
-  }
-
-  std::array<std::optional<BaryoPoint>, 3> op_points;
-
-  auto run_for_blocker_point =
-      [&](const Eigen::Vector3d &point) -> std::optional<BaryoPoint> {
-    Eigen::Vector3d direction = point - origin;
-    double denom = normal.dot(direction);
-    dbg(direction);
-    dbg(point);
-    dbg(origin);
-    dbg(normal);
-    if (std::abs(denom) < 1e-15) {
-      dbg("denom too low");
-      return std::nullopt;
-    }
-    dbg(denom);
-    double t = numerator / denom;
-    if (t < 0.) {
-      dbg("t < 0");
-      return std::nullopt;
-    }
-    auto baryocentric_vals = onto.interpolation_values(t * direction + origin);
-    return BaryoPoint{baryocentric_vals[1], baryocentric_vals[2]};
+  double plane_offset = normal.dot(plane_vertex);
+  auto plane_pos = [&](const Eigen::Vector3d &point) {
+    return point.dot(normal) - plane_offset;
   };
 
-  for (unsigned i = 0; i < 3; ++i) {
-    op_points[i] = run_for_blocker_point(blocker.vertices[i]);
+#ifndef NDEBUG
+  double from_max_plane_pos = std::numeric_limits<double>::lowest();
+  for (const auto &p : from_vertices) {
+    double pos = plane_pos(p);
+    // should already be clipped by plane!
+    debug_assert(pos > -1e-6);
+    from_max_plane_pos = std::max(pos, from_max_plane_pos);
   }
 
-  ArrayVec<unsigned, 3> included_idxs;
-  ArrayVec<unsigned, 3> excluded_idxs;
+  // shouldn't be coplaner
+  debug_assert(from_max_plane_pos > 1e-13);
 
-  for (unsigned i = 0; i < 3; ++i) {
-    if (op_points[i].has_value()) {
-      included_idxs.push_back(i);
-    } else {
-      excluded_idxs.push_back(i);
+  for (const auto &p : blocker_vertices) {
+    // should already be clipped by plane!
+    [[maybe_unused]] double pos = plane_pos(p);
+    debug_assert(pos > -1e-6);
+  }
+#endif
+
+  VectorT<Eigen::Vector2d> points_for_hull;
+  // TODO: could be handled just using an angle range
+  VectorT<Eigen::Vector2d> directions;
+  points_for_hull.reserve(from_vertices.size() * blocker_vertices.size() * 6);
+  directions.reserve(from_vertices.size() * blocker_vertices.size());
+
+  VectorT<SomeShadowedInfo::RayItem> ray_items;
+  ray_items.resize(from_vertices.size() * blocker_vertices.size() * 6);
+
+  std::unordered_set<std::array<double, 4>> added_items;
+
+  auto run_for_points =
+      [&](const BaryoPoint &baryo_origin, const BaryoPoint &baryo_endpoint,
+          const Eigen::Vector3d &origin, const Eigen::Vector3d &endpoint) {
+        std::array key{baryo_origin.x(), baryo_origin.y(), baryo_endpoint.x(),
+                       baryo_endpoint.y()};
+        if (!added_items.insert(key).second) {
+          // already added
+          return;
+        }
+
+        auto add_point = [&](const Eigen::Vector3d &point) -> Eigen::Vector2d {
+          auto baryo = onto.baryo_values(point);
+          Eigen::Vector2d baryo_eigen{baryo[0], baryo[1]};
+          points_for_hull.push_back(baryo_eigen);
+
+          return baryo_eigen;
+        };
+
+        double origin_plane_position = plane_pos(origin);
+        double endpoint_plane_position = plane_pos(endpoint);
+
+        debug_assert(origin_plane_position - endpoint_plane_position > -1e-6);
+
+        Eigen::Vector3d direction = endpoint - origin;
+
+        // TODO: handle intersecting/overlapping point case
+        debug_assert(direction.norm() > 1e-10);
+
+        auto result = [&]() -> SomeShadowedInfo::RayItem::Result {
+          if (origin_plane_position - endpoint_plane_position < 1e-6) {
+            // coplanar case
+            if (std::abs(endpoint_plane_position) < 1e-6) {
+              // TODO: is this case important?
+              // endpoint is also on onto
+              add_point(endpoint);
+            }
+
+            auto origin_on_plane_baryo =
+                onto.baryo_values(origin - normal * origin_plane_position);
+            auto endpoint_on_plane =
+                onto.baryo_values(endpoint - normal * endpoint_plane_position);
+            Eigen::Vector2d direction{
+                endpoint_on_plane[0] - origin_on_plane_baryo[0],
+                endpoint_on_plane[1] - origin_on_plane_baryo[1]};
+            direction.normalize();
+            directions.push_back(direction);
+            return {tag_v<RayItemResultType::Ray>, direction};
+          } else {
+            double denom = normal.dot(direction);
+            debug_assert(std::abs(denom) > 1e-15);
+            double t = -origin_plane_position / denom;
+            debug_assert(t > 1. - 1e-4); // should hit plane AFTER endpoint
+            return {tag_v<RayItemResultType::Intersection>,
+                    add_point(t * direction + origin)};
+          }
+        }();
+
+        ray_items.push_back({
+            .baryo_origin = baryo_origin,
+            .baryo_endpoint = baryo_endpoint,
+            .origin = origin,
+            .endpoint = endpoint,
+            .result = result,
+        });
+      };
+
+  // TODO: could make this much more efficient in many different ways...
+  // Also, this has pretty terrible numerical properties...
+  for (unsigned i = 0; i < from_vertices.size(); ++i) {
+    auto new_blocker_region = triangle_subset_intersection(
+        blocker_clipped_region,
+        clip_by_plane(-normal, from_vertices[i].dot(-normal), blocker));
+
+    const auto new_blocker_bp =
+        get_points_from_subset_with_baryo(blocker, new_blocker_region);
+    const auto &new_blocker_vertices = new_blocker_bp.points;
+    const auto &new_blocker_baryo = new_blocker_bp.baryo;
+    debug_assert(new_blocker_vertices.size() == new_blocker_baryo.size());
+
+    for (unsigned j = 0; j < new_blocker_vertices.size(); ++j) {
+      run_for_points(from_baryo[i], new_blocker_baryo[j], from_vertices[i],
+                     new_blocker_vertices[j]);
+    }
+  }
+  for (unsigned j = 0; j < blocker_vertices.size(); ++j) {
+    auto new_from_region = triangle_subset_intersection(
+        from_clipped_region,
+        clip_by_plane(normal, blocker_vertices[j].dot(normal), from));
+
+    const auto new_from_bp =
+        get_points_from_subset_with_baryo(from, new_from_region);
+    const auto &new_from_vertices = new_from_bp.points;
+    const auto &new_from_baryo = new_from_bp.baryo;
+    debug_assert(new_from_vertices.size() == new_from_baryo.size());
+
+    for (unsigned i = 0; i < new_from_vertices.size(); ++i) {
+      run_for_points(new_from_baryo[i], blocker_baryo[j], new_from_vertices[i],
+                     blocker_vertices[j]);
     }
   }
 
-  ArrayVec<BaryoPoint, 4> out;
-  for (unsigned included_idx : included_idxs) {
-    out.push_back(*op_points[included_idx]);
-  }
-
-  dbg(unsigned(included_idxs.size()));
-  if (included_idxs.size() == 3 || included_idxs.empty()) {
-    return out;
-  }
-
-  auto get_point = [&](unsigned included_idx, unsigned excluded_idx) {
-    Eigen::Vector3d toward_included =
-        blocker.vertices[included_idx] - blocker.vertices[excluded_idx];
-    // the numerical stability of this might be problematic
-    auto to_project = (1 + 1e-15) * normal *
-                      normal.dot(blocker.vertices[excluded_idx] - origin) /
-                      normal.squaredNorm();
-    double prop =
-        toward_included.dot(to_project) / toward_included.squaredNorm();
-    auto out = run_for_blocker_point(blocker.vertices[excluded_idx] +
-                                     toward_included * prop);
-    dbg(out.has_value());
-    dbg(out->x());
-    dbg(out->y());
-
-    return *out;
+  boost::geometry::model::multi_point<BaryoPoint> multi_point_for_hull;
+  auto add_final_point = [&](const Eigen::Vector2d &p) {
+    boost::geometry::append(multi_point_for_hull, BaryoPoint{p.x(), p.y()});
   };
-
-  dbg(included_idxs.size());
-  if (included_idxs.size() == 1) {
-    out.push_back(get_point(included_idxs[0], excluded_idxs[0]));
-    out.push_back(get_point(included_idxs[0], excluded_idxs[1]));
-  } else {
-    debug_assert(included_idxs.size() == 2);
-    out.push_back(get_point(included_idxs[0], excluded_idxs[0]));
-    out.push_back(get_point(included_idxs[1], excluded_idxs[0]));
+  for (const auto &point : points_for_hull) {
+    add_final_point(point);
   }
 
-  return out;
+  // this is jank and slow - probably could do this better...
+  double edge_total = 0.;
+  for (unsigned i = 0; i < onto.vertices.size(); ++i) {
+    unsigned next_i = (i + 1) % onto.vertices.size();
+    edge_total += (onto.vertices[next_i] - onto.vertices[i]).norm();
+  }
+  double base_multiplier = edge_total + 2.;
+  for (const auto &dir : directions) {
+    for (const auto &point : points_for_hull) {
+      auto dist_from_0 = point.norm();
+      // multiplier just needs to be sufficiently large
+      double multiplier = 2. * (dist_from_0 + base_multiplier);
+      add_final_point(point + dir * multiplier);
+    }
+  }
+
+  TriPolygon poly;
+  boost::geometry::convex_hull(multi_point_for_hull, poly);
+  TriPolygon triangle{{{0.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}, {0.0, 0.0}}};
+  debug_assert(boost::geometry::is_valid(triangle));
+
+  auto some_shadowed =
+      triangle_subset_intersection({tag_v<TriangleSubsetType::Some>, poly},
+                                   {tag_v<TriangleSubsetType::Some>, triangle});
+  if (some_shadowed.type() == TriangleSubsetType::Some) {
+    auto poly = some_shadowed.get(tag_v<TriangleSubsetType::Some>);
+    if (std::abs(boost::geometry::area(poly) - 0.5) < 1e-12) {
+      some_shadowed = {tag_v<TriangleSubsetType::All>, {}};
+    }
+  }
+
+  return {.some_shadowed = some_shadowed, .ray_items = ray_items};
 }
 
-ATTR_PURE_NDEBUG TriangleSubset shadowed_from_point(
-    const Eigen::Vector3d &point, const intersect::TriangleGen<double> &blocker,
-    const intersect::TriangleGen<double> &onto) {
+ATTR_PURE_NDEBUG TriangleSubset
+shadowed_from_point(const Eigen::Vector3d &point,
+                    SpanSized<const Eigen::Vector3d> blocker_points,
+                    const intersect::TriangleGen<double> &onto) {
   TriangleSubset full_intersection = {tag_v<TriangleSubsetType::All>, {}};
+  debug_assert(blocker_points.size() >= 3);
 
-  for (unsigned j = 0; j < blocker.vertices.size(); ++j) {
-    unsigned next_j = (j + 1) % blocker.vertices.size();
-    unsigned next_next_j = (j + 2) % blocker.vertices.size();
+  for (unsigned j = 0; j < blocker_points.size(); ++j) {
+    unsigned next_j = (j + 1) % blocker_points.size();
+    unsigned next_next_j = (j + 2) % blocker_points.size();
 
-    auto vec_0 = blocker.vertices[j] - point;
-    auto vec_1 = blocker.vertices[next_j] - point;
+    auto vec_0 = blocker_points[j] - point;
+    auto vec_1 = blocker_points[next_j] - point;
     Eigen::Vector3d normal = vec_0.cross(vec_1);
-    auto point_on_plane = blocker.vertices[next_j];
-    // other vertex should be on positive side of plane
-    if (normal.dot(blocker.vertices[next_next_j] - point_on_plane) < 0.f) {
+    auto point_on_plane = blocker_points[next_j];
+    // other vertex should be on positive side of plane (blocker_points is
+    // assumed to be convex, planar polygon)
+    if (normal.dot(blocker_points[next_next_j] - point_on_plane) < 0.f) {
       normal *= -1.f;
     }
 
-    auto clipped = clip_by_plane(normal, point_on_plane, onto);
+    auto clipped = clip_by_plane_point(normal, point_on_plane, onto);
 
     full_intersection =
         triangle_subset_intersection(full_intersection, clipped);
@@ -141,56 +259,30 @@ ATTR_PURE_NDEBUG TriangleSubset shadowed_from_point(
   return full_intersection;
 }
 
-ATTR_PURE_NDEBUG ShadowedInfo
-shadowed(const VectorT<Eigen::Vector3d> &from_points,
-         const intersect::TriangleGen<double> &blocker,
-         const intersect::TriangleGen<double> &onto) {
+ATTR_PURE_NDEBUG TotallyShadowedInfo
+totally_shadowed(const intersect::TriangleGen<double> &from,
+                 const TriangleSubset &from_clipped_region,
+                 const intersect::TriangleGen<double> &blocker,
+                 const TriangleSubset &blocker_clipped_region,
+                 const intersect::TriangleGen<double> &onto) {
+  // no need for the func to be called in these cases
+  always_assert(from_clipped_region.type() != TriangleSubsetType::None);
+  always_assert(blocker_clipped_region.type() != TriangleSubsetType::None);
 
+  auto from_points = get_points_from_subset(from, from_clipped_region);
+  auto blocker_points = get_points_from_subset(blocker, blocker_clipped_region);
   VectorT<TriangleSubset> from_each_point(from_points.size());
-  TriangleSubset totally_blocked = {tag_v<TriangleSubsetType::All>, {}};
-  boost::geometry::model::multi_point<BaryoPoint> points;
+  TriangleSubset totally_shadowed = {tag_v<TriangleSubsetType::All>, {}};
   for (unsigned i = 0; i < from_points.size(); ++i) {
     const auto &origin = from_points[i];
-    from_each_point[i] = shadowed_from_point(origin, blocker, onto);
-    totally_blocked =
-        triangle_subset_intersection(totally_blocked, from_each_point[i]);
-    auto vert_points = intersecting_points(origin, blocker, onto);
-    // dbg("before");
-    for (const auto &point : vert_points) {
-      // std::cout << "point: [" << point.x() << ", " << point.y() << "]\n";
-      boost::geometry::append(points, point);
-    }
+    from_each_point[i] = shadowed_from_point(origin, blocker_points, onto);
+    totally_shadowed =
+        triangle_subset_intersection(totally_shadowed, from_each_point[i]);
   }
-
-  TriPolygon poly;
-  boost::geometry::convex_hull(points, poly);
-  TriPolygon triangle{{{0.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}, {0.0, 0.0}}};
-  debug_assert(boost::geometry::is_valid(triangle));
-
-  auto some_blocking =
-      triangle_subset_intersection({tag_v<TriangleSubsetType::Some>, poly},
-                                   {tag_v<TriangleSubsetType::Some>, triangle});
-  if (some_blocking.type() == TriangleSubsetType::Some) {
-    auto poly = some_blocking.get(tag_v<TriangleSubsetType::Some>);
-    if (std::abs(boost::geometry::area(poly) - 0.5) < 1e-12) {
-      // TODO: check this actually happens!
-      some_blocking = {tag_v<TriangleSubsetType::All>, {}};
-      dbg("IS ALL");
-      dbg(poly.outer().size());
-      for (const auto &p : poly.outer()) {
-        dbg(p.x(), p.y());
-      }
-    }
-  }
-
-  // auto some_blocking = triangle_subset_convex_union(
-  //     {from_each_point[0], from_each_point[1], from_each_point[2]});
 
   return {
-      .some_blocking = some_blocking,
-      .totally_blocked = totally_blocked,
+      .totally_shadowed = totally_shadowed,
       .from_each_point = from_each_point,
   };
 }
-
 } // namespace generate_data

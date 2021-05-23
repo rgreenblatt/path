@@ -5,7 +5,6 @@
 #include "lib/attribute.h"
 
 #include <boost/geometry.hpp>
-#include <boost/geometry/algorithms/intersection.hpp>
 
 namespace generate_data {
 ATTR_PURE_NDEBUG inline TriangleSubset

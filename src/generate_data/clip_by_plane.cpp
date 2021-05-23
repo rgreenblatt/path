@@ -9,16 +9,15 @@
 
 namespace generate_data {
 ATTR_PURE_NDEBUG TriangleSubset
-clip_by_plane(const Eigen::Vector3d &normal, const Eigen::Vector3d &point,
+clip_by_plane(const Eigen::Vector3d &normal, double plane_threshold,
               const intersect::TriangleGen<double> &tri) {
   ArrayVec<unsigned, 3> included;
   ArrayVec<double, 3> precomputed_vals;
   ArrayVec<unsigned, 3> excluded;
-  double min_v = normal.dot(point);
   for (unsigned i = 0; i < 3; ++i) {
     double dotted = normal.dot(tri.vertices[i]);
-    if (dotted > min_v) {
-      precomputed_vals.push_back(min_v - dotted);
+    if (dotted > plane_threshold) {
+      precomputed_vals.push_back(plane_threshold - dotted);
       included.push_back(i);
     } else {
       excluded.push_back(i);
@@ -34,6 +33,13 @@ clip_by_plane(const Eigen::Vector3d &normal, const Eigen::Vector3d &point,
     return {tag_v<TriangleSubsetType::None>, {}};
   }
 
+  if (std::abs(std::abs(tri.normal()->dot(normal.normalized())) - 1.) < 1e-8) {
+    // basically coplanar and still intersecting (some included and some not) -
+    // to handle this case we just return all (because the meshes better with
+    // the algorithms used elsewhere...)
+    return {tag_v<TriangleSubsetType::All>, {}};
+  }
+
   auto make_point = [&](double value, unsigned idx) -> Eigen::Vector2d {
     if (idx == 2) {
       return {0., value};
@@ -42,8 +48,6 @@ clip_by_plane(const Eigen::Vector3d &normal, const Eigen::Vector3d &point,
       return {value, 0.};
     }
   };
-
-  // auto
 
   auto edge_points = [&](unsigned included_idx, unsigned end_idx) {
     unsigned origin_idx = included[included_idx];
@@ -56,7 +60,9 @@ clip_by_plane(const Eigen::Vector3d &normal, const Eigen::Vector3d &point,
     double prop = precomputed_vals[included_idx] / ray.dot(normal);
     Eigen::Vector3d endpoint = prop * ray + origin;
 
-    debug_assert(std::abs(endpoint.dot(normal) - min_v) < 1e-6);
+    debug_assert(0. <= prop);
+    debug_assert(1. >= prop);
+    debug_assert(std::abs(endpoint.dot(normal) - plane_threshold) < 1e-6);
 
     if (origin_idx == 0) {
       return make_point(prop, end_idx);
@@ -65,9 +71,8 @@ clip_by_plane(const Eigen::Vector3d &normal, const Eigen::Vector3d &point,
     } else {
       auto baryocentric_vals = tri.interpolation_values(endpoint);
       Eigen::Vector2d ret{baryocentric_vals[1], baryocentric_vals[2]};
-      [[maybe_unused]] Eigen::Vector3d baryo_point =
-          tri.vertices[0] + ret.x() * (tri.vertices[1] - tri.vertices[0]) +
-          ret.y() * (tri.vertices[2] - tri.vertices[0]);
+      [[maybe_unused]] auto baryo_point =
+          tri.value_from_baryo({ret.x(), ret.y()});
       debug_assert((endpoint - baryo_point).norm() < 1e-6);
 
       return ret;

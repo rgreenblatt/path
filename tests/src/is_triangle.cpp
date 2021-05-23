@@ -1,6 +1,6 @@
+#include "generate_data/shadowed.h"
+#include "generate_data/triangle.h"
 #include "integrate/sample_triangle.h"
-#include "intersect/is_triangle_between.h"
-#include "intersect/is_triangle_blocking.h"
 #include "intersect/ray.h"
 #include "intersect/triangle.h"
 #include "intersect/triangle_impl.h"
@@ -12,20 +12,18 @@
 #include <iostream>
 #include <random>
 
-using namespace intersect;
+using namespace generate_data;
 
-TEST(is_triangle, random) {
+TEST(shadowed, random) {
   std::mt19937 gen(testing::UnitTest::GetInstance()->random_seed());
 
-  rng::uniform::Uniform<ExecutionModel::CPU>::Ref::State rng{
-      unsigned(testing::UnitTest::GetInstance()->random_seed()),
-  };
+  std::uniform_real_distribution dist(0., 1.);
 
   auto random_vec = [&]() {
-    return Eigen::Vector3f{rng.next(), rng.next(), rng.next()};
+    return Eigen::Vector3d{dist(gen), dist(gen), dist(gen)};
   };
 
-  auto gen_tri = [&](float scale, Eigen::Vector3f offset) -> Triangle {
+  auto gen_tri = [&](double scale, Eigen::Vector3d offset) -> Triangle {
     return {{
         scale * random_vec() + offset,
         scale * random_vec() + offset,
@@ -40,9 +38,11 @@ TEST(is_triangle, random) {
   unsigned total_possible_between_fails = 0;
   unsigned total_possible_blocking_fails = 0;
 
+  std::bernoulli_distribution use_uniform_tris(0.6);
+
   for (unsigned i = 0; i < num_tests; ++i) {
     std::array<Triangle, 3> tris;
-    if (rng.next() < 0.6f) {
+    if (use_uniform_tris(gen)) {
       auto gen = [&]() { return gen_tri(1.f, Eigen::Vector3f::Zero()); };
       tris = {gen(), gen(), gen()};
     } else {
@@ -60,64 +60,7 @@ TEST(is_triangle, random) {
       std::array<Triangle, 2> outer_tries{tris[outer_0], tris[outer_1]};
       const auto &inner_tri = tris[inner];
 
-      bool first_order_is_between = is_triangle_between(outer_tries, inner_tri);
-      bool first_order_is_blocking =
-          is_triangle_blocking(outer_tries, inner_tri);
-
-      // first_order_is_blocking implies first_order_is_between
-      EXPECT_TRUE(!first_order_is_blocking || first_order_is_between);
-
-      unsigned num_random_checks = first_order_is_between
-                                       ? max_num_random_checks
-                                       : base_num_random_checks;
-
-      bool actually_found_blocked_ray_between = false;
-      bool actually_found_unblocked_ray_between = false;
-      for (unsigned j = 0;
-           j < num_random_checks && (!actually_found_blocked_ray_between ||
-                                     !actually_found_unblocked_ray_between);
-           ++j) {
-        auto p0 = integrate::sample_triangle(outer_tries[0], rng);
-        auto p1 = integrate::sample_triangle(outer_tries[1], rng);
-
-        Eigen::Vector3f dir = p1 - p0;
-        float dist_limit = dir.norm();
-
-        intersect::Ray ray{
-            .origin = p0,
-            .direction = UnitVector::new_normalize(dir),
-        };
-
-        auto intersection = inner_tri.intersect(ray);
-        if (intersection.has_value() &&
-            intersection->intersection_dist >= 0.f &&
-            intersection->intersection_dist <= dist_limit) {
-          actually_found_blocked_ray_between = true;
-        } else {
-          actually_found_unblocked_ray_between = true;
-        }
-      }
-
-      if (!actually_found_blocked_ray_between && first_order_is_between) {
-        ++total_possible_between_fails;
-      } else {
-        EXPECT_EQ(actually_found_blocked_ray_between, first_order_is_between);
-      }
-
-      if (!actually_found_unblocked_ray_between && !first_order_is_blocking) {
-        ++total_possible_blocking_fails;
-      } else {
-        EXPECT_EQ(!actually_found_unblocked_ray_between,
-                  first_order_is_blocking);
-      }
-
-      std::swap(outer_tries[0], outer_tries[1]);
-      bool second_order_is_between =
-          is_triangle_between(outer_tries, inner_tri);
-      EXPECT_EQ(first_order_is_between, second_order_is_between);
-      bool second_order_order_is_blocking =
-          is_triangle_blocking(outer_tries, inner_tri);
-      EXPECT_EQ(first_order_is_blocking, second_order_order_is_blocking);
+      // TODO
     }
   }
   // 3 possible inner tris

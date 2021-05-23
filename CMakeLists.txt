@@ -337,6 +337,7 @@ target_add_standard(path)
 add_library(
   generate_data STATIC
   "${PROJECT_SOURCE_DIR}/src/generate_data/generate_scene.cpp"
+  "${PROJECT_SOURCE_DIR}/src/generate_data/generate_scene_triangles.cpp"
   "${PROJECT_SOURCE_DIR}/src/generate_data/clip_by_plane.cpp"
   "${PROJECT_SOURCE_DIR}/src/generate_data/shadowed.cpp"
   "${PROJECT_SOURCE_DIR}/src/generate_data/mesh_scene_generator.cpp"

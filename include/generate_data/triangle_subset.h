@@ -16,7 +16,7 @@ enum class TriangleSubsetType {
 using BaryoPoint = boost::geometry::model::d2::point_xy<double>;
 using TriPolygon = boost::geometry::model::polygon<BaryoPoint>;
 
-// TODO: consider if it would make sense to use improve
+// TODO: consider if it would make sense to improve
 // perf by using fixed size values in some cases...
 using TriangleSubset =
     TaggedUnion<TriangleSubsetType, std::tuple<>, std::tuple<>, TriPolygon>;

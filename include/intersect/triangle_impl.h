@@ -7,8 +7,8 @@
 namespace intersect {
 template <typename T>
 ATTR_PURE_NDEBUG
-    HOST_DEVICE inline IntersectionOp<typename TriangleGen<T>::InfoType>
-    TriangleGen<T>::intersect(const Ray &ray) const {
+    HOST_DEVICE inline IntersectionOp<typename TriangleGen<T>::InfoType, T>
+    TriangleGen<T>::intersect(const GenRay<T> &ray) const {
   Eigen::Vector3<T> edge1 = vertices[1] - vertices[0];
   Eigen::Vector3<T> edge2 = vertices[2] - vertices[0];
 
@@ -32,7 +32,7 @@ ATTR_PURE_NDEBUG
   T t = f * edge2.dot(q);
   if (t > intersect_epsilon) {
     bool is_back_intersection = a < 0.;
-    return Intersection<InfoType>{t, is_back_intersection, InfoType{}};
+    return Intersection<InfoType, T>{t, is_back_intersection, InfoType{}};
   } else {
     return std::nullopt;
   }
@@ -40,8 +40,10 @@ ATTR_PURE_NDEBUG
 
 template <typename T>
 ATTR_PURE_NDEBUG HOST_DEVICE inline accel::AABB TriangleGen<T>::bounds() const {
-  auto min_b = max_eigen_vec();
-  auto max_b = min_eigen_vec();
+  static_assert(std::same_as<T, float>);
+  // TODO: only works for floats!
+  auto min_b = max_eigen_vec<float>();
+  auto max_b = min_eigen_vec<float>();
   for (const auto &vertex : vertices) {
     min_b = min_b.cwiseMin(vertex);
     max_b = max_b.cwiseMax(vertex);
