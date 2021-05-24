@@ -43,15 +43,15 @@ TEST(shadowed, random) {
   for (unsigned i = 0; i < num_tests; ++i) {
     std::array<Triangle, 3> tris;
     if (use_uniform_tris(gen)) {
-      auto gen = [&]() { return gen_tri(1.f, Eigen::Vector3f::Zero()); };
+      auto gen = [&]() { return gen_tri(1., Eigen::Vector3d::Zero()); };
       tris = {gen(), gen(), gen()};
     } else {
       // try to create blocking conditions
-      float edge_scale = 0.2;
-      float middle_scale = 3.0;
-      tris = {gen_tri(edge_scale, -Eigen::Vector3f::Ones()),
-              gen_tri(middle_scale, Eigen::Vector3f::Zero()),
-              gen_tri(edge_scale, Eigen::Vector3f::Ones())};
+      double edge_scale = 0.2;
+      double middle_scale = 3.0;
+      tris = {gen_tri(edge_scale, -Eigen::Vector3d::Ones()),
+              gen_tri(middle_scale, Eigen::Vector3d::Zero()),
+              gen_tri(edge_scale, Eigen::Vector3d::Ones())};
     }
 
     for (unsigned inner = 0; inner < tris.size(); ++inner) {
