@@ -388,6 +388,6 @@ add_executable(loaded_float_rgb
 target_link_libraries(loaded_float_rgb PRIVATE Qt5::Widgets)
 target_add_standard(loaded_float_rgb)
 
-add_executable(temp "${PROJECT_SOURCE_DIR}/src/temp.cpp")
-target_link_libraries(temp PRIVATE gen_data)
-target_add_standard(temp)
+add_executable(test_gen_data "${PROJECT_SOURCE_DIR}/src/test_gen_data.cpp")
+target_link_libraries(test_gen_data PRIVATE gen_data docopt_s)
+target_add_standard(test_gen_data)

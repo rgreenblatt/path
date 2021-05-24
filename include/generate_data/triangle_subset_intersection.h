@@ -27,12 +27,24 @@ triangle_subset_intersection(const TriangleSubset &l, const TriangleSubset &r) {
 
   std::vector<TriPolygon> output;
   boost::geometry::intersection(l_poly, r_poly, output);
-  always_assert(output.size() <= 1);
-
   if (output.empty()) {
     return {tag_v<TriangleSubsetType::None>, {}};
+  } else if (output.size() == 1) {
+    return {tag_v<TriangleSubsetType::Some>, output[0]};
+  } else {
+    std::optional<unsigned> actual_poly_idx;
+    for (unsigned i = 0; i < output.size(); ++i) {
+      if (boost::geometry::area(output[i]) > 1e-13) {
+        debug_assert(!actual_poly_idx.has_value());
+        actual_poly_idx = i;
+      }
+    }
+    if (!actual_poly_idx.has_value()) {
+      // TODO: does this make sense? (maybe doesn't matter too much...)
+      return {tag_v<TriangleSubsetType::None>, {}};
+    } else {
+      return {tag_v<TriangleSubsetType::Some>, output[*actual_poly_idx]};
+    }
   }
-
-  return {tag_v<TriangleSubsetType::Some>, output[0]};
 }
 } // namespace generate_data

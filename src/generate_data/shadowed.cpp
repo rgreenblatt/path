@@ -32,12 +32,12 @@ namespace generate_data {
 
 // TODO: fix epsilons
 // TODO: could be sooooo much faster probably
-ATTR_PURE_NDEBUG SomeShadowedInfo
-some_shadowed(const intersect::TriangleGen<double> &from,
-              const TriangleSubset &from_clipped_region,
-              const intersect::TriangleGen<double> &blocker,
-              const TriangleSubset &blocker_clipped_region,
-              const intersect::TriangleGen<double> &onto) {
+ATTR_PURE_NDEBUG PartiallyShadowedInfo
+partially_shadowed(const intersect::TriangleGen<double> &from,
+                   const TriangleSubset &from_clipped_region,
+                   const intersect::TriangleGen<double> &blocker,
+                   const TriangleSubset &blocker_clipped_region,
+                   const intersect::TriangleGen<double> &onto) {
   auto from_pb = get_points_from_subset_with_baryo(from, from_clipped_region);
   const auto blocker_pb =
       get_points_from_subset_with_baryo(blocker, blocker_clipped_region);
@@ -81,7 +81,7 @@ some_shadowed(const intersect::TriangleGen<double> &from,
   points_for_hull.reserve(from_vertices.size() * blocker_vertices.size() * 6);
   directions.reserve(from_vertices.size() * blocker_vertices.size());
 
-  VectorT<SomeShadowedInfo::RayItem> ray_items;
+  VectorT<PartiallyShadowedInfo::RayItem> ray_items;
   ray_items.resize(from_vertices.size() * blocker_vertices.size() * 6);
 
   std::unordered_set<std::array<double, 4>> added_items;
@@ -114,7 +114,7 @@ some_shadowed(const intersect::TriangleGen<double> &from,
         // TODO: handle intersecting/overlapping point case
         debug_assert(direction.norm() > 1e-10);
 
-        auto result = [&]() -> SomeShadowedInfo::RayItem::Result {
+        auto result = [&]() -> PartiallyShadowedInfo::RayItem::Result {
           if (origin_plane_position - endpoint_plane_position < 1e-6) {
             // coplanar case
             if (std::abs(endpoint_plane_position) < 1e-6) {
@@ -216,17 +216,17 @@ some_shadowed(const intersect::TriangleGen<double> &from,
   TriPolygon triangle{{{0.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}, {0.0, 0.0}}};
   debug_assert(boost::geometry::is_valid(triangle));
 
-  auto some_shadowed =
+  auto partially_shadowed =
       triangle_subset_intersection({tag_v<TriangleSubsetType::Some>, poly},
                                    {tag_v<TriangleSubsetType::Some>, triangle});
-  if (some_shadowed.type() == TriangleSubsetType::Some) {
-    auto poly = some_shadowed.get(tag_v<TriangleSubsetType::Some>);
+  if (partially_shadowed.type() == TriangleSubsetType::Some) {
+    auto poly = partially_shadowed.get(tag_v<TriangleSubsetType::Some>);
     if (std::abs(boost::geometry::area(poly) - 0.5) < 1e-12) {
-      some_shadowed = {tag_v<TriangleSubsetType::All>, {}};
+      partially_shadowed = {tag_v<TriangleSubsetType::All>, {}};
     }
   }
 
-  return {.some_shadowed = some_shadowed, .ray_items = ray_items};
+  return {.partially_shadowed = partially_shadowed, .ray_items = ray_items};
 }
 
 ATTR_PURE_NDEBUG TriangleSubset

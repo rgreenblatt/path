@@ -19,7 +19,7 @@ enum class RayItemResultType {
   Intersection,
 };
 
-struct SomeShadowedInfo {
+struct PartiallyShadowedInfo {
   struct RayItem {
     using Result =
         TaggedUnion<RayItemResultType, Eigen::Vector2d, Eigen::Vector2d>;
@@ -30,16 +30,16 @@ struct SomeShadowedInfo {
     Result result;
   };
 
-  TriangleSubset some_shadowed;
+  TriangleSubset partially_shadowed;
   VectorT<RayItem> ray_items;
 };
 
-ATTR_PURE_NDEBUG SomeShadowedInfo
-some_shadowed(const intersect::TriangleGen<double> &from,
-              const TriangleSubset &from_clipped_region,
-              const intersect::TriangleGen<double> &blocker,
-              const TriangleSubset &blocker_clipped_region,
-              const intersect::TriangleGen<double> &onto);
+ATTR_PURE_NDEBUG PartiallyShadowedInfo
+partially_shadowed(const intersect::TriangleGen<double> &from,
+                   const TriangleSubset &from_clipped_region,
+                   const intersect::TriangleGen<double> &blocker,
+                   const TriangleSubset &blocker_clipped_region,
+                   const intersect::TriangleGen<double> &onto);
 
 ATTR_PURE_NDEBUG TriangleSubset
 shadowed_from_point(const Eigen::Vector3d &point,

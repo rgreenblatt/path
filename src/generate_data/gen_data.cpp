@@ -11,12 +11,14 @@
 #include "generate_data/triangle.h"
 #include "generate_data/triangle_subset_intersection.h"
 #include "integrate/sample_triangle.h"
+#include "kernel/atomic.h"
 #include "lib/array_vec.h"
 #include "lib/async_for.h"
 #include "lib/projection.h"
 #include "render/renderer.h"
 #include "rng/uniform/uniform.h"
 
+#include <boost/hana/ext/std/array.hpp>
 #include <omp.h>
 #include <torch/extension.h>
 
@@ -56,18 +58,29 @@ struct PolyPoint {
 };
 
 constexpr int n_tris = 3;
-constexpr int n_scene_values = 14 * n_tris;
+constexpr int n_scene_values = (3 + 2 * 11) * n_tris;
 constexpr int n_dims = 3;
-constexpr int n_tri_values = n_tris * n_dims + n_dims + n_dims + 1;
+constexpr int n_tri_values = n_tris * n_dims + 4 * n_dims + 2;
 constexpr int n_baryo_dims = 2;
-constexpr int n_poly_point_values = n_baryo_dims + n_dims + 1;
+constexpr int n_poly_point_values = 3 * n_baryo_dims + n_dims + 4;
 constexpr int n_rgb_dims = 3;
 constexpr int n_shadowable_tris = 2;   // onto and light
 constexpr int n_poly_feature_dims = 2; // area and properly scaled area
+constexpr double dotted_thresh = 1. - 1e-7;
 
 using TorchIdxT = int64_t;
 const static auto long_tensor_type =
     torch::TensorOptions(caffe2::TypeMeta::Make<TorchIdxT>());
+
+using kernel::atomic::detail::CopyableAtomic;
+
+template <typename T>
+void update_maximum(CopyableAtomic<T> &maximum_value, const T &value) noexcept {
+  T prev_value = maximum_value;
+  while (prev_value < value &&
+         !maximum_value.compare_exchange_weak(prev_value, value)) {
+  }
+}
 
 // TODO: consider more efficient representation later
 template <unsigned n_prior_dims> struct RegionSetter {
@@ -81,7 +94,7 @@ template <unsigned n_prior_dims> struct RegionSetter {
     std::copy(prior_dims.begin(), prior_dims.end(), region_dims.begin());
     region_dims[n_prior_dims] = max_n_points;
     region_dims[n_prior_dims + 1] = n_poly_point_values;
-    removed_regions = torch::empty(region_dims);
+    regions = torch::empty(region_dims);
     std::array<TorchIdxT, n_prior_dims + 1> feature_dims;
     std::copy(prior_dims.begin(), prior_dims.end(), feature_dims.begin());
     feature_dims[n_prior_dims] = n_poly_feature_dims;
@@ -89,17 +102,28 @@ template <unsigned n_prior_dims> struct RegionSetter {
     counts = torch::empty(prior_dims, long_tensor_type);
   }
 
-  void set_region(std::array<TorchIdxT, n_prior_dims> prior_idxs,
-                  const TriangleSubset &region, const Triangle &tri) {
-    region.visit_tagged([&](auto tag, const auto &value) {
-      std::array<TorchIdxT, n_prior_dims + 1> feature_idxs;
-      std::copy(prior_idxs.begin(), prior_idxs.end(), feature_idxs.begin());
+  double set_region(std::array<TorchIdxT, n_prior_dims> prior_idxs_in,
+                    const TriangleSubset &region, const Triangle &tri) {
+    return region.visit_tagged([&](auto tag, const auto &value) {
+      auto prior_idxs = boost::hana::unpack(
+          prior_idxs_in,
+          [&](auto... idxs)
+              -> std::array<torch::indexing::TensorIndex, n_prior_dims> {
+            return {idxs...};
+          });
+      auto feature_idxs = boost::hana::unpack(
+          prior_idxs_in,
+          [&](auto... idxs)
+              -> std::array<torch::indexing::TensorIndex, n_prior_dims + 1> {
+            return {idxs..., 0};
+          });
 
       auto add_feature = [&](int idx, float v) {
         feature_idxs[n_prior_dims] = idx;
         overall_features.index_put_(feature_idxs, v);
       };
 
+      double area_3d = 0.;
       if constexpr (tag == TriangleSubsetType::None) {
         counts.index_put_(prior_idxs, magic_value_none);
         add_feature(0, 0.);
@@ -108,74 +132,103 @@ template <unsigned n_prior_dims> struct RegionSetter {
         const auto pb = get_points_from_subset_with_baryo(tri, region);
         always_assert(pb.points.size() == pb.baryo.size());
         always_assert(pb.points.size() <= max_n_points);
+        update_maximum(actual_max_n_points, unsigned(pb.points.size()));
 
-        counts.index_put_(prior_idxs, pb.baryo.size());
+        counts.index_put_(prior_idxs, TorchIdxT(pb.baryo.size()));
 
         // get areas in baryo and in 3d
         const TriPolygon *baryo_poly;
-        TriPolygon poly_all;
         if constexpr (tag == TriangleSubsetType::All) {
-          for (const auto &p : pb.baryo) {
-            boost::geometry::append(poly_all, p);
-          }
-          boost::geometry::append(poly_all, pb.baryo[0]);
-          baryo_poly = &poly_all;
+          baryo_poly = &full_triangle;
         } else {
           static_assert(tag == TriangleSubsetType::Some);
 
           baryo_poly = &value;
         }
-        using BoostPoint3d = boost::geometry::model::d3::point_xyz<double>;
-        boost::geometry::model::polygon<BoostPoint3d> poly_3d;
-        auto add_point_to_3d = [&](const Eigen::Vector3d &p) {
-          boost::geometry::append(poly_3d, BoostPoint3d{p.x(), p.y(), p.z()});
+        auto rot = find_rotate_vector_to_vector(
+            tri.normal(), UnitVectorGen<double>::new_normalize({0., 0., 1.}));
+        Eigen::Vector2d vec0 =
+            (rot * (tri.vertices[1] - tri.vertices[0])).head(2);
+        Eigen::Vector2d vec1 =
+            (rot * (tri.vertices[2] - tri.vertices[0])).head(2);
+        TriPolygon poly_distorted;
+        auto add_point_to_distorted = [&](const BaryoPoint &p) {
+          Eigen::Vector2d new_p = p.x() * vec0 + p.y() * vec1;
+          boost::geometry::append(poly_distorted,
+                                  BaryoPoint{new_p.x(), new_p.y()});
         };
-        for (const auto &p : pb.points) {
-          add_point_to_3d(p);
+        for (const auto &p : pb.baryo) {
+          add_point_to_distorted(p);
         }
-        add_point_to_3d(pb.points[0]);
+        add_point_to_distorted(pb.baryo[0]);
 
-        debug_assert(boost::geometry::is_valid(baryo_poly));
-        debug_assert(boost::geometry::is_valid(poly_3d));
+        if (!boost::geometry::is_valid(poly_distorted)) {
+          std::reverse(poly_distorted.outer().begin(),
+                       poly_distorted.outer().end());
+        }
 
-        add_feature(0, boost::geometry::area(baryo_poly));
-        add_feature(1, boost::geometry::area(poly_3d));
+        debug_assert(boost::geometry::is_valid(*baryo_poly));
+        debug_assert(boost::geometry::is_valid(poly_distorted));
 
-        std::array<TorchIdxT, n_prior_dims + 2> idxs;
+        add_feature(0, boost::geometry::area(*baryo_poly));
+        area_3d = boost::geometry::area(poly_distorted);
+        add_feature(1, area_3d);
+
+        auto idxs = boost::hana::unpack(
+            prior_idxs_in,
+            [&](auto... idxs)
+                -> std::array<torch::indexing::TensorIndex, n_prior_dims + 2> {
+              return {idxs..., 0, 0};
+            });
         std::copy(prior_idxs.begin(), prior_idxs.end(), idxs.begin());
 
         for (unsigned i = 0; i < pb.baryo.size(); ++i) {
-          idxs[n_prior_dims] = i;
+          idxs[n_prior_dims] = int(i);
 
           auto value_adder = make_value_adder([&](float v, int idx) {
             idxs[n_prior_dims + 1] = idx;
-            removed_regions.index_put_(idxs, v);
+            regions.index_put_(idxs, v);
           });
 
           unsigned i_prev = (i == 0) ? pb.baryo.size() - 1 : i - 1;
           unsigned i_next = (i + 1) % pb.baryo.size();
 
-          auto as_eigen = [](const BaryoPoint &p) -> Eigen::Vector2d {
-            return {p.x(), p.y()};
-          };
+          const auto baryo_prev = baryo_to_eigen(pb.baryo[i_prev]);
+          const auto baryo = baryo_to_eigen(pb.baryo[i]);
+          const auto baryo_next = baryo_to_eigen(pb.baryo[i_next]);
 
-          const auto baryo_prev = as_eigen(pb.baryo[i_prev]);
-          const auto baryo = as_eigen(pb.baryo[i]);
-          const auto baryo_next = as_eigen(pb.baryo[i_next]);
+          Eigen::Vector2d edge_l = baryo_prev - baryo;
+          double norm_l = edge_l.norm();
+          debug_assert(norm_l >= 1e-10);
+          value_adder.add_value(norm_l);
+          Eigen::Vector2d normalized_l = edge_l / norm_l;
+          value_adder.add_values(normalized_l);
 
-          double angle =
-              std::acos((baryo_prev - baryo).dot(baryo_next - baryo));
+          Eigen::Vector2d edge_r = baryo_next - baryo;
+          double norm_r = edge_r.norm();
+          debug_assert(norm_r >= 1e-10);
+          value_adder.add_value(norm_r);
+          Eigen::Vector2d normalized_r = edge_r / norm_r;
+          value_adder.add_values(normalized_r);
 
-          value_adder.add_value(angle);
+          double dotted = normalized_l.dot(normalized_r);
+          debug_assert(dotted < dotted_thresh);
+          value_adder.add_value(dotted);
+          value_adder.add_value(std::acos(dotted));
           value_adder.add_values(baryo);
           value_adder.add_values(pb.points[i]);
+
+          debug_assert(value_adder.idx == n_poly_point_values);
         }
       }
+
+      return area_3d;
     });
   }
 
   unsigned max_n_points;
-  torch::Tensor removed_regions;
+  CopyableAtomic<unsigned> actual_max_n_points = 0;
+  torch::Tensor regions;
   torch::Tensor overall_features;
   torch::Tensor counts;
 };
@@ -191,20 +244,35 @@ template <unsigned n_prior_dims> struct MultiRegionSetter {
     poly_counts = torch::empty(prior_dims, long_tensor_type);
   }
 
-  void add_regions(std::array<TorchIdxT, n_prior_dims> prior_idxs,
-                   const VectorT<TriangleSubset> &regions,
-                   const Triangle &tri) {
-    always_assert(int(regions.size()) <= max_n_polys);
+  void add_regions(std::array<TorchIdxT, n_prior_dims> prior_idxs_in,
+                   VectorT<TriangleSubset> regions, const Triangle &tri) {
+    if (regions.empty()) {
+      regions.push_back({tag_v<TriangleSubsetType::None>, {}});
+    }
+
+    always_assert(regions.size() <= max_n_polys);
+
+    update_maximum(actual_max_n_polys, unsigned(regions.size()));
+
+    auto prior_idxs = boost::hana::unpack(
+        prior_idxs_in,
+        [&](auto... idxs)
+            -> std::array<torch::indexing::TensorIndex, n_prior_dims> {
+          return {idxs...};
+        });
+
     poly_counts.index_put_(prior_idxs, int(regions.size()));
     std::array<TorchIdxT, n_prior_dims + 1> all_prior_idxs;
-    std::copy(prior_idxs.begin(), prior_idxs.end(), all_prior_idxs.begin());
+    std::copy(prior_idxs_in.begin(), prior_idxs_in.end(),
+              all_prior_idxs.begin());
     for (int i = 0; i < int(regions.size()); ++i) {
       all_prior_idxs[n_prior_dims] = i;
       setter.set_region(all_prior_idxs, regions[i], tri);
     }
   }
 
-  int max_n_polys;
+  unsigned max_n_polys;
+  CopyableAtomic<unsigned> actual_max_n_polys = 0;
   torch::Tensor poly_counts;
   RegionSetter<n_prior_dims + 1> setter;
 };
@@ -219,6 +287,9 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
                             int n_samples, unsigned base_seed) {
   using namespace generate_data;
   using namespace torch::indexing;
+
+  debug_assert(boost::geometry::is_valid(full_triangle));
+  debug_assert(std::abs(boost::geometry::area(full_triangle) - 0.5) < 1e-12);
 
   renderers.resize(omp_get_max_threads());
 
@@ -265,9 +336,11 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
   MultiPolyRegionSetter clip_removed_setter{
       basic_prior_dims, max_n_clip_removed_points, max_n_clip_removed_polys};
 
+  // first is onto and second is light
   std::array<TorchIdxT, n_prior_dims> shadowed_prior_dims{n_scenes,
                                                           n_shadowable_tris};
 
+  // TODO: do we also want non intersected with clipped variations?
   int max_n_totally_shadowed_points = 9;
   SinglePolyRegionSetter totally_shadowed_setter{shadowed_prior_dims,
                                                  max_n_totally_shadowed_points};
@@ -289,6 +362,11 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
   MultiPolyRegionSetter totally_visible_setter{shadowed_prior_dims,
                                                max_n_totally_visible_points,
                                                max_n_totally_visible_polys};
+
+  // TODO: do we also want non intersected with clipped variations?
+  int max_n_centroid_shadowed_points = 9;
+  SinglePolyRegionSetter centroid_shadowed_setter{
+      shadowed_prior_dims, max_n_centroid_shadowed_points};
 
   torch::Tensor triangles = torch::empty({n_scenes, n_tris, n_tri_values});
   torch::Tensor scenes = torch::empty({n_scenes, n_scene_values});
@@ -349,32 +427,128 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
       goto restart;
     }
 
-    auto print_subset = [](const TriangleSubset &subset) {
-      subset.visit_tagged([&](auto tag, const auto &value) {
-        if constexpr (tag == TriangleSubsetType::None) {
-          std::cout << "None";
+    std::array tri_pointers{
+        &new_tris.triangle_onto,
+        &new_tris.triangle_blocking,
+        &new_tris.triangle_light,
+    };
+    std::array region_pointers{
+        &onto_region,
+        &blocking_region,
+        &light_region,
+    };
+    std::array<Eigen::Vector3d, 3> region_centroids;
+    std::array<Eigen::Vector3d, 3> centroids;
+    for (int tri_idx = 0; tri_idx < int(tri_pointers.size()); ++tri_idx) {
+      const auto &tri = *tri_pointers[tri_idx];
+      auto from_points = get_points_from_subset(tri, *region_pointers[tri_idx]);
+      region_centroids[tri_idx] = Eigen::Vector3d::Zero();
+      for (const auto &p : from_points) {
+        region_centroids[tri_idx] += p;
+      }
+      region_centroids[tri_idx] /= from_points.size();
+      centroids[tri_idx] = tri.centroid();
+    }
+
+    // l - r
+    // TODO: fix this eventually!
+    // Fix pushing points away.
+    // Fix removal
+    // Maybe both of these are actually fine?
+    auto region_difference =
+        [](const TriangleSubset &l,
+           const TriangleSubset &r) -> VectorT<TriangleSubset> {
+      if (l.type() == TriangleSubsetType::None ||
+          r.type() == TriangleSubsetType::All) {
+        return {{tag_v<TriangleSubsetType::None>, {}}};
+      }
+      if (r.type() == TriangleSubsetType::None) {
+        return {l};
+      }
+      const TriPolygon *l_poly;
+      TriPolygon r_poly = r.get(tag_v<TriangleSubsetType::Some>);
+      Eigen::Vector2d centroid = Eigen::Vector2d::Zero();
+      for (unsigned i = 0; i < r_poly.outer().size() - 1; ++i) {
+        centroid += baryo_to_eigen(r_poly.outer()[i]);
+      }
+      centroid /= r_poly.outer().size() - 1;
+      for (auto &p : r_poly.outer()) {
+        // go slightly further from centroid
+        Eigen::Vector2d new_point =
+            (1. + 1e-6) * (baryo_to_eigen(p) - centroid) + centroid;
+        p = {new_point.x(), new_point.y()};
+      }
+
+      l.visit_tagged([&](auto tag, const auto &val) {
+        if constexpr (tag == TriangleSubsetType::Some) {
+          l_poly = &val;
         } else if constexpr (tag == TriangleSubsetType::All) {
-          std::cout << "'all'";
+          l_poly = &full_triangle;
         } else {
-          static_assert(tag == TriangleSubsetType::Some);
-          std::cout << "[";
-          debug_assert(value.inners().empty());
-          for (auto point : value.outer()) {
-            std::cout << "[" << point.x() << ", " << point.y() << "], ";
-          }
-          std::cout << "]";
+          static_assert(tag == TriangleSubsetType::None);
+          unreachable_unchecked();
         }
-        std::cout << "\n";
       });
+
+      VectorT<TriPolygon> out_polys;
+      boost::geometry::difference(*l_poly, r_poly, out_polys);
+      VectorT<TriangleSubset> out;
+      out.reserve(out_polys.size());
+      for (TriPolygon &p : out_polys) {
+        debug_assert(p.outer().size() >= 4);
+
+        // NOTE: multiple stages of removal might be needed -
+        // we don't do this right now...
+        VectorT<unsigned> to_retain;
+        for (unsigned i = 0; i < p.outer().size() - 1; ++i) {
+          unsigned i_prev = i == 0 ? p.outer().size() - 2 : i - 1;
+          unsigned i_next = i + 1;
+
+          const auto baryo_prev = baryo_to_eigen(p.outer()[i_prev]);
+          const auto baryo = baryo_to_eigen(p.outer()[i]);
+          const auto baryo_next = baryo_to_eigen(p.outer()[i_next]);
+          const auto vec0 = (baryo_prev - baryo).normalized();
+          const auto vec1 = (baryo_next - baryo).normalized();
+          double dotted = vec0.dot(vec1);
+          if (dotted < dotted_thresh) {
+            // not a spike, so we will retain
+            to_retain.push_back(i);
+          } else {
+            dbg("REMOVED POINT!");
+          }
+        }
+
+        if (to_retain.size() < 3) {
+          // nothing left - just continue
+          continue;
+        }
+        if (to_retain.size() == p.outer().size() - 1) {
+          // retain everything
+          out.push_back({tag_v<TriangleSubsetType::Some>, p});
+        } else {
+
+          TriPolygon new_poly;
+          for (unsigned retained : to_retain) {
+            boost::geometry::append(new_poly, p.outer()[retained]);
+          }
+          boost::geometry::append(new_poly, p.outer()[to_retain[0]]);
+          debug_assert(boost::geometry::is_valid(new_poly));
+
+          out.push_back({tag_v<TriangleSubsetType::Some>, new_poly});
+        }
+      };
+      return out;
     };
 
-    for (bool onto_light : {false, true}) {
-      // TODO: use regions + feature etc.. (including centroid)
+    for (unsigned onto_idx : {0, 2}) {
       std::array<const intersect::TriangleGen<double> *, 2> end_tris{
           &new_tris.triangle_light, &new_tris.triangle_onto};
       std::array<const TriangleSubset *, 2> end_region{&light_region,
                                                        &onto_region};
-      if (onto_light) {
+      unsigned feature_idx = 0;
+      bool is_light = onto_idx == 2;
+      if (is_light) {
+        feature_idx = 1;
         std::swap(end_tris[0], end_tris[1]);
         std::swap(end_region[0], end_region[1]);
       }
@@ -384,91 +558,73 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
       if (shadow_info.totally_shadowed.type() == TriangleSubsetType::All) {
         // assert that we aren't on the second iter (should have already
         // restarted)
-        always_assert(!onto_light);
+        always_assert(onto_idx == 0);
 
         // totally blocked
         goto restart;
       }
 
+      auto totally_shadowed_intersected = triangle_subset_intersection(
+          *end_region[1], shadow_info.totally_shadowed);
+
       // check if clipped region is totally shadowed also
-      if (shadow_info.totally_shadowed.type() == TriangleSubsetType::Some &&
+      if (totally_shadowed_intersected.type() == TriangleSubsetType::Some &&
           end_region[1]->type() == TriangleSubsetType::Some) {
         const auto &end_region_poly =
             end_region[1]->get(tag_v<TriangleSubsetType::Some>);
-        VectorT<TriPolygon> intersection;
-        boost::geometry::intersection(
-            end_region_poly,
-            shadow_info.totally_shadowed.get(tag_v<TriangleSubsetType::Some>),
-            intersection);
+        const auto &intersected_poly =
+            totally_shadowed_intersected.get(tag_v<TriangleSubsetType::Some>);
         double region_area = boost::geometry::area(end_region_poly);
-        double total_area = 0.;
-        for (const auto &poly : intersection) {
-          total_area += boost::geometry::area(poly);
-        }
-        if (std::abs(region_area - total_area) < 1e-10) {
+        double intersected_area = boost::geometry::area(intersected_poly);
+        if (std::abs(region_area - intersected_area) < 1e-10) {
           // totally blocked
           goto restart;
         }
       }
 
-      auto some_shadowed_info = some_shadowed(*end_tris[0], *end_region[0],
-                                              new_tris.triangle_blocking,
-                                              blocking_region, *end_tris[1]);
+      auto partially_shadowed_info = partially_shadowed(
+          *end_tris[0], *end_region[0], new_tris.triangle_blocking,
+          blocking_region, *end_tris[1]);
+      auto partially_shadowed_intersected = triangle_subset_intersection(
+          partially_shadowed_info.partially_shadowed, *end_region[1]);
 
-      if (some_shadowed_info.some_shadowed.type() == TriangleSubsetType::None) {
+      if (partially_shadowed_intersected.type() == TriangleSubsetType::None) {
         // assert that we aren't on the second iter (should have already
         // restarted)
-        always_assert(!onto_light);
+        always_assert(onto_idx == 0);
 
         // not blocked at all
         goto restart;
       }
 
-      const auto base = onto_light ? "onto_light_" : "onto_";
+      std::array<TorchIdxT, n_prior_dims> prior_idxs{i, feature_idx};
 
-      std::cout << base << "some_blocking = ";
-      print_subset(some_shadowed_info.some_shadowed);
-      std::cout << base << "totally_blocked = ";
-      print_subset(shadow_info.totally_shadowed);
-      for (unsigned i = 0; i < shadow_info.from_each_point.size(); ++i) {
-        std::cout << base << "from_each_point_" << i << " = ";
-        print_subset(shadow_info.from_each_point[i]);
-      }
+      totally_shadowed_setter.set_region(
+          prior_idxs, totally_shadowed_intersected, *end_tris[1]);
 
-      auto from_points = get_points_from_subset(*end_tris[0], *end_region[0]);
-      Eigen::Vector3d centroid = Eigen::Vector3d::Zero();
-      for (const auto &p : from_points) {
-        centroid += p;
-      }
-      centroid /= from_points.size();
+      partially_visible_setter.add_regions(
+          prior_idxs,
+          region_difference(*end_region[1], shadow_info.totally_shadowed),
+          *end_tris[1]);
+
+      partially_shadowed_setter.set_region(
+          prior_idxs, partially_shadowed_intersected, *end_tris[1]);
+
+      totally_visible_setter.add_regions(
+          prior_idxs,
+          region_difference(*end_region[1],
+                            partially_shadowed_info.partially_shadowed),
+          *end_tris[1]);
 
       auto centroid_shadow = shadowed_from_point(
-          centroid,
+          region_centroids[onto_idx],
           get_points_from_subset(new_tris.triangle_blocking, blocking_region),
           *end_tris[1]);
-      std::cout << base << "centroid_shadow = ";
-      print_subset(centroid_shadow);
+      centroid_shadowed_setter.set_region(prior_idxs, centroid_shadow,
+                                          *end_tris[1]);
     }
 
-    std::cout << "triangle_onto = ";
-    print_triangle(new_tris.triangle_onto.template cast<float>());
-    std::cout << "triangle_blocking = ";
-    print_triangle(new_tris.triangle_blocking.template cast<float>());
-    std::cout << "triangle_light = ";
-    print_triangle(new_tris.triangle_light.template cast<float>());
-
-    std::cout << "onto_region = ";
-    print_subset(onto_region);
-    std::cout << "blocking_region = ";
-    print_subset(blocking_region);
-    std::cout << "light_region = ";
-    print_subset(light_region);
-
-    std::array tri_pointers{
-        &new_tris.triangle_onto,
-        &new_tris.triangle_blocking,
-        &new_tris.triangle_light,
-    };
+    // TODO: precompute and use normals
     for (int tri_idx = 0; tri_idx < int(tri_pointers.size()); ++tri_idx) {
       const auto &tri = *tri_pointers[tri_idx];
 
@@ -484,9 +640,19 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
       }
       const auto normal_scaled = tri.normal_scaled_by_area();
       tri_adder.add_values(normal_scaled);
+      tri_adder.add_values(centroids[tri_idx]);
+      tri_adder.add_values(region_centroids[tri_idx]);
       const auto normal = normal_scaled.normalized().eval();
       tri_adder.add_values(normal);
       tri_adder.add_value(tri.area());
+      double region_area = clipped_setter.set_region(
+          {i, tri_idx}, *region_pointers[tri_idx], tri);
+      clip_removed_setter.add_regions(
+          {i, tri_idx},
+          region_difference({tag_v<TriangleSubsetType::All>, {}},
+                            *region_pointers[tri_idx]),
+          tri);
+      tri_adder.add_value(region_area);
       debug_assert(tri_adder.idx == n_tri_values);
 
       // add tri interaction general scene values
@@ -499,19 +665,22 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
         const double normal_dot = other_normal.dot(normal);
         scene_adder.add_value(normal_dot);
         scene_adder.add_value(std::acos(normal_dot));
-        Eigen::Vector3d centroid_vec_raw =
-            other_tri.centroid() - tri.centroid();
-        scene_adder.add_values(centroid_vec_raw);
-        double centroid_dist = centroid_vec_raw.norm();
-        scene_adder.add_value(centroid_dist);
-        Eigen::Vector3d centroid_vec = centroid_vec_raw.normalized();
-        scene_adder.add_values(centroid_vec);
-        double normal_centroid_dot = normal.dot(centroid_vec);
-        scene_adder.add_value(normal_centroid_dot);
-        scene_adder.add_value(std::acos(normal_centroid_dot));
-        double other_normal_centroid_dot = other_normal.dot(-centroid_vec);
-        scene_adder.add_value(other_normal_centroid_dot);
-        scene_adder.add_value(std::acos(other_normal_centroid_dot));
+
+        for (const auto &centroid_arr : {centroids, region_centroids}) {
+          Eigen::Vector3d centroid_vec_raw =
+              centroid_arr[other_tri_idx] - centroid_arr[tri_idx];
+          scene_adder.add_values(centroid_vec_raw);
+          double centroid_dist = centroid_vec_raw.norm();
+          scene_adder.add_value(centroid_dist);
+          Eigen::Vector3d centroid_vec = centroid_vec_raw.normalized();
+          scene_adder.add_values(centroid_vec);
+          double normal_centroid_dot = normal.dot(centroid_vec);
+          scene_adder.add_value(normal_centroid_dot);
+          scene_adder.add_value(std::acos(normal_centroid_dot));
+          double other_normal_centroid_dot = other_normal.dot(-centroid_vec);
+          scene_adder.add_value(other_normal_centroid_dot);
+          scene_adder.add_value(std::acos(other_normal_centroid_dot));
+        }
       }
     }
 
@@ -547,9 +716,18 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
         values.index_put_({i, j, k}, values_vec[j][k]);
       }
     }
-
-    std::cout << "\n\n\n\n";
   }
+
+  dbg(clipped_setter.actual_max_n_points);
+  dbg(clip_removed_setter.setter.actual_max_n_points);
+  dbg(clip_removed_setter.actual_max_n_polys);
+  dbg(totally_shadowed_setter.actual_max_n_points);
+  dbg(partially_visible_setter.setter.actual_max_n_points);
+  dbg(partially_visible_setter.actual_max_n_polys);
+  dbg(partially_shadowed_setter.actual_max_n_points);
+  dbg(totally_visible_setter.actual_max_n_polys);
+  dbg(totally_visible_setter.setter.actual_max_n_points);
+  dbg(centroid_shadowed_setter.actual_max_n_points);
 
   if constexpr (is_image) {
     return {scenes, baryocentric_coords, values, indexes};

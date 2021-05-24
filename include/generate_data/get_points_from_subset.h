@@ -26,15 +26,15 @@ get_points_from_subset_with_baryo_impl(
         } else if constexpr (tag == TriangleSubsetType::All) {
           VectorT<Eigen::Vector3d> points{
               tri.vertices[0],
-              tri.vertices[1],
               tri.vertices[2],
+              tri.vertices[1],
           };
           if constexpr (has_baryo) {
             return {.points = points,
                     .baryo = {
                         {0., 0.},
-                        {1., 0.},
                         {0., 1.},
+                        {1., 0.},
                     }};
           } else {
             return points;
