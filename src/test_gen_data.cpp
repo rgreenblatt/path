@@ -37,17 +37,11 @@ int main(int argc, char *argv[]) {
   unsigned base_seed = get_unpack_arg("--base-seed").asLong();
   unsigned count = get_unpack_arg("--count").asLong();
 
-  // generate_data::gen_data(1, 1, 1, 2841);
+  generate_data::gen_data(1, 1, 1, 0);
 
-  std::cout << "\n\n\n";
-
-  // Timer timer;
-  // generate_data::gen_data(1024, 1, 1, 2841);
-  // timer.report("run time");
-
-  std::cout << "\n\n\n";
-
+  Timer timer;
   generate_data::gen_data(count, 1, 1, base_seed);
+  timer.report("run time");
 
   generate_data::deinit_renderers();
 }
