@@ -338,15 +338,17 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
 
     VectorT<FloatRGB> values_vec(n_samples_per_scene);
 
-    auto scene = generate_scene(tris);
-    always_assert(size_t(omp_get_thread_num()) < renderers.size());
-    renderers[omp_get_thread_num()].render(
-        ExecutionModel::GPU, {tag_v<render::SampleSpecType::InitialRays>, rays},
-        {tag_v<render::OutputType::FloatRGB>, values_vec}, scene, n_samples,
-        settings, false);
-    for (int j = 0; j < n_samples_per_scene; ++j) {
-      for (int k = 0; k < 3; ++k) {
-        values.index_put_({i, j, k}, values_vec[j][k]);
+    if (!rays.empty()) {
+      auto scene = generate_scene(tris);
+      always_assert(size_t(omp_get_thread_num()) < renderers.size());
+      renderers[omp_get_thread_num()].render(
+          ExecutionModel::GPU, {tag_v<render::SampleSpecType::InitialRays>, rays},
+          {tag_v<render::OutputType::FloatRGB>, values_vec}, scene, n_samples,
+          settings, false);
+      for (int j = 0; j < n_samples_per_scene; ++j) {
+        for (int k = 0; k < 3; ++k) {
+          values.index_put_({i, j, k}, values_vec[j][k]);
+        }
       }
     }
   }
