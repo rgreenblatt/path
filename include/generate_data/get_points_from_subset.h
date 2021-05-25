@@ -17,7 +17,7 @@ ATTR_PURE_NDEBUG inline std::conditional_t<has_baryo, PointsWithBaryo,
                                            VectorT<Eigen::Vector3d>>
 get_points_from_subset_with_baryo_impl(
     const intersect::TriangleGen<double> &tri, const TriangleSubset &subset) {
-  return subset.visit_tagged(
+  const auto out = subset.visit_tagged(
       [&](auto tag,
           const auto &poly) -> std::conditional_t<has_baryo, PointsWithBaryo,
                                                   VectorT<Eigen::Vector3d>> {
@@ -47,7 +47,7 @@ get_points_from_subset_with_baryo_impl(
           VectorT<Eigen::Vector3d> points(poly.outer().size() - 1);
           std::transform(poly.outer().begin(), poly.outer().end() - 1,
                          points.begin(), [&](const BaryoPoint &point) {
-                           return tri.value_from_baryo({point.x(), point.y()});
+                           return tri.baryo_to_point({point.x(), point.y()});
                          });
           if constexpr (has_baryo) {
             return {.points = points,
@@ -57,6 +57,11 @@ get_points_from_subset_with_baryo_impl(
           }
         }
       });
+  if constexpr (has_baryo) {
+    debug_assert(out.points.size() == out.baryo.size());
+  }
+
+  return out;
 }
 
 ATTR_PURE_NDEBUG inline VectorT<Eigen::Vector3d>

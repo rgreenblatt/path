@@ -72,7 +72,7 @@ clip_by_plane(const Eigen::Vector3d &normal, double plane_threshold,
       auto baryocentric_vals = tri.interpolation_values(endpoint);
       Eigen::Vector2d ret{baryocentric_vals[1], baryocentric_vals[2]};
       [[maybe_unused]] auto baryo_point =
-          tri.value_from_baryo({ret.x(), ret.y()});
+          tri.baryo_to_point({ret.x(), ret.y()});
       debug_assert((endpoint - baryo_point).norm() < 1e-6);
 
       return ret;

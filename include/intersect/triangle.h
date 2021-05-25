@@ -70,9 +70,10 @@ template <typename T> struct TriangleGen {
   }
 
   ATTR_PURE_NDEBUG HOST_DEVICE inline Eigen::Vector3<T>
-  value_from_baryo(const std::array<T, 2> &baryo) const {
-    auto v0 = vertices[1] - vertices[0];
-    auto v1 = vertices[2] - vertices[0];
+  baryo_to_point(const std::array<T, 2> &baryo) const {
+    // SPEED: cache vecs?
+    const auto v0 = vertices[1] - vertices[0];
+    const auto v1 = vertices[2] - vertices[0];
     return v0 * baryo[0] + v1 * baryo[1] + vertices[0];
   }
 

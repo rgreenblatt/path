@@ -363,8 +363,11 @@ target_link_libraries(
 target_add_standard(mesh_scene_visualizer)
 
 # TODO: rename!
-add_library(gen_data STATIC
-            "${PROJECT_SOURCE_DIR}/src/generate_data/gen_data.cpp")
+add_library(
+  gen_data STATIC
+  "${PROJECT_SOURCE_DIR}/src/generate_data/gen_data.cpp"
+  "${PROJECT_SOURCE_DIR}/src/generate_data/constants.cpp"
+  "${PROJECT_SOURCE_DIR}/src/generate_data/region_setter.cpp")
 target_link_libraries(
   gen_data
   PUBLIC torch Python::Python

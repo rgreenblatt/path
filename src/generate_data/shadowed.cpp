@@ -196,6 +196,7 @@ partially_shadowed(const intersect::TriangleGen<double> &from,
   }
 
   // this is jank and slow - probably could do this better...
+  // Also has numerical issues...
   double edge_total = 0.;
   for (unsigned i = 0; i < onto.vertices.size(); ++i) {
     unsigned next_i = (i + 1) % onto.vertices.size();
