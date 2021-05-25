@@ -207,7 +207,8 @@ ATTR_NO_DISCARD_PURE PolygonInput RegionSetter<n_prior_dims>::as_poly_input() {
 
   auto prefix_sum_counts =
       at::cat({at::tensor({TorchIdxT(0)}), counts.flatten().cumsum(0)});
-  unsigned actual = prefix_sum_counts.index({-1}).item().template to<int64_t>();
+  unsigned actual =
+      prefix_sum_counts.index({-1}).item().template to<TorchIdxT>();
   always_assert(actual == total_size);
 
   return {
