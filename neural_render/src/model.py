@@ -21,12 +21,17 @@ class LinearAndMultiply(nn.Module):
         self._use_multiply = use_multiply
         if self._use_multiply:
             self._to_multiplier = linear_block(output_size, output_size)
+        self._tanh_size = output_size // 2
 
     def forward(self, x, *extra):
         x = self._activation(self._linear(x, *extra))
         if not self._use_multiply:
             return x
-        return x * torch.tanh(self._to_multiplier(x, *extra))
+        for_multiplier = self._to_multiplier(x, *extra)
+        return x * torch.cat(
+            (torch.tanh(for_multiplier[..., :self._tanh_size]),
+             for_multiplier[..., self._tanh_size:]),
+            dim=-1)
 
 
 def interpolate_sizes(input_size, output_size, count, force_multiple_of=16):
