@@ -404,10 +404,7 @@ class Net(nn.Module):
 
         ray_values = []
         for ray_input in inputs.ray_inputs:
-            print(ray_input.values.size())
             values = self._ray_item_initial(ray_input.values)
-            print(values.size())
-            print(ray_input.is_ray.size())
             values[ray_input.is_ray] = self._ray_item_initial_for_ray(
                 ray_input.values)[ray_input.is_ray]
             ray_values.append((ray_input, self._activation(values)))
