@@ -401,9 +401,25 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
         adder.add_values(baryo_to_eigen(item.baryo_endpoint));
         adder.add_values(item.origin);
         adder.add_values(item.endpoint);
-        item.result.visit([&](const auto &v) { adder.add_values(v); });
-        debug_assert(adder.idx == constants.n_ray_item_values);
+        item.result.visit_tagged([&](auto tag, const auto &v) {
+          if constexpr (tag == RayItemResultType::Ray) {
+            debug_assert(std::abs(v.norm() - 1.f) < 1e-12);
+            adder.add_values(v);
+            adder.add_value(0.);
+            adder.add_value(0.);
+            adder.add_value(0.);
+          } else {
+            static_assert(tag == RayItemResultType::Intersection);
+            adder.add_values(v.normalized().eval());
+            // values can get VERY large
+            const double norm = v.norm();
+            adder.add_value(std::tanh(norm));
+            adder.add_value(std::tanh(v.x()));
+            adder.add_value(std::tanh(v.y()));
+          }
+        });
         is_ray[running_idx] = item.result.type() == RayItemResultType::Ray;
+        debug_assert(adder.idx == constants.n_ray_item_values);
         ++running_idx;
       }
     }
