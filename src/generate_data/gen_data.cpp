@@ -1,4 +1,5 @@
 #include "generate_data/gen_data.h"
+
 #include "generate_data/amend_config.h"
 #include "generate_data/baryocentric_coords.h"
 #include "generate_data/baryocentric_to_ray.h"
@@ -10,6 +11,7 @@
 #include "generate_data/normalize_scene_triangles.h"
 #include "generate_data/region_setter.h"
 #include "generate_data/shadowed.h"
+#include "generate_data/to_tensor.h"
 #include "generate_data/torch_utils.h"
 #include "generate_data/triangle.h"
 #include "generate_data/triangle_subset_intersection.h"
@@ -20,7 +22,7 @@
 #include "rng/uniform/uniform.h"
 
 #include <ATen/ATen.h>
-#include <boost/hana/ext/std/array.hpp>
+#include <boost/multi_array.hpp>
 
 #include <iostream>
 #include <omp.h>
@@ -34,7 +36,6 @@ static VectorT<render::Renderer> renderers;
 template <bool is_image>
 using Out = std::conditional_t<is_image, ImageData, StandardData>;
 
-// scenes, coords, values (and potentially indexes for image)
 // TODO: consider fixing extra copies (if needed).
 // Could really return gpu tensor and output directly to tensor.
 template <bool is_image>
@@ -65,12 +66,12 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
     }
   }();
 
-  at::Tensor overall_scene_features =
-      at::empty({n_scenes, constants.n_scene_values});
-  at::Tensor triangle_features =
-      at::empty({n_scenes, constants.n_tris, constants.n_tri_values});
-  at::Tensor baryocentric_coords = at::empty(
-      {n_scenes, n_samples_per_scene, constants.n_coords_feature_values});
+  boost::multi_array<float, 2> overall_scene_features{
+      std::array{n_scenes, constants.n_scene_values}};
+  boost::multi_array<float, 3> triangle_features{
+      std::array{n_scenes, constants.n_tris, constants.n_tri_values}};
+  boost::multi_array<float, 3> baryocentric_coords{std::array{
+      n_scenes, n_samples_per_scene, constants.n_coords_feature_values}};
 
   constexpr unsigned n_prior_dims = 1;
   std::array<TorchIdxT, n_prior_dims> prior_dims{n_scenes};
@@ -96,18 +97,18 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
   render::Settings settings;
   amend_config(settings);
 
-  at::Tensor values =
-      at::empty({n_scenes, n_samples_per_scene, constants.n_rgb_dims});
+  std::array values_dim{n_scenes, n_samples_per_scene, constants.n_rgb_dims};
+  boost::multi_array<float, 3> values{values_dim};
 
-  at::Tensor image_indexes;
+  boost::multi_array<TorchIdxT, 2> image_indexes;
   if constexpr (is_image) {
-    image_indexes =
-        at::empty({int(baryocentric_indexes.size()), 2}, long_tensor_type);
+    image_indexes = boost::multi_array<TorchIdxT, 2>{
+        boost::extents[baryocentric_indexes.size()][2]};
 
     for (int i = 0; i < int(baryocentric_indexes.size()); ++i) {
       auto [x, y] = baryocentric_indexes[i];
-      image_indexes.index_put_({i, 0}, int64_t(x));
-      image_indexes.index_put_({i, 1}, int64_t(y));
+      image_indexes[i][0] = TorchIdxT(x);
+      image_indexes[i][1] = TorchIdxT(y);
     }
   }
 
@@ -119,9 +120,8 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
     auto tris = generate_scene_triangles(rng_state);
     auto new_tris = normalize_scene_triangles(tris);
 
-    auto scene_adder = make_value_adder([&](float v, int idx) {
-      overall_scene_features.index_put_({i, idx}, v);
-    });
+    auto scene_adder = make_value_adder(
+        [&](float v, int idx) { overall_scene_features[i][idx] = v; });
 
     // clip by triangle_onto plane
     auto light_region =
@@ -265,7 +265,7 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
 
       // TODO: logs or other functions of these values?
       auto tri_adder = make_value_adder([&](float v, int value_idx) {
-        triangle_features.index_put_({i, tri_idx, value_idx}, v);
+        triangle_features[i][tri_idx][value_idx] = v;
       });
 
       for (const auto &point : tri.vertices) {
@@ -327,9 +327,8 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
       }();
       rays[j] = baryocentric_to_ray(
           s, t, tris.triangle_onto.template cast<float>(), dir_towards);
-      auto baryo_adder = make_value_adder([&](float v, int idx) {
-        baryocentric_coords.index_put_({i, j, idx}, v);
-      });
+      auto baryo_adder = make_value_adder(
+          [&](float v, int idx) { baryocentric_coords[i][j][idx] = v; });
 
       baryo_adder.add_value(s);
       baryo_adder.add_value(t);
@@ -342,12 +341,13 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
       auto scene = generate_scene(tris);
       always_assert(size_t(omp_get_thread_num()) < renderers.size());
       renderers[omp_get_thread_num()].render(
-          ExecutionModel::GPU, {tag_v<render::SampleSpecType::InitialRays>, rays},
+          ExecutionModel::GPU,
+          {tag_v<render::SampleSpecType::InitialRays>, rays},
           {tag_v<render::OutputType::FloatRGB>, values_vec}, scene, n_samples,
           settings, false);
       for (int j = 0; j < n_samples_per_scene; ++j) {
         for (int k = 0; k < 3; ++k) {
-          values.index_put_({i, j, k}, values_vec[j][k]);
+          values[i][j][k] = values_vec[j][k];
         }
       }
     }
@@ -377,17 +377,17 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
   StandardData out{
       .inputs =
           {
-              .overall_scene_features = overall_scene_features,
-              .triangle_features = triangle_features,
+              .overall_scene_features = to_tensor(overall_scene_features),
+              .triangle_features = to_tensor(triangle_features),
               .polygon_inputs = polygon_inputs,
-              .baryocentric_coords = baryocentric_coords,
+              .baryocentric_coords = to_tensor(baryocentric_coords),
           },
-      .values = values,
+      .values = to_tensor(values),
 
   };
 
   if constexpr (is_image) {
-    return {.standard = out, .image_indexes = image_indexes};
+    return {.standard = out, .image_indexes = to_tensor(image_indexes)};
   } else {
     return out;
   }

@@ -2,6 +2,7 @@
 
 #include "generate_data/constants.h"
 #include "generate_data/get_points_from_subset.h"
+#include "generate_data/to_tensor.h"
 #include "generate_data/value_adder.h"
 #include "lib/projection.h"
 #include "meta/array_cat.h"
@@ -11,64 +12,62 @@
 #include <boost/geometry.hpp>
 #include <boost/hana/ext/std/array.hpp>
 #include <boost/hana/unpack.hpp>
+#include <boost/multi_array.hpp>
 
 #include <cmath>
 
 namespace generate_data {
-template <size_t n>
-inline std::array<at::indexing::TensorIndex, n>
-as_tensor_index(std::array<TorchIdxT, n> idxs) {
-  return boost::hana::unpack(
-      idxs, [&](auto... idxs) -> std::array<at::indexing::TensorIndex, n> {
-        return {idxs...};
-      });
-}
+template <unsigned n_prior_dims> struct RegionSetter<n_prior_dims>::Impl {
+  boost::multi_array<VectorT<float>, n_prior_dims> point_values;
+  boost::multi_array<float, n_prior_dims + 1> overall_features;
+  boost::multi_array<TorchIdxT, n_prior_dims> counts;
+};
+
+template <unsigned n_prior_dims>
+RegionSetter<n_prior_dims>::RegionSetter() = default;
+template <unsigned n_prior_dims>
+RegionSetter<n_prior_dims>::~RegionSetter() = default;
+template <unsigned n_prior_dims>
+RegionSetter<n_prior_dims>::RegionSetter(RegionSetter &&) = default;
+template <unsigned n_prior_dims>
+RegionSetter<n_prior_dims> &
+RegionSetter<n_prior_dims>::operator=(RegionSetter &&) = default;
 
 template <unsigned n_prior_dims>
 RegionSetter<n_prior_dims>::RegionSetter(
     const std::array<TorchIdxT, n_prior_dims> &prior_dims) {
-  unsigned running = 1;
-  for (unsigned i = prior_dims.size() - 1;
-       i != std::numeric_limits<unsigned>::max(); --i) {
-    index_multipliers[i] = running;
-    running *= unsigned(prior_dims[i]);
-  }
-  unsigned total_size = running;
-  point_values.resize(total_size);
 
   std::array<TorchIdxT, n_prior_dims + 1> feature_dims;
   std::copy(prior_dims.begin(), prior_dims.end(), feature_dims.begin());
   feature_dims[n_prior_dims] = constants.n_poly_feature_values;
-  overall_features = at::empty(feature_dims);
-  counts = at::empty(prior_dims, long_tensor_type);
+
+  impl_ = std::make_unique<Impl>(Impl{
+      .point_values{prior_dims},
+      .overall_features{feature_dims},
+      .counts{prior_dims},
+  });
 }
 
 template <unsigned n_prior_dims>
 double RegionSetter<n_prior_dims>::set_region(
-    const std::array<TorchIdxT, n_prior_dims> &prior_idxs_in,
+    const std::array<TorchIdxT, n_prior_dims> &prior_idxs,
     const TriangleSubset &region, const Triangle &tri) {
   return region.visit_tagged([&](auto tag, const auto &value) {
-    auto prior_idxs = as_tensor_index(prior_idxs_in);
-
-    unsigned total_idx = 0;
-    for (unsigned i = 0; i < n_prior_dims; ++i) {
-      total_idx += index_multipliers[i] * prior_idxs_in[i];
-    }
-    auto &item = point_values[total_idx];
+    auto &im = *impl_;
+    auto &item = im.point_values(prior_idxs);
 
     double area_3d = 0.;
     if constexpr (tag == TriangleSubsetType::None) {
-      counts.index_put_(prior_idxs, 0);
+      im.counts(prior_idxs) = 0;
       item.clear();
     } else {
       const auto pb = get_points_from_subset_with_baryo(tri, region);
 
-      auto feature_idxs =
-          as_tensor_index(array_cat(prior_idxs_in, std::array{TorchIdxT(0)}));
+      auto feature_idxs = array_cat(prior_idxs, std::array{TorchIdxT(0)});
 
       auto feature_adder = make_value_adder([&](float v, int idx) {
         feature_idxs[n_prior_dims] = idx;
-        overall_features.index_put_(feature_idxs, v);
+        im.overall_features(feature_idxs) = v;
       });
 
       Eigen::Vector3d centroid3d = Eigen::Vector3d::Zero();
@@ -85,7 +84,7 @@ double RegionSetter<n_prior_dims>::set_region(
       feature_adder.add_values(centroid3d);
       feature_adder.add_values(centroid2d);
 
-      counts.index_put_(prior_idxs, TorchIdxT(pb.baryo.size()));
+      im.counts(prior_idxs) = pb.baryo.size();
 
       // get areas in baryo and in 3d
       const TriPolygon *baryo_poly;
@@ -159,69 +158,61 @@ double RegionSetter<n_prior_dims>::set_region(
 template <unsigned n_prior_dims>
 ATTR_NO_DISCARD_PURE PolygonInput RegionSetter<n_prior_dims>::as_poly_input() {
   TorchIdxT total_size = 0;
-  for (unsigned i = 0; i < point_values.size(); ++i) {
-    const auto &vec = point_values[i];
+  auto &im = *impl_;
+  for (unsigned i = 0; i < im.point_values.num_elements(); ++i) {
+    const auto &vec = im.point_values.data()[i];
     always_assert(vec.size() % constants.n_poly_point_values == 0);
     unsigned size = vec.size() / constants.n_poly_point_values;
 
 #ifndef NDEBUG
-    std::array<TorchIdxT, n_prior_dims> idx_raw;
-    for (unsigned j = 0; j < n_prior_dims; ++j) {
-      idx_raw[j] = i / index_multipliers[j];
-    }
-    auto idx = as_tensor_index(idx_raw);
-
-    always_assert(counts.index(idx).item().template to<TorchIdxT>() ==
-                  TorchIdxT(size));
+    always_assert(im.counts.data()[i] == TorchIdxT(size));
 #endif
     total_size += size;
   }
 
-  at::Tensor point_values_out =
-      at::empty({total_size, constants.n_poly_point_values});
-  at::Tensor item_to_left_idxs = at::empty({total_size}, long_tensor_type);
-  at::Tensor item_to_right_idxs = at::empty({total_size}, long_tensor_type);
+  boost::multi_array<float, 2> point_values_out{
+      boost::extents[total_size][constants.n_poly_point_values]};
+  boost::multi_array<TorchIdxT, 1> item_to_left_idxs{std::array{total_size}};
+  boost::multi_array<TorchIdxT, 1> item_to_right_idxs{std::array{total_size}};
 
   unsigned running_total = 0;
-  for (unsigned i = 0; i < point_values.size(); ++i) {
-    const auto &vec = point_values[i];
+  for (unsigned i = 0; i < im.point_values.num_elements(); ++i) {
+    const auto &vec = im.point_values.data()[i];
 
     unsigned size = vec.size() / constants.n_poly_point_values;
     unsigned running_total_prev = running_total;
     for (unsigned j = 0; j < size; ++j) {
-      item_to_left_idxs.index_put_(
-          {TorchIdxT(running_total)},
-          TorchIdxT((j == 0 ? size - 1 : j - 1) + running_total_prev));
-      item_to_right_idxs.index_put_(
-          {TorchIdxT(running_total)},
-          TorchIdxT((j + 1) % size + running_total_prev));
+      item_to_left_idxs[running_total] =
+          (j == 0 ? size - 1 : j - 1) + running_total_prev;
+      item_to_right_idxs[running_total] = (j + 1) % size + running_total_prev;
       for (int k = 0; k < constants.n_poly_point_values; ++k) {
-        point_values_out.index_put_(
-            {TorchIdxT(running_total), k},
-            vec[j * unsigned(constants.n_poly_point_values) + k]);
+        point_values_out[running_total][k] =
+            vec[j * unsigned(constants.n_poly_point_values) + k];
       }
       ++running_total;
     }
   }
   always_assert(running_total == total_size);
 
+  auto counts_out = to_tensor(im.counts);
+
   auto prefix_sum_counts =
-      at::cat({at::tensor({TorchIdxT(0)}), counts.flatten().cumsum(0)});
+      at::cat({at::tensor({TorchIdxT(0)}), counts_out.flatten().cumsum(0)});
   unsigned actual =
       prefix_sum_counts.index({-1}).item().template to<TorchIdxT>();
   always_assert(actual == total_size);
 
   return {
-      .point_values = point_values_out,
-      .overall_features = std::move(overall_features),
-      .counts = std::move(counts),
+      .point_values = to_tensor(point_values_out),
+      .overall_features = to_tensor(im.overall_features),
+      .counts = counts_out,
       .prefix_sum_counts = prefix_sum_counts,
-      .item_to_left_idxs = item_to_left_idxs,
-      .item_to_right_idxs = item_to_right_idxs,
+      .item_to_left_idxs = to_tensor(item_to_left_idxs),
+      .item_to_right_idxs = to_tensor(item_to_right_idxs),
   };
 }
 
-template struct RegionSetter<1>;
-template struct RegionSetter<2>;
-template struct RegionSetter<3>;
+template class RegionSetter<1>;
+template class RegionSetter<2>;
+template class RegionSetter<3>;
 } // namespace generate_data

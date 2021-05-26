@@ -32,11 +32,12 @@ add_definitions(-DCUDA_API_PER_THREAD_DEFAULT_STREAM)
 # I think -ffast-math is enabled by -Ofast, but the documentation isn't
 # perfectly clear (certainly most options of -ffast-math are enabled by -Ofast,
 # but I'm not sure about the cuda specific ones)
-set(RELEASE_ARGS -Ofast;-ffast-math)
+set(RELEASE_ARGS -Ofast;-ffast-math;-DBOOST_DISABLE_ASSERTS)
+set(RELEASE_DEB_ARGS "${RELEASE_ARGS};-UNDEBUG;-UBOOST_DISABLE_ASSERTS")
 
 # must be quoted for some reason I don't understand?
 add_compile_options("$<$<CONFIG:RELEASE>:${RELEASE_ARGS}>")
-add_compile_options("$<$<CONFIG:RELWITHDEBINFO>:${RELEASE_ARGS};-UNDEBUG>")
+add_compile_options("$<$<CONFIG:RELWITHDEBINFO>:${RELEASE_DEB_ARGS}>")
 add_compile_options("$<$<CONFIG:DEBUG>:-ftrapv;-fno-omit-frame-pointer>")
 
 option(FORCE_COLORED_OUTPUT

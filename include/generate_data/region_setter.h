@@ -6,10 +6,17 @@
 #include "generate_data/triangle_subset.h"
 #include "lib/vector_type.h"
 
+#include <memory>
+
 namespace generate_data {
 // TODO: consider more efficient representation later
-template <unsigned n_prior_dims> struct RegionSetter {
-  RegionSetter() = default;
+template <unsigned n_prior_dims> class RegionSetter {
+public:
+  // need to implementated when Impl is defined
+  RegionSetter();
+  ~RegionSetter();
+  RegionSetter(RegionSetter &&);
+  RegionSetter &operator=(RegionSetter &&);
 
   RegionSetter(const std::array<TorchIdxT, n_prior_dims> &prior_dims);
 
@@ -19,9 +26,10 @@ template <unsigned n_prior_dims> struct RegionSetter {
   // NOTE: moves values out (can't be used multiple times!)
   ATTR_NO_DISCARD_PURE PolygonInput as_poly_input();
 
-  VectorT<VectorT<float>> point_values;
-  std::array<unsigned, n_prior_dims> index_multipliers;
-  at::Tensor overall_features;
-  at::Tensor counts;
+private:
+  // pimpl
+  struct Impl;
+
+  std::unique_ptr<Impl> impl_;
 };
 } // namespace generate_data
