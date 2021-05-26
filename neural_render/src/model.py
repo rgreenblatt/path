@@ -304,7 +304,7 @@ class Net(nn.Module):
             for _ in range(self._n_shared_poly_block)
         ])
 
-        self._start_ray_size = 32
+        self._start_ray_size = 64
         self._ray_item_initial = nn.Linear(constants.n_ray_item_values,
                                            self._start_ray_size,
                                            bias=False)
