@@ -16,6 +16,11 @@ RUN conda install numpy tensorboard pip scipy && pip install gitpython
 ENV PATH="/root/.local/bin/:${PATH}"
 RUN mkdir ~/.local/bin/
 
+ENV TORCH_CUDA_ARCH_LIST="Maxwell;Maxwell+Tegra;Pascal;Volta;Turing" 
+ENV FORCE_CUDA=1
+RUN pip install torch-scatter -f \
+	https://pytorch-geometric.com/whl/torch-1.7.0+cu111.html
+
 RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key| apt-key add - && \
 	apt-add-repository \
 	"deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main" && \
