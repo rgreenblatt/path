@@ -82,7 +82,7 @@ partially_shadowed(const intersect::TriangleGen<double> &from,
   directions.reserve(from_vertices.size() * blocker_vertices.size());
 
   VectorT<PartiallyShadowedInfo::RayItem> ray_items;
-  ray_items.resize(from_vertices.size() * blocker_vertices.size() * 6);
+  ray_items.reserve(from_vertices.size() * blocker_vertices.size() * 6);
 
   std::unordered_set<std::array<double, 4>> added_items;
 
