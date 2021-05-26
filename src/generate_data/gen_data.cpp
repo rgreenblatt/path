@@ -29,6 +29,8 @@
 #include <tuple>
 #include <vector>
 
+#include "dbg.h"
+
 // TODO: consider breaking up more of this
 namespace generate_data {
 static VectorT<render::Renderer> renderers;
@@ -408,6 +410,9 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
       }
     }
     always_assert(running_idx == total);
+
+    TorchIdxT min_count = counts.min().item().template to<TorchIdxT>();
+    always_assert(min_count > 0);
 
     ray_inputs[i] = {
         .values = to_tensor(values),
