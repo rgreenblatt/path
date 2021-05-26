@@ -8,7 +8,7 @@ Renderer::Renderer(Renderer &&) = default;
 Renderer &Renderer::operator=(Renderer &&) = default;
 
 template <typename F>
-double Renderer::visit_renderer(ExecutionModel execution_model, F &&f) {
+auto Renderer::visit_renderer(ExecutionModel execution_model, F &&f) {
   switch (execution_model) {
   case ExecutionModel::CPU:
     if (cpu_renderer_impl_ == nullptr) {

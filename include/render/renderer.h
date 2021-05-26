@@ -47,7 +47,7 @@ public:
 
 private:
   template <typename F>
-  double visit_renderer(ExecutionModel execution_model, F &&f);
+  auto visit_renderer(ExecutionModel execution_model, F &&f);
 
   template <ExecutionModel execution_model> class Impl;
 
