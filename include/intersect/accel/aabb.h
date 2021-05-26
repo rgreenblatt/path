@@ -32,7 +32,8 @@ struct AABB {
   Eigen::Vector3f max_bound;
 
   ATTR_PURE_NDEBUG HOST_DEVICE static inline AABB empty() {
-    return {.min_bound = max_eigen_vec(), .max_bound = min_eigen_vec()};
+    return {.min_bound = max_eigen_vec<float>(),
+            .max_bound = min_eigen_vec<float>()};
   }
 
   // implementing bounded

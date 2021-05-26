@@ -32,11 +32,12 @@ add_definitions(-DCUDA_API_PER_THREAD_DEFAULT_STREAM)
 # I think -ffast-math is enabled by -Ofast, but the documentation isn't
 # perfectly clear (certainly most options of -ffast-math are enabled by -Ofast,
 # but I'm not sure about the cuda specific ones)
-set(RELEASE_ARGS -Ofast;-ffast-math)
+set(RELEASE_ARGS -Ofast;-ffast-math;-DBOOST_DISABLE_ASSERTS)
+set(RELEASE_DEB_ARGS "${RELEASE_ARGS};-UNDEBUG;-UBOOST_DISABLE_ASSERTS")
 
 # must be quoted for some reason I don't understand?
 add_compile_options("$<$<CONFIG:RELEASE>:${RELEASE_ARGS}>")
-add_compile_options("$<$<CONFIG:RELWITHDEBINFO>:${RELEASE_ARGS};-UNDEBUG>")
+add_compile_options("$<$<CONFIG:RELWITHDEBINFO>:${RELEASE_DEB_ARGS}>")
 add_compile_options("$<$<CONFIG:DEBUG>:-ftrapv;-fno-omit-frame-pointer>")
 
 option(FORCE_COLORED_OUTPUT
@@ -314,7 +315,7 @@ if(BUILD_BENCHMARKS OR CMAKE_EXPORT_COMPILE_COMMANDS)
   package_add_bench(scan_bench "${PROJECT_SOURCE_DIR}/benchmarks/src/scan.cu")
   # sometimes there are some issues with cub and warp intrinsics with sorting
   # not sure if this has been fixed - some inconsistancy in the past? (on clang)
-  package_add_bench(sort_bench "${PROJECT_SOURCE_DIR}/benchmarks/src/sort.cu")
+  # package_add_bench(sort_bench "${PROJECT_SOURCE_DIR}/benchmarks/src/sort.cu")
   package_add_bench(render_bench
                     "${PROJECT_SOURCE_DIR}/benchmarks/src/render.cpp")
   target_link_libraries(render_bench PRIVATE renderer_from_files)
@@ -337,6 +338,10 @@ target_add_standard(path)
 add_library(
   generate_data STATIC
   "${PROJECT_SOURCE_DIR}/src/generate_data/generate_scene.cpp"
+  "${PROJECT_SOURCE_DIR}/src/generate_data/generate_scene_triangles.cpp"
+  "${PROJECT_SOURCE_DIR}/src/generate_data/clip_by_plane.cpp"
+  "${PROJECT_SOURCE_DIR}/src/generate_data/shadowed.cpp"
+  "${PROJECT_SOURCE_DIR}/src/generate_data/mesh_scene_generator.cpp"
   "${PROJECT_SOURCE_DIR}/src/generate_data/normalize_scene_triangles.cpp"
   "${PROJECT_SOURCE_DIR}/src/generate_data/baryocentric_coords.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/triangle_constructor.cpp")
@@ -350,9 +355,20 @@ target_link_libraries(
                                    Qt5::Widgets)
 target_add_standard(generate_data_visualizer)
 
+add_executable(
+  mesh_scene_visualizer
+  "${PROJECT_SOURCE_DIR}/src/generate_data/mesh_scene_visualizer.cpp")
+target_link_libraries(
+  mesh_scene_visualizer PRIVATE renderer_from_files generate_data docopt_s
+                                Qt5::Widgets)
+target_add_standard(mesh_scene_visualizer)
+
 # TODO: rename!
-add_library(gen_data STATIC
-            "${PROJECT_SOURCE_DIR}/src/generate_data/gen_data.cpp")
+add_library(
+  gen_data STATIC
+  "${PROJECT_SOURCE_DIR}/src/generate_data/gen_data.cpp"
+  "${PROJECT_SOURCE_DIR}/src/generate_data/constants.cpp"
+  "${PROJECT_SOURCE_DIR}/src/generate_data/region_setter.cpp")
 target_link_libraries(
   gen_data
   PUBLIC torch Python::Python
@@ -375,3 +391,7 @@ add_executable(loaded_float_rgb
                "${PROJECT_SOURCE_DIR}/src/loaded_float_rgb.cpp")
 target_link_libraries(loaded_float_rgb PRIVATE Qt5::Widgets)
 target_add_standard(loaded_float_rgb)
+
+add_executable(test_gen_data "${PROJECT_SOURCE_DIR}/src/test_gen_data.cpp")
+target_link_libraries(test_gen_data PRIVATE gen_data docopt_s)
+target_add_standard(test_gen_data)

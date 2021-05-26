@@ -1,4 +1,5 @@
 #include "generate_data/generate_scene.h"
+
 #include "scene/triangle_constructor.h"
 
 namespace generate_data {
@@ -21,13 +22,14 @@ scene::Scene generate_scene(const SceneTriangles &triangles) {
 
   scene::TriangleConstructor scene_constructor;
 
-  scene_constructor.add_triangle(triangles.triangle_onto,
+  scene_constructor.add_triangle(triangles.triangle_onto.template cast<float>(),
                                  scene_constructor.add_material(onto_material));
   scene_constructor.add_triangle(
-      triangles.triangle_blocking,
+      triangles.triangle_blocking.template cast<float>(),
       scene_constructor.add_material(blocking_material));
   scene_constructor.add_triangle(
-      triangles.triangle_light, scene_constructor.add_material(light_material));
+      triangles.triangle_light.template cast<float>(),
+      scene_constructor.add_material(light_material));
 
   return scene_constructor.scene("generated_scene");
 }

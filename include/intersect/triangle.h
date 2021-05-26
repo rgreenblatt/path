@@ -20,6 +20,13 @@ template <typename T> struct TriangleGen {
     return {{f(vertices[0]), f(vertices[1]), f(vertices[2])}};
   }
 
+  template <typename NewT>
+  ATTR_PURE_NDEBUG HOST_DEVICE inline TriangleGen<NewT> cast() const {
+    return apply_gen<NewT>([&](const Eigen::Vector3<T> &vec) {
+      return vec.template cast<NewT>();
+    });
+  }
+
   template <typename F>
   ATTR_PURE_NDEBUG HOST_DEVICE inline TriangleGen apply(F &&f) const {
     return apply_gen<T>(f);
@@ -55,12 +62,30 @@ template <typename T> struct TriangleGen {
   ATTR_PURE_NDEBUG HOST_DEVICE inline std::array<T, 3>
   interpolation_values(const Eigen::Vector3<T> &point) const;
 
+  // we typically just use these baryo coords
+  ATTR_PURE_NDEBUG HOST_DEVICE inline std::array<T, 2>
+  baryo_values(const Eigen::Vector3<T> &point) const {
+    const auto arr = interpolation_values(point);
+    return {arr[1], arr[2]};
+  }
+
+  ATTR_PURE_NDEBUG HOST_DEVICE inline Eigen::Vector3<T>
+  baryo_to_point(const std::array<T, 2> &baryo) const {
+    // SPEED: cache vecs?
+    const auto v0 = vertices[1] - vertices[0];
+    const auto v1 = vertices[2] - vertices[0];
+    return v0 * baryo[0] + v1 * baryo[1] + vertices[0];
+  }
+
   ATTR_PURE_NDEBUG HOST_DEVICE inline accel::AABB bounds() const;
 
   struct InfoType {};
 
-  ATTR_PURE_NDEBUG HOST_DEVICE inline IntersectionOp<InfoType>
-  intersect(const Ray &ray) const;
+  ATTR_PURE_NDEBUG HOST_DEVICE inline IntersectionOp<InfoType, T>
+  intersect(const GenRay<T> &ray) const;
+
+  static constexpr T intersect_epsilon =
+      std::is_same_v<T, double> ? 1e-10 : 1e-6;
 };
 
 using Triangle = TriangleGen<float>;

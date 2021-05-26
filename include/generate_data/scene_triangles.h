@@ -20,6 +20,13 @@ template <typename T> struct SceneTrianglesGen {
     };
   }
 
+  template <typename NewT>
+  ATTR_PURE_NDEBUG HOST_DEVICE inline SceneTrianglesGen<NewT> cast() const {
+    return apply_gen<NewT>([&](const intersect::TriangleGen<T> &tri) {
+      return tri.template cast<NewT>();
+    });
+  }
+
   template <typename F>
   ATTR_PURE_NDEBUG inline SceneTrianglesGen apply(F &&f) const {
     return apply_gen<T>(f);
@@ -34,5 +41,5 @@ template <typename T> struct SceneTrianglesGen {
   }
 };
 
-using SceneTriangles = SceneTrianglesGen<float>;
+using SceneTriangles = SceneTrianglesGen<double>;
 } // namespace generate_data

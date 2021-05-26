@@ -6,10 +6,10 @@
 #include "lib/attribute.h"
 
 namespace generate_data {
-ATTR_PURE_NDEBUG intersect::Ray
+ATTR_PURE_NDEBUG inline intersect::Ray
 baryocentric_to_ray(float s, float t, const intersect::Triangle &triangle,
                     const UnitVector &dir) {
-  auto point = integrate::baryocentric_to_point(triangle, s, t);
+  auto point = triangle.baryo_to_point({s, t});
 
   return {
       .origin = point - (*dir) * 1e-5,

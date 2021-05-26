@@ -10,8 +10,6 @@
 #include <iostream>
 #include <string>
 
-#include <dbg.h>
-
 // In retrospect, I don't really like docopt...
 constexpr char USAGE[] =
     R"(Path

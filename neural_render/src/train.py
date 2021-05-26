@@ -105,6 +105,7 @@ def main():
 
     # This is redundant I think
     device = torch.device("cuda:{}".format(which_gpu))
+    example_device_tensor = torch.empty(0, dtype=torch.float32, device=device)
 
     batch_size = cfg.batch_size
 
@@ -125,6 +126,18 @@ def main():
                                     opt_level=cfg.opt_level,
                                     min_loss_scale=65536.0,
                                     verbosity=cfg.amp_verbosity)
+
+    class InputsWrapper():
+        def __init__(self, item):
+            self.item = item
+
+        def to(self, value):
+            new_example = example_device_tensor.to(value)
+
+            return InputsWrapper(self.item.to(new_example))
+
+    def apply_net(inputs):
+        return net(InputsWrapper(inputs))
 
     if use_distributed:
         net = DistributedDataParallel(net)
@@ -190,21 +203,19 @@ def main():
         for base_seed in range(which_gpu, num_local_batchs_per_validation,
                                world_size):
             seed = base_seed * world_batch_size + validation_seed_start
-            (scenes, coords, values) = neural_render_generate_data.gen_data(
-                batch_size, cfg.rays_per_tri, cfg.samples_per_ray, seed)
-
             # TODO: if this is too much vram, could keep on cpu until needed
             # (same with imgs)
-            data = (scenes.to(device), coords.to(device), values.to(device))
+            data = neural_render_generate_data.gen_data(
+                batch_size, cfg.rays_per_tri, cfg.samples_per_ray,
+                seed).to(example_device_tensor)
             validation_data.append(data)
 
-        (scenes, coords, values,
-         indexes) = neural_render_generate_data.gen_data_for_image(
-             cfg.image_count, cfg.image_dim, cfg.samples_per_ray, image_seed)
+        image_data = neural_render_generate_data.gen_data_for_image(
+            cfg.image_count, cfg.image_dim, cfg.samples_per_ray, image_seed)
+        image_inputs = image_data.standard.inputs.to(example_device_tensor)
 
-        image_data = (scenes.to(device), coords.to(device))
-
-        save_image("images/actual", indexes, values)
+        save_image("images/actual", image_data.image_indexes,
+                   image_data.standard.values)
 
     for epoch in range(cfg.epochs):
         net.train()
@@ -266,11 +277,9 @@ def main():
             steps_since_display += world_batch_size
             steps_since_set_lr += world_batch_size
 
-            (scenes, coords, values) = neural_render_generate_data.gen_data(
-                batch_size, cfg.rays_per_tri, cfg.samples_per_ray, seed)
-
-            (scenes, coords, values) = (scenes.to(device), coords.to(device),
-                                        values.to(device))
+            data = neural_render_generate_data.gen_data(
+                batch_size, cfg.rays_per_tri, cfg.samples_per_ray,
+                seed).to(example_device_tensor)
 
             is_first = True
 
@@ -283,16 +292,16 @@ def main():
                 if torch.is_grad_enabled():
                     optimizer.zero_grad()
 
-                outputs = net(scenes, coords)
-                loss = criterion(outputs, values)
+                outputs = apply_net(data.inputs)
+                loss = criterion(outputs, data.values)
 
                 if torch.isnan(loss).any():
                     raise NanLoss()
 
                 if is_first:
                     train_perceptual_loss_tracker.update(
-                        perceptual(outputs, values))
-                    train_mse_loss_tracker.update(mse(outputs, values))
+                        perceptual(outputs, data.values))
+                    train_mse_loss_tracker.update(mse(outputs, data.values))
 
                 if torch.is_grad_enabled():
                     with amp.scale_loss(loss, optimizer) as scaled_loss:
@@ -334,15 +343,15 @@ def main():
         test_mse_loss_tracker = LossTracker(reduce_tensor)
 
         with torch.no_grad():
-            for (scenes, coords, values) in validation_data:
-                outputs = net(scenes, coords)
+            for data in validation_data:
+                outputs = apply_net(data.inputs)
 
-                test_perceptual_loss_tracker.update(perceptual(
-                    outputs, values))
-                test_mse_loss_tracker.update(mse(outputs, values))
+                test_perceptual_loss_tracker.update(
+                    perceptual(outputs, data.values))
+                test_mse_loss_tracker.update(mse(outputs, data.values))
 
-            (scenes, coords) = image_data
-            save_image("images/output", indexes, net(scenes, coords).cpu())
+            save_image("images/output", image_data.image_indexes,
+                       apply_net(image_inputs).cpu())
 
         test_mse_loss, nan_count = test_mse_loss_tracker.query_reset()
         test_perceptual_loss, _ = test_perceptual_loss_tracker.query_reset()

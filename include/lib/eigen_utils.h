@@ -7,10 +7,13 @@
 
 #include <limits>
 
-ATTR_PURE_NDEBUG HOST_DEVICE inline Eigen::Vector3f max_eigen_vec() {
-  return Eigen::Vector3f::Constant(std::numeric_limits<float>::max());
+template <typename Scalar>
+ATTR_PURE_NDEBUG HOST_DEVICE inline Eigen::Vector3<Scalar> max_eigen_vec() {
+  return Eigen::Vector3<Scalar>::Constant(std::numeric_limits<Scalar>::max());
 }
 
-ATTR_PURE_NDEBUG HOST_DEVICE inline Eigen::Vector3f min_eigen_vec() {
-  return Eigen::Vector3f::Constant(std::numeric_limits<float>::lowest());
+template <typename Scalar>
+ATTR_PURE_NDEBUG HOST_DEVICE inline Eigen::Vector3<Scalar> min_eigen_vec() {
+  return Eigen::Vector3<Scalar>::Constant(
+      std::numeric_limits<Scalar>::lowest());
 }
