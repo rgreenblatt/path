@@ -371,7 +371,7 @@ add_library(
   "${PROJECT_SOURCE_DIR}/src/generate_data/region_setter.cpp")
 target_link_libraries(
   gen_data
-  PUBLIC torch_cpu Python::Python # only cpu is required for now...
+  PUBLIC torch Python::Python
   PRIVATE renderer_from_files generate_data
           "${TORCH_INSTALL_PREFIX}/lib/libtorch_python.so" OpenMP::OpenMP_CXX)
 target_add_standard(gen_data)
