@@ -114,6 +114,14 @@ def split_last(x, shape):
     return x.view(*x.size()[:-1], *shape)
 
 
+def merge_last(x, n_dims):
+    "merge the last n_dims to a dimension"
+    s = x.size()
+    assert n_dims > 1 and n_dims < len(s)
+
+    return x.view(*s[:-n_dims], -1)
+
+
 PolyBlock = partial(ResBlock, linear_block=PolyConv)
 
 
@@ -124,8 +132,11 @@ class FusedBlock(nn.Module):
         constants = Constants()
         self._activation = nn.CELU()
         self._inp_poly = inp_poly
+        self._inp_ray = inp_ray
         self._overall_to_poly = nn.Linear(inp_overall,
                                           inp_poly * constants.n_polys)
+        self._overall_to_ray = nn.Linear(inp_overall,
+                                         inp_ray * constants.n_ray_items)
         # norm is covered by '_overall_norm'
         self._overall_block = ResBlock(inp_overall,
                                        out_overall,
@@ -133,7 +144,7 @@ class FusedBlock(nn.Module):
 
         self._n_heads_for_ray = 8
         n_feat_per_head = 16
-        key_size = self._n_heads_for_ray * n_feat_per_head
+        self._key_size = self._n_heads_for_ray * n_feat_per_head
 
         self._ray_layer_norms = nn.ModuleList(
             [nn.LayerNorm(inp_ray) for _ in range(constants.n_ray_items)])
@@ -144,12 +155,11 @@ class FusedBlock(nn.Module):
             for _ in range(constants.n_ray_items)
         ])
         self._ray_to_key = nn.ModuleList([
-            nn.Linear(out_ray, key_size) for _ in range(constants.n_ray_items)
-        ])
-        self._overall_to_query = nn.ModuleList([
-            nn.Linear(out_overall, key_size)
+            nn.Linear(out_ray, self._key_size)
             for _ in range(constants.n_ray_items)
         ])
+        self._overall_to_query = nn.Linear(
+            out_overall, self._key_size * constants.n_ray_items)
 
         self._poly_layer_norms = nn.ModuleList(
             [nn.LayerNorm(inp_poly) for _ in range(constants.n_polys)])
@@ -180,12 +190,13 @@ class FusedBlock(nn.Module):
 
         overall_values = self._overall_block(overall_values)
 
+        query_for_ray = self._overall_to_query(overall_values)
+
         new_ray_values = []
-        for i, (layer_norm, block, to_overall, to_key, overall_to_query,
+        for i, (layer_norm, block, to_overall, to_key,
                 (features, ray_values)) in enumerate(
                     zip(self._ray_layer_norms, self._ray_blocks,
-                        self._ray_to_overall, self._ray_to_key,
-                        self._overall_to_query, ray_values)):
+                        self._ray_to_overall, self._ray_to_key, ray_values)):
             ray_values = ray_values + values_to_poly_points(
                 overall_for_ray[..., i * self._inp_ray:(i + 1) *
                                 self._inp_ray], features.counts)
@@ -198,14 +209,16 @@ class FusedBlock(nn.Module):
 
             for_overall = to_overall(ray_values)
             key = to_key(ray_values)
-            query = overall_to_query(overall_values)
-            query = values_to_poly_points(query, features.counts)
+            query = values_to_poly_points(
+                query_for_ray[...,
+                              i * self._key_size:(i + 1) * self._key_size],
+                features.counts)
             [for_overall, key, query] = [
                 split_last(x, (self._n_heads_for_ray, -1))
                 for x in (for_overall, key, query)
             ]
-            weights = torch.sigmoid((query * key).sum(axis=-1))
-            # divide by total for softmax(ish)
+            weights = torch.exp((query * key).sum(axis=-1))
+            # divide by total for softmax
             total_weights = poly_reduce_reshape(weights,
                                                 features.prefix_sum_counts,
                                                 features.counts.size(),
@@ -216,7 +229,7 @@ class FusedBlock(nn.Module):
             )
 
             overall_values = overall_values + poly_reduce_reshape(
-                weights.unsqueeze(-1) * for_overall,
+                merge_last(weights.unsqueeze(-1) * for_overall, 2),
                 features.prefix_sum_counts,
                 features.counts.size(),
                 reduce='sum')
@@ -247,7 +260,7 @@ class FusedBlock(nn.Module):
 
         overall_values = self._overall_norm(overall_values)
 
-        return overall_values, new_poly_values
+        return overall_values, new_poly_values, new_ray_values
 
 
 class Net(nn.Module):
@@ -391,9 +404,12 @@ class Net(nn.Module):
 
         ray_values = []
         for ray_input in inputs.ray_inputs:
+            print(ray_input.values.size())
             values = self._ray_item_initial(ray_input.values)
+            print(values.size())
+            print(ray_input.is_ray.size())
             values[ray_input.is_ray] = self._ray_item_initial_for_ray(
-                ray_input.values)
+                ray_input.values)[ray_input.is_ray]
             ray_values.append((ray_input, self._activation(values)))
 
         overall_values = self._activation(
