@@ -310,7 +310,7 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
       }
     }
 
-    always_assert(scene_adder.idx == constants.n_scene_values);
+    debug_assert(scene_adder.idx == constants.n_scene_values);
 
     VectorT<intersect::Ray> rays(n_samples_per_scene);
 

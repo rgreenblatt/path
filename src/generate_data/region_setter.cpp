@@ -161,12 +161,10 @@ ATTR_NO_DISCARD_PURE PolygonInput RegionSetter<n_prior_dims>::as_poly_input() {
   auto &im = *impl_;
   for (unsigned i = 0; i < im.point_values.num_elements(); ++i) {
     const auto &vec = im.point_values.data()[i];
-    always_assert(vec.size() % constants.n_poly_point_values == 0);
+    debug_assert(vec.size() % constants.n_poly_point_values == 0);
     unsigned size = vec.size() / constants.n_poly_point_values;
 
-#ifndef NDEBUG
-    always_assert(im.counts.data()[i] == TorchIdxT(size));
-#endif
+    debug_assert(im.counts.data()[i] == TorchIdxT(size));
     total_size += size;
   }
 

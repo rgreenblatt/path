@@ -24,7 +24,7 @@ clip_by_plane(const Eigen::Vector3d &normal, double plane_threshold,
     }
   }
 
-  always_assert(included.size() + excluded.size() == 3);
+  debug_assert(included.size() + excluded.size() == 3);
 
   if (included.size() == 3) {
     return {tag_v<TriangleSubsetType::All>, {}};
@@ -86,7 +86,7 @@ clip_by_plane(const Eigen::Vector3d &normal, double plane_threshold,
     add_point(edge_points(0, excluded[0]));
     add_point(edge_points(1, excluded[0]));
   } else {
-    always_assert(included.size() == 1);
+    debug_assert(included.size() == 1);
     add_point(edge_points(0, excluded[0]));
     add_point(edge_points(0, excluded[1]));
   }
