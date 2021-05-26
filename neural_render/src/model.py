@@ -153,8 +153,10 @@ class FusedBlock(nn.Module):
 
         self._ray_layer_norms = nn.ModuleList(
             [nn.LayerNorm(inp_ray) for _ in range(constants.n_ray_items)])
-        self._ray_blocks = nn.ModuleList(
-            [ResBlock(inp_ray, out_ray) for _ in range(constants.n_ray_items)])
+        self._ray_blocks = nn.ModuleList([
+            ResBlock(inp_ray, out_ray, use_multiply=False)
+            for _ in range(constants.n_ray_items)
+        ])
         self._ray_to_overall = nn.ModuleList([
             nn.Linear(out_ray, out_overall)
             for _ in range(constants.n_ray_items)

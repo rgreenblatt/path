@@ -29,8 +29,6 @@
 #include <tuple>
 #include <vector>
 
-#include "dbg.h"
-
 // TODO: consider breaking up more of this
 namespace generate_data {
 static VectorT<render::Renderer> renderers;
