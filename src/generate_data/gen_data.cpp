@@ -102,9 +102,7 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
 
   boost::multi_array<TorchIdxT, 2> image_indexes;
   if constexpr (is_image) {
-    image_indexes = boost::multi_array<TorchIdxT, 2>{
-        boost::extents[baryocentric_indexes.size()][2]};
-
+    image_indexes.resize(std::array{unsigned(baryocentric_indexes.size()), 2u});
     for (int i = 0; i < int(baryocentric_indexes.size()); ++i) {
       auto [x, y] = baryocentric_indexes[i];
       image_indexes[i][0] = TorchIdxT(x);
