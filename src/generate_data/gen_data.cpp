@@ -91,6 +91,16 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
   auto totally_shadowed_setters = get_vec(constants.n_shadowable_tris);
   auto partially_shadowed_setters = get_vec(constants.n_shadowable_tris);
   auto centroid_shadowed_setters = get_vec(constants.n_shadowable_tris);
+  VectorT<VectorT<VectorT<PartiallyShadowedInfo::RayItem>>> ray_items(
+      constants.n_ray_items);
+  for (auto &r : ray_items) {
+    r.resize(n_scenes);
+  }
+  VectorT<boost::multi_array<TorchIdxT, 1>> ray_item_counts(
+      constants.n_ray_items);
+  for (auto &r : ray_item_counts) {
+    r.resize(prior_dims);
+  }
 
   renderers.resize(omp_get_max_threads());
 
@@ -244,6 +254,9 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
 
       partially_shadowed_setters[feature_idx].set_region(
           prior_idxs, partially_shadowed_intersected, *end_tris[1]);
+      ray_items[feature_idx][i] = partially_shadowed_info.ray_items;
+      ray_item_counts[feature_idx][i] =
+          partially_shadowed_info.ray_items.size();
 
       auto centroid_shadow = shadowed_from_point(
           region_centroids[onto_idx],
@@ -372,12 +385,46 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
   }
   debug_assert(int(polygon_inputs.size()) == constants.n_polys);
 
+  std::vector<RayInput> ray_inputs(ray_items.size());
+  for (unsigned i = 0; i < ray_items.size(); ++i) {
+    auto counts = to_tensor(ray_item_counts[i]);
+    TorchIdxT total = counts.sum().item().template to<TorchIdxT>();
+    boost::multi_array<float, 2> values{
+        std::array{total, TorchIdxT(constants.n_ray_item_values)}};
+    boost::multi_array<bool, 1> is_ray{std::array{total}};
+    unsigned running_idx = 0;
+    for (const auto &vec : ray_items[i]) {
+      for (const auto &item : vec) {
+        auto adder = make_value_adder(
+            [&](float v, int idx) { values[running_idx][idx] = v; });
+        adder.add_values(baryo_to_eigen(item.baryo_origin));
+        adder.add_values(baryo_to_eigen(item.baryo_endpoint));
+        adder.add_values(item.origin);
+        adder.add_values(item.endpoint);
+        item.result.visit([&](const auto &v) { adder.add_values(v); });
+        debug_assert(adder.idx == constants.n_ray_item_values);
+        is_ray[running_idx] = item.result.type() == RayItemResultType::Ray;
+        ++running_idx;
+      }
+    }
+    always_assert(running_idx == total);
+
+    ray_inputs[i] = {
+        .values = to_tensor(values),
+        .counts = counts,
+        .prefix_sum_counts =
+            at::cat({at::tensor({TorchIdxT(0)}), counts.flatten().cumsum(0)}),
+        .is_ray = to_tensor(is_ray),
+    };
+  }
+
   StandardData out{
       .inputs =
           {
               .overall_scene_features = to_tensor(overall_scene_features),
               .triangle_features = to_tensor(triangle_features),
               .polygon_inputs = polygon_inputs,
+              .ray_inputs = ray_inputs,
               .baryocentric_coords = to_tensor(baryocentric_coords),
           },
       .values = to_tensor(values),

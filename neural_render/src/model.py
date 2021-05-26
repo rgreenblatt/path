@@ -1,5 +1,6 @@
 from functools import partial
 
+import numpy as np
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -58,11 +59,11 @@ class PolyConv(nn.Module):
                       dim=-1))
 
 
-def poly_reduce_reshape(x, prefix_sum, dims):
+def poly_reduce_reshape(x, prefix_sum, dims, reduce="mean"):
     assert len(x.size()) == 2
     assert len(prefix_sum.size()) == 1
 
-    return segment_csr(x, prefix_sum, reduce="mean").view(*dims, -1)
+    return segment_csr(x, prefix_sum, reduce=reduce).view(*dims, -1)
 
 
 def values_to_poly_points(values, counts):
@@ -103,11 +104,22 @@ class ResBlock(nn.Module):
         return x
 
 
+def split_last(x, shape):
+    "split the last dimension to given shape"
+    shape = list(shape)
+    assert shape.count(-1) <= 1
+    if -1 in shape:
+        shape[shape.index(-1)] = int(x.size(-1) / -np.prod(shape))
+
+    return x.view(*x.size()[:-1], *shape)
+
+
 PolyBlock = partial(ResBlock, linear_block=PolyConv)
 
 
 class FusedBlock(nn.Module):
-    def __init__(self, inp_overall, out_overall, inp_poly, out_poly):
+    def __init__(self, inp_overall, out_overall, inp_poly, out_poly, inp_ray,
+                 out_ray):
         super().__init__()
         constants = Constants()
         self._activation = nn.CELU()
@@ -118,6 +130,26 @@ class FusedBlock(nn.Module):
         self._overall_block = ResBlock(inp_overall,
                                        out_overall,
                                        use_norm=False)
+
+        self._n_heads_for_ray = 8
+        n_feat_per_head = 16
+        key_size = self._n_heads_for_ray * n_feat_per_head
+
+        self._ray_layer_norms = nn.ModuleList(
+            [nn.LayerNorm(inp_ray) for _ in range(constants.n_ray_items)])
+        self._ray_blocks = nn.ModuleList(
+            [ResBlock(inp_ray, out_ray) for _ in range(constants.n_ray_items)])
+        self._ray_to_overall = nn.ModuleList([
+            nn.Linear(out_ray, out_overall)
+            for _ in range(constants.n_ray_items)
+        ])
+        self._ray_to_key = nn.ModuleList([
+            nn.Linear(out_ray, key_size) for _ in range(constants.n_ray_items)
+        ])
+        self._overall_to_query = nn.ModuleList([
+            nn.Linear(out_overall, key_size)
+            for _ in range(constants.n_ray_items)
+        ])
 
         self._poly_layer_norms = nn.ModuleList(
             [nn.LayerNorm(inp_poly) for _ in range(constants.n_polys)])
@@ -137,11 +169,57 @@ class FusedBlock(nn.Module):
         for param in self._poly_empty_values_for_overall:
             nn.init.zeros_(param)
 
-    def forward(self, overall_values, poly_values):
+    def forward(self, overall_values, poly_values, ray_values):
+        # could also put these after block (done this way to allow async
+        # execution)
         overall_for_poly = self._activation(
             self._overall_to_poly(overall_values))
 
+        overall_for_ray = self._activation(
+            self._overall_to_ray(overall_values))
+
         overall_values = self._overall_block(overall_values)
+
+        new_ray_values = []
+        for i, (layer_norm, block, to_overall, to_key, overall_to_query,
+                (features, ray_values)) in enumerate(
+                    zip(self._ray_layer_norms, self._ray_blocks,
+                        self._ray_to_overall, self._ray_to_key,
+                        self._overall_to_query, ray_values)):
+            ray_values = ray_values + values_to_poly_points(
+                overall_for_ray[..., i * self._inp_ray:(i + 1) *
+                                self._inp_ray], features.counts)
+            ray_values = layer_norm(ray_values)
+            ray_values = block(ray_values)
+
+            new_ray_values.append((features, ray_values))
+
+            # attention
+
+            for_overall = to_overall(ray_values)
+            key = to_key(ray_values)
+            query = overall_to_query(overall_values)
+            query = values_to_poly_points(query, features.counts)
+            [for_overall, key, query] = [
+                split_last(x, (self._n_heads_for_ray, -1))
+                for x in (for_overall, key, query)
+            ]
+            weights = torch.sigmoid((query * key).sum(axis=-1))
+            # divide by total for softmax(ish)
+            total_weights = poly_reduce_reshape(weights,
+                                                features.prefix_sum_counts,
+                                                features.counts.size(),
+                                                reduce='sum')
+            weights = weights / values_to_poly_points(
+                total_weights,
+                features.counts,
+            )
+
+            overall_values = overall_values + poly_reduce_reshape(
+                weights.unsqueeze(-1) * for_overall,
+                features.prefix_sum_counts,
+                features.counts.size(),
+                reduce='sum')
 
         new_poly_values = []
         for i, (layer_norm, block, to_overall, empty_values,
@@ -160,6 +238,7 @@ class FusedBlock(nn.Module):
                                           features.prefix_sum_counts,
                                           features.counts.size())
             base_overall = self._activation(to_overall(reduced))
+            # TODO: consider precomputing the '== 0'
             base_overall[features.counts == 0] = empty_values
 
             overall_values = overall_values + base_overall
@@ -207,6 +286,14 @@ class Net(nn.Module):
             for _ in range(self._n_shared_poly_block)
         ])
 
+        self._start_ray_size = 32
+        self._ray_item_initial = nn.Linear(constants.n_ray_item_values,
+                                           self._start_ray_size,
+                                           bias=False)
+        self._ray_item_initial_for_ray = nn.Linear(constants.n_ray_item_values,
+                                                   self._start_ray_size,
+                                                   bias=False)
+
         self._initial_overall_size = 256
 
         self._overall_initial = nn.Linear(
@@ -222,6 +309,7 @@ class Net(nn.Module):
         self._n_fused_blocks = 4
         self._end_fused_size = 256
         self._end_poly_size = self._start_poly_size
+        self._end_ray_size = self._start_ray_size
 
         overall_sizes = interpolate_sizes(self._initial_overall_size,
                                           self._end_fused_size,
@@ -229,10 +317,14 @@ class Net(nn.Module):
         poly_sizes = interpolate_sizes(self._start_poly_size,
                                        self._end_poly_size,
                                        self._n_fused_blocks)
+        ray_sizes = interpolate_sizes(self._start_ray_size, self._end_ray_size,
+                                      self._n_fused_blocks)
         self._fused_blocks = nn.ModuleList([
-            FusedBlock(inp_overall, out_overall, inp_poly, out_poly)
-            for ((inp_overall, out_overall),
-                 (inp_poly, out_poly)) in zip(overall_sizes, poly_sizes)
+            FusedBlock(inp_overall, out_overall, inp_poly, out_poly, inp_ray,
+                       out_ray)
+            for ((inp_overall, out_overall), (inp_poly, out_poly),
+                 (inp_ray,
+                  out_ray)) in zip(overall_sizes, poly_sizes, ray_sizes)
         ])
 
         self._end_size = self._end_fused_size
@@ -297,6 +389,13 @@ class Net(nn.Module):
                           features.item_to_right_idxs)
             poly_values.append((features, x))
 
+        ray_values = []
+        for ray_input in inputs.ray_inputs:
+            values = self._ray_item_initial(ray_input.values)
+            values[ray_input.is_ray] = self._ray_item_initial_for_ray(
+                ray_input.values)
+            ray_values.append((ray_input, self._activation(values)))
+
         overall_values = self._activation(
             self._overall_initial(
                 torch.cat((inputs.overall_scene_features,
@@ -307,9 +406,10 @@ class Net(nn.Module):
             overall_values = block(overall_values)
 
         for block in self._fused_blocks:
-            (overall_values, poly_values) = block(overall_values, poly_values)
+            (overall_values, poly_values,
+             ray_values) = block(overall_values, poly_values, ray_values)
 
-        # done with poly
+        # done with poly and ray
         x = overall_values
 
         for block in self._final_overall_blocks:

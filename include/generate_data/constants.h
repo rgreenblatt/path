@@ -13,6 +13,8 @@ struct Constants {
   int n_shadowable_tris;
   int n_poly_feature_values;
   int n_polys;
+  int n_ray_item_values;
+  int n_ray_items;
 
   Constants();
 };

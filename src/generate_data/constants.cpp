@@ -16,6 +16,9 @@ Constants::Constants() {
   n_poly_feature_values = 3 + 2 + 2;
 
   n_polys = n_tris + n_shadowable_tris * 3;
+
+  n_ray_item_values = 2 + 2 * n_baryo_dims + 2 * n_dims;
+  n_ray_items = 2;
 }
 
 const Constants constants;
