@@ -6,8 +6,8 @@
 # Ensures all allocated cores are on the same node
 #SBATCH -N 1
 
-# Request 4 CPU cores
-#SBATCH -n 4
+# Request 2 CPU cores
+#SBATCH -n 2
 
 #SBATCH -t 18:00:00
 #SBATCH -o train.out
