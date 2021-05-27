@@ -142,8 +142,8 @@ class FusedBlock(nn.Module):
                                        out_overall,
                                        use_norm=False)
 
-        self._n_heads_for_ray = 8
-        n_feat_per_head = 16
+        self._n_heads_for_ray = 32
+        n_feat_per_head = 8
         self._key_size = self._n_heads_for_ray * n_feat_per_head
 
         self._ray_layer_norms = nn.ModuleList(
