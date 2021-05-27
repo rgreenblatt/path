@@ -2,6 +2,7 @@
 
 #include "generate_data/constants.h"
 #include "generate_data/get_points_from_subset.h"
+#include "generate_data/remap_large.h"
 #include "generate_data/to_tensor.h"
 #include "generate_data/value_adder.h"
 #include "lib/projection.h"
@@ -81,7 +82,7 @@ double RegionSetter<n_prior_dims>::set_region(
       centroid3d /= pb.points.size();
       centroid2d /= pb.points.size();
 
-      feature_adder.add_values(centroid3d);
+      feature_adder.add_remap_all_values(centroid3d);
       feature_adder.add_values(centroid2d);
 
       im.counts(prior_idxs) = pb.baryo.size();
@@ -114,38 +115,58 @@ double RegionSetter<n_prior_dims>::set_region(
 
       feature_adder.add_value(boost::geometry::area(*baryo_poly));
       area_3d = boost::geometry::area(poly_distorted);
-      feature_adder.add_value(area_3d);
+      feature_adder.add_remap_all_value(area_3d);
 
       item.resize(pb.baryo.size() * constants.n_poly_point_values);
 
       auto value_adder =
           make_value_adder([&](float v, int idx) { item[idx] = v; });
       for (unsigned i = 0; i < pb.baryo.size(); ++i) {
+        auto add_values_for_points = [&](const auto &prev, const auto &value,
+                                         const auto &next, bool add_dotted,
+                                         bool add_remapped) {
+          value_adder.add_values(value);
+          if (add_remapped) {
+            value_adder.add_remap_multiscale_values(value);
+          }
+
+          // unnormalized edges can be trivially computed by net,
+          // so no need to add them here
+          auto edge_l = (prev - value).eval();
+          double norm_l = edge_l.norm();
+          value_adder.add_value(norm_l);
+          if (add_remapped) {
+            value_adder.add_remap_multiscale_value(norm_l);
+          }
+          auto normalized_l = edge_l.normalized().eval();
+          value_adder.add_values(normalized_l);
+
+          auto edge_r = (next - value).eval();
+          double norm_r = edge_r.norm();
+          value_adder.add_value(norm_r);
+          if (add_remapped) {
+            value_adder.add_remap_multiscale_value(norm_r);
+          }
+          auto normalized_r = edge_r.normalized().eval();
+          value_adder.add_values(normalized_r);
+
+          // should be identical for value and 3d (numerics aside)
+          if (add_dotted) {
+            double dotted = normalized_l.dot(normalized_r);
+
+            value_adder.add_value(dotted);
+            value_adder.add_value(std::acos(dotted));
+          }
+        };
+
         unsigned i_prev = (i == 0) ? pb.baryo.size() - 1 : i - 1;
         unsigned i_next = (i + 1) % pb.baryo.size();
 
-        const auto baryo_prev = baryo_to_eigen(pb.baryo[i_prev]);
-        const auto baryo = baryo_to_eigen(pb.baryo[i]);
-        const auto baryo_next = baryo_to_eigen(pb.baryo[i_next]);
-
-        Eigen::Vector2d edge_l = baryo_prev - baryo;
-        double norm_l = edge_l.norm();
-        value_adder.add_value(norm_l);
-        Eigen::Vector2d normalized_l = edge_l.normalized();
-        value_adder.add_values(normalized_l);
-
-        Eigen::Vector2d edge_r = baryo_next - baryo;
-        double norm_r = edge_r.norm();
-        value_adder.add_value(norm_r);
-        Eigen::Vector2d normalized_r = edge_r.normalized();
-        value_adder.add_values(normalized_r);
-
-        double dotted = normalized_l.dot(normalized_r);
-
-        value_adder.add_value(dotted);
-        value_adder.add_value(std::acos(dotted));
-        value_adder.add_values(baryo);
-        value_adder.add_values(pb.points[i]);
+        add_values_for_points(baryo_to_eigen(pb.baryo[i_prev]),
+                              baryo_to_eigen(pb.baryo[i]),
+                              baryo_to_eigen(pb.baryo[i_next]), true, false);
+        add_values_for_points(pb.points[i_prev], pb.points[i],
+                              pb.points[i_next], false, true);
       }
       debug_assert(value_adder.idx == int(item.size()));
       debug_assert(feature_adder.idx == constants.n_poly_feature_values);

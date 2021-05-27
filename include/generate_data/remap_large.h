@@ -5,7 +5,7 @@
 #include <cmath>
 
 namespace generate_data {
-ATTR_PURE_NDEBUG inline double remap_large(double v) {
-  return std::tanh(v / 1e4);
+ATTR_PURE_NDEBUG inline double remap_large(double v, double scale = 1e3) {
+  return std::tanh(v / scale);
 }
 } // namespace generate_data

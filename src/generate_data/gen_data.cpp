@@ -129,9 +129,6 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
     auto tris = generate_scene_triangles(rng_state);
     auto new_tris = normalize_scene_triangles(tris);
 
-    auto scene_adder = make_value_adder(
-        [&](float v, int idx) { overall_scene_features[i][idx] = v; });
-
     // clip by triangle_onto plane
     auto light_region =
         clip_by_plane(Eigen::Vector3d::UnitZ(), 0.,
@@ -269,6 +266,9 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
           *end_tris[1]);
     }
 
+    auto scene_adder = make_value_adder(
+        [&](float v, int idx) { overall_scene_features[i][idx] = v; });
+
     // TODO: precompute where possible
     for (int tri_idx = 0; tri_idx < int(tri_pointers.size()); ++tri_idx) {
       const auto &tri = *tri_pointers[tri_idx];
@@ -281,18 +281,18 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
       });
 
       for (const auto &point : tri.vertices) {
-        tri_adder.add_values(point);
+        tri_adder.add_remap_all_values(point);
       }
       const auto normal_scaled = tri.normal_scaled_by_area();
-      tri_adder.add_values(normal_scaled);
-      tri_adder.add_values(centroids[tri_idx]);
-      tri_adder.add_values(region_centroids[tri_idx]);
+      tri_adder.add_remap_all_values(normal_scaled);
+      tri_adder.add_remap_all_values(centroids[tri_idx]);
+      tri_adder.add_remap_all_values(region_centroids[tri_idx]);
       const auto normal = normal_scaled.normalized().eval();
       tri_adder.add_values(normal);
-      tri_adder.add_value(tri.area());
+      tri_adder.add_remap_all_value(tri.area());
       double region_area = clipped_setters[tri_idx].set_region(
           {i}, *region_pointers[tri_idx], tri);
-      tri_adder.add_value(region_area);
+      tri_adder.add_remap_all_value(region_area);
       debug_assert(tri_adder.idx == constants.n_tri_values);
 
       // add tri interaction general scene values
@@ -300,7 +300,7 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
            other_tri_idx < int(tri_pointers.size()); ++other_tri_idx) {
         const auto &other_tri = *tri_pointers[other_tri_idx];
         const auto other_normal_scaled = other_tri.normal_scaled_by_area();
-        scene_adder.add_value(other_normal_scaled.dot(normal_scaled));
+        scene_adder.add_remap_all_value(other_normal_scaled.dot(normal_scaled));
         const auto other_normal = other_normal_scaled.normalized().eval();
         const double normal_dot = other_normal.dot(normal);
         scene_adder.add_value(normal_dot);
@@ -309,9 +309,8 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
         for (const auto &centroid_arr : {centroids, region_centroids}) {
           Eigen::Vector3d centroid_vec_raw =
               centroid_arr[other_tri_idx] - centroid_arr[tri_idx];
-          scene_adder.add_values(centroid_vec_raw);
           double centroid_dist = centroid_vec_raw.norm();
-          scene_adder.add_value(centroid_dist);
+          scene_adder.add_remap_all_value(centroid_dist);
           Eigen::Vector3d centroid_vec = centroid_vec_raw.normalized();
           scene_adder.add_values(centroid_vec);
           double normal_centroid_dot = normal.dot(centroid_vec);
@@ -344,7 +343,10 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
 
       baryo_adder.add_value(s);
       baryo_adder.add_value(t);
-      baryo_adder.add_values(tris.triangle_onto.baryo_to_point({s, t}));
+      const auto point = tris.triangle_onto.baryo_to_point({s, t});
+      // surface area of tri is normalized, so not sure how important remap_all
+      // is...
+      baryo_adder.add_remap_all_values(point);
     }
 
     VectorT<FloatRGB> values_vec(n_samples_per_scene);
@@ -400,25 +402,25 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
             [&](float v, int idx) { values[running_idx][idx] = v; });
         adder.add_values(baryo_to_eigen(item.baryo_origin));
         adder.add_values(baryo_to_eigen(item.baryo_endpoint));
-        adder.add_values(item.origin);
-        adder.add_values(item.endpoint);
+        adder.add_remap_all_values(item.origin);
+        adder.add_remap_all_values(item.endpoint);
         item.result.visit_tagged([&](auto tag, const auto &v) {
           if constexpr (tag == RayItemResultType::Ray) {
             debug_assert(std::abs(v.norm() - 1.f) < 1e-12);
             adder.add_values(v);
             adder.add_value(0.);
-            adder.add_value(0.);
-            adder.add_value(0.);
-            adder.add_value(0.);
+            adder.add_remap_multiscale_value(0.);
+            adder.add_remap_multiscale_value(0.);
+            adder.add_remap_multiscale_value(0.);
           } else {
             static_assert(tag == RayItemResultType::Intersection);
             adder.add_values(v.normalized().eval());
+            adder.add_value(std::atan2(v.y(), v.x()));
             // values can get VERY large
             const double norm = v.norm();
-            adder.add_value(std::atan2(v.y(), v.x()));
-            adder.add_value(remap_large(norm));
-            adder.add_value(remap_large(v.x()));
-            adder.add_value(remap_large(v.y()));
+            adder.add_remap_multiscale_value(norm);
+            adder.add_remap_multiscale_value(v.x());
+            adder.add_remap_multiscale_value(v.y());
           }
         });
         is_ray[running_idx] = item.result.type() == RayItemResultType::Ray;
