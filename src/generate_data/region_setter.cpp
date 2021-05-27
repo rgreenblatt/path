@@ -138,7 +138,7 @@ double RegionSetter<n_prior_dims>::set_region(
         double norm_r = edge_r.norm();
         value_adder.add_value(norm_r);
         Eigen::Vector2d normalized_r = edge_r.normalized();
-        value_adder.add_values(edge_r);
+        value_adder.add_values(normalized_r);
 
         double dotted = normalized_l.dot(normalized_r);
 
