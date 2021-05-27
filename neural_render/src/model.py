@@ -217,7 +217,14 @@ class FusedBlock(nn.Module):
                 split_last(x, (self._n_heads_for_ray, -1))
                 for x in (for_overall, key, query)
             ]
-            weights = torch.sigmoid((query * key).sum(axis=-1))
+            dotted = (query * key).sum(axis=-1)
+            # subtract out maxs for numerical stability
+            to_sub = poly_reduce_reshape(dotted,
+                                         features.prefix_sum_counts,
+                                         features.counts.size(),
+                                         reduce='max')
+            dotted = dotted - values_to_poly_points(to_sub, features.counts)
+            weights = torch.exp(dotted)
             # divide by total for softmax
             total_weights = poly_reduce_reshape(weights,
                                                 features.prefix_sum_counts,
