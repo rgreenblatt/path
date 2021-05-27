@@ -76,7 +76,7 @@ double RegionSetter<n_prior_dims>::set_region(
         centroid3d += p;
       }
       for (const auto &p : pb.baryo) {
-        centroid2d += Eigen::Vector2d{p.x(), p.y()};
+        centroid2d += baryo_to_eigen(p);
       }
       centroid3d /= pb.points.size();
       centroid2d /= pb.points.size();
