@@ -12,7 +12,7 @@ Constants::Constants() {
   n_scene_values = n_tris * (1 + 2 + 2 * (1 + n_dims + 4));
 
   unsigned points_per_tri = 3;
-  n_tri_values = n_dims * points_per_tri + 3 * n_dims + n_dims + 2;
+  n_tri_values = n_dims * points_per_tri + 2 * n_dims + n_dims + 2;
 
   n_coords_feature_values = n_baryo_dims + n_dims * 1; // baryo and 3d
 
