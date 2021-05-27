@@ -277,7 +277,7 @@ class Net(nn.Module):
         self._activation = nn.CELU()
         constants = Constants()
 
-        self._start_tri_size = 64
+        self._start_tri_size = 128
         self._n_initial_tri_blocks = 1
 
         self._tri_initial = nn.Linear(constants.n_tri_values,
@@ -317,7 +317,7 @@ class Net(nn.Module):
         self._initial_overall_size = 256
 
         self._overall_initial = nn.Linear(
-            constants.n_scene_values + self._start_tri_size * 3,
+            constants.n_scene_values + self._start_tri_size * constants.n_tris,
             self._initial_overall_size)
 
         self._n_initial_overall_blocks = 1
@@ -327,7 +327,7 @@ class Net(nn.Module):
         ])
 
         self._n_fused_blocks = 2
-        self._end_fused_size = 256
+        self._end_fused_size = 384
         self._end_poly_size = self._start_poly_size
         self._end_ray_size = self._start_ray_size
 
@@ -368,7 +368,7 @@ class Net(nn.Module):
         self._coords_to_multiplier = nn.Linear(self._coord_block_size,
                                                self._multiplier_size)
 
-        self._output_block_size = 64
+        self._output_block_size = 32
 
         self._coords_to_addr = nn.Linear(self._coord_block_size,
                                          self._output_block_size)
