@@ -10,6 +10,7 @@
 #include "generate_data/get_points_from_subset.h"
 #include "generate_data/normalize_scene_triangles.h"
 #include "generate_data/region_setter.h"
+#include "generate_data/remap_large.h"
 #include "generate_data/shadowed.h"
 #include "generate_data/to_tensor.h"
 #include "generate_data/torch_utils.h"
@@ -415,9 +416,9 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
             // values can get VERY large
             const double norm = v.norm();
             adder.add_value(std::atan2(v.y(), v.x()));
-            adder.add_value(std::tanh(norm / 1e4));
-            adder.add_value(std::tanh(v.x() / 1e4));
-            adder.add_value(std::tanh(v.y() / 1e4));
+            adder.add_value(remap_large(norm));
+            adder.add_value(remap_large(v.x()));
+            adder.add_value(remap_large(v.y()));
           }
         });
         is_ray[running_idx] = item.result.type() == RayItemResultType::Ray;
