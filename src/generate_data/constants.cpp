@@ -14,7 +14,7 @@ Constants::Constants() {
 
   unsigned points_per_tri = 3;
   n_tri_values =
-      n_dims * points_per_tri * n_all + 3 * n_dims * n_all + n_dims + n_all * 2;
+      n_dims * points_per_tri * n_all + 2 * n_dims * n_all + n_dims + n_all * 2;
 
   n_coords_feature_values = n_baryo_dims + n_dims * n_all; // baryo and 3d
 
