@@ -124,7 +124,10 @@ double RegionSetter<n_prior_dims>::set_region(
       for (unsigned i = 0; i < pb.baryo.size(); ++i) {
         auto add_values_for_points = [&](const auto &prev, const auto &value,
                                          const auto &next, bool add_dotted) {
+          // TODO: consider removing prev, next and edges!
+          value_adder.add_values(prev);
           value_adder.add_values(value);
+          value_adder.add_values(next);
 
           // unnormalized edges can be trivially computed by net,
           // so no need to add them here
@@ -139,6 +142,8 @@ double RegionSetter<n_prior_dims>::set_region(
           value_adder.add_value(norm_r);
           auto normalized_r = edge_r.normalized().eval();
           value_adder.add_values(normalized_r);
+          value_adder.add_values(edge_l);
+          value_adder.add_values(edge_r);
 
           // should be identical for value and 3d (numerics aside)
           if (add_dotted) {
