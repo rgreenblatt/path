@@ -285,7 +285,7 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
       }
       const auto normal_scaled = tri.normal_scaled_by_area();
       tri_adder.add_values(normal_scaled);
-      // no need for 'centroids', can be trivially computed by net
+      tri_adder.add_values(centroids[tri_idx]);
       tri_adder.add_values(region_centroids[tri_idx]);
       const auto normal = normal_scaled.normalized().eval();
       tri_adder.add_values(normal);
@@ -416,9 +416,9 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
             adder.add_value(std::atan2(v.y(), v.x()));
             // values can get VERY large
             const double norm = v.norm();
-            adder.add_remap_value(norm);
-            adder.add_remap_value(v.x());
-            adder.add_remap_value(v.y());
+            adder.add_remap_value(norm, 1e4);
+            adder.add_remap_value(v.x(), 1e4);
+            adder.add_remap_value(v.y(), 1e4);
           }
         });
         is_ray[running_idx] = item.result.type() == RayItemResultType::Ray;

@@ -125,9 +125,9 @@ double RegionSetter<n_prior_dims>::set_region(
         auto add_values_for_points = [&](const auto &prev, const auto &value,
                                          const auto &next, bool add_dotted) {
           // TODO: consider removing prev, next and edges!
-          value_adder.add_values(prev);
+          // value_adder.add_values(prev);
           value_adder.add_values(value);
-          value_adder.add_values(next);
+          // value_adder.add_values(next);
 
           // unnormalized edges can be trivially computed by net,
           // so no need to add them here
@@ -141,8 +141,8 @@ double RegionSetter<n_prior_dims>::set_region(
           double norm_r = edge_r.norm();
           value_adder.add_value(norm_r);
           auto normalized_r = edge_r.normalized().eval();
-          value_adder.add_values(normalized_r);
-          value_adder.add_values(edge_l);
+          // value_adder.add_values(normalized_r);
+          // value_adder.add_values(edge_l);
           value_adder.add_values(edge_r);
 
           // should be identical for value and 3d (numerics aside)
@@ -160,8 +160,7 @@ double RegionSetter<n_prior_dims>::set_region(
         add_values_for_points(baryo_to_eigen(pb.baryo[i_prev]),
                               baryo_to_eigen(pb.baryo[i]),
                               baryo_to_eigen(pb.baryo[i_next]), true);
-        add_values_for_points(pb.points[i_prev], pb.points[i],
-                              pb.points[i_next], false);
+        value_adder.add_values(pb.points[i]);
       }
       debug_assert(value_adder.idx == int(item.size()));
       debug_assert(feature_adder.idx == constants.n_poly_feature_values);

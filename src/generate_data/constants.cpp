@@ -12,12 +12,11 @@ Constants::Constants() {
   n_scene_values = n_tris * (1 + 2 + 2 * (1 + n_dims + 4));
 
   unsigned points_per_tri = 3;
-  n_tri_values = n_dims * points_per_tri + 2 * n_dims + n_dims + 2;
+  n_tri_values = n_dims * points_per_tri + 3 * n_dims + n_dims + 2;
 
   n_coords_feature_values = n_baryo_dims + n_dims * 1; // baryo and 3d
 
-  n_poly_point_values = n_baryo_dims * 3 + 2 * (1 + n_baryo_dims * 2) +
-                        n_dims * 3 + 2 * (1 + n_dims * 2) + 2;
+  n_poly_point_values = n_baryo_dims + 2 * (1 + n_baryo_dims) + n_dims + 2;
 
   // centroid (3d and 2d) area and properly scaled area
   n_poly_feature_values = n_dims + n_baryo_dims + 1 + 1;
