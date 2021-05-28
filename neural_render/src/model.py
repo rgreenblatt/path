@@ -327,7 +327,7 @@ class Net(nn.Module):
         ])
 
         self._n_fused_blocks = 2
-        self._end_fused_size = 384
+        self._end_fused_size = 320
         self._end_poly_size = self._start_poly_size
         self._end_ray_size = self._start_ray_size
 
@@ -349,7 +349,7 @@ class Net(nn.Module):
 
         self._end_size = self._end_fused_size
 
-        self._n_final_overall_blocks = 6
+        self._n_final_overall_blocks = 4
         overall_sizes = interpolate_sizes(self._end_fused_size, self._end_size,
                                           self._n_final_overall_blocks)
         self._final_overall_blocks = nn.ModuleList(

@@ -28,7 +28,7 @@ Constants::Constants() {
   n_polys = n_tris + n_shadowable_tris * 3;
 
   n_ray_item_values =
-      2 * (n_baryo_dims + n_all * n_dims) + n_baryo_dims + 1 + 3 * n_multiscale;
+      2 * (n_baryo_dims + n_all * n_dims) + n_baryo_dims + 1 + 3 * n_all;
   n_ray_items = 2;
 
   n_rgb_dims = 3;
