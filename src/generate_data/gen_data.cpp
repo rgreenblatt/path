@@ -407,18 +407,18 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
             debug_assert(std::abs(v.norm() - 1.f) < 1e-12);
             adder.add_values(v);
             adder.add_value(0.);
-            adder.add_remap_multiscale_value(0.);
-            adder.add_remap_multiscale_value(0.);
-            adder.add_remap_multiscale_value(0.);
+            adder.add_remap_value(0., 1e4);
+            adder.add_remap_value(0., 1e4);
+            adder.add_remap_value(0., 1e4);
           } else {
             static_assert(tag == RayItemResultType::Intersection);
             adder.add_values(v.normalized().eval());
             adder.add_value(std::atan2(v.y(), v.x()));
             // values can get VERY large
             const double norm = v.norm();
-            adder.add_remap_multiscale_value(norm);
-            adder.add_remap_multiscale_value(v.x());
-            adder.add_remap_multiscale_value(v.y());
+            adder.add_remap_value(norm);
+            adder.add_remap_value(v.x());
+            adder.add_remap_value(v.y());
           }
         });
         is_ray[running_idx] = item.result.type() == RayItemResultType::Ray;

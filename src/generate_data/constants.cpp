@@ -16,8 +16,8 @@ Constants::Constants() {
 
   n_coords_feature_values = n_baryo_dims + n_dims * 1; // baryo and 3d
 
-  n_poly_point_values =
-      n_baryo_dims + 2 * (1 + n_baryo_dims) + n_dims + 2 * (1 + n_dims) + 2;
+  n_poly_point_values = n_baryo_dims * 3 + 2 * (1 + n_baryo_dims * 2) +
+                        n_dims * 3 + 2 * (1 + n_dims * 2) + 2;
 
   // centroid (3d and 2d) area and properly scaled area
   n_poly_feature_values = n_dims + n_baryo_dims + 1 + 1;
@@ -26,7 +26,7 @@ Constants::Constants() {
   n_polys = n_tris + n_shadowable_tris * 3;
 
   n_ray_item_values =
-      2 * (n_baryo_dims + n_dims) + n_baryo_dims + 1 + 3 * n_multiscale;
+      2 * (n_baryo_dims + n_dims) + n_baryo_dims + 1 + 3 /* * n_multiscale*/;
   n_ray_items = 2;
 
   n_rgb_dims = 3;
