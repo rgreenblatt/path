@@ -285,7 +285,6 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
       }
       const auto normal_scaled = tri.normal_scaled_by_area();
       tri_adder.add_remap_all_values(normal_scaled);
-      tri_adder.add_remap_all_values(centroids[tri_idx]);
       tri_adder.add_remap_all_values(region_centroids[tri_idx]);
       const auto normal = normal_scaled.normalized().eval();
       tri_adder.add_values(normal);
