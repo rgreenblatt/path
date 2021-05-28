@@ -314,7 +314,7 @@ class Net(nn.Module):
                                                    self._start_ray_size,
                                                    bias=False)
 
-        self._initial_overall_size = 256
+        self._initial_overall_size = 384
 
         self._overall_initial = nn.Linear(
             constants.n_scene_values + self._start_tri_size * constants.n_tris,
@@ -349,7 +349,7 @@ class Net(nn.Module):
 
         self._end_size = self._end_fused_size
 
-        self._n_final_overall_blocks = 6
+        self._n_final_overall_blocks = 8
         overall_sizes = interpolate_sizes(self._end_fused_size, self._end_size,
                                           self._n_final_overall_blocks)
         self._final_overall_blocks = nn.ModuleList(
