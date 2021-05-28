@@ -12,11 +12,11 @@ template <typename F> struct ValueAdder {
 
   void add_value(float v) { base_add(v, idx++); }
 
-  void add_remap_value(double v, double scale = 1e3) {
+  void add_remap_value(double v, double scale = 1e4) {
     add_value(remap_large(v, scale));
   }
 
-  static constexpr std::array<double, 4> scales = {1e-2, 1e0, 1e3, 1e5};
+  static constexpr std::array<double, 3> scales = {1e0, 1e3, 1e4};
 
   void add_remap_multiscale_value(double v) {
     for (double scale : scales) {
