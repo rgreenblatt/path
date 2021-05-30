@@ -29,30 +29,51 @@ initial_ray(float x, float y, unsigned x_dim, unsigned y_dim,
   return ray;
 }
 
+// can't be InitialTriAndDir
 using SampleValue = TaggedUnion<SampleSpecType, eigen_wrapper::Affine3f,
-                                Span<const intersect::Ray>>;
+                                Span<const intersect::Ray>, MetaTuple<>>;
 
 template <rng::RngState R>
 ATTR_PURE_NDEBUG HOST_DEVICE inline integrate::FRayRayInfo
 initial_ray_sample(R &rng, unsigned x, unsigned y, unsigned x_dim,
                    unsigned y_dim, const SampleValue &sample) {
+  auto ray =
+      sample.visit_tagged([&](auto tag, const auto &spec) -> intersect::Ray {
+        if constexpr (tag == SampleSpecType::SquareImage) {
 
-  auto ray = sample.visit_tagged([&](auto tag, const auto &spec) {
-    if constexpr (tag == SampleSpecType::SquareImage) {
+          float x_offset = rng.next();
+          float y_offset = rng.next();
 
-      float x_offset = rng.next();
-      float y_offset = rng.next();
-
-      return initial_ray(x + x_offset, y + y_offset, x_dim, y_dim, spec);
-    } else {
-      static_assert(tag == SampleSpecType::InitialRays);
-
-      return spec[x];
-    }
-  });
+          return initial_ray(x + x_offset, y + y_offset, x_dim, y_dim, spec);
+        } else if constexpr (tag == SampleSpecType::InitialRays) {
+          return spec[x];
+        } else {
+          static_assert(tag == SampleSpecType::InitialIdxAndDir);
+          unreachable();
+        }
+      });
 
   float multiplier = 1.f;
   return {ray, {multiplier, std::nullopt}};
+}
+
+template <std::copyable InfoType>
+ATTR_PURE_NDEBUG HOST_DEVICE inline integrate::IntersectionInfo<InfoType>
+initial_intersection_sample(const InitialIdxAndDirSpec &initial,
+                            Span<const InfoType> idx_to_info) {
+
+  float multiplier = 1.f;
+  return {
+      .intersection =
+          {
+              // by convention
+              .intersection_dist = 1.f,
+              // also by convention (change?, important?)
+              .is_back_intersection = false,
+              .info = idx_to_info[initial.idx],
+          },
+      .info = {initial.ray, {multiplier, std::nullopt}},
+  };
 }
 } // namespace integrate_image
 } // namespace detail

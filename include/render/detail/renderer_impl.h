@@ -88,8 +88,10 @@ private:
   std::array<HostVector<ExecVecT<FloatRGB>>, 2> output_per_step_rgb_;
   std::array<HostVector<Span<FloatRGB>>, 2> output_per_step_rgb_spans_;
   std::array<ExecVecT<Span<FloatRGB>>, 2> output_per_step_rgb_spans_device_;
+  HostVector<Span<FloatRGB>> output_per_step_rgb_spans_out_;
 
   ExecVecT<intersect::Ray> sample_rays_;
+  ExecVecT<InitialIdxAndDirSpec> sample_idxs_and_dir_;
 
   ThrustData<exec> thrust_data_;
 };

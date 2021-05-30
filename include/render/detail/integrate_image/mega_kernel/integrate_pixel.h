@@ -12,20 +12,21 @@ namespace render {
 namespace detail {
 namespace integrate_image {
 namespace mega_kernel {
-template <ExactSpecializationOf<Items> Items, intersect::Intersectable I>
-ATTR_NO_DISCARD_PURE HOST_DEVICE inline FloatRGB
-integrate_pixel(const Items &items, const SampleValue &sample,
-                const I &intersectable, const kernel::WorkDivision &division,
-                const kernel::GridLocationInfo &info) {
-  auto initial_ray_sampler = [&](auto &rng) {
-    return initial_ray_sample(rng, info.x, info.y, division.x_dim(),
-                              division.y_dim(), sample);
-  };
-
-  return integrate::rendering_equation(
+template <bool output_per_step, ExactSpecializationOf<Items> Items,
+          intersect::Intersectable I,
+          integrate::Sampler<typename I::InfoType> Sampler>
+ATTR_NO_DISCARD_PURE
+    HOST_DEVICE inline std::conditional_t<output_per_step, void, FloatRGB>
+    integrate_pixel(
+        const Items &items, const I &intersectable,
+        const kernel::WorkDivision &division,
+        const kernel::GridLocationInfo &info, const Sampler &sampler,
+        std::conditional_t<output_per_step, SpanSized<FloatRGB>, std::tuple<>>
+            step_outputs) {
+  return integrate::rendering_equation<output_per_step>(
       kernel::LocationInfo::from_grid_location_info(info, division.x_dim()),
-      items.render_settings, initial_ray_sampler, items.rng, intersectable,
-      items.components);
+      items.render_settings, sampler, items.rng, intersectable,
+      items.components, step_outputs);
 }
 } // namespace mega_kernel
 } // namespace integrate_image

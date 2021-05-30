@@ -36,19 +36,16 @@ struct SceneRef {
   using InfoType = detail::InfoType;
 
   ATTR_PURE_NDEBUG HOST_DEVICE inline UnitVector
-  get_normal(const detail::Intersection &intersection,
-             const intersect::Ray &ray) const {
-    unsigned triangle_idx = intersection.info.idx;
+  get_normal(const Eigen::Vector3f &point, const InfoType &info) const {
+    unsigned triangle_idx = info.idx;
 
-    return triangle_data[triangle_idx].get_normal(
-        intersection.intersection_point(ray), triangles[triangle_idx]);
+    return triangle_data[triangle_idx].get_normal(point,
+                                                  triangles[triangle_idx]);
   }
 
   ATTR_PURE_NDEBUG HOST_DEVICE inline const scene::Material &
-  get_material(const detail::Intersection &intersection) const {
-    auto [triangle_idx, triangle_info] = intersection.info;
-
-    return materials[triangle_data[triangle_idx].material_idx()];
+  get_material(const InfoType &info) const {
+    return materials[triangle_data[info.idx].material_idx()];
   }
 };
 
@@ -79,8 +76,8 @@ public:
   using Intersector = flat_triangle::IntersectableRef<typename Accel::Ref>;
   using SceneRef = flat_triangle::SceneRef;
 
-  IntersectableScene<Intersector, SceneRef> gen(const Settings &settings,
-                                                const scene::Scene &scene) {
+  SceneGenerated<Intersector, SceneRef> gen(const Settings &settings,
+                                            const scene::Scene &scene) {
     host_triangle_values_.clear_all();
 
     auto objects = scene.transformed_mesh_objects();
@@ -103,6 +100,17 @@ public:
         settings.accel_settings,
         host_triangle_values_.get(tag_v<TriItem::Triangle>).as_const());
 
+    host_orig_triangle_idx_to_info_.resize(ref_perm.permutation.size());
+    for (unsigned i = 0; i < host_orig_triangle_idx_to_info_.size(); ++i) {
+      // assumes that InfoType is stateless! If this changes, this code
+      // must also change!
+      static_assert(std::is_empty_v<intersect::Triangle::InfoType>);
+      host_orig_triangle_idx_to_info_[ref_perm.permutation[i]] = {
+          .idx = i,
+          .value = intersect::Triangle::InfoType{},
+      };
+    }
+
     always_assert(ref_perm.permutation.size() == host_triangle_values_.size());
 
     // permute values
@@ -114,22 +122,25 @@ public:
     host_triangle_values_perm_.copy_to_other(triangle_values_);
 
     copy_to_vec(scene.materials(), materials_);
+    copy_to_vec(host_orig_triangle_idx_to_info_, orig_triangle_idx_to_info_);
 
     auto triangles = triangle_values_.get(tag_v<TriItem::Triangle>);
 
     return {
-        .intersector =
-            {
-                .accel = ref_perm.ref,
-                .triangles = triangles,
-            },
-        .scene =
-            {
-                .triangles = triangles,
-                .triangle_data = triangle_values_.get(tag_v<TriItem::Data>),
-                .materials = materials_,
-            },
-    };
+        .orig_triangle_idx_to_info = orig_triangle_idx_to_info_,
+        .intersectable_scene = {
+            .intersector =
+                {
+                    .accel = ref_perm.ref,
+                    .triangles = triangles,
+                },
+            .scene =
+                {
+                    .triangles = triangles,
+                    .triangle_data = triangle_values_.get(tag_v<TriItem::Data>),
+                    .materials = materials_,
+                },
+        }};
   }
 
 private:
@@ -145,6 +156,8 @@ private:
   VectorGroup<HostVector> host_triangle_values_perm_;
   VectorGroup<ExecVecT> triangle_values_;
   ExecVecT<scene::Material> materials_;
+  HostVector<detail::InfoType> host_orig_triangle_idx_to_info_;
+  ExecVecT<detail::InfoType> orig_triangle_idx_to_info_;
   Accel accel_;
 };
 

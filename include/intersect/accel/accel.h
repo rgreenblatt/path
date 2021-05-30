@@ -4,6 +4,7 @@
 #include "intersect/object.h"
 #include "lib/settings.h"
 #include "lib/span.h"
+#include "lib/vector_type.h"
 #include "meta/specialization_of.h"
 
 namespace intersect {
@@ -42,9 +43,10 @@ concept AccelRef =
     } -> DecaysTo<AccelRet<MockIntersectableAtIdx>>;
 };
 
+// TODO: should this change from VectorT (maybe span)?
 template <AccelRef Ref> struct RefPerm {
   Ref ref;
-  std::vector<unsigned> permutation;
+  VectorT<unsigned> permutation;
 };
 
 namespace detail {

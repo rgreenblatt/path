@@ -58,9 +58,12 @@ void initialize(const Inp &inp, State &state,
       [&](auto tag, const auto &spec) -> SampleValue {
         if constexpr (tag == SampleSpecType::SquareImage) {
           return {tag, spec.film_to_world};
-        } else {
-          static_assert(tag == SampleSpecType::InitialRays);
+        } else if constexpr (tag == SampleSpecType::InitialRays) {
           return {tag, spec};
+        } else {
+          static_assert(tag == SampleSpecType::InitialIdxAndDir);
+          // TODO: NYI for InitialIdxAndDir
+          unreachable();
         }
       });
 
@@ -172,6 +175,8 @@ Run<exec>::run(
               spec.y_dim,
           };
         } else {
+          static_assert(tag == SampleSpecType::InitialRays ||
+                        tag == SampleSpecType::InitialIdxAndDir);
           return {
               // TODO: is this a sane work division in this case?
               // TODO: should we really be using WorkDivision when it
@@ -183,6 +188,10 @@ Run<exec>::run(
           };
         }
       });
+
+  if (inp.sample_spec.type() == SampleSpecType::InitialIdxAndDir) {
+    unreachable(); // NYI!!!
+  }
 
   if (inp.output_type == OutputType::OutputPerStep) {
     unreachable(); // NYI!!!

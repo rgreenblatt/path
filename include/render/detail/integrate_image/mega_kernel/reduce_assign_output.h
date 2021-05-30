@@ -13,7 +13,7 @@ namespace detail {
 namespace integrate_image {
 namespace mega_kernel {
 template <typename F>
-HOST_DEVICE void reduce_assign_output(F &reducer, const BaseItems &b,
+HOST_DEVICE void reduce_assign_output(F reducer, const BaseItems &b,
                                       const kernel::WorkDivision &division,
                                       unsigned block_idx, unsigned x,
                                       unsigned y, const FloatRGB &float_rgb) {

@@ -39,6 +39,7 @@ ExecVector<exec, FloatRGB> *ReduceFloatRGB<exec>::run(
     kernel::KernelLaunch<exec>::run(
         data, division, 0, division.total_num_blocks(),
         kernel::make_runtime_constants_reduce_launchable<exec, FloatRGB>(
+            1,
             [=](const kernel::WorkDivision &division,
                 const kernel::GridLocationInfo &info, const unsigned block_idx,
                 const unsigned, const auto &, auto &reducer) {
@@ -49,8 +50,8 @@ ExecVector<exec, FloatRGB> *ReduceFloatRGB<exec>::run(
                 total += in_span[i + x * reduction_factor];
               }
 
-              reduce_assign_output(reducer, items, division, block_idx, info.x,
-                                   info.y, total);
+              reduce_assign_output(reducer[0], items, division, block_idx,
+                                   info.x, info.y, total);
             }));
 
     reduction_factor = division.num_sample_blocks();

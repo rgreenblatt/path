@@ -16,9 +16,10 @@ concept SceneRef = requires {
 
   requires requires(
       const T &t, const intersect::Ray &ray,
-      const intersect::Intersection<typename T::InfoType> &intersection) {
-    { t.get_normal(intersection, ray) } -> std::convertible_to<UnitVector>;
-    { t.get_material(intersection) } -> DecaysTo<bsdf::Material<typename T::B>>;
+      const intersect::Intersection<typename T::InfoType> &intersection,
+      const Eigen::Vector3f &point, const typename T::InfoType &info) {
+    { t.get_normal(point, info) } -> std::convertible_to<UnitVector>;
+    { t.get_material(info) } -> DecaysTo<bsdf::Material<typename T::B>>;
   };
 };
 

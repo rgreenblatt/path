@@ -6,6 +6,8 @@ benchmark_ground_truth/
 .ccls-cache
 baryo.png
 out.png
+summed_image.png
+out_*.png
 cpu_out.png
 gpu_out.png
 build/

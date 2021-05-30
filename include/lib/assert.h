@@ -45,7 +45,9 @@ extern void __assert_fail(const char *__assertion, const char *__file,
   __builtin_unreachable();
 
 // assert that section is unreachable (always)
-#define unreachable() always_assert(false);
+#define unreachable()                                                          \
+  always_assert(false);                                                        \
+  __builtin_unreachable();
 
 inline constexpr bool debug_build =
 #ifdef NDEBUG

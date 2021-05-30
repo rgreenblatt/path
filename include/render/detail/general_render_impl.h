@@ -53,11 +53,12 @@ double Renderer::Impl<exec>::general_render(
     auto intersectable_items = [&]() {
       if constexpr (kernel_approach == KernelApproach::MegaKernel) {
         constexpr auto accel_type = kernel_approach_type_value;
-        auto intersectable_scene = as_intersectable_scene(
+        auto out = as_intersectable_scene(
             tag_v<accel_type>,
             kernel_approach_settings.individually_intersectable_settings);
-        return std::tuple{intersectable_scene.scene,
-                          intersectable_scene.intersector};
+        return std::tuple{out.orig_triangle_idx_to_info,
+                          out.intersectable_scene.scene,
+                          out.intersectable_scene.intersector};
       } else {
         static_assert(kernel_approach == KernelApproach::Streaming);
         auto &accel = kernel_approach_settings.accel;
@@ -69,24 +70,27 @@ double Renderer::Impl<exec>::general_render(
               StreamingSettings::BulkIntersectionApproaches::IndividualToBulk);
 
           constexpr auto accel_type = kernel_approach_type_value.get(tag);
-          auto intersectable_scene = as_intersectable_scene(
-              tag_v<accel_type>, value.individual_settings);
+          auto out = as_intersectable_scene(tag_v<accel_type>,
+                                            value.individual_settings);
 
           auto &intersector = to_bulk_.get(tag_v<accel_type>);
           intersector.set_settings_intersectable(
-              value.to_bulk_settings, intersectable_scene.intersector);
+              value.to_bulk_settings, out.intersectable_scene.intersector);
 
           // Specify exact type to make sure we get a reference for
           // intersector.
-          return std::tuple<decltype(intersectable_scene.scene),
-                            decltype(intersector)>{intersectable_scene.scene,
-                                                   intersector};
+          return std::tuple<decltype(out.orig_triangle_idx_to_info),
+                            decltype(out.intersectable_scene.scene),
+                            decltype(intersector)>{
+              out.orig_triangle_idx_to_info, out.intersectable_scene.scene,
+              intersector};
         });
       }
     }();
 
-    auto scene = std::get<0>(intersectable_items);
-    auto &intersector = std::get<1>(intersectable_items);
+    auto idx_to_info = std::get<0>(intersectable_items);
+    auto scene = std::get<1>(intersectable_items);
+    auto &intersector = std::get<2>(intersectable_items);
 
     auto light_sampler =
         light_samplers_.get(tag_v<light_sampler_type>)
@@ -107,7 +111,8 @@ double Renderer::Impl<exec>::general_render(
           if constexpr (tag == SampleSpecType::SquareImage) {
             return sample_spec.x_dim * sample_spec.y_dim;
           } else {
-            static_assert(tag == SampleSpecType::InitialRays);
+            static_assert(tag == SampleSpecType::InitialRays ||
+                          tag == SampleSpecType::InitialIdxAndDir);
             return sample_spec.size();
           }
         });
@@ -118,18 +123,25 @@ double Renderer::Impl<exec>::general_render(
 
     if (output.type() == OutputType::BGRA) {
       bgra_32_.resize(n_locations);
+    } else if (output.type() == OutputType::OutputPerStep) {
+      for (auto &vecs : output_per_step_rgb_) {
+        vecs.resize(output.get(tag_v<OutputType::OutputPerStep>).size());
+      }
     }
 
     const auto device_sample_spec =
         sample_spec.visit_tagged([&](auto tag, const auto &spec) -> SampleSpec {
           if constexpr (tag == SampleSpecType::SquareImage) {
             return sample_spec;
-          } else {
-            static_assert(tag == SampleSpecType::InitialRays);
-
+          } else if constexpr (tag == SampleSpecType::InitialRays) {
             copy_to_vec(spec, sample_rays_);
 
             return {tag, sample_rays_};
+          } else {
+            static_assert(tag == SampleSpecType::InitialIdxAndDir);
+            copy_to_vec(spec, sample_idxs_and_dir_);
+
+            return {tag, sample_idxs_and_dir_};
           }
         });
 
@@ -154,6 +166,7 @@ double Renderer::Impl<exec>::general_render(
         .output_type = output.type(),
         .sample_spec = device_sample_spec,
         .samples_per = samples_per,
+        .idx_to_info = idx_to_info,
         .show_progress = show_progress,
         .show_times = show_times,
     };
@@ -162,7 +175,8 @@ double Renderer::Impl<exec>::general_render(
       if constexpr (kernel_approach == KernelApproach::MegaKernel) {
         return integrate_image::mega_kernel::Run<exec>::run(
             thrust_data_, inputs, intersector, kernel_approach_settings,
-            bgra_32_, float_rgb_, output_per_step_rgb_);
+            bgra_32_, float_rgb_, output_per_step_rgb_,
+            output_per_step_rgb_spans_out_);
       } else {
         static_assert(kernel_approach == KernelApproach::Streaming);
 

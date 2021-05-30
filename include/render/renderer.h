@@ -19,6 +19,7 @@ enum class OutputType {
 enum class SampleSpecType {
   SquareImage,
   InitialRays,
+  InitialIdxAndDir,
 };
 
 struct SquareImageSpec {
@@ -27,10 +28,17 @@ struct SquareImageSpec {
   Eigen::Affine3f film_to_world;
 };
 
+struct InitialIdxAndDirSpec {
+  unsigned idx;
+  // it should hold that (origin - intersection_point).norm() == 1.
+  intersect::Ray ray;
+};
+
 using Output = TaggedUnion<OutputType, Span<BGRA32>, Span<FloatRGB>,
                            SpanSized<const Span<FloatRGB>>>;
 using SampleSpec = TaggedUnion<SampleSpecType, SquareImageSpec,
-                               SpanSized<const intersect::Ray>>;
+                               SpanSized<const intersect::Ray>,
+                               SpanSized<const InitialIdxAndDirSpec>>;
 
 class Renderer {
 public:

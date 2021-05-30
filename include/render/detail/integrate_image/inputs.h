@@ -15,6 +15,9 @@ template <ExactSpecializationOf<Items> Items> struct Inputs {
   SampleSpec sample_spec;
   unsigned samples_per;
 
+  // TODO: this might need to change later
+  Span<const typename Items::InfoType> idx_to_info;
+
   bool show_progress;
   bool show_times;
 };

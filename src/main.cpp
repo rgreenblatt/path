@@ -10,34 +10,39 @@
 #include <iostream>
 #include <string>
 
+#include "dbg.h"
+
 // In retrospect, I don't really like docopt...
 constexpr char USAGE[] =
     R"(Path
 
     Usage:
       path <scene_file> [--width=<pixels>] [--height=<pixels>]
-        [--samples=<count>] [--output=<file_name>] [--bench-budget=<time>]
-        [--config=<file_name>] [-g | --gpu] [--bench] [--bench-ignore-accel]
-        [--disable-progress] [--show-times] [--no-print-config]
+        [--samples=<count>] [--output=<file_name>] [--n-output-steps=<steps>]
+        [--output-per-step] [--bench-budget=<time>] [--config=<file_name>]
+        [-g | --gpu] [--bench] [--bench-ignore-accel] [--disable-progress]
+        [--show-times] [--no-print-config]
       path (-h | --help)
 
     Options:
-      -h --help              Show this screen.
-      --width=<pixels>       Width in pixels [default: 1024]
-      --height=<pixels>      Height in pixels [default: 1024]
-      --samples=<count>      Samples per pixel [default: 128]
-      --output=<file_name>   File name [default: out.png]
-      --bench-budget=<time>  Approx time in seconds for bench [default: 5.0]
-      --config=<file_name>   Config file name. If no file is specified, default
-                             settings will be used.
-      -g --gpu               Use gpu
+      -h --help                 Show this screen.
+      --width=<pixels>          Width in pixels [default: 1024]
+      --height=<pixels>         Height in pixels [default: 1024]
+      --samples=<count>         Samples per pixel [default: 128]
+      --output=<file_name>      File name [default: out.png]
+      --output-per-step         Create output image per each step
+      --n-output-steps=<steps>  Number of steps for output images [default: 8]
+      --bench-budget=<time>     Approx time in seconds for bench [default: 5.0]
+      --config=<file_name>      Config file name. If no file is specified,
+                                default settings will be used.
+      -g --gpu                  Use gpu
 
-      --bench                Warm up and then run multiple times and report 
-                             statistics
-      --bench-ignore-accel   Ignore the computation used to build the accel
-      --disable-progress     Disable progress bar
-      --show-times           Show timings
-      --no-print-config      Don't print config
+      --bench                   Warm up and then run multiple times and report
+                                statistics
+      --bench-ignore-accel      Ignore the computation used to build the accel
+      --disable-progress        Disable progress bar
+      --show-times              Show timings
+      --no-print-config         Don't print config
 )";
 
 int main(int argc, char *argv[]) {
@@ -99,12 +104,17 @@ int main(int argc, char *argv[]) {
 
   Span<BGRA32> pixels(reinterpret_cast<BGRA32 *>(image.bits()), width * height);
 
-  auto render = [&](bool show_progress) {
-    return renderer.render(
-        execution_model, width, height,
-        render::Output{tag_v<render::OutputType::BGRA>, pixels}, samples,
-        show_progress && !disable_progress, show_times);
+  auto render_gen = [&](bool show_progress, const render::Output &output) {
+    return renderer.render(execution_model, width, height, output, samples,
+                           show_progress && !disable_progress, show_times);
   };
+  auto render = [&](bool show_progress) {
+    return render_gen(show_progress,
+                      render::Output{tag_v<render::OutputType::BGRA>, pixels});
+  };
+
+  bool is_output_per_step = get_unpack_arg("--output-per-step").asBool();
+  const unsigned n_output_steps = get_unpack_arg("--n-output-steps").asLong();
 
   if (get_unpack_arg("--bench").asBool()) {
     const unsigned warmup_iters = 2;
@@ -157,6 +167,36 @@ int main(int argc, char *argv[]) {
 
   } else {
     render(true);
+  }
+  if (is_output_per_step) {
+    VectorT<VectorT<FloatRGB>> step_outputs(n_output_steps,
+                                            VectorT<FloatRGB>{width * height});
+    VectorT<Span<FloatRGB>> outputs(step_outputs.begin(), step_outputs.end());
+    render_gen(true, {tag_v<render::OutputType::OutputPerStep>, outputs});
+    for (unsigned i = 0; i < step_outputs.size(); ++i) {
+      QImage image(width, height, QImage::Format_RGB32);
+      std::transform(
+          step_outputs[i].begin(), step_outputs[i].end(),
+          reinterpret_cast<BGRA32 *>(image.bits()),
+          [&](const FloatRGB &v) { return float_rgb_to_bgra_32(v); });
+      std::stringstream name_s;
+      name_s << "out_" << i << ".png";
+      image.save(name_s.str().c_str());
+    }
+
+    QImage summed_image(width, height, QImage::Format_RGB32);
+    SpanSized<BGRA32> vals{reinterpret_cast<BGRA32 *>(image.bits()),
+                           width * height};
+    for (unsigned i = 0; i < vals.size(); ++i) {
+      FloatRGB total = FloatRGB::Zero();
+
+      for (unsigned j = 0; j < step_outputs.size(); ++j) {
+        total += step_outputs[j][i];
+      }
+
+      vals[i] = float_rgb_to_bgra_32(total);
+    }
+    image.save("summed_image.png");
   }
 
   image.save(output_file_name.c_str());

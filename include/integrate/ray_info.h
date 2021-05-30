@@ -1,5 +1,6 @@
 #pragma once
 
+#include "intersect/intersection.h"
 #include "intersect/ray.h"
 #include "lib/float_rgb.h"
 #include "lib/optional.h"
@@ -21,4 +22,9 @@ using FRayInfo = detail::RayInfo<float>;
 using ArrRayInfo = detail::RayInfo<FloatRGB>;
 using FRayRayInfo = detail::RayRayInfo<float>;
 using ArrRayRayInfo = detail::RayRayInfo<FloatRGB>;
+
+template <std::copyable InfoType> struct IntersectionInfo {
+  intersect::Intersection<InfoType> intersection;
+  integrate::FRayRayInfo info;
+};
 } // namespace integrate

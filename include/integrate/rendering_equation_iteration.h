@@ -34,8 +34,8 @@ rendering_equation_iteration(
 
   RenderingEquationState<C::L::max_num_samples> new_state;
   new_state.iters = iters + 1;
-  new_state.float_rgb_total = old_float_rgb_total;
   auto &float_rgb_total = new_state.float_rgb_total;
+  float_rgb_total = old_float_rgb_total;
 
   debug_assert_assume(light_samples.size() ==
                       intersections.size() - has_next_sample);
@@ -51,7 +51,7 @@ rendering_equation_iteration(
     }
 
     float_rgb_total +=
-        scene.get_material(*intersection_op).emission * multiplier;
+        scene.get_material(intersection_op->info).emission * multiplier;
   }
 
   if (!has_next_sample) {
@@ -71,14 +71,15 @@ rendering_equation_iteration(
   const auto &intersection_point = next_intersection.intersection_point(ray);
   FloatRGB multiplier = ray_info.multiplier;
 
-  decltype(auto) material = scene.get_material(next_intersection);
+  decltype(auto) material = scene.get_material(next_intersection.info);
 
   if ((!C::L::performs_samples || count_emission) &&
       include_lighting(next_intersection)) {
     float_rgb_total += multiplier * material.emission;
   }
 
-  decltype(auto) normal = scene.get_normal(next_intersection, ray);
+  decltype(auto) normal =
+      scene.get_normal(intersection_point, next_intersection.info);
 
   using B = typename C::B;
 

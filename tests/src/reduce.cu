@@ -99,11 +99,11 @@ TEST(Reduce, sum) {
               kernel::KernelLaunch<exec>::run(
                   ThrustData<exec>{}, division, 0, division.total_num_blocks(),
                   kernel::make_runtime_constants_reduce_launchable<exec, T>(
-                      [=] HOST_DEVICE(const WorkDivision &division,
-                                      const kernel::GridLocationInfo &info,
-                                      const unsigned /*block_idx*/,
-                                      const unsigned /*thread_idx*/,
-                                      const auto &, auto &interactor) {
+                      1, [=] HOST_DEVICE(const WorkDivision &division,
+                                         const kernel::GridLocationInfo &info,
+                                         const unsigned /*block_idx*/,
+                                         const unsigned /*thread_idx*/,
+                                         const auto &, auto &interactor) {
                         auto [start_sample, end_sample, j, unused] = info;
 
                         T total = 0;
@@ -114,7 +114,7 @@ TEST(Reduce, sum) {
                         auto add = [](const T &lhs, const T &rhs) {
                           return lhs + rhs;
                         };
-                        auto op = interactor.reduce(
+                        auto op = interactor[0].reduce(
                             total, add, division.sample_block_size());
                         if (op.has_value()) {
                           out_div[j] = *op;

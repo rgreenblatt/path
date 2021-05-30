@@ -4,9 +4,16 @@
 #include "lib/settings.h"
 #include "scene/scene.h"
 
-namespace intersectable_scene {
 // TODO: eventually scene should allow for non triangle
 // scenes and alternate material
+namespace intersectable_scene {
+// this would also have to change with non-tri scene...
+template <Intersector I, SceneRefForInfoType<typename I::InfoType> S>
+struct SceneGenerated {
+  Span<const typename I::InfoType> orig_triangle_idx_to_info;
+  IntersectableScene<I, S> intersectable_scene;
+};
+
 template <typename T, typename Settings>
 concept SceneGenerator = requires(T &gen, const Settings &settings,
                                   const scene::Scene &scene) {
@@ -20,6 +27,6 @@ concept SceneGenerator = requires(T &gen, const Settings &settings,
   {
     gen.gen(settings, scene)
     } -> std::same_as<
-        IntersectableScene<typename T::Intersector, typename T::SceneRef>>;
+        SceneGenerated<typename T::Intersector, typename T::SceneRef>>;
 };
 } // namespace intersectable_scene

@@ -7,8 +7,10 @@
 
 namespace kernel {
 template <ExecutionModel exec, typename Reduced, typename F>
-constexpr auto make_runtime_constants_reduce_launchable(const F &callable) {
+constexpr auto make_runtime_constants_reduce_launchable(unsigned count,
+                                                        const F &callable) {
   return ThreadInteractorLaunchableNoExtraInp<
-      kernel::RuntimeConstantsReducer<exec, Reduced>, F>{{}, {}, callable};
+      kernel::RuntimeConstantsReducer<exec, Reduced>, F>{
+      .inp = {}, .interactor = {count}, .callable = callable};
 }
 } // namespace kernel
