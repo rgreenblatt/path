@@ -59,7 +59,6 @@ template <std::copyable InfoType>
 ATTR_PURE_NDEBUG HOST_DEVICE inline integrate::IntersectionInfo<InfoType>
 initial_intersection_sample(const InitialIdxAndDirSpec &initial,
                             Span<const InfoType> idx_to_info) {
-
   return {
       .intersection =
           {
