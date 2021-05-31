@@ -4,6 +4,7 @@
 #include "intersect/triangle_impl.h"
 #include "lib/assert.h"
 #include "lib/info/timer.h"
+#include "lib/vector_type.h"
 
 #include <unordered_set>
 
@@ -379,7 +380,7 @@ DirectionGrid<exec>::Generator::gen(const Settings &,
   copy_to_vec(overall_idxs, overall_idxs_);
   copy_to_vec(direction_idxs_final, direction_idxs_);
 
-  std::vector<unsigned> permutation(triangles.size());
+  VectorT<unsigned> permutation(triangles.size());
 
   for (unsigned i = 0; i < triangles.size(); ++i) {
     permutation[i] = i;

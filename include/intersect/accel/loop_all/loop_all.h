@@ -6,6 +6,7 @@
 #include "intersect/accel/loop_all/settings.h"
 #include "intersect/optional_min.h"
 #include "lib/attribute.h"
+#include "lib/vector_type.h"
 #include "meta/all_values/predicate_for_all_values.h"
 
 namespace intersect {
@@ -31,7 +32,7 @@ struct LoopAll {
 
   template <typename B>
   RefPerm<Ref> gen(const Settings &, SpanSized<const B> objects) {
-    std::vector<unsigned> permutation(objects.size());
+    VectorT<unsigned> permutation(objects.size());
     for (unsigned i = 0; i < objects.size(); ++i) {
       permutation[i] = i;
     }

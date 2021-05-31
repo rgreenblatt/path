@@ -31,7 +31,7 @@ initial_ray(float x, float y, unsigned x_dim, unsigned y_dim,
 
 // can't be InitialTriAndDir
 using SampleValue = TaggedUnion<SampleSpecType, eigen_wrapper::Affine3f,
-                                Span<const intersect::Ray>, MetaTuple<>>;
+                                Span<const intersect::Ray>, MockCopyable>;
 
 template <rng::RngState R>
 ATTR_PURE_NDEBUG HOST_DEVICE inline integrate::FRayRayInfo
