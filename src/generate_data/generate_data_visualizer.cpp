@@ -136,12 +136,16 @@ int main(int argc, char *argv[]) {
   auto [baryocentric_indexes, baryocentric_grid_values] =
       baryocentric_coords(baryocentric_width, baryocentric_height);
 
-  VectorT<intersect::Ray> baryocentric_grid(baryocentric_grid_values.size());
+  VectorT<render::InitialIdxAndDirSpec> baryocentric_grid(
+      baryocentric_grid_values.size());
 
   for (unsigned i = 0; i < baryocentric_grid_values.size(); ++i) {
     auto [x_v, y_v] = baryocentric_grid_values[i];
-    baryocentric_grid[i] = baryocentric_to_ray(
-        x_v, y_v, tris.triangle_onto.template cast<float>(), dir_towards);
+    baryocentric_grid[i] = {
+        .idx = 0,
+        .ray = baryocentric_to_ray(
+            x_v, y_v, tris.triangle_onto.template cast<float>(), dir_towards),
+    };
   }
 
   std::vector<BGRA32> baryocentric_pixels(baryocentric_grid.size(),
@@ -149,7 +153,7 @@ int main(int argc, char *argv[]) {
 
   renderer.render(
       execution_model,
-      {tag_v<render::SampleSpecType::InitialRays>, baryocentric_grid},
+      {tag_v<render::SampleSpecType::InitialIdxAndDir>, baryocentric_grid},
       {tag_v<render::OutputType::BGRA>, baryocentric_pixels}, scene,
       baryocentric_num_samples, settings, true);
 

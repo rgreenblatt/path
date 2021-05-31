@@ -11,8 +11,9 @@ baryocentric_to_ray(float s, float t, const intersect::Triangle &triangle,
                     const UnitVector &dir) {
   auto point = triangle.baryo_to_point({s, t});
 
+  // fits with convention!
   return {
-      .origin = point - (*dir) * 1e-5,
+      .origin = point - (*dir),
       .direction = dir,
   };
 }

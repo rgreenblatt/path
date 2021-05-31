@@ -323,7 +323,7 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
 
     debug_assert(scene_adder.idx == constants.n_scene_values);
 
-    VectorT<intersect::Ray> rays(n_samples_per_scene);
+    VectorT<render::InitialIdxAndDirSpec> idxs_and_dirs(n_samples_per_scene);
 
     auto dir_towards = -tris.triangle_onto.template cast<float>().normal();
     for (int j = 0; j < n_samples_per_scene; ++j) {
@@ -334,8 +334,11 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
           return integrate::uniform_baryocentric(rng_state);
         }
       }();
-      rays[j] = baryocentric_to_ray(
-          s, t, tris.triangle_onto.template cast<float>(), dir_towards);
+      idxs_and_dirs[j] = {
+          .idx = 0,
+          .ray = baryocentric_to_ray(
+              s, t, tris.triangle_onto.template cast<float>(), dir_towards),
+      };
       auto baryo_adder = make_value_adder(
           [&](float v, int idx) { baryocentric_coords[i][j][idx] = v; });
 
@@ -349,12 +352,12 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
 
     VectorT<FloatRGB> values_vec(n_samples_per_scene);
 
-    if (!rays.empty()) {
+    if (!idxs_and_dirs.empty()) {
       auto scene = generate_scene(tris);
       always_assert(size_t(omp_get_thread_num()) < renderers.size());
       renderers[omp_get_thread_num()].render(
           ExecutionModel::GPU,
-          {tag_v<render::SampleSpecType::InitialRays>, rays},
+          {tag_v<render::SampleSpecType::InitialIdxAndDir>, idxs_and_dirs},
           {tag_v<render::OutputType::FloatRGB>, values_vec}, scene, n_samples,
           settings, false);
       for (int j = 0; j < n_samples_per_scene; ++j) {
