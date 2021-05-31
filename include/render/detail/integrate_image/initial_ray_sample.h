@@ -40,7 +40,6 @@ initial_ray_sample(R &rng, unsigned x, unsigned y, unsigned x_dim,
   auto ray =
       sample.visit_tagged([&](auto tag, const auto &spec) -> intersect::Ray {
         if constexpr (tag == SampleSpecType::SquareImage) {
-
           float x_offset = rng.next();
           float y_offset = rng.next();
 
