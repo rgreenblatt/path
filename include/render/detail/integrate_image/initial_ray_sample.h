@@ -53,8 +53,7 @@ initial_ray_sample(R &rng, unsigned x, unsigned y, unsigned x_dim,
         }
       });
 
-  float multiplier = 1.f;
-  return {ray, {multiplier, std::nullopt}};
+  return {ray, {.multiplier = 1.f, .target_distance = std::nullopt}};
 }
 
 template <std::copyable InfoType>
@@ -62,7 +61,6 @@ ATTR_PURE_NDEBUG HOST_DEVICE inline integrate::IntersectionInfo<InfoType>
 initial_intersection_sample(const InitialIdxAndDirSpec &initial,
                             Span<const InfoType> idx_to_info) {
 
-  float multiplier = 1.f;
   return {
       .intersection =
           {
@@ -72,7 +70,8 @@ initial_intersection_sample(const InitialIdxAndDirSpec &initial,
               .is_back_intersection = false,
               .info = idx_to_info[initial.idx],
           },
-      .info = {initial.ray, {multiplier, std::nullopt}},
+      .info = {initial.ray,
+               {.multiplier = 1.f, .target_distance = std::nullopt}},
   };
 }
 } // namespace integrate_image
