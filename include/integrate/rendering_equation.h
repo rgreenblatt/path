@@ -81,7 +81,7 @@ ATTR_NO_DISCARD_PURE
     if constexpr (output_per_step) {
       if (current_step >= step_outputs.size()) {
         finished = true;
-        break;
+        continue;
       }
     }
 

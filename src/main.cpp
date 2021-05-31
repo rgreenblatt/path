@@ -185,7 +185,7 @@ int main(int argc, char *argv[]) {
     }
 
     QImage summed_image(width, height, QImage::Format_RGB32);
-    SpanSized<BGRA32> vals{reinterpret_cast<BGRA32 *>(image.bits()),
+    SpanSized<BGRA32> vals{reinterpret_cast<BGRA32 *>(summed_image.bits()),
                            width * height};
     for (unsigned i = 0; i < vals.size(); ++i) {
       FloatRGB total = FloatRGB::Zero();
@@ -196,7 +196,7 @@ int main(int argc, char *argv[]) {
 
       vals[i] = float_rgb_to_bgra_32(total);
     }
-    image.save("summed_image.png");
+    summed_image.save("summed_image.png");
   }
 
   image.save(output_file_name.c_str());
