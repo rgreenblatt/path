@@ -3,6 +3,8 @@
 #include "bsdf/bsdf.h"
 #include "bsdf/dielectric_refractive.h"
 #include "bsdf/diffuse.h"
+#include "bsdf/diffuse_glossy.h"
+#include "bsdf/diffuse_mirror.h"
 #include "bsdf/glossy.h"
 #include "bsdf/mirror.h"
 #include "lib/assert.h"
@@ -15,13 +17,15 @@ namespace bsdf {
 enum class BSDFType {
   Diffuse,
   Glossy,
+  DiffuseGlossy,
+  DiffuseMirror,
   Mirror,
   DielectricRefractive,
 };
 
 struct UnionBSDF {
-  using Union =
-      TaggedUnion<BSDFType, Diffuse, Glossy, Mirror, DielectricRefractive>;
+  using Union = TaggedUnion<BSDFType, Diffuse, Glossy, DiffuseGlossy,
+                            DiffuseMirror, Mirror, DielectricRefractive>;
   Union bsdf;
 
   static constexpr bool discrete = true;

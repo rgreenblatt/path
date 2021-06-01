@@ -32,8 +32,8 @@ tinyobj_material_conversion(const tinyobj::material_t &material) {
 
   constexpr float epsilon = 1e-8; // for checking if component is zero;
 
-  bool diffuse_non_zero = diffuse.matrix().squaredNorm() > epsilon;
-  bool specular_non_zero = specular.matrix().squaredNorm() > epsilon;
+  bool diffuse_non_zero = diffuse().matrix().squaredNorm() > epsilon;
+  bool specular_non_zero = specular().matrix().squaredNorm() > epsilon;
 
   // above this considered perfect mirror
   const float shininess_threshold = 100;
@@ -53,6 +53,32 @@ tinyobj_material_conversion(const tinyobj::material_t &material) {
         {{tag_v<BSDFType::DielectricRefractive>, Eigen::Vector3f::Ones(), ior}},
         emission,
     };
+  } else if (diffuse_non_zero && specular_non_zero) {
+    double total_diffuse_mass = diffuse.sum();
+    double total_specular_mass = specular.sum();
+    float diffuse_weight =
+        total_diffuse_mass / (total_diffuse_mass + total_specular_mass);
+    float glossy_weight = 1. - diffuse_weight;
+    if ((diffuse + specular).maxCoeff() > 1.f) {
+      std::cerr << "> 1 case NYI!\n";
+      abort();
+    }
+
+    const auto new_diffuse = diffuse / diffuse_weight;
+    const auto new_specular = specular / glossy_weight;
+
+    if (shininess > shininess_threshold) {
+      return {{{tag_v<BSDFType::DiffuseGlossy>,
+                {{bsdf::Diffuse{new_diffuse},
+                  bsdf::Glossy{new_specular, shininess}},
+                 {diffuse_weight, glossy_weight}}}},
+              emission};
+    } else {
+      return {{{tag_v<BSDFType::DiffuseMirror>,
+                {{bsdf::Diffuse{new_diffuse}, bsdf::Mirror{new_specular}},
+                 {diffuse_weight, glossy_weight}}}},
+              emission};
+    }
   } else if (diffuse_non_zero && !specular_non_zero) {
     // ideal diffuse
     return {{{tag_v<BSDFType::Diffuse>, diffuse}}, emission};
@@ -66,7 +92,7 @@ tinyobj_material_conversion(const tinyobj::material_t &material) {
 
     // ideal specular
     return {{{tag_v<BSDFType::Mirror>, specular}}, emission};
-  } else if (specular_non_zero /*&& !diffuse_non_zero*/) {
+  } else if (specular_non_zero && !diffuse_non_zero) {
     return {{{tag_v<BSDFType::Glossy>, specular, shininess}}, emission};
   } else {
     // TODO

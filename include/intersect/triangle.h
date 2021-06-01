@@ -83,9 +83,6 @@ template <typename T> struct TriangleGen {
 
   ATTR_PURE_NDEBUG HOST_DEVICE inline IntersectionOp<InfoType, T>
   intersect(const GenRay<T> &ray) const;
-
-  static constexpr T intersect_epsilon =
-      std::is_same_v<T, double> ? 1e-10 : 1e-6;
 };
 
 using Triangle = TriangleGen<float>;

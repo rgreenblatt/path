@@ -45,11 +45,6 @@ template <typename TIn> struct Wrapper {
     return (*this)().cross(other);
   }
 
-  constexpr decltype(auto) matrix() const { return (*this)().matrix(); }
-  constexpr decltype(auto) matrix() { return (*this)().matrix(); }
-  constexpr decltype(auto) array() const { return (*this)().array(); }
-  constexpr decltype(auto) array() { return (*this)().array(); }
-
   static constexpr auto Zero() { return T::Zero(); }
   static constexpr auto Constant(const Scalar &v) { return T::Constant(v); }
 

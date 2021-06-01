@@ -15,7 +15,7 @@ ATTR_PURE_NDEBUG
   Eigen::Vector3<T> h = ray.direction->cross(edge2);
   T a = edge1.dot(h);
 
-  if (std::abs(a) < intersect_epsilon) {
+  if (std::abs(a) < 1e-7) {
     return std::nullopt;
   }
   T f = 1. / a;
@@ -30,7 +30,7 @@ ATTR_PURE_NDEBUG
     return std::nullopt;
   }
   T t = f * edge2.dot(q);
-  if (t > intersect_epsilon) {
+  if (t > 1e-5) {
     bool is_back_intersection = a < 0.;
     return Intersection<InfoType, T>{t, is_back_intersection, InfoType{}};
   } else {

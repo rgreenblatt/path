@@ -157,7 +157,7 @@ bool ScenefileLoader::load_mesh(Scene &scene, std::string file_path,
   for (const auto &m : mesh_materials) {
     auto material = tinyobj_material_conversion(m);
 
-    is_emissive.push_back(material.emission.matrix().squaredNorm() > 1e-9f);
+    is_emissive.push_back(material.emission().matrix().squaredNorm() > 1e-9f);
 
     scene.materials_.push_back(material);
   }

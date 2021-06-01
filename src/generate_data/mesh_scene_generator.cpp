@@ -114,7 +114,7 @@ bsdf::UnionBSDF random_bsdf(std::mt19937 &rng) {
     std::uniform_real_distribution dist(0.f, 1.f);
     FloatRGB out = random_float_rgb(dist);
     auto mag = dist(rng);
-    return out.matrix().normalized().array() * mag;
+    return out().matrix().normalized().array() * mag;
   };
 
   bool is_emissive = std::bernoulli_distribution(0.3)(rng);
