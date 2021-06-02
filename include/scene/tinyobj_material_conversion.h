@@ -68,14 +68,14 @@ tinyobj_material_conversion(const tinyobj::material_t &material) {
     const auto new_specular = specular / glossy_weight;
 
     if (shininess > shininess_threshold) {
-      return {{{tag_v<BSDFType::DiffuseGlossy>,
-                {{bsdf::Diffuse{new_diffuse},
-                  bsdf::Glossy{new_specular, shininess}},
+      return {{{tag_v<BSDFType::DiffuseMirror>,
+                {{bsdf::Diffuse{new_diffuse}, bsdf::Mirror{new_specular}},
                  {diffuse_weight, glossy_weight}}}},
               emission};
     } else {
-      return {{{tag_v<BSDFType::DiffuseMirror>,
-                {{bsdf::Diffuse{new_diffuse}, bsdf::Mirror{new_specular}},
+      return {{{tag_v<BSDFType::DiffuseGlossy>,
+                {{bsdf::Diffuse{new_diffuse},
+                  bsdf::Glossy{new_specular, shininess}},
                  {diffuse_weight, glossy_weight}}}},
               emission};
     }
