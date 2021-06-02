@@ -13,6 +13,9 @@
 
 #include <vector>
 
+namespace generate_data {
+class MeshSceneGenerator;
+}
 namespace scene {
 class TriangleConstructor;
 namespace scenefile_compat {
@@ -74,6 +77,8 @@ private:
 
   template <typename T> using Vec = VectorT<T>;
 
+  // this approach doesn't allow for different shading per
+  // mesh (also, only flat triangle is actually used right now)
   enum class MeshT {
     End,
     AABB,
@@ -119,5 +124,6 @@ private:
 
   friend class scenefile_compat::ScenefileLoader;
   friend class TriangleConstructor;
+  friend class generate_data::MeshSceneGenerator;
 };
 } // namespace scene

@@ -54,15 +54,14 @@ tinyobj_material_conversion(const tinyobj::material_t &material) {
         emission,
     };
   } else if (diffuse_non_zero && specular_non_zero) {
-    double total_diffuse_mass = diffuse.sum();
-    double total_specular_mass = specular.sum();
+    // sum should be less than 1
+    always_assert((diffuse + specular).maxCoeff() < 1.f + 1e-4f);
+
+    float total_diffuse_mass = diffuse.sum();
+    float total_specular_mass = specular.sum();
     float diffuse_weight =
         total_diffuse_mass / (total_diffuse_mass + total_specular_mass);
     float glossy_weight = 1. - diffuse_weight;
-    if ((diffuse + specular).maxCoeff() > 1.f) {
-      std::cerr << "> 1 case NYI!\n";
-      abort();
-    }
 
     const auto new_diffuse = diffuse / diffuse_weight;
     const auto new_specular = specular / glossy_weight;

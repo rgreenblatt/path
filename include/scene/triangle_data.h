@@ -23,6 +23,21 @@ struct TriangleData {
     return normals_;
   }
 
+  ATTR_PURE_NDEBUG HOST_DEVICE TriangleData
+  transform(const Eigen::Affine3f &transform) const {
+    const auto linear = transform.linear();
+    std::array<UnitVector, 3> new_normals{
+        UnitVector::new_normalize(linear * *normals_[0]),
+        UnitVector::new_normalize(linear * *normals_[1]),
+        UnitVector::new_normalize(linear * *normals_[2]),
+    };
+
+    return {
+        .normals_ = new_normals,
+        .material_idx_ = material_idx_,
+    };
+  }
+
   ATTR_PURE HOST_DEVICE unsigned material_idx() const { return material_idx_; }
 };
 } // namespace scene

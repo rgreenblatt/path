@@ -4,7 +4,7 @@ namespace scene {
 unsigned TriangleConstructor::add_material(const Material &material) {
   unsigned out = scene_.materials_.size();
   scene_.materials_.push_back(material);
-  material_is_emissive_.push_back(material.emission.matrix().squaredNorm() >
+  material_is_emissive_.push_back(material.emission().matrix().squaredNorm() >
                                   1e-9f);
 
   return out;
