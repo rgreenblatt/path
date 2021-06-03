@@ -252,8 +252,8 @@ shadowed_from_point(const Eigen::Vector3d &point,
     auto point_on_plane = blocker_points[next_j];
     // other vertex should be on positive side of plane (blocker_points is
     // assumed to be convex, planar polygon)
-    if (normal.dot(blocker_points[next_next_j] - point_on_plane) < 0.f) {
-      normal *= -1.f;
+    if (normal.dot(blocker_points[next_next_j] - point_on_plane) < 0.) {
+      normal *= -1.;
     }
 
     auto clipped = clip_by_plane_point(normal, point_on_plane, onto);
