@@ -1,6 +1,6 @@
 #pragma once
 
-#include "generate_data/gen_data.h"
+#include "generate_data/generate_data.h"
 #include "generate_data/torch_utils.h"
 #include "generate_data/triangle.h"
 #include "generate_data/triangle_subset.h"

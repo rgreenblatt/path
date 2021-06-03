@@ -1,9 +1,10 @@
-#include "generate_data/normalize_scene_triangles.h"
+#include "generate_data/single_triangle/normalize_scene_triangles.h"
 
 #include "generate_data/triangle.h"
 #include "lib/projection.h"
 
 namespace generate_data {
+namespace single_triangle {
 SceneTriangles normalize_scene_triangles(const SceneTriangles &tris) {
   // this is obviously not the most efficient way of doing this, but
   // it shouldn't matter too much for now...
@@ -73,4 +74,5 @@ SceneTriangles normalize_scene_triangles(const SceneTriangles &tris) {
 
   return new_tris;
 }
+} // namespace single_triangle
 } // namespace generate_data

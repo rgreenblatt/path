@@ -1,8 +1,9 @@
-#include "generate_data/generate_scene.h"
+#include "generate_data/single_triangle/generate_scene.h"
 
 #include "scene/triangle_constructor.h"
 
 namespace generate_data {
+namespace single_triangle {
 scene::Scene generate_scene(const SceneTriangles &triangles) {
   scene::Material onto_material{
       .bsdf = {{tag_v<bsdf::BSDFType::Diffuse>,
@@ -33,4 +34,5 @@ scene::Scene generate_scene(const SceneTriangles &triangles) {
 
   return scene_constructor.scene("generated_scene");
 }
+} // namespace single_triangle
 } // namespace generate_data

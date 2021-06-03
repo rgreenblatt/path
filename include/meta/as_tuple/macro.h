@@ -6,6 +6,8 @@
 
 // TODO: constexpr???
 #define AS_TUPLE_STRUCTURAL(NAME, ...)                                         \
+  constexpr auto as_ptr_tuple() const { return make_meta_tuple(__VA_ARGS__); } \
+                                                                               \
   constexpr auto as_tuple() const { return make_meta_tuple(__VA_ARGS__); }     \
                                                                                \
   constexpr static NAME from_tuple(                                            \

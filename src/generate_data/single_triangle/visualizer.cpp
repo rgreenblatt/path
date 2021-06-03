@@ -2,9 +2,9 @@
 #include "generate_data/amend_config.h"
 #include "generate_data/baryocentric_coords.h"
 #include "generate_data/baryocentric_to_ray.h"
-#include "generate_data/generate_scene.h"
-#include "generate_data/generate_scene_triangles.h"
-#include "generate_data/normalize_scene_triangles.h"
+#include "generate_data/single_triangle/generate_scene.h"
+#include "generate_data/single_triangle/generate_scene_triangles.h"
+#include "generate_data/single_triangle/normalize_scene_triangles.h"
 #include "integrate/sample_triangle.h"
 #include "intersect/triangle.h"
 #include "lib/assert.h"
@@ -43,6 +43,7 @@ constexpr char USAGE[] =
 
 int main(int argc, char *argv[]) {
   using namespace generate_data;
+  using namespace generate_data::single_triangle;
 
   const std::map<std::string, docopt::value> args =
       docopt::docopt(USAGE, {argv + 1, argv + argc});

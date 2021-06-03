@@ -335,52 +335,90 @@ add_executable(path "${PROJECT_SOURCE_DIR}/src/main.cpp")
 target_link_libraries(path PRIVATE renderer_from_files docopt_s Qt5::Widgets)
 target_add_standard(path)
 
+set(BASE_GEN_DATA_P "${PROJECT_SOURCE_DIR}/src/generate_data/")
+
 add_library(
-  generate_data STATIC
-  "${PROJECT_SOURCE_DIR}/src/generate_data/generate_scene.cpp"
-  "${PROJECT_SOURCE_DIR}/src/generate_data/generate_scene_triangles.cpp"
-  "${PROJECT_SOURCE_DIR}/src/generate_data/clip_by_plane.cpp"
-  "${PROJECT_SOURCE_DIR}/src/generate_data/shadowed.cpp"
-  "${PROJECT_SOURCE_DIR}/src/generate_data/mesh_scene_generator.cpp"
-  "${PROJECT_SOURCE_DIR}/src/generate_data/normalize_scene_triangles.cpp"
-  "${PROJECT_SOURCE_DIR}/src/generate_data/baryocentric_coords.cpp"
+  generate_data_utils STATIC
+  "${BASE_GEN_DATA_P}/clip_by_plane.cpp" "${BASE_GEN_DATA_P}/shadowed.cpp"
+  "${BASE_GEN_DATA_P}/baryocentric_coords.cpp")
+target_add_standard(generate_data_utils)
+
+add_library(
+  generate_data_single_triangle_utils STATIC
+  "${BASE_GEN_DATA_P}/single_triangle/generate_scene.cpp"
+  "${BASE_GEN_DATA_P}/single_triangle/generate_scene_triangles.cpp"
+  "${BASE_GEN_DATA_P}/single_triangle/normalize_scene_triangles.cpp"
   "${PROJECT_SOURCE_DIR}/src/scene/triangle_constructor.cpp")
+target_link_libraries(generate_data_single_triangle_utils
+                      PUBLIC generate_data_utils)
+target_add_standard(generate_data_single_triangle_utils)
+
+add_library(generate_data_full_scene_utils STATIC
+            "${BASE_GEN_DATA_P}/full_scene/scene_generator.cpp")
+target_link_libraries(generate_data_full_scene_utils PUBLIC generate_data_utils)
+target_add_standard(generate_data_full_scene_utils)
+
+add_executable(generate_data_single_triangle_visualizer
+               "${BASE_GEN_DATA_P}/single_triangle/visualizer.cpp")
+target_link_libraries(
+  generate_data_single_triangle_visualizer
+  PRIVATE renderer_from_files generate_data_single_triangle_utils docopt_s
+          Qt5::Widgets)
+target_add_standard(generate_data_single_triangle_visualizer)
+
+add_executable(generate_data_full_scene_visualizer
+               "${BASE_GEN_DATA_P}/full_scene/visualizer.cpp")
+target_link_libraries(
+  generate_data_full_scene_visualizer
+  PRIVATE renderer_from_files generate_data_full_scene_utils docopt_s
+          Qt5::Widgets)
+target_add_standard(generate_data_full_scene_visualizer)
+
+add_library(generate_data STATIC "${BASE_GEN_DATA_P}/region_setter.cpp"
+                                 "${BASE_GEN_DATA_P}/constants.cpp")
+target_link_libraries(
+  generate_data PUBLIC generate_data_utils torch Python::Python
+                       "${TORCH_INSTALL_PREFIX}/lib/libtorch_python.so")
 target_add_standard(generate_data)
 
-add_executable(
-  generate_data_visualizer
-  "${PROJECT_SOURCE_DIR}/src/generate_data/generate_data_visualizer.cpp")
-target_link_libraries(
-  generate_data_visualizer PRIVATE renderer_from_files generate_data docopt_s
-                                   Qt5::Widgets)
-target_add_standard(generate_data_visualizer)
-
-add_executable(
-  mesh_scene_visualizer
-  "${PROJECT_SOURCE_DIR}/src/generate_data/mesh_scene_visualizer.cpp")
-target_link_libraries(
-  mesh_scene_visualizer PRIVATE renderer_from_files generate_data docopt_s
-                                Qt5::Widgets)
-target_add_standard(mesh_scene_visualizer)
-
-# TODO: rename!
 add_library(
-  gen_data STATIC
-  "${PROJECT_SOURCE_DIR}/src/generate_data/gen_data.cpp"
-  "${PROJECT_SOURCE_DIR}/src/generate_data/constants.cpp"
-  "${PROJECT_SOURCE_DIR}/src/generate_data/region_setter.cpp")
+  generate_data_single_triangle STATIC
+  "${BASE_GEN_DATA_P}/single_triangle/generate_data.cpp"
+  "${BASE_GEN_DATA_P}/single_triangle/constants.cpp")
 target_link_libraries(
-  gen_data
-  PUBLIC torch Python::Python
-  PRIVATE renderer_from_files generate_data
-          "${TORCH_INSTALL_PREFIX}/lib/libtorch_python.so" OpenMP::OpenMP_CXX)
-target_add_standard(gen_data)
+  generate_data_single_triangle
+  PUBLIC generate_data generate_data_single_triangle_utils
+  PRIVATE renderer_from_files OpenMP::OpenMP_CXX)
+target_add_standard(generate_data_single_triangle)
 
-pybind11_add_module(
-  neural_render_generate_data
-  "${PROJECT_SOURCE_DIR}/src/generate_data/neural_render_generate_data.cpp")
-target_link_libraries(neural_render_generate_data PRIVATE gen_data)
-target_add_standard(neural_render_generate_data)
+add_library(
+  generate_data_full_scene STATIC
+  "${BASE_GEN_DATA_P}/full_scene/generate_data.cpp"
+  "${BASE_GEN_DATA_P}/full_scene/constants.cpp")
+target_link_libraries(
+  generate_data_full_scene
+  PUBLIC generate_data generate_data_full_scene_utils
+  PRIVATE renderer_from_files OpenMP::OpenMP_CXX)
+target_add_standard(generate_data_full_scene)
+
+pybind11_add_module(neural_render_generate_data_single_triangle
+                    "${BASE_GEN_DATA_P}/single_triangle/python_module.cpp")
+target_link_libraries(neural_render_generate_data_single_triangle
+                      PRIVATE generate_data_single_triangle)
+target_add_standard(neural_render_generate_data_single_triangle)
+
+add_executable(
+  test_generate_data_single_triangle
+  "${BASE_GEN_DATA_P}/single_triangle/test_generate_data.cpp")
+target_link_libraries(test_generate_data_single_triangle
+                      PRIVATE generate_data_single_triangle docopt_s)
+target_add_standard(test_generate_data_single_triangle)
+
+pybind11_add_module(neural_render_generate_data_full_scene
+                    "${BASE_GEN_DATA_P}/full_scene/python_module.cpp")
+target_link_libraries(neural_render_generate_data_full_scene
+                      PRIVATE generate_data_full_scene)
+target_add_standard(neural_render_generate_data_full_scene)
 
 add_executable(check_downsample
                "${PROJECT_SOURCE_DIR}/src/check_downsample.cpp")
@@ -391,7 +429,3 @@ add_executable(loaded_float_rgb
                "${PROJECT_SOURCE_DIR}/src/loaded_float_rgb.cpp")
 target_link_libraries(loaded_float_rgb PRIVATE Qt5::Widgets)
 target_add_standard(loaded_float_rgb)
-
-add_executable(test_gen_data "${PROJECT_SOURCE_DIR}/src/test_gen_data.cpp")
-target_link_libraries(test_gen_data PRIVATE gen_data docopt_s)
-target_add_standard(test_gen_data)

@@ -1,4 +1,4 @@
-#include "generate_data/mesh_scene_generator.h"
+#include "generate_data/full_scene/scene_generator.h"
 
 #include "intersect/triangle.h"
 #include "lib/assert.h"
@@ -19,6 +19,7 @@
 #include "dbg.h"
 
 namespace generate_data {
+namespace full_scene {
 static VectorT<TriangleNormals> load_obj(const std::string &path) {
   VectorT<TriangleNormals> out;
 
@@ -99,7 +100,7 @@ static VectorT<TriangleNormals> load_obj(const std::string &path) {
   return out;
 }
 
-MeshSceneGenerator::MeshSceneGenerator() {
+SceneGenerator::SceneGenerator() {
   sphere_ = load_obj("scenes/models/sphere.obj");
   monkey_ = load_obj("scenes/models/monkey.obj");
   torus_ = load_obj("scenes/models/torus.obj");
@@ -181,9 +182,9 @@ scene::Material random_bsdf(std::mt19937 &rng, bool force_emissive) {
 }
 
 // could actually use meshes part of scene_...
-void MeshSceneGenerator::add_mesh(const VectorT<TriangleNormals> &tris,
-                                  const Eigen::Affine3f &transform,
-                                  unsigned material_idx) {
+void SceneGenerator::add_mesh(const VectorT<TriangleNormals> &tris,
+                              const Eigen::Affine3f &transform,
+                              unsigned material_idx) {
   unsigned start_idx = scene_.triangles_.size();
   intersect::accel::AABB bounds;
   for (const auto &tri : tris) {
@@ -211,7 +212,7 @@ void MeshSceneGenerator::add_mesh(const VectorT<TriangleNormals> &tris,
   overall_aabb_ = overall_aabb_.union_other(bounds);
 }
 
-const scene::Scene &MeshSceneGenerator::generate(std::mt19937 &rng) {
+const scene::Scene &SceneGenerator::generate(std::mt19937 &rng) {
   // clear! (could be more efficient...)
   scene_ = scene::Scene{};
   overall_aabb_ = intersect::accel::AABB::empty();
@@ -281,4 +282,5 @@ const scene::Scene &MeshSceneGenerator::generate(std::mt19937 &rng) {
 
   return scene_;
 }
+} // namespace full_scene
 } // namespace generate_data

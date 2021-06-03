@@ -1,10 +1,11 @@
-#include "generate_data/generate_scene_triangles.h"
+#include "generate_data/single_triangle/generate_scene_triangles.h"
 
 #include "generate_data/possibly_shadowed.h"
 #include "generate_data/triangle.h"
 #include "intersect/triangle_impl.h"
 
 namespace generate_data {
+namespace single_triangle {
 SceneTriangles generate_scene_triangles(UniformState &rng) {
   auto random_vec = [&]() {
     return Eigen::Vector3d{rng.next(), rng.next(), rng.next()};
@@ -81,4 +82,5 @@ SceneTriangles generate_scene_triangles(UniformState &rng) {
     }
   }
 }
+} // namespace single_triangle
 } // namespace generate_data

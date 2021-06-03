@@ -1,4 +1,4 @@
-#include "generate_data/mesh_scene_generator.h"
+#include "generate_data/full_scene/scene_generator.h"
 #include "lib/assert.h"
 #include "lib/span.h"
 #include "render/config_io.h"
@@ -31,6 +31,7 @@ constexpr char USAGE[] =
 
 int main(int argc, char *argv[]) {
   using namespace generate_data;
+  using namespace generate_data::full_scene;
 
   const std::map<std::string, docopt::value> args =
       docopt::docopt(USAGE, {argv + 1, argv + argc});
@@ -71,7 +72,7 @@ int main(int argc, char *argv[]) {
   ExecutionModel execution_model =
       using_gpu ? ExecutionModel::GPU : ExecutionModel::CPU;
 
-  MeshSceneGenerator generator;
+  SceneGenerator generator;
   std::mt19937 rng(seed);
   const auto &scene = generator.generate(rng);
 

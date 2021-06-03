@@ -6,6 +6,7 @@
 #include <Eigen/Geometry>
 
 namespace generate_data {
+namespace single_triangle {
 template <typename T> struct SceneTrianglesGen {
   intersect::TriangleGen<T> triangle_onto;
   intersect::TriangleGen<T> triangle_blocking;
@@ -42,4 +43,5 @@ template <typename T> struct SceneTrianglesGen {
 };
 
 using SceneTriangles = SceneTrianglesGen<double>;
+} // namespace single_triangle
 } // namespace generate_data

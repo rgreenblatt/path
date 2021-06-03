@@ -33,22 +33,18 @@ template <AsTuple T>
 using AsTupleT = decltype(AsTupleImpl<T>::as_tuple(std::declval<T>()));
 
 template <typename T>
-concept SpecializationAsTupleStr = requires {
-  requires AsTuple<T>;
-  {
-    AsTupleImpl<T>::as_tuple_strs()
-    } -> std::same_as<
-        std::array<std::string_view, meta_tuple_size_v<AsTupleT<T>>>>;
-};
-
-template <typename T>
 concept InternalAsTupleStr = requires {
   requires AsTuple<T>;
+  { T::type_name() } -> std::same_as<std::string_view>;
   {
     T::as_tuple_strs()
     } -> std::same_as<
         std::array<std::string_view, meta_tuple_size_v<AsTupleT<T>>>>;
 };
+
+template <typename T>
+concept SpecializationAsTupleStr =
+    AsTuple<T> && InternalAsTupleStr<AsTupleImpl<T>>;
 
 template <typename T>
 concept AsTupleStr = InternalAsTupleStr<T> || SpecializationAsTupleStr<T>;
@@ -59,6 +55,10 @@ template <InternalAsTuple T> struct AsTupleImpl<T> {
   constexpr static T
   from_tuple(const decltype(std::declval<const T &>().as_tuple()) &tup) {
     return T::from_tuple(tup);
+  }
+
+  constexpr static auto type_name() requires(InternalAsTupleStr<T>) {
+    return T::type_name();
   }
 
   constexpr static auto as_tuple_strs() requires(InternalAsTupleStr<T>) {

@@ -14,8 +14,10 @@
 #include <vector>
 
 namespace generate_data {
-class MeshSceneGenerator;
+namespace full_scene {
+class SceneGenerator;
 }
+} // namespace generate_data
 namespace scene {
 class TriangleConstructor;
 namespace scenefile_compat {
@@ -124,6 +126,6 @@ private:
 
   friend class scenefile_compat::ScenefileLoader;
   friend class TriangleConstructor;
-  friend class generate_data::MeshSceneGenerator;
+  friend class generate_data::full_scene::SceneGenerator;
 };
 } // namespace scene

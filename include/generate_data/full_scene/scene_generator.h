@@ -10,14 +10,15 @@
 #include <random>
 
 namespace generate_data {
+namespace full_scene {
 struct TriangleNormals {
   intersect::Triangle tri;
   std::array<UnitVector, 3> normals;
 };
 
-class MeshSceneGenerator {
+class SceneGenerator {
 public:
-  MeshSceneGenerator();
+  SceneGenerator();
 
   const scene::Scene &generate(std::mt19937 &rng);
 
@@ -32,4 +33,5 @@ private:
   VectorT<TriangleNormals> torus_;
   VectorT<const VectorT<TriangleNormals> *> meshs_;
 };
+} // namespace full_scene
 } // namespace generate_data

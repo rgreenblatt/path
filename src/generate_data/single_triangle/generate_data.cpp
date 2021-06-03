@@ -1,16 +1,16 @@
-#include "generate_data/gen_data.h"
+#include "generate_data/single_triangle/generate_data.h"
 
 #include "generate_data/amend_config.h"
 #include "generate_data/baryocentric_coords.h"
 #include "generate_data/baryocentric_to_ray.h"
 #include "generate_data/clip_by_plane.h"
-#include "generate_data/constants.h"
-#include "generate_data/generate_scene.h"
-#include "generate_data/generate_scene_triangles.h"
 #include "generate_data/get_points_from_subset.h"
-#include "generate_data/normalize_scene_triangles.h"
 #include "generate_data/region_setter.h"
 #include "generate_data/shadowed.h"
+#include "generate_data/single_triangle/constants.h"
+#include "generate_data/single_triangle/generate_scene.h"
+#include "generate_data/single_triangle/generate_scene_triangles.h"
+#include "generate_data/single_triangle/normalize_scene_triangles.h"
 #include "generate_data/to_tensor.h"
 #include "generate_data/torch_utils.h"
 #include "generate_data/triangle.h"
@@ -31,6 +31,7 @@
 
 // TODO: consider breaking up more of this
 namespace generate_data {
+namespace single_triangle {
 static VectorT<render::Renderer> renderers;
 
 template <bool is_image>
@@ -39,8 +40,8 @@ using Out = std::conditional_t<is_image, ImageData, StandardData>;
 // TODO: consider fixing extra copies (if needed).
 // Could really return gpu tensor and output directly to tensor.
 template <bool is_image>
-Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
-                            int n_samples, unsigned base_seed) {
+Out<is_image> generate_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
+                                 int n_samples, unsigned base_seed) {
   using namespace generate_data;
 
   debug_assert(boost::geometry::is_valid(full_triangle));
@@ -370,9 +371,9 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
 
   std::vector<PolygonInputForTri> polygon_inputs;
   for (int tri_idx = 0; tri_idx < constants.n_tris; ++tri_idx) {
-    polygon_inputs.push_back(
-        {.polygon_feature = clipped_setters[tri_idx].as_poly_input(),
-         .tri_idx = tri_idx});
+    polygon_inputs.push_back(PolygonInputForTri{
+        .polygon_feature = clipped_setters[tri_idx].as_poly_input(),
+        .tri_idx = tri_idx});
   }
   for (int onto_idx : {0, 2}) {
     unsigned feature_idx = onto_idx == 0 ? 0 : 1;
@@ -463,16 +464,17 @@ Out<is_image> gen_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
   }
 }
 
-StandardData gen_data(int n_scenes, int n_samples_per_scene, int n_samples,
-                      unsigned base_seed) {
-  return gen_data_impl<false>(n_scenes, n_samples_per_scene, n_samples,
-                              base_seed);
+StandardData generate_data(int n_scenes, int n_samples_per_scene, int n_samples,
+                           unsigned base_seed) {
+  return generate_data_impl<false>(n_scenes, n_samples_per_scene, n_samples,
+                                   base_seed);
 }
 
-ImageData gen_data_for_image(int n_scenes, int dim, int n_samples,
-                             unsigned base_seed) {
-  return gen_data_impl<true>(n_scenes, dim, n_samples, base_seed);
+ImageData generate_data_for_image(int n_scenes, int dim, int n_samples,
+                                  unsigned base_seed) {
+  return generate_data_impl<true>(n_scenes, dim, n_samples, base_seed);
 }
 
 void deinit_renderers() { renderers.resize(0); }
+} // namespace single_triangle
 } // namespace generate_data
