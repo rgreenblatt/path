@@ -291,6 +291,9 @@ if(BUILD_TESTING OR CMAKE_EXPORT_COMPILE_COMMANDS)
                    "${PROJECT_SOURCE_DIR}/tests/src/clipped_triangle.cpp")
   package_add_test(is_triangle_test
                    "${PROJECT_SOURCE_DIR}/tests/src/is_triangle.cpp")
+  package_add_test(possibly_shadowed_test
+                   "${PROJECT_SOURCE_DIR}/tests/src/possibly_shadowed.cpp")
+  target_link_libraries(possibly_shadowed_test PRIVATE generate_data_utils)
 
   add_custom_target(
     run_build_tests
@@ -407,9 +410,8 @@ target_link_libraries(neural_render_generate_data_single_triangle
                       PRIVATE generate_data_single_triangle)
 target_add_standard(neural_render_generate_data_single_triangle)
 
-add_executable(
-  test_generate_data_single_triangle
-  "${BASE_GEN_DATA_P}/single_triangle/test_generate_data.cpp")
+add_executable(test_generate_data_single_triangle
+               "${BASE_GEN_DATA_P}/single_triangle/test_generate_data.cpp")
 target_link_libraries(test_generate_data_single_triangle
                       PRIVATE generate_data_single_triangle docopt_s)
 target_add_standard(test_generate_data_single_triangle)

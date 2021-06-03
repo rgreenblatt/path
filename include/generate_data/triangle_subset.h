@@ -18,6 +18,10 @@ enum class TriangleSubsetType {
 using BaryoPoint = boost::geometry::model::d2::point_xy<double>;
 using TriPolygon = boost::geometry::model::polygon<BaryoPoint>;
 
+ATTR_PURE_NDEBUG inline BaryoPoint eigen_to_baryo(const Eigen::Vector2d &p) {
+  return {p.x(), p.y()};
+}
+
 ATTR_PURE_NDEBUG inline Eigen::Vector2d baryo_to_eigen(const BaryoPoint &p) {
   return {p.x(), p.y()};
 }

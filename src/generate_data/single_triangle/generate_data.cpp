@@ -131,26 +131,20 @@ Out<is_image> generate_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
 
     // clip by triangle_onto plane
     auto light_region =
-        clip_by_plane(Eigen::Vector3d::UnitZ(), 0.,
-                      new_tris.triangle_light.template cast<double>());
+        clip_by_plane(Eigen::Vector3d::UnitZ(), 0., new_tris.triangle_light);
     auto blocking_region_initial =
-        clip_by_plane(Eigen::Vector3d::UnitZ(), 0.,
-                      new_tris.triangle_blocking.template cast<double>());
+        clip_by_plane(Eigen::Vector3d::UnitZ(), 0., new_tris.triangle_blocking);
 
     // clip by triangle_light plane
-    auto light_normal =
-        new_tris.triangle_light.template cast<double>().normal_raw();
-    auto light_point =
-        new_tris.triangle_light.template cast<double>().vertices[0];
+    auto light_normal = new_tris.triangle_light.normal_raw();
+    auto light_point = new_tris.triangle_light.vertices[0];
     auto onto_region =
-        clip_by_plane_point(light_normal, light_point,
-                            new_tris.triangle_onto.template cast<double>());
+        clip_by_plane_point(light_normal, light_point, new_tris.triangle_onto);
 
     auto blocking_region = triangle_subset_intersection(
         blocking_region_initial,
-        clip_by_plane_point(
-            light_normal, light_point,
-            new_tris.triangle_blocking.template cast<double>()));
+        clip_by_plane_point(light_normal, light_point,
+                            new_tris.triangle_blocking));
 
     if (light_region.type() == TriangleSubsetType::None ||
         blocking_region.type() == TriangleSubsetType::None ||

@@ -34,12 +34,12 @@ struct PartiallyShadowedInfo {
   VectorT<RayItem> ray_items;
 };
 
-ATTR_PURE_NDEBUG PartiallyShadowedInfo
-partially_shadowed(const intersect::TriangleGen<double> &from,
-                   const TriangleSubset &from_clipped_region,
-                   const intersect::TriangleGen<double> &blocker,
-                   const TriangleSubset &blocker_clipped_region,
-                   const intersect::TriangleGen<double> &onto);
+ATTR_PURE_NDEBUG PartiallyShadowedInfo partially_shadowed(
+    const intersect::TriangleGen<double> &from,
+    const TriangleSubset &from_clipped_region,
+    const intersect::TriangleGen<double> &blocker,
+    const TriangleSubset &blocker_clipped_region,
+    const intersect::TriangleGen<double> &onto, bool flip_onto_normal = false);
 
 ATTR_PURE_NDEBUG TriangleSubset
 shadowed_from_point(const Eigen::Vector3d &point,

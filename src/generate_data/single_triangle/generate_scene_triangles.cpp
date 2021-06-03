@@ -12,7 +12,7 @@ SceneTriangles generate_scene_triangles(UniformState &rng) {
   };
 
   auto gen_tri = [&](float z_offset) -> Triangle {
-    Eigen::Vector3d addr = {0., 0., z_offset};
+    Eigen::Vector3d addr = Eigen::Vector3d::UnitZ() * z_offset;
     return {{
         random_vec() + addr,
         random_vec() + addr,

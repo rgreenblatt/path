@@ -32,12 +32,12 @@ namespace generate_data {
 
 // TODO: fix epsilons
 // TODO: could be sooooo much faster probably
-ATTR_PURE_NDEBUG PartiallyShadowedInfo
-partially_shadowed(const intersect::TriangleGen<double> &from,
-                   const TriangleSubset &from_clipped_region,
-                   const intersect::TriangleGen<double> &blocker,
-                   const TriangleSubset &blocker_clipped_region,
-                   const intersect::TriangleGen<double> &onto) {
+ATTR_PURE_NDEBUG PartiallyShadowedInfo partially_shadowed(
+    const intersect::TriangleGen<double> &from,
+    const TriangleSubset &from_clipped_region,
+    const intersect::TriangleGen<double> &blocker,
+    const TriangleSubset &blocker_clipped_region,
+    const intersect::TriangleGen<double> &onto, bool flip_onto_normal) {
   auto from_pb = get_points_from_subset_with_baryo(from, from_clipped_region);
   const auto blocker_pb =
       get_points_from_subset_with_baryo(blocker, blocker_clipped_region);
@@ -47,8 +47,13 @@ partially_shadowed(const intersect::TriangleGen<double> &from,
   const auto &blocker_baryo = blocker_pb.baryo;
   debug_assert(from_vertices.size() == from_baryo.size());
   debug_assert(blocker_vertices.size() == blocker_baryo.size());
+  debug_assert(!from_vertices.empty());
+  debug_assert(!blocker_vertices.empty());
 
   auto normal = *onto.normal();
+  if (flip_onto_normal) {
+    normal = -normal;
+  }
   auto plane_vertex = onto.vertices[0];
 
   double plane_offset = normal.dot(plane_vertex);
@@ -137,7 +142,7 @@ partially_shadowed(const intersect::TriangleGen<double> &from,
             double denom = normal.dot(direction);
             debug_assert(std::abs(denom) > 1e-15);
             double t = -origin_plane_position / denom;
-            debug_assert(t > 1. - 1e-4); // should hit plane AFTER endpoint
+            debug_assert(t > 1. - 1e-3); // should hit plane AFTER endpoint
             return {tag_v<RayItemResultType::Intersection>,
                     add_point(t * direction + origin)};
           }
