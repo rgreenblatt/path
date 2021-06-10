@@ -50,3 +50,24 @@ Also, how to handle multiple blocking triangles? Approaches:
     find a coherent way of doing this...)
 For now, use blocking feature reduction I think.
 
+
+2021-06-06
+Approach: analyze overall scene using some features (probably with
+transformer). Then run bounces.
+
+2021-06-09
+Feature ideas:
+ - triangle features
+ - masking possibly shadowing triangles
+ - standard triangle to triangle features
+ - probably will just learn slower than full features?
+ - maybe use some supervision on some sort of a shadow feature involving rays?
+
+So start proposal:
+ - full transformer with non-ideal features 
+
+Then try additional ray supervision.
+Then try additional features.
+Then try network adjustment.
+
+Rotation invariant transformer: paper is specific to points in 3D space, so some porting would be required (no need to do this just yet).

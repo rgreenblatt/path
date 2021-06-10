@@ -412,6 +412,8 @@ class Net(nn.Module):
         ray_values = []
         for ray_input in inputs.ray_inputs:
             values = self._ray_item_initial(ray_input.values)
+            # TODO: handle "is_close_point"
+            assert False
             values[ray_input.is_ray] = self._ray_item_initial_for_ray(
                 ray_input.values)[ray_input.is_ray]
             ray_values.append((ray_input, self._activation(values)))

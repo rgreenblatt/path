@@ -212,7 +212,8 @@ void SceneGenerator::add_mesh(const VectorT<TriangleNormals> &tris,
   overall_aabb_ = overall_aabb_.union_other(bounds);
 }
 
-const scene::Scene &SceneGenerator::generate(std::mt19937 &rng) {
+std::tuple<const scene::Scene &, unsigned>
+SceneGenerator::generate(std::mt19937 &rng) {
   // clear! (could be more efficient...)
   scene_ = scene::Scene{};
   overall_aabb_ = intersect::accel::AABB::empty();
@@ -240,6 +241,7 @@ const scene::Scene &SceneGenerator::generate(std::mt19937 &rng) {
     return {dist(rng), dist(rng), dist(rng)};
   };
 
+  unsigned total_mesh_size = 0;
   for (unsigned i = 0; i < mesh_count; ++i) {
     std::uniform_real_distribution<float> angle_dist{-M_PI, M_PI};
     Eigen::Affine3f transform{
@@ -253,6 +255,7 @@ const scene::Scene &SceneGenerator::generate(std::mt19937 &rng) {
     unsigned mesh_idx =
         std::uniform_int_distribution{size_t(0), meshs_.size() - 1}(rng);
     add_mesh(*meshs_[mesh_idx], transform, i);
+    total_mesh_size += meshs_[mesh_idx]->size();
   }
 
   auto random_vert = [&]() {
@@ -280,7 +283,7 @@ const scene::Scene &SceneGenerator::generate(std::mt19937 &rng) {
       intersect::TransformedObject(Eigen::Affine3f::Identity(), overall_aabb_),
       0);
 
-  return scene_;
+  return {scene_, total_mesh_size};
 }
 } // namespace full_scene
 } // namespace generate_data

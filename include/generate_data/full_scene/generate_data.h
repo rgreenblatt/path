@@ -9,6 +9,7 @@
 // TODO: dedup!
 namespace generate_data {
 namespace full_scene {
+#if 0
 struct NetworkInputs {
   at::Tensor overall_scene_features;
   at::Tensor triangle_features;
@@ -71,5 +72,9 @@ ImageData generate_data_for_image(int n_scenes, int dim, int n_samples,
 // hack to avoid issues with "CUDA free failed: cudaErrorCudartUnloading:
 // driver shutting down"
 void deinit_renderers();
+#else
+void generate_data(int max_tris, int n_samples_per_scene_or_dim, int n_samples,
+                   unsigned seed);
+#endif
 } // namespace full_scene
 } // namespace generate_data

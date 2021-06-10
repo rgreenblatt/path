@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
 
   SceneGenerator generator;
   std::mt19937 rng(seed);
-  const auto &scene = generator.generate(rng);
+  const auto &scene = std::get<0>(generator.generate(rng));
 
   auto film_to_world = scene::get_camera_transform(
       UnitVector::new_normalize({0.f, 0.f, -1.f}),

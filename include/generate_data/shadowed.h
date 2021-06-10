@@ -1,7 +1,7 @@
 #pragma once
 
+#include "generate_data/triangle.h"
 #include "generate_data/triangle_subset.h"
-#include "intersect/triangle.h"
 #include "lib/assert.h"
 #include "lib/attribute.h"
 #include "lib/span.h"
@@ -17,12 +17,13 @@ namespace generate_data {
 enum class RayItemResultType {
   Ray,
   Intersection,
+  ClosePoint,
 };
 
 struct PartiallyShadowedInfo {
   struct RayItem {
-    using Result =
-        TaggedUnion<RayItemResultType, Eigen::Vector2d, Eigen::Vector2d>;
+    using Result = TaggedUnion<RayItemResultType, Eigen::Vector2d,
+                               Eigen::Vector2d, std::tuple<>>;
     BaryoPoint baryo_origin;
     BaryoPoint baryo_endpoint;
     Eigen::Vector3d origin;
@@ -34,17 +35,18 @@ struct PartiallyShadowedInfo {
   VectorT<RayItem> ray_items;
 };
 
-ATTR_PURE_NDEBUG PartiallyShadowedInfo partially_shadowed(
-    const intersect::TriangleGen<double> &from,
-    const TriangleSubset &from_clipped_region,
-    const intersect::TriangleGen<double> &blocker,
-    const TriangleSubset &blocker_clipped_region,
-    const intersect::TriangleGen<double> &onto, bool flip_onto_normal = false);
+// TODO: struct for triangles and regions!
 
-ATTR_PURE_NDEBUG TriangleSubset
-shadowed_from_point(const Eigen::Vector3d &point,
-                    SpanSized<const Eigen::Vector3d> blocker_points,
-                    const intersect::TriangleGen<double> &onto);
+ATTR_PURE_NDEBUG PartiallyShadowedInfo partially_shadowed(
+    const Triangle &from, const TriangleSubset &from_clipped_region,
+    const Triangle &blocker, const TriangleSubset &blocker_clipped_region,
+    const Triangle &onto, const TriangleSubset &onto_clipped_region,
+    bool flip_onto_normal = false);
+
+ATTR_PURE_NDEBUG TriangleSubset shadowed_from_point(
+    const Eigen::Vector3d &point,
+    SpanSized<const Eigen::Vector3d> blocker_points, const Triangle &onto,
+    const TriangleSubset &onto_clipped_region);
 
 // TODO: expand info
 struct TotallyShadowedInfo {
@@ -52,10 +54,8 @@ struct TotallyShadowedInfo {
   VectorT<TriangleSubset> from_each_point;
 };
 
-ATTR_PURE_NDEBUG TotallyShadowedInfo
-totally_shadowed(const intersect::TriangleGen<double> &from,
-                 const TriangleSubset &from_clipped_region,
-                 const intersect::TriangleGen<double> &blocker,
-                 const TriangleSubset &blocker_clipped_region,
-                 const intersect::TriangleGen<double> &onto);
+ATTR_PURE_NDEBUG TotallyShadowedInfo totally_shadowed(
+    const Triangle &from, const TriangleSubset &from_clipped_region,
+    const Triangle &blocker, const TriangleSubset &blocker_clipped_region,
+    const Triangle &onto, const TriangleSubset &onto_clipped_region);
 } // namespace generate_data

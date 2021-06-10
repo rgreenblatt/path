@@ -77,6 +77,8 @@ TEST(possibly_shadowed, compare_to_shadowed) {
           blocker_region_initial,
           clip_by_plane_point(flipped_normals[0], triangles[from].vertices[0],
                               triangles[blocker_idx]));
+      auto onto_region = clip_by_plane_point(
+          flipped_normals[0], triangles[from].vertices[0], triangles[onto]);
 
       if (blocker_region.type() == TriangleSubsetType::None) {
         continue;
@@ -89,7 +91,7 @@ TEST(possibly_shadowed, compare_to_shadowed) {
       bool is_actually_shadowed =
           partially_shadowed(triangles[from], from_region,
                              triangles[blocker_idx], blocker_region,
-                             triangles[onto], flip_normal[1])
+                             triangles[onto], onto_region, flip_normal[1])
               .partially_shadowed.type() != TriangleSubsetType::None;
       ++total_count;
       if (is_actually_shadowed != is_possibly_shadowed) {

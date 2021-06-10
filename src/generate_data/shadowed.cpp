@@ -2,6 +2,7 @@
 
 #include "generate_data/clip_by_plane.h"
 #include "generate_data/get_points_from_subset.h"
+#include "generate_data/triangle.h"
 #include "generate_data/triangle_subset.h"
 #include "generate_data/triangle_subset_intersection.h"
 #include "intersect/triangle.h"
@@ -11,6 +12,10 @@
 
 #include <boost/geometry.hpp>
 #include <unordered_set>
+
+#include "dbg.h"
+#include "generate_data/print_region.h"
+#include "lib/info/print_triangle.h"
 
 namespace std {
 // from
@@ -33,11 +38,10 @@ namespace generate_data {
 // TODO: fix epsilons
 // TODO: could be sooooo much faster probably
 ATTR_PURE_NDEBUG PartiallyShadowedInfo partially_shadowed(
-    const intersect::TriangleGen<double> &from,
-    const TriangleSubset &from_clipped_region,
-    const intersect::TriangleGen<double> &blocker,
-    const TriangleSubset &blocker_clipped_region,
-    const intersect::TriangleGen<double> &onto, bool flip_onto_normal) {
+    const Triangle &from, const TriangleSubset &from_clipped_region,
+    const Triangle &blocker, const TriangleSubset &blocker_clipped_region,
+    const Triangle &onto, const TriangleSubset &onto_clipped_region,
+    bool flip_onto_normal) {
   auto from_pb = get_points_from_subset_with_baryo(from, from_clipped_region);
   const auto blocker_pb =
       get_points_from_subset_with_baryo(blocker, blocker_clipped_region);
@@ -62,16 +66,16 @@ ATTR_PURE_NDEBUG PartiallyShadowedInfo partially_shadowed(
   };
 
 #ifndef NDEBUG
-  double from_max_plane_pos = std::numeric_limits<double>::lowest();
+  // double from_max_plane_pos = std::numeric_limits<double>::lowest();
   for (const auto &p : from_vertices) {
     double pos = plane_pos(p);
     // should already be clipped by plane!
     debug_assert(pos > -1e-6);
-    from_max_plane_pos = std::max(pos, from_max_plane_pos);
+    // from_max_plane_pos = std::max(pos, from_max_plane_pos);
   }
 
   // shouldn't be coplaner
-  debug_assert(from_max_plane_pos > 1e-13);
+  // debug_assert(from_max_plane_pos > 1e-13);
 
   for (const auto &p : blocker_vertices) {
     // should already be clipped by plane!
@@ -91,6 +95,8 @@ ATTR_PURE_NDEBUG PartiallyShadowedInfo partially_shadowed(
 
   std::unordered_set<std::array<double, 4>> added_items;
 
+  // NOTE: this has_all approach only really makes sense with clipping!
+  bool has_all = false;
   auto run_for_points =
       [&](const BaryoPoint &baryo_origin, const BaryoPoint &baryo_endpoint,
           const Eigen::Vector3d &origin, const Eigen::Vector3d &endpoint) {
@@ -112,15 +118,23 @@ ATTR_PURE_NDEBUG PartiallyShadowedInfo partially_shadowed(
         double origin_plane_position = plane_pos(origin);
         double endpoint_plane_position = plane_pos(endpoint);
 
-        debug_assert(origin_plane_position - endpoint_plane_position > -1e-6);
+        // TODO: https://github.com/boostorg/geometry/issues/861
+        if (origin_plane_position - endpoint_plane_position <= -1e-5) {
+          return;
+        }
+        // debug_assert(origin_plane_position - endpoint_plane_position >
+        // -1e-5);
 
         Eigen::Vector3d direction = endpoint - origin;
 
-        // TODO: handle intersecting/overlapping point case
-        debug_assert(direction.norm() > 1e-10);
-
         auto result = [&]() -> PartiallyShadowedInfo::RayItem::Result {
-          if (origin_plane_position - endpoint_plane_position < 1e-6) {
+          if (direction.squaredNorm() < 1e-16) {
+            has_all = true;
+            // intersecting/overlapping point case
+            return {tag_v<RayItemResultType::ClosePoint>, {}};
+          }
+
+          if (origin_plane_position - endpoint_plane_position < 1e-5) {
             // coplanar case
             if (std::abs(endpoint_plane_position) < 1e-6) {
               // TODO: is this case important?
@@ -160,9 +174,10 @@ ATTR_PURE_NDEBUG PartiallyShadowedInfo partially_shadowed(
   // TODO: could make this much more efficient in many different ways...
   // Also, this has pretty terrible numerical properties...
   for (unsigned i = 0; i < from_vertices.size(); ++i) {
-    auto new_blocker_region = triangle_subset_intersection(
-        blocker_clipped_region,
-        clip_by_plane(-normal, from_vertices[i].dot(-normal), blocker));
+    auto clipped =
+        clip_by_plane(-normal, from_vertices[i].dot(-normal), blocker);
+    auto new_blocker_region =
+        triangle_subset_intersection(blocker_clipped_region, clipped);
 
     const auto new_blocker_bp =
         get_points_from_subset_with_baryo(blocker, new_blocker_region);
@@ -192,6 +207,17 @@ ATTR_PURE_NDEBUG PartiallyShadowedInfo partially_shadowed(
     }
   }
 
+  if (has_all) {
+    return {.partially_shadowed = {tag_v<TriangleSubsetType::All>, {}},
+            .ray_items = ray_items};
+  }
+  if (points_for_hull.empty()) {
+    // hmm, does this mishandle only direction case? (should be very very edge
+    // case...)
+    return {.partially_shadowed = {tag_v<TriangleSubsetType::None>, {}},
+            .ray_items = ray_items};
+  }
+
   boost::geometry::model::multi_point<BaryoPoint> multi_point_for_hull;
   auto add_final_point = [&](const Eigen::Vector2d &p) {
     boost::geometry::append(multi_point_for_hull, BaryoPoint{p.x(), p.y()});
@@ -219,15 +245,18 @@ ATTR_PURE_NDEBUG PartiallyShadowedInfo partially_shadowed(
 
   TriPolygon poly;
   boost::geometry::convex_hull(multi_point_for_hull, poly);
+
   TriPolygon triangle{{{0.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}, {0.0, 0.0}}};
   debug_assert(boost::geometry::is_valid(triangle));
 
-  auto partially_shadowed =
+  auto partially_shadowed = triangle_subset_intersection(
       triangle_subset_intersection({tag_v<TriangleSubsetType::Some>, poly},
-                                   {tag_v<TriangleSubsetType::Some>, triangle});
+                                   {tag_v<TriangleSubsetType::Some>, triangle}),
+      onto_clipped_region);
+
   if (partially_shadowed.type() == TriangleSubsetType::Some) {
     auto poly = partially_shadowed.get(tag_v<TriangleSubsetType::Some>);
-    if (std::abs(boost::geometry::area(poly) - 0.5) < 1e-12) {
+    if (boost::geometry::area(poly) > 0.5 - 1e-12) {
       partially_shadowed = {tag_v<TriangleSubsetType::All>, {}};
     }
   }
@@ -235,11 +264,11 @@ ATTR_PURE_NDEBUG PartiallyShadowedInfo partially_shadowed(
   return {.partially_shadowed = partially_shadowed, .ray_items = ray_items};
 }
 
-ATTR_PURE_NDEBUG TriangleSubset
-shadowed_from_point(const Eigen::Vector3d &point,
-                    SpanSized<const Eigen::Vector3d> blocker_points,
-                    const intersect::TriangleGen<double> &onto) {
-  TriangleSubset full_intersection = {tag_v<TriangleSubsetType::All>, {}};
+ATTR_PURE_NDEBUG TriangleSubset shadowed_from_point(
+    const Eigen::Vector3d &point,
+    SpanSized<const Eigen::Vector3d> blocker_points, const Triangle &onto,
+    const TriangleSubset &onto_clipped_region) {
+  TriangleSubset full_intersection = onto_clipped_region;
   debug_assert(blocker_points.size() >= 3);
 
   for (unsigned j = 0; j < blocker_points.size(); ++j) {
@@ -248,7 +277,7 @@ shadowed_from_point(const Eigen::Vector3d &point,
 
     auto vec_0 = blocker_points[j] - point;
     auto vec_1 = blocker_points[next_j] - point;
-    Eigen::Vector3d normal = vec_0.cross(vec_1);
+    Eigen::Vector3d normal = vec_0.cross(vec_1).normalized();
     auto point_on_plane = blocker_points[next_j];
     // other vertex should be on positive side of plane (blocker_points is
     // assumed to be convex, planar polygon)
@@ -265,12 +294,10 @@ shadowed_from_point(const Eigen::Vector3d &point,
   return full_intersection;
 }
 
-ATTR_PURE_NDEBUG TotallyShadowedInfo
-totally_shadowed(const intersect::TriangleGen<double> &from,
-                 const TriangleSubset &from_clipped_region,
-                 const intersect::TriangleGen<double> &blocker,
-                 const TriangleSubset &blocker_clipped_region,
-                 const intersect::TriangleGen<double> &onto) {
+ATTR_PURE_NDEBUG TotallyShadowedInfo totally_shadowed(
+    const Triangle &from, const TriangleSubset &from_clipped_region,
+    const Triangle &blocker, const TriangleSubset &blocker_clipped_region,
+    const Triangle &onto, const TriangleSubset &onto_clipped_region) {
   // no need for the func to be called in these cases
   always_assert(from_clipped_region.type() != TriangleSubsetType::None);
   always_assert(blocker_clipped_region.type() != TriangleSubsetType::None);
@@ -281,7 +308,8 @@ totally_shadowed(const intersect::TriangleGen<double> &from,
   TriangleSubset totally_shadowed = {tag_v<TriangleSubsetType::All>, {}};
   for (unsigned i = 0; i < from_points.size(); ++i) {
     const auto &origin = from_points[i];
-    from_each_point[i] = shadowed_from_point(origin, blocker_points, onto);
+    from_each_point[i] =
+        shadowed_from_point(origin, blocker_points, onto, onto_clipped_region);
     totally_shadowed =
         triangle_subset_intersection(totally_shadowed, from_each_point[i]);
   }

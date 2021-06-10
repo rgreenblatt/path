@@ -7,37 +7,55 @@
 
 #include <boost/geometry.hpp>
 
+#include "dbg.h"
+
 namespace generate_data {
 ATTR_PURE_NDEBUG TriangleSubset
 clip_by_plane(const Eigen::Vector3d &normal, double plane_threshold,
-              const intersect::TriangleGen<double> &tri) {
+              const intersect::TriangleGen<double> &tri, bool debug) {
   ArrayVec<unsigned, 3> included;
   ArrayVec<double, 3> precomputed_vals;
-  ArrayVec<unsigned, 3> excluded;
+  ArrayVec<unsigned, 3> excluded_or_on_edge;
+  unsigned excluded_count = 0;
+  if (debug) {
+    dbg(normal);
+    dbg(plane_threshold);
+  }
+
+  std::array<double, 3> vals_all;
+
   for (unsigned i = 0; i < 3; ++i) {
     double dotted = normal.dot(tri.vertices[i]);
-    if (dotted > plane_threshold) {
-      precomputed_vals.push_back(plane_threshold - dotted);
-      included.push_back(i);
+    double value = plane_threshold - dotted;
+    if (debug) {
+      dbg(tri.vertices[i]);
+      dbg(value);
+    }
+    vals_all[i] = value;
+    if (value > -1e-6) {
+      excluded_or_on_edge.push_back(i);
+      if (value > 1e-6) {
+        ++excluded_count;
+      }
     } else {
-      excluded.push_back(i);
+      precomputed_vals.push_back(value);
+      included.push_back(i);
     }
   }
 
-  debug_assert(included.size() + excluded.size() == 3);
+  debug_assert(excluded_or_on_edge.size() + included.size() == 3);
 
-  if (included.size() == 3) {
+  // if all are on edge, we include
+  if (excluded_count == 0) {
     return {tag_v<TriangleSubsetType::All>, {}};
   }
-  if (excluded.size() == 3) {
+  if (included.empty()) {
     return {tag_v<TriangleSubsetType::None>, {}};
   }
 
-  if (std::abs(std::abs(tri.normal()->dot(normal.normalized())) - 1.) < 1e-8) {
-    // basically coplanar and still intersecting (some included and some not) -
-    // to handle this case we just return all (because the meshes better with
-    // the algorithms used elsewhere...)
-    return {tag_v<TriangleSubsetType::All>, {}};
+  if (debug) {
+    dbg(excluded_count);
+    dbg(unsigned(included.size()));
   }
 
   auto make_point = [&](double value, unsigned idx) -> Eigen::Vector2d {
@@ -60,8 +78,9 @@ clip_by_plane(const Eigen::Vector3d &normal, double plane_threshold,
     double prop = precomputed_vals[included_idx] / ray.dot(normal);
     Eigen::Vector3d endpoint = prop * ray + origin;
 
-    debug_assert(0. <= prop);
-    debug_assert(1. >= prop);
+    // debug_assert(-1e-2 <= prop);
+    // debug_assert(1. + 1e-2 >= prop);
+    prop = std::clamp(prop, 0., 1.);
     debug_assert(std::abs(endpoint.dot(normal) - plane_threshold) < 1e-6);
 
     if (origin_idx == 0) {
@@ -83,12 +102,12 @@ clip_by_plane(const Eigen::Vector3d &normal, double plane_threshold,
 
   auto add_point = [&](const Eigen::Vector2d &p) { points.push_back(p); };
   if (included.size() == 2) {
-    add_point(edge_points(0, excluded[0]));
-    add_point(edge_points(1, excluded[0]));
+    add_point(edge_points(0, excluded_or_on_edge[0]));
+    add_point(edge_points(1, excluded_or_on_edge[0]));
   } else {
     debug_assert(included.size() == 1);
-    add_point(edge_points(0, excluded[0]));
-    add_point(edge_points(0, excluded[1]));
+    add_point(edge_points(0, excluded_or_on_edge[0]));
+    add_point(edge_points(0, excluded_or_on_edge[1]));
   }
 
   auto get_point_in_baryo = [&](unsigned idx) -> Eigen::Vector2d {
@@ -128,12 +147,17 @@ clip_by_plane(const Eigen::Vector3d &normal, double plane_threshold,
   }
   boost::geometry::append(poly, std::get<0>(points_angle[0]));
 
-  if (boost::geometry::area(poly) <= 1e-15) {
+  double area = boost::geometry::area(poly);
+  if (debug) {
+    dbg(area);
+  }
+  if (area <= 1e-12) {
     return {tag_v<TriangleSubsetType::None>, {}};
+  } else if (area > 0.5 - 1e-12) {
+    return {tag_v<TriangleSubsetType::All>, {}};
   }
 
   debug_assert(boost::geometry::is_valid(poly));
-  debug_assert(boost::geometry::area(poly) <= 0.5);
 
   return {tag_v<TriangleSubsetType::Some>, poly};
 }

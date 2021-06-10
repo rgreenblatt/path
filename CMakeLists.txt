@@ -416,6 +416,12 @@ target_link_libraries(test_generate_data_single_triangle
                       PRIVATE generate_data_single_triangle docopt_s)
 target_add_standard(test_generate_data_single_triangle)
 
+add_executable(test_generate_data_full_scene
+               "${BASE_GEN_DATA_P}/full_scene/test_generate_data.cpp")
+target_link_libraries(test_generate_data_full_scene
+                      PRIVATE generate_data_full_scene docopt_s)
+target_add_standard(test_generate_data_full_scene)
+
 pybind11_add_module(neural_render_generate_data_full_scene
                     "${BASE_GEN_DATA_P}/full_scene/python_module.cpp")
 target_link_libraries(neural_render_generate_data_full_scene

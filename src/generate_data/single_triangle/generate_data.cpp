@@ -42,8 +42,6 @@ using Out = std::conditional_t<is_image, ImageData, StandardData>;
 template <bool is_image>
 Out<is_image> generate_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
                                  int n_samples, unsigned base_seed) {
-  using namespace generate_data;
-
   debug_assert(boost::geometry::is_valid(full_triangle));
   debug_assert(std::abs(boost::geometry::area(full_triangle) - 0.5) < 1e-12);
 
@@ -187,9 +185,9 @@ Out<is_image> generate_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
         std::swap(end_tris[0], end_tris[1]);
         std::swap(end_region[0], end_region[1]);
       }
-      auto shadow_info = totally_shadowed(*end_tris[0], *end_region[0],
-                                          new_tris.triangle_blocking,
-                                          blocking_region, *end_tris[1]);
+      auto shadow_info = totally_shadowed(
+          *end_tris[0], *end_region[0], new_tris.triangle_blocking,
+          blocking_region, *end_tris[1], *end_region[1]);
       if (shadow_info.totally_shadowed.type() == TriangleSubsetType::All) {
         // assert that we aren't on the second iter (should have already
         // restarted)
@@ -200,16 +198,15 @@ Out<is_image> generate_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
         goto restart;
       }
 
-      auto totally_shadowed_intersected = triangle_subset_intersection(
-          *end_region[1], shadow_info.totally_shadowed);
-
       // check if clipped region is totally shadowed also
-      if (totally_shadowed_intersected.type() == TriangleSubsetType::Some &&
+      // (if end_region[1]->type() is All, then this case isn't relavent,
+      // the clipped is the whole thing...)
+      if (shadow_info.totally_shadowed.type() == TriangleSubsetType::Some &&
           end_region[1]->type() == TriangleSubsetType::Some) {
         const auto &end_region_poly =
             end_region[1]->get(tag_v<TriangleSubsetType::Some>);
         const auto &intersected_poly =
-            totally_shadowed_intersected.get(tag_v<TriangleSubsetType::Some>);
+            shadow_info.totally_shadowed.get(tag_v<TriangleSubsetType::Some>);
         double region_area = boost::geometry::area(end_region_poly);
         double intersected_area = boost::geometry::area(intersected_poly);
         if (std::abs(region_area - intersected_area) < 1e-10) {
@@ -225,11 +222,11 @@ Out<is_image> generate_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
 
       auto partially_shadowed_info = partially_shadowed(
           *end_tris[0], *end_region[0], new_tris.triangle_blocking,
-          blocking_region, *end_tris[1]);
-      auto partially_shadowed_intersected = triangle_subset_intersection(
-          partially_shadowed_info.partially_shadowed, *end_region[1]);
+          blocking_region, *end_tris[1], *end_region[1]);
+      const auto &partially_shadowed =
+          partially_shadowed_info.partially_shadowed;
 
-      if (partially_shadowed_intersected.type() == TriangleSubsetType::None) {
+      if (partially_shadowed.type() == TriangleSubsetType::None) {
         // assert that we aren't on the second iter (should have already
         // restarted)
         // always_assert(onto_idx == 0);
@@ -242,10 +239,10 @@ Out<is_image> generate_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
       std::array<TorchIdxT, n_prior_dims> prior_idxs{i};
 
       totally_shadowed_setters[feature_idx].set_region(
-          prior_idxs, totally_shadowed_intersected, *end_tris[1]);
+          prior_idxs, shadow_info.totally_shadowed, *end_tris[1]);
 
       partially_shadowed_setters[feature_idx].set_region(
-          prior_idxs, partially_shadowed_intersected, *end_tris[1]);
+          prior_idxs, partially_shadowed, *end_tris[1]);
       ray_items[feature_idx][i] = partially_shadowed_info.ray_items;
       ray_item_counts[feature_idx][i] =
           partially_shadowed_info.ray_items.size();
@@ -253,11 +250,9 @@ Out<is_image> generate_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
       auto centroid_shadow = shadowed_from_point(
           region_centroids[onto_idx],
           get_points_from_subset(new_tris.triangle_blocking, blocking_region),
-          *end_tris[1]);
+          *end_tris[1], *end_region[1]);
       centroid_shadowed_setters[feature_idx].set_region(
-          prior_idxs,
-          triangle_subset_intersection(centroid_shadow, *end_region[1]),
-          *end_tris[1]);
+          prior_idxs, centroid_shadow, *end_tris[1]);
     }
 
     auto scene_adder = make_value_adder(
@@ -269,7 +264,6 @@ Out<is_image> generate_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
 
       // add tri scene values
 
-      // TODO: logs or other functions of these values?
       auto tri_adder = make_value_adder([&](float v, int value_idx) {
         triangle_features[i][tri_idx][value_idx] = v;
       });
@@ -391,6 +385,7 @@ Out<is_image> generate_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
     boost::multi_array<float, 2> values{
         std::array{total, TorchIdxT(constants.n_ray_item_values)}};
     boost::multi_array<bool, 1> is_ray{std::array{total}};
+    boost::multi_array<bool, 1> is_close_point{std::array{total}};
     unsigned running_idx = 0;
     for (const auto &vec : ray_items[i]) {
       for (const auto &item : vec) {
@@ -408,8 +403,7 @@ Out<is_image> generate_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
             adder.add_remap_all_value(0.);
             adder.add_remap_all_value(0.);
             adder.add_remap_all_value(0.);
-          } else {
-            static_assert(tag == RayItemResultType::Intersection);
+          } else if constexpr (tag == RayItemResultType::Intersection) {
             adder.add_values(v.normalized().eval());
             adder.add_value(std::atan2(v.y(), v.x()));
             // values can get VERY large
@@ -417,9 +411,18 @@ Out<is_image> generate_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
             adder.add_remap_all_value(norm);
             adder.add_remap_all_value(v.x());
             adder.add_remap_all_value(v.y());
+          } else {
+            static_assert(tag == RayItemResultType::ClosePoint);
+            adder.add_values(Eigen::Vector2d::Zero());
+            adder.add_value(0.);
+            adder.add_remap_all_value(0.);
+            adder.add_remap_all_value(0.);
+            adder.add_remap_all_value(0.);
           }
         });
         is_ray[running_idx] = item.result.type() == RayItemResultType::Ray;
+        is_close_point[running_idx] =
+            item.result.type() == RayItemResultType::ClosePoint;
         debug_assert(adder.idx == constants.n_ray_item_values);
         ++running_idx;
       }
@@ -435,6 +438,7 @@ Out<is_image> generate_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
         .prefix_sum_counts =
             at::cat({at::tensor({TorchIdxT(0)}), counts.flatten().cumsum(0)}),
         .is_ray = to_tensor(is_ray),
+        .is_close_point = to_tensor(is_close_point),
     };
   }
 

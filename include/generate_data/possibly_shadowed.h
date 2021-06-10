@@ -9,8 +9,11 @@
 
 #include <array>
 
+#include "lib/info/print_triangle.h"
+
 namespace generate_data {
 // NOTE: normals must be pointed at each other.
+// TODO: probably shouldn't be inline
 ATTR_PURE_NDEBUG inline bool possibly_shadowed(
     std::array<const intersect::TriangleGen<double> *, 2> endpoints,
     const intersect::TriangleGen<double> &blocker,
@@ -150,7 +153,6 @@ ATTR_PURE_NDEBUG inline bool possibly_shadowed(
   }
   boost::geometry::append(poly_on_plane,
                           eigen_to_baryo(std::get<0>(points_angles[0])));
-  debug_assert(boost::geometry::is_valid(poly_on_plane));
 
   boost::geometry::model::box<BaryoPoint> box{eigen_to_baryo(min_projected),
                                               eigen_to_baryo(max_projected)};

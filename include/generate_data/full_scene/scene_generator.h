@@ -20,7 +20,8 @@ class SceneGenerator {
 public:
   SceneGenerator();
 
-  const scene::Scene &generate(std::mt19937 &rng);
+  // returns scene and threshold for whether triangle is part of a mesh
+  std::tuple<const scene::Scene &, unsigned> generate(std::mt19937 &rng);
 
 private:
   void add_mesh(const VectorT<TriangleNormals> &tris,
@@ -32,6 +33,7 @@ private:
   VectorT<TriangleNormals> monkey_;
   VectorT<TriangleNormals> torus_;
   VectorT<const VectorT<TriangleNormals> *> meshs_;
+  VectorT<uint8_t> part_of_mesh_;
 };
 } // namespace full_scene
 } // namespace generate_data

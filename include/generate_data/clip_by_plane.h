@@ -8,7 +8,7 @@
 namespace generate_data {
 ATTR_PURE_NDEBUG TriangleSubset
 clip_by_plane(const Eigen::Vector3d &normal, double plane_threshold,
-              const intersect::TriangleGen<double> &tri);
+              const intersect::TriangleGen<double> &tri, bool debug = false);
 
 ATTR_PURE_NDEBUG inline TriangleSubset
 clip_by_plane_point(const Eigen::Vector3d &normal, const Eigen::Vector3d &point,

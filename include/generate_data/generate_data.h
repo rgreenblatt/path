@@ -32,6 +32,7 @@ struct RayInput {
   at::Tensor counts;
   at::Tensor prefix_sum_counts;
   at::Tensor is_ray;
+  at::Tensor is_close_point;
 
   inline RayInput to(const at::Tensor &example_tensor) const {
     return {
@@ -39,6 +40,7 @@ struct RayInput {
         .counts = counts.to(example_tensor.device()),
         .prefix_sum_counts = prefix_sum_counts.to(example_tensor.device()),
         .is_ray = is_ray.to(example_tensor.device()),
+        .is_close_point = is_close_point.to(example_tensor.device()),
     };
   }
 };
