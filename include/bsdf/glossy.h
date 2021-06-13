@@ -9,7 +9,7 @@
 #include "rng/rng.h"
 
 namespace bsdf {
-struct Glossy {
+class Glossy {
 public:
   static constexpr bool discrete = false;
   static constexpr bool continuous = true;
@@ -51,6 +51,9 @@ public:
 
     return {find_relative_vec(reflection, phi, psi), specular_};
   }
+
+  ATTR_PURE HOST_DEVICE const FloatRGB &specular() const { return specular_; }
+  ATTR_PURE HOST_DEVICE float shininess() const { return shininess_; }
 
 private:
   float normalizing_factor_;

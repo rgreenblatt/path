@@ -41,10 +41,10 @@ public:
       }
     };
 
-    if constexpr (discrete) {
+    if constexpr (discrete && discrete_idxs.size() - 1 > 0) {
       compute_total(discrete_idxs, weight_discrete_inclusive_);
     }
-    if constexpr (continuous) {
+    if constexpr (continuous && continuous_idxs.size() - 1 > 0) {
       compute_total(continuous_idxs, weight_continuous_inclusive_);
     }
 
@@ -78,7 +78,7 @@ public:
           auto get = [&](auto tag_idx) -> FloatRGB {
             constexpr unsigned idx = tag_idx;
             constexpr unsigned overall_idx = continuous_idxs[idx];
-            auto out = weight(idx, weight_continuous_inclusive_) *
+            auto out = weight(idx, weight_continuous_inclusive()) *
                        items_[boost::hana::int_c<overall_idx>].continuous_eval(
                            incoming_dir, outgoing_dir, normal);
             return out;
@@ -96,11 +96,11 @@ public:
           auto get = [&](auto tag_idx) -> float {
             constexpr unsigned idx = tag_idx;
             constexpr unsigned overall_idx = discrete_and_continuous_idxs[idx];
-            return weight_discrete_and_continuous_[idx] *
+            return weight_discrete_and_continuous()[idx] *
                    items_[boost::hana::int_c<overall_idx>].prob_continuous(
                        incoming_dir, normal);
           };
-          return (fixed_prob_continuous_ + ... + get(idxs));
+          return (fixed_prob_continuous() + ... + get(idxs));
         });
   }
 
@@ -110,7 +110,7 @@ public:
                                            R &rng) const requires(continuous) {
     float loc = rng.next();
 
-    unsigned idx = search_inclusive(loc, weight_continuous_inclusive_,
+    unsigned idx = search_inclusive(loc, weight_continuous_inclusive(),
                                     binary_search_threshold, true);
 
     return sequential_dispatch<continuous_idxs.size()>(idx, [&](auto tag_idx) {
@@ -127,7 +127,7 @@ public:
       requires(discrete) {
     float loc = rng.next();
 
-    unsigned idx = search_inclusive(loc, weight_discrete_inclusive_,
+    unsigned idx = search_inclusive(loc, weight_discrete_inclusive(),
                                     binary_search_threshold, true);
 
     return sequential_dispatch<discrete_idxs.size()>(idx, [&](auto tag_idx) {
@@ -136,6 +136,31 @@ public:
       return items_[boost::hana::int_c<overall_idx>].discrete_sample(
           incoming_dir, normal, rng);
     });
+  }
+
+  constexpr const auto &items() const { return items_; }
+  constexpr const auto &weight_continuous_inclusive() const
+      requires(continuous) {
+    if constexpr (continuous_idxs.size() - 1 == 0) {
+      return empty_arr;
+    } else {
+      return weight_continuous_inclusive_;
+    }
+  }
+  constexpr const auto &weight_discrete_inclusive() const requires(discrete) {
+    if constexpr (discrete_idxs.size() - 1 == 0) {
+      return empty_arr;
+    } else {
+      return weight_discrete_inclusive_;
+    }
+  }
+  constexpr const auto &weight_discrete_and_continuous() const
+      requires(discrete &&continuous) {
+    return weight_discrete_and_continuous_;
+  }
+  constexpr float fixed_prob_continuous() const
+      requires(discrete &&continuous) {
+    return fixed_prob_continuous_;
   }
 
 private : template <template <typename> class Getter> struct Idxs {
@@ -213,16 +238,20 @@ private : template <template <typename> class Getter> struct Idxs {
   // somewhat smaller...
 
   [[no_unique_address]] std::conditional_t<
-      continuous, std::array<float, continuous_idxs.size() - 1>, EmptyT>
+      continuous && (continuous_idxs.size() - 1 > 0),
+      std::array<float, continuous_idxs.size() - 1>, EmptyT>
       weight_continuous_inclusive_;
   [[no_unique_address]] std::conditional_t<
-      discrete, std::array<float, discrete_idxs.size() - 1>, EmptyT>
+      discrete && (discrete_idxs.size() - 1 > 0),
+      std::array<float, discrete_idxs.size() - 1>, EmptyT>
       weight_discrete_inclusive_;
   // NOTE: not an inclusive sum!
   [[no_unique_address]] std::conditional_t<
       discrete && continuous,
       std::array<float, discrete_and_continuous_idxs.size()>, EmptyT>
       weight_discrete_and_continuous_;
+
+  constexpr static std::array<float, 0> empty_arr;
 
   // total probability of bsdfs which are only continuous
   [[no_unique_address]] std::conditional_t<discrete && continuous, float,

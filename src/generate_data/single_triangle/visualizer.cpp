@@ -1,7 +1,7 @@
 #include "execution_model/execution_model.h"
-#include "generate_data/amend_config.h"
 #include "generate_data/baryocentric_coords.h"
 #include "generate_data/baryocentric_to_ray.h"
+#include "generate_data/single_triangle/amend_config.h"
 #include "generate_data/single_triangle/generate_scene.h"
 #include "generate_data/single_triangle/generate_scene_triangles.h"
 #include "generate_data/single_triangle/normalize_scene_triangles.h"

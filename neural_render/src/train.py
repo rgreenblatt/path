@@ -7,11 +7,9 @@ import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.utils import make_grid
-from apex.parallel import DistributedDataParallel, convert_syncbn_model
-from apex import amp
 import git
 
-import neural_render_generate_data
+import neural_render_generate_data_full_scene
 
 from model import Net
 from config import Config
@@ -113,37 +111,26 @@ def main():
 
     net = Net()
 
-    if use_distributed and not cfg.no_sync_bn:
-        net = convert_syncbn_model(net)
-
     optimizer = torch.optim.LBFGS(net.parameters(),
-                                  line_search_fn='strong_wolfe')
-
+                                  line_search_fn='strong_wolfe',
+                                  history_size=10)
     net = net.to(device)
 
-    net, optimizer = amp.initialize(net,
-                                    optimizer,
-                                    opt_level=cfg.opt_level,
-                                    min_loss_scale=65536.0,
-                                    verbosity=cfg.amp_verbosity)
-
-    class InputsWrapper():
-        def __init__(self, item):
-            self.item = item
-
-        def to(self, value):
-            new_example = example_device_tensor.to(value)
-
-            return InputsWrapper(self.item.to(new_example))
-
-    def apply_net(inputs):
-        return net(InputsWrapper(inputs))
-
     if use_distributed:
-        net = DistributedDataParallel(net)
+        net = torch.nn.parallel.DistributedDataParallel(net)
 
-    mse = torch.nn.MSELoss().to(device)
-    perceptual = PerceptualLoss().to(device)
+    def loss_wrapper(loss):
+        loss = loss.to(device)
+
+        def get_loss(outputs, actual, count):
+            # ignore first step, is just direct light
+            return loss(outputs, actual[:, 1:]) / (count * cfg.rays_per_tri *
+                                                   cfg.n_steps)
+
+        return get_loss
+
+    mse = loss_wrapper(torch.nn.MSELoss(reduction='sum'))
+    perceptual = loss_wrapper(PerceptualLoss(reduction='sum'))
 
     if cfg.no_perceptual_loss:
         criterion = mse
@@ -188,14 +175,35 @@ def main():
 
     norm_avg = EMATracker(0.9, 50.0)
 
-    def save_image(name, indexes, values):
-        img = torch.zeros(cfg.image_count, cfg.image_dim, cfg.image_dim, 3)
-        img[:, indexes[:, 1], indexes[:, 0]] = values
+    def save_image(name, indexes, values, counts, is_actual):
+        def save_sub_image(sub_name, sub_values):
+            total_img = torch.zeros(cfg.image_scene_count, cfg.image_dim,
+                                    cfg.image_dim, 3)
+            for i in range(cfg.image_scene_count):
+                total_img[i, indexes[i, :counts[i], 1],
+                          indexes[i, :counts[i],
+                                  0]] = sub_values[i, :counts[i]]
 
-        def tone_map(x):
-            return x / (x + 1)
+            def tone_map(x):
+                return x / (x + 1)
 
-        writer.add_image(name, make_grid(tone_map(img.movedim(-1, 1))), step)
+            writer.add_image(sub_name,
+                             make_grid(tone_map(total_img.movedim(-1, 1))),
+                             step)
+
+        step_axis = 1
+        total_lighting = values.sum(axis=step_axis)
+
+        save_sub_image('{}/total'.format(name), total_lighting)
+        for i in range(cfg.n_steps):
+            # index at step_axis
+            if is_actual:
+                idx = i
+            else:
+                idx = i - 1
+                if idx < 0:
+                    continue
+            save_sub_image('{}/step_{}'.format(name, i), values[:, idx])
 
     # get validation data
     validation_data = []
@@ -205,17 +213,19 @@ def main():
             seed = base_seed * world_batch_size + validation_seed_start
             # TODO: if this is too much vram, could keep on cpu until needed
             # (same with imgs)
-            data = neural_render_generate_data.gen_data(
-                batch_size, cfg.rays_per_tri, cfg.samples_per_ray,
-                seed).to(example_device_tensor)
+            data = neural_render_generate_data_full_scene.generate_data(
+                batch_size, None, cfg.rays_per_tri, cfg.samples_per_ray,
+                cfg.n_steps, seed).to(example_device_tensor)
             validation_data.append(data)
 
-        image_data = neural_render_generate_data.gen_data_for_image(
-            cfg.image_count, cfg.image_dim, cfg.samples_per_ray, image_seed)
+        image_data = neural_render_generate_data_full_scene.generate_data_for_image(
+            2**30, cfg.image_scene_count, cfg.image_dim, cfg.samples_per_ray,
+            cfg.n_steps, image_seed)
         image_inputs = image_data.standard.inputs.to(example_device_tensor)
 
         save_image("images/actual", image_data.image_indexes,
-                   image_data.standard.values)
+                   image_data.standard.values,
+                   image_data.standard.inputs.n_samples_per, True)
 
     for epoch in range(cfg.epochs):
         net.train()
@@ -277,9 +287,9 @@ def main():
             steps_since_display += world_batch_size
             steps_since_set_lr += world_batch_size
 
-            data = neural_render_generate_data.gen_data(
-                batch_size, cfg.rays_per_tri, cfg.samples_per_ray,
-                seed).to(example_device_tensor)
+            data = neural_render_generate_data_full_scene.generate_data(
+                batch_size, None, cfg.rays_per_tri, cfg.samples_per_ray,
+                cfg.n_steps, seed).to(example_device_tensor)
 
             is_first = True
 
@@ -292,20 +302,22 @@ def main():
                 if torch.is_grad_enabled():
                     optimizer.zero_grad()
 
-                outputs = apply_net(data.inputs)
-                loss = criterion(outputs, data.values)
+                outputs = net(data.inputs, cfg.n_steps)
+                loss = criterion(outputs, data.values,
+                                 data.inputs.total_tri_count)
 
                 if torch.isnan(loss).any():
                     raise NanLoss()
 
                 if is_first:
                     train_perceptual_loss_tracker.update(
-                        perceptual(outputs, data.values))
-                    train_mse_loss_tracker.update(mse(outputs, data.values))
+                        perceptual(outputs, data.values,
+                                   data.inputs.total_tri_count))
+                    train_mse_loss_tracker.update(
+                        mse(outputs, data.values, data.inputs.total_tri_count))
 
                 if torch.is_grad_enabled():
-                    with amp.scale_loss(loss, optimizer) as scaled_loss:
-                        scaled_loss.backward()
+                    loss.backward()
 
                     max_norm = norm_avg.x * 1.5
                     this_norm = nn.utils.clip_grad_norm_(
@@ -344,14 +356,17 @@ def main():
 
         with torch.no_grad():
             for data in validation_data:
-                outputs = apply_net(data.inputs)
+                outputs = net(data.inputs, cfg.n_steps)
 
                 test_perceptual_loss_tracker.update(
-                    perceptual(outputs, data.values))
-                test_mse_loss_tracker.update(mse(outputs, data.values))
+                    perceptual(outputs, data.values,
+                               data.inputs.total_tri_count))
+                test_mse_loss_tracker.update(
+                    mse(outputs, data.values, data.inputs.total_tri_count))
 
             save_image("images/output", image_data.image_indexes,
-                       apply_net(image_inputs).cpu())
+                       net(image_inputs, cfg.n_steps).cpu(),
+                       image_data.standard.inputs.n_samples_per, False)
 
         test_mse_loss, nan_count = test_mse_loss_tracker.query_reset()
         test_perceptual_loss, _ = test_perceptual_loss_tracker.query_reset()
@@ -386,10 +401,10 @@ class Deinit():
 
     @staticmethod
     def __exit__(*_):
-        neural_render_generate_data.deinit_renderers()
+        neural_render_generate_data_full_scene.deinit_renderers()
 
 
 if __name__ == "__main__":
-    neural_render_generate_data.deinit_renderers()
+    neural_render_generate_data_full_scene.deinit_renderers()
     with Deinit():
         main()

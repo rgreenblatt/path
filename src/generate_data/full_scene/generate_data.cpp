@@ -1,351 +1,340 @@
 #include "generate_data/full_scene/generate_data.h"
+#include "generate_data/baryocentric_to_ray.h"
+#include "generate_data/full_scene/amend_config.h"
+#include "generate_data/full_scene/constants.h"
+#include "generate_data/full_scene/intersect_for_baryocentric_coords.h"
 #include "generate_data/full_scene/scene_generator.h"
 #include "generate_data/possibly_shadowed.h"
 #include "generate_data/shadowed.h"
+#include "generate_data/sort_triangle_points.h"
 #include "generate_data/subset_to_multi.h"
+#include "generate_data/to_tensor.h"
 #include "generate_data/triangle.h"
 #include "generate_data/triangle_subset_intersection.h"
 #include "generate_data/triangle_subset_union.h"
+#include "generate_data/value_adder.h"
+#include "integrate/dir_sampler/uniform_direction_sample.h"
 #include "lib/vector_type.h"
+#include "meta/array_cat.h"
+#include "render/renderer.h"
+#include "rng/uniform/uniform.h"
+
+#include <boost/multi_array.hpp>
 
 #include "dbg.h"
-#include "generate_data/print_region.h"
 
 namespace generate_data {
 namespace full_scene {
-// template <bool is_image>
-void generate_data(int max_tris, int n_samples_per_scene_or_dim, int n_samples,
-                   unsigned seed) {
+static VectorT<render::Renderer> renderers;
+
+template <bool is_image>
+using Out = std::conditional_t<is_image, ImageData<NetworkInputs>,
+                               StandardData<NetworkInputs>>;
+
+template <bool is_image>
+Out<is_image> generate_data_impl(int max_tris,
+                                 std::optional<int> forced_n_scenes,
+                                 int n_samples_per_tri_or_dim, int n_samples,
+                                 int n_steps, unsigned seed) {
+  VectorT<IntersectedBaryocentricCoords> intersected_coords;
+  unsigned max_n_samples_per_scene = 0;
   VectorT<scene::Scene> scenes;
-  VectorT<unsigned> mesh_threshs;
+  VectorT<unsigned> mesh_threshs; // not used ATM
   SceneGenerator generator;
-  always_assert(max_tris > 3);
   int tri_count = 0;
-  std::mt19937 rng(seed);
-  while (tri_count < max_tris) {
-    auto vals = generator.generate(rng);
+  unsigned max_tri_count = 0;
+  rng::uniform::Uniform<ExecutionModel::CPU>::Ref::State rng_state(seed);
+  std::vector<unsigned> n_total_samples_per;
+  while (forced_n_scenes.has_value()
+             ? scenes.size() < unsigned(*forced_n_scenes)
+             : tri_count < max_tris) {
+    auto vals = generator.generate(rng_state.state());
     auto scene = std::get<0>(vals);
-    int new_tri_count = tri_count + scene.triangles().size();
-    // if (new_tri_count > max_tris) {
-    //   if (tri_count == 0) {
-    //     continue; // try again
-    //   } else {
-    //     tri_count = new_tri_count;
-    //     break; // we have enough
-    //   }
-    // }
+    unsigned n_tris = scene.triangles().size();
+    int new_tri_count = tri_count + n_tris;
+
+    // TODO: restrict tris somehow?
+
     tri_count = new_tri_count;
+    max_tri_count = std::max(max_tri_count, n_tris);
+
+    unsigned n_total_samples;
+    if constexpr (is_image) {
+      unsigned dim = n_samples_per_tri_or_dim;
+      auto values = intersect_for_baryocentric_coords(scene, dim);
+      n_total_samples = unsigned(values.image_indexes.size());
+      intersected_coords.push_back(values);
+    } else {
+      unsigned n_samples_per_tri = n_samples_per_tri_or_dim;
+      n_total_samples = n_samples_per_tri * n_tris;
+    }
+    max_n_samples_per_scene =
+        std::max(max_n_samples_per_scene, n_total_samples);
+    n_total_samples_per.push_back(n_total_samples);
+
     scenes.push_back(scene);
     mesh_threshs.push_back(std::get<1>(vals));
   }
-  dbg(tri_count);
 
-  VectorT<VectorT<Triangle>> all_triangles(scenes.size());
-  std::transform(scenes.begin(), scenes.end(), all_triangles.begin(),
-                 [&](const scene::Scene &scene) {
-                   VectorT<Triangle> tris(scene.triangles().size());
-                   std::transform(scene.triangles().begin(),
-                                  scene.triangles().end(), tris.begin(),
-                                  [&](const auto &tri) {
-                                    return tri.template cast<double>();
-                                  });
-                   return tris;
-                 });
+  render::Settings settings;
+  amend_config(settings);
 
-  struct BlockerInfo {
-    unsigned idx;
-    // l onto and then r onto
-    std::array<PartiallyShadowedInfo, 2> partially_shadowed_infos;
-    std::array<TotallyShadowedInfo, 2> totally_shadowed_infos;
-  };
+  std::array<unsigned, 2> base_dims{unsigned(scenes.size()), max_tri_count};
 
-  struct LightingPair {
-    std::array<unsigned, 2> idxs;
-    std::array<bool, 2> is_neg_faces;
-    std::array<TriangleSubset, 2> regions;
+  boost::multi_array<float, 3> triangle_features{
+      array_append(base_dims, unsigned(constants.n_tri_values))};
+  boost::multi_array<float, 3> bsdf_features{
+      array_append(base_dims, unsigned(constants.n_bsdf_values))};
+  boost::multi_array<float, 3> emissive_values{
+      array_append(base_dims, unsigned(constants.n_rgb_dims))};
+  boost::multi_array<bool, 2> mask{base_dims};
 
-    VectorT<BlockerInfo> infos;
+  std::array<unsigned, 2> base_sample_dims{unsigned(scenes.size()),
+                                           max_n_samples_per_scene};
 
-    std::array<TriangleMultiSubset, 2> overall_partially_shadowed;
-    std::array<TriangleMultiSubset, 2> overall_totally_shadowed;
-    std::array<VectorT<TriangleMultiSubset>, 2> overall_from_each_point;
-  };
+  boost::multi_array<float, 3> baryocentric_coords{array_append(
+      base_sample_dims, unsigned(constants.n_coords_feature_values))};
+  boost::multi_array<TorchIdxT, 2> triangle_idxs_for_coords{base_sample_dims};
+  boost::multi_array<TorchIdxT, 3> image_indexes;
+  if constexpr (is_image) {
+    image_indexes.resize(array_append(base_sample_dims, 2u));
+  }
+  boost::multi_array<float, 4> values{
+      std::array{unsigned(scenes.size()), unsigned(n_steps),
+                 max_n_samples_per_scene, unsigned(constants.n_rgb_dims)}};
+  for (unsigned scene_idx = 0; scene_idx < scenes.size(); ++scene_idx) {
+    const auto &scene = scenes[scene_idx];
+    VectorT<Triangle> tris(scene.triangles().size());
 
-  VectorT<VectorT<LightingPair>> lighting_pairs(scenes.size());
+    Eigen::Vector3d avg = Eigen::Vector3d::Zero();
+    Eigen::Vector3d min_pos = max_eigen_vec<double>();
+    Eigen::Vector3d max_pos = min_eigen_vec<double>();
 
-  dbg(scenes.size());
+    for (unsigned i = 0; i < tris.size(); ++i) {
+      tris[i] = scene.triangles()[i].template cast<double>();
+      for (const auto &vert : tris[i].vertices) {
+        avg += vert;
+        min_pos = min_pos.cwiseMin(vert);
+        max_pos = max_pos.cwiseMax(vert);
+      }
+    }
 
-  // TODO:
-  // find all blocking triangles
-  // consider if triangles could be merged somehow (mesh)
-  // consider if blocker is actually also blocked by another tri
-  // compute feature for all blocking triangles
-  for (unsigned i = 0; i < scenes.size(); ++i) {
-    const auto &tris = all_triangles[i];
-    // we only need to go one way
-    for (unsigned j = 0; j < tris.size(); ++j) {
-      const auto &tri_onto = tris[j];
-      auto onto_normal_base = *tri_onto.normal();
-      for (bool onto_is_neg_face : {false, true}) {
-        auto onto_normal =
-            onto_is_neg_face ? -onto_normal_base : onto_normal_base;
-        for (unsigned k = j + 1; k < tris.size(); ++k) {
-          const auto &tri_from = tris[k];
+    avg /= tris.size() * 3;
 
-          auto from_region =
-              clip_by_plane_point(onto_normal, tri_onto.vertices[0], tri_from);
+    double scale =
+        1. / std::max((avg - min_pos).maxCoeff(), (max_pos - avg).maxCoeff());
+    auto scaling = Eigen::Scaling(scale);
+    auto translate = Eigen::Translation3d(-avg);
+    const Eigen::Affine3d transform = scaling * translate;
 
-          if (from_region.type() == TriangleSubsetType::None) {
-            continue;
-          }
+    for (unsigned i = 0; i < tris.size(); ++i) {
+      auto &tri = tris[i];
+      for (auto &vert : tri.vertices) {
+        vert = transform * vert;
+      }
 
-          auto from_normal_base = *tri_from.normal();
+      sort_triangle_points(tri);
 
-          for (bool from_is_neg_face : {false, true}) {
-            auto from_normal =
-                from_is_neg_face ? -from_normal_base : from_normal_base;
+      if (tri.normal_raw().z() < 0.f) {
+        std::swap(tri.vertices[1], tri.vertices[2]);
+      }
 
-            auto onto_region = clip_by_plane_point(
-                from_normal, tri_from.vertices[0], tri_onto);
+      auto tri_adder = make_value_adder([&](float v, int value_idx) {
+        triangle_features[scene_idx][i][value_idx] = v;
+      });
 
-            if (onto_region.type() == TriangleSubsetType::None) {
-              continue;
-            }
+      for (const auto &point : tri.vertices) {
+        tri_adder.add_remap_all_values(point);
+      }
+      const auto normal_scaled = tri.normal_scaled_by_area();
+      tri_adder.add_remap_all_values(normal_scaled);
+      const auto normal = normal_scaled.normalized().eval();
+      tri_adder.add_values(normal);
+      tri_adder.add_remap_all_value(tri.area());
 
-            LightingPair lighting_pair{
-                .idxs = {j, k},
-                .is_neg_faces = {onto_is_neg_face, from_is_neg_face},
-                .regions = {onto_region, from_region},
+      debug_assert(tri_adder.idx == constants.n_tri_values);
 
-                // will be set later
-                .infos = {},
-                .overall_partially_shadowed = {},
-                .overall_totally_shadowed = {},
-                .overall_from_each_point = {},
-            };
+      const auto &material =
+          scene.materials()[scene.triangle_data()[i].material_idx()];
 
-            bool is_first = true;
-            for (unsigned l = 0; l < tris.size(); ++l) {
-              if (l == j || l == k) {
-                continue;
-              }
+      make_value_adder([&](float v, int value_idx) {
+        emissive_values[scene_idx][i][value_idx] = v;
+      }).add_values(material.emission);
 
-              const auto &tri_blocker = tris[l];
+      FloatRGB diffuse_value = FloatRGB::Zero();
+      FloatRGB glossy_value = FloatRGB::Zero();
+      FloatRGB mirror_value = FloatRGB::Zero();
+      FloatRGB dielectric_value = FloatRGB::Zero();
+      float shininess = 40.;
+      float ior = 1.6;
 
-              const auto blocker_normal = *tri_blocker.normal();
+      material.bsdf.bsdf.visit_tagged([&](auto tag, const auto &value) {
+        if constexpr (tag == bsdf::BSDFType::Diffuse) {
+          diffuse_value = value.diffuse;
+        } else if constexpr (tag == bsdf::BSDFType::Glossy) {
+          glossy_value = value.specular();
+          shininess = value.shininess();
+        } else if constexpr (tag == bsdf::BSDFType::DiffuseGlossy) {
+          float diffuse_weight = value.weight_continuous_inclusive()[0];
+          float glossy_weight = 1 - diffuse_weight;
+          diffuse_value =
+              diffuse_weight * value.items()[boost::hana::int_c<0>].diffuse;
+          glossy_value =
+              glossy_weight * value.items()[boost::hana::int_c<1>].specular();
+          shininess = value.items()[boost::hana::int_c<1>].shininess();
+        } else if constexpr (tag == bsdf::BSDFType::DiffuseMirror) {
+          unreachable_unchecked();
+        } else if constexpr (tag == bsdf::BSDFType::Mirror) {
+          mirror_value = value.specular;
+        } else {
+          static_assert(tag == bsdf::BSDFType::DielectricRefractive);
+          dielectric_value = value.specular();
+          ior = value.ior();
+        }
+      });
 
-              bool next_blocker = false;
-              for (const auto &[normal, vert] : {
-                       std::tuple{onto_normal, tri_onto.vertices[0]},
-                       std::tuple{from_normal, tri_from.vertices[0]},
-                   }) {
-                for (double sign : {1., -1.}) {
-                  const auto normal_mul = normal * sign;
-                  if ((blocker_normal - normal_mul).norm() < 1e-10 &&
-                      std::abs(blocker_normal.dot(tri_blocker.vertices[0] -
-                                                  vert)) < 1e-10) {
-                    // coplanar!
-                    next_blocker = true;
-                    goto next_blocker;
-                  }
-                }
-              }
-            next_blocker:
-              if (next_blocker) {
-                continue;
-              }
+      auto bsdf_adder = make_value_adder([&](float v, int value_idx) {
+        bsdf_features[scene_idx][i][value_idx] = v;
+      });
 
-              const auto blocker_region = triangle_subset_intersection(
-                  clip_by_plane_point(onto_normal, tri_onto.vertices[0],
-                                      tri_blocker),
-                  clip_by_plane_point(from_normal, tri_from.vertices[0],
-                                      tri_blocker));
+      bsdf_adder.add_values(diffuse_value);
+      bsdf_adder.add_values(glossy_value);
+      bsdf_adder.add_values(mirror_value);
+      bsdf_adder.add_values(dielectric_value);
+      bsdf_adder.add_value(shininess);
+      bsdf_adder.add_value(ior);
 
-              if (blocker_region.type() == TriangleSubsetType::None) {
-                continue;
-              }
+      debug_assert(bsdf_adder.idx == constants.n_bsdf_values);
+    }
 
-              if (!possibly_shadowed({&tri_onto, &tri_from}, tri_blocker,
-                                     {onto_is_neg_face, from_is_neg_face})) {
-                continue;
-              }
+    for (unsigned i = 0; i < max_tri_count; ++i) {
+      mask[scene_idx][i] = i >= tris.size();
+    }
 
-              BlockerInfo info{
-                  .idx = l,
-                  .partially_shadowed_infos{
-                      partially_shadowed(tri_from, from_region, tri_blocker,
-                                         blocker_region, tri_onto, onto_region,
-                                         onto_is_neg_face),
-                      partially_shadowed(tri_onto, onto_region, tri_blocker,
-                                         blocker_region, tri_from, from_region,
-                                         from_is_neg_face),
-                  },
-                  .totally_shadowed_infos{
-                      totally_shadowed(tri_from, from_region, tri_blocker,
-                                       blocker_region, tri_onto, onto_region),
-                      totally_shadowed(tri_onto, onto_region, tri_blocker,
-                                       blocker_region, tri_from, from_region),
-                  },
-              };
+    unsigned n_samples_this_scene = [&] {
+      if constexpr (is_image) {
+        return intersected_coords[scene_idx].coords.size();
+      } else {
+        unsigned n_samples_per_tri = n_samples_per_tri_or_dim;
+        return tris.size() * n_samples_per_tri;
+      }
+    }();
 
-              // other than floating point issues, the first should imply the
-              // second...
-              if (info.partially_shadowed_infos[0].partially_shadowed.type() ==
-                      TriangleSubsetType::None ||
-                  info.partially_shadowed_infos[1].partially_shadowed.type() ==
-                      TriangleSubsetType::None) {
-                continue;
-              }
+    VectorT<render::InitialIdxAndDirSpec> idxs_and_dirs(n_samples_this_scene);
 
-              auto to_multi = [](const VectorT<TriangleSubset> &subsets) {
-                VectorT<TriangleMultiSubset> out(subsets.size());
-                std::transform(subsets.begin(), subsets.end(), out.begin(),
-                               [&](const TriangleSubset &sub) {
-                                 return subset_to_multi(sub);
-                               });
-                return out;
-              };
+    auto add_value = [&](unsigned i, float s, float t, unsigned tri_idx,
+                         const UnitVector &dir) {
+      const auto &tri = tris[tri_idx];
+      idxs_and_dirs[i] = {
+          .idx = tri_idx,
+          .ray = baryocentric_to_ray(s, t, tri.template cast<float>(), dir),
+      };
+      triangle_idxs_for_coords[scene_idx][i] = tri_idx;
 
-              std::array as_multi{
-                  to_multi(info.totally_shadowed_infos[0].from_each_point),
-                  to_multi(info.totally_shadowed_infos[1].from_each_point),
-              };
+      auto baryo_addr = make_value_adder([&](float v, int value_idx) {
+        baryocentric_coords[scene_idx][i][value_idx] = v;
+      });
 
-              std::array as_multi_partially_shadowed{
-                  subset_to_multi(
-                      info.partially_shadowed_infos[0].partially_shadowed),
-                  subset_to_multi(
-                      info.partially_shadowed_infos[1].partially_shadowed),
-              };
+      baryo_addr.add_value(s);
+      baryo_addr.add_value(t);
+      const Eigen::Vector3d vec0 = tri.vertices[1] - tri.vertices[0];
+      const Eigen::Vector3d vec1 = tri.vertices[2] - tri.vertices[0];
 
-              if (is_first) {
-                lighting_pair.overall_from_each_point = as_multi;
-                lighting_pair.overall_partially_shadowed =
-                    as_multi_partially_shadowed;
-              } else {
-                // TODO: this doesn't make sense!
-                for (unsigned item = 0;
-                     item < info.totally_shadowed_infos.size(); ++item) {
-                  debug_assert(
-                      as_multi[item].size() ==
-                      lighting_pair.overall_from_each_point[item].size());
-                  for (unsigned point_idx = 0;
-                       point_idx <
-                       info.totally_shadowed_infos[item].from_each_point.size();
-                       ++point_idx) {
-                    lighting_pair.overall_from_each_point[item][point_idx] =
-                        triangle_subset_union(
-                            lighting_pair
-                                .overall_from_each_point[item][point_idx],
-                            as_multi[item][point_idx]);
-                  }
-                }
-                for (unsigned item = 0;
-                     item < info.totally_shadowed_infos.size(); ++item) {
+      const Eigen::Vector3d double_dir = dir->template cast<double>();
+      Eigen::Vector3d dir_tri_space{tri.normal()->dot(double_dir),
+                                    vec0.dot(double_dir) / vec0.norm(),
+                                    vec1.dot(double_dir) / vec1.norm()};
+      dir_tri_space.normalize();
+      baryo_addr.add_values(dir_tri_space);
+    };
+    if constexpr (is_image) {
+      const auto &item = intersected_coords[scene_idx];
+      for (unsigned i = 0; i < item.coords.size(); ++i) {
+        auto [s, t] = item.coords[i];
+        add_value(i, s, t, item.tri_idxs[i], item.directions[i]);
+      }
+      for (unsigned i = 0; i < item.image_indexes.size(); ++i) {
+        auto [x, y] = item.image_indexes[i];
+        image_indexes[scene_idx][i][0] = TorchIdxT(x);
+        image_indexes[scene_idx][i][1] = TorchIdxT(y);
+      }
+    } else {
+      unsigned n_samples_per_tri = n_samples_per_tri_or_dim;
+      unsigned i = 0;
+      for (unsigned tri_idx = 0; tri_idx < tris.size(); ++tri_idx) {
+        for (unsigned sample_idx = 0; sample_idx < n_samples_per_tri;
+             ++sample_idx, ++i) {
+          auto [s, t] = integrate::uniform_baryocentric(rng_state);
+          auto direction = integrate::dir_sampler::uniform_direction_sample(
+              rng_state, UnitVector::new_unchecked(Eigen::Vector3f::UnitX()),
+              true);
+          add_value(i, s, t, tri_idx, direction);
+        }
+      }
+    }
 
-                  lighting_pair.overall_partially_shadowed[item] =
-                      triangle_subset_union(
-                          lighting_pair.overall_partially_shadowed[item],
-                          as_multi_partially_shadowed[item]);
-                }
-              }
-              is_first = false;
+    VectorT<VectorT<FloatRGB>> step_outputs(
+        n_steps, VectorT<FloatRGB>{n_samples_this_scene});
+    VectorT<Span<FloatRGB>> outputs(step_outputs.begin(), step_outputs.end());
 
-              lighting_pair.infos.push_back(info);
-            }
-
-            for (unsigned item = 0;
-                 item < lighting_pair.overall_totally_shadowed.size(); ++item) {
-              auto &shadowed = lighting_pair.overall_totally_shadowed[item];
-              if (lighting_pair.overall_from_each_point[item].empty()) {
-                shadowed = {tag_v<TriangleSubsetType::None>, {}};
-              } else {
-                shadowed = {tag_v<TriangleSubsetType::All>, {}};
-                for (const auto &point_subset :
-                     lighting_pair.overall_from_each_point[item]) {
-                  shadowed = triangle_multi_subset_intersection(shadowed,
-                                                                point_subset);
-                }
-              }
-
-              if (shadowed.type() == TriangleSubsetType::All) {
-                goto next_face;
-              }
-
-              const auto &region = item == 0 ? onto_region : from_region;
-
-              // check if clipped region is totally shadowed also
-              // (if end_region[1]->type() is All, then this case isn't
-              // relavent, the clipped is the whole thing...)
-              // TODO: dedup with single_triangle
-              if (shadowed.type() == TriangleSubsetType::Some &&
-                  region.type() == TriangleSubsetType::Some) {
-
-                const auto &region_poly =
-                    region.get(tag_v<TriangleSubsetType::Some>);
-                const auto &intersected_poly =
-                    shadowed.get(tag_v<TriangleSubsetType::Some>);
-                double region_area = boost::geometry::area(region_poly);
-                double intersected_area =
-                    boost::geometry::area(intersected_poly);
-                if (std::abs(region_area - intersected_area) < 1e-10) {
-                  goto next_face;
-                }
-              }
-            }
-
-            lighting_pairs[i].push_back(lighting_pair);
-
-          next_face : {}
+    if (n_samples_this_scene > 0) {
+      renderers.resize(1);
+      renderers[0].render(
+          ExecutionModel::GPU,
+          {tag_v<render::SampleSpecType::InitialIdxAndDir>, idxs_and_dirs},
+          {tag_v<render::OutputType::OutputPerStep>, outputs}, scene, n_samples,
+          settings, false);
+      for (unsigned j = 0; j < unsigned(n_steps); ++j) {
+        for (unsigned k = 0; k < n_samples_this_scene; ++k) {
+          for (unsigned l = 0; l < 3; ++l) {
+            values[scene_idx][j][k][l] = outputs[j][k][l];
           }
         }
       }
     }
   }
 
-  dbg(lighting_pairs.size());
-  dbg(lighting_pairs[0].size());
+  StandardData<NetworkInputs> out{
+      .inputs =
+          {
+              .triangle_features = to_tensor(triangle_features),
+              .mask = to_tensor(mask),
+              .bsdf_features = to_tensor(bsdf_features),
+              .emissive_values = to_tensor(emissive_values),
+              .baryocentric_coords = to_tensor(baryocentric_coords),
+              .triangle_idxs_for_coords = to_tensor(triangle_idxs_for_coords),
+              .total_tri_count = unsigned(tri_count),
+              .n_samples_per = n_total_samples_per,
+          },
 
-  for (unsigned i = 0; i < lighting_pairs[0].size(); ++i) {
-    const auto &p = lighting_pairs[0][i];
-    if (p.infos.size() < 5) {
-      continue;
-    }
-    const auto &tris = all_triangles[0];
-    dbg(p.idxs);
-    std::cout << "l_triangle =";
-    print_triangle(tris[p.idxs[0]].template cast<float>());
-    std::cout << "r_triangle =";
-    print_triangle(tris[p.idxs[1]].template cast<float>());
-    Eigen::Vector3d normal_0 =
-        (*tris[p.idxs[0]].normal()) * (p.is_neg_faces[0] ? -1. : 1.);
-    Eigen::Vector3d normal_1 =
-        (*tris[p.idxs[1]].normal()) * (p.is_neg_faces[1] ? -1. : 1.);
+      .values = to_tensor(values),
+  };
 
-    dbg(normal_0);
-    dbg(normal_1);
-    dbg(tris[p.idxs[0]].centroid());
-    dbg(tris[p.idxs[1]].centroid());
-
-    std::cout << "partially_shadowed_on_l =";
-    print_multi_region(p.overall_partially_shadowed[0]);
-    std::cout << "partially_shadowed_on_r =";
-    print_multi_region(p.overall_partially_shadowed[1]);
-
-    std::cout << "totally_shadowed_on_l =";
-    print_multi_region(p.overall_totally_shadowed[0]);
-    std::cout << "totally_shadowed_on_r =";
-    print_multi_region(p.overall_totally_shadowed[1]);
-
-    for (unsigned i = 0; i < p.infos.size(); ++i) {
-      const auto &info = p.infos[i];
-      std::cout << "blocker_triangle_" << i << " =";
-      print_triangle(tris[info.idx].template cast<float>());
-    }
-
-    std::cout << "\n\n\n";
+  if constexpr (is_image) {
+    return {.standard = out, .image_indexes = to_tensor(image_indexes)};
+  } else {
+    return out;
   }
-  // TODO: compute all triangle features
 }
+
+StandardData<NetworkInputs> generate_data(int max_tris,
+                                          std::optional<int> forced_n_scenes,
+                                          int n_samples_per_scene,
+                                          int n_samples, int n_steps,
+                                          unsigned base_seed) {
+  return generate_data_impl<false>(max_tris, forced_n_scenes,
+                                   n_samples_per_scene, n_samples, n_steps,
+                                   base_seed);
+}
+
+ImageData<NetworkInputs>
+generate_data_for_image(int max_tris, std::optional<int> forced_n_scenes,
+                        int dim, int n_samples, int n_steps,
+                        unsigned base_seed) {
+  return generate_data_impl<true>(max_tris, forced_n_scenes, dim, n_samples,
+                                  n_steps, base_seed);
+}
+
+void deinit_renderers() { renderers.clear(); }
 } // namespace full_scene
 } // namespace generate_data

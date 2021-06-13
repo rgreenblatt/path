@@ -8,6 +8,9 @@ struct Constants : generate_data::Constants {
   int n_tris;
   int n_scene_values;
   int n_polys;
+  int n_tri_values;
+  int n_coords_feature_values;
+  int n_shadowable_tris;
 
   Constants();
 };

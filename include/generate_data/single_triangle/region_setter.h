@@ -1,6 +1,6 @@
 #pragma once
 
-#include "generate_data/generate_data.h"
+#include "generate_data/single_triangle/generate_data.h"
 #include "generate_data/torch_utils.h"
 #include "generate_data/triangle.h"
 #include "generate_data/triangle_subset.h"
@@ -9,6 +9,7 @@
 #include <memory>
 
 namespace generate_data {
+namespace single_triangle {
 // TODO: consider more efficient representation later
 template <unsigned n_prior_dims> class RegionSetter {
 public:
@@ -32,4 +33,5 @@ private:
 
   std::unique_ptr<Impl> impl_;
 };
+} // namespace single_triangle
 } // namespace generate_data

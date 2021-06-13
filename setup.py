@@ -37,8 +37,8 @@ class build_ext(build_ext_orig):
 
 
 setup(
-    name='neural_render_generate_data',
-    ext_modules=[CMakeExtension('neural_render_generate_data')],
+    name='neural_render_generate_data_full_scene',
+    ext_modules=[CMakeExtension('neural_render_generate_data_full_scene')],
     cmdclass={
         'build_ext': build_ext,
     },

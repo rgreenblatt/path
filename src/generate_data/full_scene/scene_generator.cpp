@@ -101,9 +101,9 @@ static VectorT<TriangleNormals> load_obj(const std::string &path) {
 }
 
 SceneGenerator::SceneGenerator() {
-  sphere_ = load_obj("scenes/models/sphere.obj");
-  monkey_ = load_obj("scenes/models/monkey.obj");
-  torus_ = load_obj("scenes/models/torus.obj");
+  sphere_ = load_obj(OBJ_DIR_PATH "sphere.obj");
+  monkey_ = load_obj(OBJ_DIR_PATH "monkey.obj");
+  torus_ = load_obj(OBJ_DIR_PATH "torus.obj");
   meshs_ = {&sphere_, &torus_};
 }
 
@@ -134,7 +134,7 @@ scene::Material random_bsdf(std::mt19937 &rng, bool force_emissive) {
     // we could also have transparent + diffuse + glossy, but that't not
     // really needed atm
     if (is_only_transparent) {
-      float ior = std::uniform_real_distribution(1.2f, 2.f)(rng);
+      float ior = std::uniform_real_distribution(1.1f, 2.f)(rng);
       return {
           {tag_v<bsdf::BSDFType::DielectricRefractive>, random_weights(), ior}};
     }
@@ -220,8 +220,8 @@ SceneGenerator::generate(std::mt19937 &rng) {
 
   unsigned mesh_count, individual_tri_count, total_size;
   while (true) {
-    mesh_count = std::uniform_int_distribution(0u, 3u)(rng);
-    individual_tri_count = std::uniform_int_distribution(0u, 15u)(rng);
+    mesh_count = 0; // std::uniform_int_distribution(0u, 3u)(rng);
+    individual_tri_count = std::uniform_int_distribution(0u, 30u)(rng);
     total_size = mesh_count + individual_tri_count;
 
     if (total_size >= 2) {

@@ -42,6 +42,8 @@ template <ExecutionModel exec> struct Uniform {
 
       HOST_DEVICE inline State save() const { return *this; }
 
+      HOST_DEVICE inline auto &state() { return state_; }
+
     private:
       using GPUState = curandState;
       using CPUState = std::mt19937; // SPEED: maybe try other generators

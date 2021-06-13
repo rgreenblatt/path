@@ -8,7 +8,7 @@
 
 namespace bsdf {
 struct Mirror {
-  FloatRGB specular_;
+  FloatRGB specular;
 
   static constexpr bool discrete = true;
   static constexpr bool continuous = false;
@@ -18,7 +18,7 @@ struct Mirror {
   template <rng::RngState R>
   ATTR_PURE_NDEBUG HOST_DEVICE BSDFSample discrete_sample(
       const UnitVector &incoming_dir, const UnitVector &normal, R &) const {
-    return {reflect_over_normal(incoming_dir, normal), specular_};
+    return {reflect_over_normal(incoming_dir, normal), specular};
   }
 };
 

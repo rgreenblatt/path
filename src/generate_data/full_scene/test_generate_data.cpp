@@ -40,8 +40,11 @@ int main(int argc, char *argv[]) {
   // generate_data::full_scene::generate_data(200, 0, 0, 0);
 
   Timer timer;
-  generate_data::full_scene::generate_data(max_tris, 0, 0, base_seed);
+  generate_data::full_scene::generate_data(max_tris, 1, 1, 5, base_seed);
+
+  generate_data::full_scene::generate_data_for_image(max_tris, 64, 4, 5,
+                                                     base_seed);
   timer.report("run time");
 
-  // generate_data::full_scene::deinit_renderers();
+  generate_data::full_scene::deinit_renderers();
 }

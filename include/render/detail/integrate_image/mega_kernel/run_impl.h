@@ -67,6 +67,7 @@ Run<exec>::run(
           };
         }
       });
+  always_assert(division.total_num_blocks() > 0);
 
   unsigned num_locs = division.x_dim() * division.y_dim();
 

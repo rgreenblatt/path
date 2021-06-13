@@ -1,4 +1,4 @@
-#include "generate_data/region_setter.h"
+#include "generate_data/single_triangle/region_setter.h"
 
 #include "generate_data/constants.h"
 #include "generate_data/get_points_from_subset.h"
@@ -18,6 +18,7 @@
 #include <cmath>
 
 namespace generate_data {
+namespace single_triangle {
 template <unsigned n_prior_dims> struct RegionSetter<n_prior_dims>::Impl {
   boost::multi_array<VectorT<float>, n_prior_dims> point_values;
   boost::multi_array<float, n_prior_dims + 1> overall_features;
@@ -234,4 +235,5 @@ ATTR_NO_DISCARD_PURE PolygonInput RegionSetter<n_prior_dims>::as_poly_input() {
 template class RegionSetter<1>;
 template class RegionSetter<2>;
 template class RegionSetter<3>;
+} // namespace single_triangle
 } // namespace generate_data

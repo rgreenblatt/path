@@ -358,6 +358,9 @@ target_add_standard(generate_data_single_triangle_utils)
 
 add_library(generate_data_full_scene_utils STATIC
             "${BASE_GEN_DATA_P}/full_scene/scene_generator.cpp")
+target_compile_definitions(
+  generate_data_full_scene_utils
+  PRIVATE -DOBJ_DIR_PATH="${PROJECT_SOURCE_DIR}/scenes/models/")
 target_link_libraries(generate_data_full_scene_utils PUBLIC generate_data_utils)
 target_add_standard(generate_data_full_scene_utils)
 
@@ -377,8 +380,7 @@ target_link_libraries(
           Qt5::Widgets)
 target_add_standard(generate_data_full_scene_visualizer)
 
-add_library(generate_data STATIC "${BASE_GEN_DATA_P}/region_setter.cpp"
-                                 "${BASE_GEN_DATA_P}/constants.cpp")
+add_library(generate_data STATIC "${BASE_GEN_DATA_P}/constants.cpp")
 target_link_libraries(
   generate_data PUBLIC generate_data_utils torch Python::Python
                        "${TORCH_INSTALL_PREFIX}/lib/libtorch_python.so")
@@ -387,7 +389,8 @@ target_add_standard(generate_data)
 add_library(
   generate_data_single_triangle STATIC
   "${BASE_GEN_DATA_P}/single_triangle/generate_data.cpp"
-  "${BASE_GEN_DATA_P}/single_triangle/constants.cpp")
+  "${BASE_GEN_DATA_P}/single_triangle/constants.cpp"
+  "${BASE_GEN_DATA_P}/single_triangle/region_setter.cpp")
 target_link_libraries(
   generate_data_single_triangle
   PUBLIC generate_data generate_data_single_triangle_utils
@@ -397,6 +400,7 @@ target_add_standard(generate_data_single_triangle)
 add_library(
   generate_data_full_scene STATIC
   "${BASE_GEN_DATA_P}/full_scene/generate_data.cpp"
+  "${BASE_GEN_DATA_P}/full_scene/intersect_for_baryocentric_coords.cpp"
   "${BASE_GEN_DATA_P}/full_scene/constants.cpp")
 target_link_libraries(
   generate_data_full_scene

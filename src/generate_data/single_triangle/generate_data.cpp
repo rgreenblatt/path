@@ -1,16 +1,16 @@
 #include "generate_data/single_triangle/generate_data.h"
 
-#include "generate_data/amend_config.h"
 #include "generate_data/baryocentric_coords.h"
 #include "generate_data/baryocentric_to_ray.h"
 #include "generate_data/clip_by_plane.h"
 #include "generate_data/get_points_from_subset.h"
-#include "generate_data/region_setter.h"
 #include "generate_data/shadowed.h"
+#include "generate_data/single_triangle/amend_config.h"
 #include "generate_data/single_triangle/constants.h"
 #include "generate_data/single_triangle/generate_scene.h"
 #include "generate_data/single_triangle/generate_scene_triangles.h"
 #include "generate_data/single_triangle/normalize_scene_triangles.h"
+#include "generate_data/single_triangle/region_setter.h"
 #include "generate_data/to_tensor.h"
 #include "generate_data/torch_utils.h"
 #include "generate_data/triangle.h"
@@ -35,7 +35,8 @@ namespace single_triangle {
 static VectorT<render::Renderer> renderers;
 
 template <bool is_image>
-using Out = std::conditional_t<is_image, ImageData, StandardData>;
+using Out = std::conditional_t<is_image, ImageData<NetworkInputs>,
+                               StandardData<NetworkInputs>>;
 
 // TODO: consider fixing extra copies (if needed).
 // Could really return gpu tensor and output directly to tensor.
@@ -442,7 +443,7 @@ Out<is_image> generate_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
     };
   }
 
-  StandardData out{
+  StandardData<NetworkInputs> out{
       .inputs =
           {
               .overall_scene_features = to_tensor(overall_scene_features),
@@ -462,17 +463,18 @@ Out<is_image> generate_data_impl(int n_scenes, int n_samples_per_scene_or_dim,
   }
 }
 
-StandardData generate_data(int n_scenes, int n_samples_per_scene, int n_samples,
-                           unsigned base_seed) {
+StandardData<NetworkInputs> generate_data(int n_scenes, int n_samples_per_scene,
+                                          int n_samples, unsigned base_seed) {
   return generate_data_impl<false>(n_scenes, n_samples_per_scene, n_samples,
                                    base_seed);
 }
 
-ImageData generate_data_for_image(int n_scenes, int dim, int n_samples,
-                                  unsigned base_seed) {
+ImageData<NetworkInputs> generate_data_for_image(int n_scenes, int dim,
+                                                 int n_samples,
+                                                 unsigned base_seed) {
   return generate_data_impl<true>(n_scenes, dim, n_samples, base_seed);
 }
 
-void deinit_renderers() { renderers.resize(0); }
+void deinit_renderers() { renderers.clear(); }
 } // namespace single_triangle
 } // namespace generate_data

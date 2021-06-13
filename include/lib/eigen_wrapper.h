@@ -34,6 +34,9 @@ template <typename TIn> struct Wrapper {
   constexpr CMapT operator()() const { return CMapT(arr.data()); }
   constexpr MapT operator()() { return MapT(arr.data()); }
 
+  constexpr decltype(auto) begin() const { return arr.begin(); }
+  constexpr decltype(auto) end() const { return arr.end(); }
+
   constexpr decltype(auto) sum() const { return (*this)().sum(); }
   constexpr decltype(auto) normalized() const { return (*this)().normalized(); }
   constexpr decltype(auto) norm() const { return (*this)().norm(); }

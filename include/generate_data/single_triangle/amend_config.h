@@ -3,6 +3,7 @@
 #include "render/settings.h"
 
 namespace generate_data {
+namespace single_triangle {
 static void amend_config(render::Settings &settings) {
   // TODO: is sobel fine???
   settings.term_prob = {
@@ -12,4 +13,5 @@ static void amend_config(render::Settings &settings) {
       .back_cull_emission = true,
   };
 }
+} // namespace single_triangle
 } // namespace generate_data

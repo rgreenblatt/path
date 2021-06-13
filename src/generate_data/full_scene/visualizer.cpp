@@ -1,3 +1,5 @@
+#include "generate_data/full_scene/amend_config.h"
+#include "generate_data/full_scene/default_film_to_world.h"
 #include "generate_data/full_scene/scene_generator.h"
 #include "lib/assert.h"
 #include "lib/span.h"
@@ -16,17 +18,18 @@ constexpr char USAGE[] =
     R"(Path
 
     Usage:
-      generate_data_visualizer [--seed=<seed>] [--config=<file_name>]
-        [-g | --gpu] [--print-config]
+      generate_data_visualizer [--seed=<seed>] [--n-output-steps=<steps>]
+        [--config=<file_name>] [-g | --gpu] [--print-config]
       generate_data_visualizer (-h | --help)
 
     Options:
-      -h --help                  Show this screen.
-      --seed=<seed>              Random seed [default: 0]
-      --config=<file_name>       Config file name. If no file is specified,
-                                 default settings will be used.
-      -g --gpu                   Use gpu
-      --print-config             Print config
+      -h --help                 Show this screen.
+      --seed=<seed>             Random seed [default: 0]
+      --n-output-steps=<steps>  Number of steps for output images [default: 8]
+      --config=<file_name>      Config file name. If no file is specified,
+                                default settings will be used.
+      -g --gpu                  Use gpu
+      --print-config            Print config
 )";
 
 int main(int argc, char *argv[]) {
@@ -51,6 +54,7 @@ int main(int argc, char *argv[]) {
   const std::string output_file_name = "out.png";
   const std::string baryocentric_output_file_name = "baryo.png";
   const bool print_config = get_unpack_arg("--print-config").asBool();
+  const unsigned n_output_steps = get_unpack_arg("--n-output-steps").asLong();
   const unsigned seed = get_unpack_arg("--seed").asLong();
 
   if (using_gpu) {
@@ -76,9 +80,7 @@ int main(int argc, char *argv[]) {
   std::mt19937 rng(seed);
   const auto &scene = std::get<0>(generator.generate(rng));
 
-  auto film_to_world = scene::get_camera_transform(
-      UnitVector::new_normalize({0.f, 0.f, -1.f}),
-      UnitVector::new_normalize({0.f, 1.f, 0.f}), {0.f, 0.f, 10.f}, 45.f, 1.f);
+  auto film_to_world = default_film_to_world();
 
   render::Renderer renderer;
 
@@ -86,19 +88,19 @@ int main(int argc, char *argv[]) {
   unsigned height = width;
   unsigned num_samples = 8192;
 
-  QImage image(width, height, QImage::Format_RGB32);
-  Span<BGRA32> pixels(reinterpret_cast<BGRA32 *>(image.bits()), width * height);
-
   render::Settings settings;
   auto config_file_name = get_unpack_arg("--config");
   if (config_file_name) {
     settings = render::load_config(config_file_name.asString());
   }
-  settings.rendering_equation_settings.back_cull_emission = false;
-  // amend_config(settings);
+  amend_config(settings);
   if (print_config) {
     render::print_config(settings);
   }
+
+  VectorT<VectorT<FloatRGB>> step_outputs(n_output_steps,
+                                          VectorT<FloatRGB>{width * height});
+  VectorT<Span<FloatRGB>> outputs(step_outputs.begin(), step_outputs.end());
 
   renderer.render(execution_model,
                   {tag_v<render::SampleSpecType::SquareImage>,
@@ -107,8 +109,29 @@ int main(int argc, char *argv[]) {
                        .y_dim = height,
                        .film_to_world = film_to_world,
                    }},
-                  {tag_v<render::OutputType::BGRA>, pixels}, scene, num_samples,
-                  settings, true);
+                  {tag_v<render::OutputType::OutputPerStep>, outputs}, scene,
+                  num_samples, settings, true);
+  for (unsigned i = 0; i < step_outputs.size(); ++i) {
+    QImage image(width, height, QImage::Format_RGB32);
+    std::transform(step_outputs[i].begin(), step_outputs[i].end(),
+                   reinterpret_cast<BGRA32 *>(image.bits()),
+                   [&](const FloatRGB &v) { return float_rgb_to_bgra_32(v); });
+    std::stringstream name_s;
+    name_s << "out_" << i << ".png";
+    image.save(name_s.str().c_str());
+  }
 
-  image.save(output_file_name.c_str());
+  QImage summed_image(width, height, QImage::Format_RGB32);
+  SpanSized<BGRA32> vals{reinterpret_cast<BGRA32 *>(summed_image.bits()),
+                         width * height};
+  for (unsigned i = 0; i < vals.size(); ++i) {
+    FloatRGB total = FloatRGB::Zero();
+
+    for (unsigned j = 0; j < step_outputs.size(); ++j) {
+      total += step_outputs[j][i];
+    }
+
+    vals[i] = float_rgb_to_bgra_32(total);
+  }
+  summed_image.save(output_file_name.c_str());
 }

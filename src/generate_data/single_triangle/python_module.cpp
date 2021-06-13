@@ -39,14 +39,16 @@ PYBIND11_MODULE(neural_render_generate_data_single_triangle, m) {
       .def_readwrite("ray_inputs", &NetworkInputs::ray_inputs)
       .def_readwrite("baryocentric_coords", &NetworkInputs::baryocentric_coords)
       .def("to", &NetworkInputs::to);
-  py::class_<StandardData>(m, "StandardData")
-      .def_readwrite("inputs", &StandardData::inputs)
-      .def_readwrite("values", &StandardData::values)
-      .def("to", &StandardData::to);
-  py::class_<ImageData>(m, "ImageData")
-      .def_readwrite("standard", &ImageData::standard)
-      .def_readwrite("image_indexes", &ImageData::image_indexes)
-      .def("to", &ImageData::to);
+  using Stand = StandardData<NetworkInputs>;
+  py::class_<Stand>(m, "StandardData")
+      .def_readwrite("inputs", &Stand::inputs)
+      .def_readwrite("values", &Stand::values)
+      .def("to", &Stand::to);
+  using Image = ImageData<NetworkInputs>;
+  py::class_<Image>(m, "ImageData")
+      .def_readwrite("standard", &Image::standard)
+      .def_readwrite("image_indexes", &Image::image_indexes)
+      .def("to", &Image::to);
   using Const = generate_data::single_triangle::Constants;
   py::class_<Const>(m, "Constants")
       .def(py::init<>())

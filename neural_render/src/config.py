@@ -57,11 +57,17 @@ class Config(argparse.Namespace):
 
         parser.add_argument('--lr-multiplier', type=float, default=1.0)
         parser.add_argument('--no-perceptual-loss', action='store_true')
-        parser.add_argument('--batch-size', type=int, default=2048)
+        parser.add_argument('--batch-size', type=int, default=128)
         parser.add_argument('--epoch-size', type=int, default=65536)
-        parser.add_argument('--validation-size', type=int, default=4096)
-        parser.add_argument('--image-count', type=int, default=32)
+        parser.add_argument('--validation-size', type=int, default=2048)
+        parser.add_argument('--image-scene-count', type=int, default=8)
         parser.add_argument('--image-dim', type=int, default=128)
+        parser.add_argument(
+            '--n-steps',
+            type=int,
+            default=5,
+            help='number of steps used in rendering (max bounces)',
+        )
         parser.add_argument('--rays-per-tri', type=int, default=128)
         parser.add_argument('--samples-per-ray', type=int, default=512)
         parser.add_argument('--no-cudnn-benchmark', action='store_true')

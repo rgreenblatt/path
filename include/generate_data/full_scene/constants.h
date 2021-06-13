@@ -5,7 +5,9 @@
 namespace generate_data {
 namespace full_scene {
 struct Constants : generate_data::Constants {
-  // TODO
+  int n_tri_values;
+  int n_coords_feature_values;
+  int n_bsdf_values;
 
   Constants();
 };

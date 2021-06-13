@@ -17,3 +17,9 @@ static constexpr auto array_cat(const std::array<T, sizes> &...arr) {
 
   return out;
 }
+
+template <typename T, std::size_t size>
+static constexpr std::array<T, size + 1>
+array_append(const std::array<T, size> &arr, const T &v) {
+  return array_cat(arr, std::array<T, 1>{v});
+}

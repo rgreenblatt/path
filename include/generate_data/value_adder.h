@@ -1,6 +1,7 @@
 #pragma once
 
 #include "generate_data/remap_large.h"
+#include "lib/attribute.h"
 
 #include <array>
 
@@ -54,5 +55,7 @@ template <typename F> struct ValueAdder {
   }
 };
 
-template <typename F> auto make_value_adder(F v) { return ValueAdder<F>{v}; }
+template <typename F> ATTR_PURE_NDEBUG auto make_value_adder(F v) {
+  return ValueAdder<F>{v};
+}
 }; // namespace generate_data

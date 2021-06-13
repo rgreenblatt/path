@@ -35,6 +35,9 @@ public:
     }
   }
 
+  ATTR_PURE HOST_DEVICE const FloatRGB &specular() const { return specular_; }
+  ATTR_PURE HOST_DEVICE float ior() const { return ior_; }
+
 private:
   FloatRGB specular_;
   float ior_;

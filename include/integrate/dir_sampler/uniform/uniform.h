@@ -4,6 +4,7 @@
 #include "integrate/dir_sampler/dir_sampler.h"
 #include "integrate/dir_sampler/ref_from_continuous_sampler.h"
 #include "integrate/dir_sampler/uniform/settings.h"
+#include "integrate/dir_sampler/uniform_direction_sample.h"
 #include "lib/assert.h"
 #include "lib/cuda/utils.h"
 #include "lib/projection.h"
@@ -25,17 +26,8 @@ public:
     HOST_DEVICE Sample operator()(const Eigen::Vector3f &, const B &bsdf,
                                   const UnitVector &incoming_dir,
                                   const UnitVector &normal, R &rng) const {
-      float v0 = rng.next();
-      float v1 = rng.next();
-
       bool need_whole_sphere = !bsdf.is_brdf();
-
-      float phi = 2 * M_PI * v0;
-      float theta = std::acos(need_whole_sphere ? 2 * v1 - 1 : v1);
-
-      auto direction = find_relative_vec(normal, phi, theta);
-
-      debug_assert(need_whole_sphere || direction->dot(*normal) >= 0);
+      auto direction = uniform_direction_sample(rng, normal, need_whole_sphere);
 
       float inv_prob_of_direction = (need_whole_sphere ? 4 : 2) * M_PI;
 

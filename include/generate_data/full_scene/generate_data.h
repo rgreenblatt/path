@@ -4,77 +4,53 @@
 
 #include <ATen/Tensor.h>
 
+#include <optional>
 #include <tuple>
+#include <vector>
 
-// TODO: dedup!
 namespace generate_data {
 namespace full_scene {
-#if 0
 struct NetworkInputs {
-  at::Tensor overall_scene_features;
   at::Tensor triangle_features;
-  std::vector<PolygonInputForTri> polygon_inputs;
-  std::vector<RayInput> ray_inputs;
+  at::Tensor mask;
+  at::Tensor bsdf_features;
+  at::Tensor emissive_values;
   at::Tensor baryocentric_coords;
+  at::Tensor triangle_idxs_for_coords;
+  unsigned total_tri_count;
+  std::vector<unsigned> n_samples_per;
 
   inline NetworkInputs to(const at::Tensor &example_tensor) const {
-    std::vector<PolygonInputForTri> new_polygon_inputs(polygon_inputs.size());
-    std::transform(
-        polygon_inputs.begin(), polygon_inputs.end(),
-        new_polygon_inputs.begin(),
-        [&](const PolygonInputForTri &inp) { return inp.to(example_tensor); });
-    std::vector<RayInput> new_ray_inputs(ray_inputs.size());
-    std::transform(ray_inputs.begin(), ray_inputs.end(), new_ray_inputs.begin(),
-                   [&](const RayInput &inp) { return inp.to(example_tensor); });
     return {
-        .overall_scene_features = overall_scene_features.to(
-            example_tensor.device(), example_tensor.dtype()),
         .triangle_features = triangle_features.to(example_tensor.device(),
                                                   example_tensor.dtype()),
-        .polygon_inputs = new_polygon_inputs,
-        .ray_inputs = new_ray_inputs,
+        .mask = mask.to(example_tensor.device()),
+        .bsdf_features =
+            bsdf_features.to(example_tensor.device(), example_tensor.dtype()),
+        .emissive_values =
+            emissive_values.to(example_tensor.device(), example_tensor.dtype()),
         .baryocentric_coords = baryocentric_coords.to(example_tensor.device(),
                                                       example_tensor.dtype()),
+        .triangle_idxs_for_coords =
+            triangle_idxs_for_coords.to(example_tensor.device()),
+        .total_tri_count = total_tri_count,
+        .n_samples_per = n_samples_per,
     };
   }
 };
 
-struct StandardData {
-  NetworkInputs inputs;
-  at::Tensor values;
+StandardData<NetworkInputs> generate_data(int max_tris,
+                                          std::optional<int> forced_n_scenes,
+                                          int n_samples_per_tri, int n_samples,
+                                          int n_steps, unsigned base_seed);
 
-  inline StandardData to(const at::Tensor &example_tensor) const {
-    return {
-        .inputs = inputs.to(example_tensor),
-        .values = values.to(example_tensor.device(), example_tensor.dtype()),
-    };
-  }
-};
-
-StandardData generate_data(int n_scenes, int n_samples_per_scene, int n_samples,
-                           unsigned base_seed);
-
-struct ImageData {
-  StandardData standard;
-  at::Tensor image_indexes;
-
-  inline ImageData to(const at::Tensor &example_tensor) const {
-    return {
-        .standard = standard.to(example_tensor),
-        .image_indexes = image_indexes.to(example_tensor.device()),
-    };
-  }
-};
-
-ImageData generate_data_for_image(int n_scenes, int dim, int n_samples,
-                                  unsigned base_seed);
+ImageData<NetworkInputs>
+generate_data_for_image(int max_tris, std::optional<int> forced_n_scenes,
+                        int dim, int n_samples, int n_steps,
+                        unsigned base_seed);
 
 // hack to avoid issues with "CUDA free failed: cudaErrorCudartUnloading:
 // driver shutting down"
 void deinit_renderers();
-#else
-void generate_data(int max_tris, int n_samples_per_scene_or_dim, int n_samples,
-                   unsigned seed);
-#endif
 } // namespace full_scene
 } // namespace generate_data

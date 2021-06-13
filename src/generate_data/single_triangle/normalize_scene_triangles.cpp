@@ -1,5 +1,6 @@
 #include "generate_data/single_triangle/normalize_scene_triangles.h"
 
+#include "generate_data/sort_triangle_points.h"
 #include "generate_data/triangle.h"
 #include "lib/projection.h"
 
@@ -41,16 +42,9 @@ SceneTriangles normalize_scene_triangles(const SceneTriangles &tris) {
 
   apply_transform(rotate_to_x);
 
-  auto apply_sort = [](intersect::TriangleGen<double> &tri) {
-    std::sort(tri.vertices.begin(), tri.vertices.end(),
-              [&](const Eigen::Vector3d &l, const Eigen::Vector3d &r) {
-                return l.z() < r.z();
-              });
-  };
-
-  apply_sort(new_tris.triangle_onto);
-  apply_sort(new_tris.triangle_blocking);
-  apply_sort(new_tris.triangle_light);
+  sort_triangle_points(new_tris.triangle_onto);
+  sort_triangle_points(new_tris.triangle_blocking);
+  sort_triangle_points(new_tris.triangle_light);
 
   auto restore_normal = [&](Eigen::Vector3d &orig_normal, Triangle &tri) {
     orig_normal.normalize();
